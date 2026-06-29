@@ -24,7 +24,7 @@
   .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(1200px 600px at 50% -10%, #2a2142 0%, transparent 60%), #15111f}
   .app{width:100%;display:flex;flex-direction:column;align-items:center}
   .wrap{width:100%;display:flex;flex-direction:column;gap:14px}
- 
+
   .topbar{display:flex;align-items:center;justify-content:space-between;-webkit-app-region:drag}
   .topbar button,.topbar input{-webkit-app-region:no-drag}
   .wbtn{display:none;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:none;cursor:pointer;
@@ -35,27 +35,32 @@
   .title{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1;display:flex;align-items:center;gap:9px}
   .title .dot{width:11px;height:11px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
   .title small{font-size:12px;color:var(--muted);font-weight:600}
- 
+
   /* transparency window control — lives outside the faded app so it stays usable */
-  .opacityctl{position:fixed;top:12px;right:12px;z-index:40;display:flex;align-items:center;gap:8px;-webkit-app-region:no-drag;
-    background:rgba(31,25,48,.92);border:1px solid var(--line);border-radius:999px;padding:7px 12px;
-    box-shadow:0 8px 24px rgba(0,0,0,.4);backdrop-filter:blur(6px)}
-  .opacityctl span{font-size:13px}
-  .opacityctl input[type=range]{width:96px;accent-color:var(--accent)}
- 
+  .opacityctl{position:fixed;top:12px;right:12px;z-index:9999;display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag;
+    background:rgba(31,25,48,.96);border:1px solid var(--line);border-radius:999px;padding:9px 14px;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+  .opacityctl span{font-size:15px}
+  .opacityctl input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:26px;background:transparent;cursor:pointer;margin:0}
+  .opacityctl input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--panel2)}
+  .opacityctl input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--panel2)}
+  .opacityctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;margin-top:-8px;border-radius:50%;background:var(--accent);border:2px solid #15110f;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .opacityctl input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:2px solid #15110f}
+  .opacityctl input[type=range]:focus{outline:none}
+
   .card{background:rgba(31,25,48,.96);border-radius:18px;padding:20px;box-shadow:0 18px 40px rgba(0,0,0,.4), inset 0 0 0 1px var(--line);width:100%}
   .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
   .lbl.mt{margin-top:18px}
- 
+
   .tabs{display:flex;gap:8px;margin-bottom:16px}
   .tabs button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:12px 0;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s}
   .tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
- 
+
   .chips{display:flex;gap:8px}
   .chips button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:11px 4px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s}
   .chips button.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
   .modedesc{color:var(--muted);font-size:12.5px;margin-top:9px;line-height:1.5}
- 
+
   .names{display:flex;flex-direction:column;gap:9px}
   .names .row{display:flex;align-items:center;gap:9px}
   .names .pill{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;color:#15110f}
@@ -65,28 +70,28 @@
   .seg button{background:transparent;border:none;color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;padding:9px 11px;cursor:pointer}
   .seg button.on{background:var(--accent);color:var(--accent-ink)}
   .seg button.on.ai{background:var(--ai);color:#06222e}
- 
+
   .optrow{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
   .toggle{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted);font-size:14px;font-weight:600}
   .switch{width:42px;height:24px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;transition:background .15s}
   .switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:all .15s}
   .toggle.on .switch{background:var(--accent)}
   .toggle.on .switch::after{left:21px;background:var(--accent-ink)}
- 
+
   .btn{width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 6px 18px rgba(174,243,89,.26);transition:transform .08s,opacity .12s;margin-top:20px}
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:var(--panel2);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
   .btn:disabled{opacity:.45;cursor:default}
   .row2{display:flex;gap:9px;margin-top:14px}
   .row2 .btn{margin-top:0}
- 
+
   .roomcode{font-size:30px;font-weight:800;letter-spacing:.18em;text-align:center;background:var(--panel2);border-radius:12px;padding:16px;margin:4px 0 14px;color:var(--accent)}
   .members{display:flex;flex-direction:column;gap:8px}
   .member{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:10px;padding:10px 12px;font-weight:600}
   .member .swatch{width:12px;height:12px;border-radius:4px;flex:none}
   .member .host{font-size:10px;font-weight:800;letter-spacing:.08em;background:var(--gold);color:#3a2a00;padding:2px 6px;border-radius:5px;margin-left:auto}
   .neterr{color:var(--danger);font-size:13px;margin-top:10px;text-align:center;min-height:16px}
- 
+
   /* game */
   #game{display:none;flex-direction:column;gap:12px;width:100%}
   .turnbar{display:flex;align-items:center;justify-content:space-between;background:rgba(31,25,48,.96);border-radius:14px;padding:11px 15px;box-shadow:inset 0 0 0 1px var(--line)}
@@ -98,20 +103,32 @@
   .turnbar .pips{display:flex;gap:5px}
   .turnbar .pips i{width:9px;height:9px;border-radius:50%;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
   .turnbar .pips i.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
- 
+
   .timerbar{height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
   .timerbar i{display:block;height:100%;width:100%;background:var(--accent);transition:width .1s linear, background .3s}
- 
-  .tray{position:relative;width:100%;height:236px;border-radius:16px;overflow:hidden;
+
+  .tray{position:relative;width:100%;height:188px;border-radius:16px;overflow:hidden;
     background:radial-gradient(120% 120% at 50% 0%, rgba(46,38,72,.5), rgba(21,17,31,.2));
     box-shadow:inset 0 0 0 1px var(--line), inset 0 14px 40px rgba(0,0,0,.35)}
   .tray canvas{display:block;width:100%;height:100%}
   .trayhint{position:absolute;left:0;right:0;bottom:8px;text-align:center;color:var(--muted);font-size:11.5px;pointer-events:none}
- 
+
+  /* 2D result dice — the readout + hold control */
+  .dice2d{display:flex;gap:10px;justify-content:center;margin-top:10px}
+  .d2{width:46px;height:46px;border-radius:11px;background:linear-gradient(145deg,#f5f1e6,#e4ddcc);
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:6px;cursor:pointer;
+    box-shadow:0 3px 0 rgba(0,0,0,.32), inset 0 0 0 1px rgba(0,0,0,.06);transition:transform .1s,box-shadow .12s}
+  .d2 .c{display:flex;align-items:center;justify-content:center}
+  .d2 .p{width:62%;aspect-ratio:1;border-radius:50%;background:#16121d}
+  .d2.held{box-shadow:0 0 0 3px var(--accent),0 0 14px rgba(174,243,89,.5);transform:translateY(-3px)}
+  .d2.rolling{background:linear-gradient(145deg,#3a3052,#272038)}
+  .d2.blank{background:linear-gradient(145deg,#322a48,#231d33)}
+  .d2.lock{cursor:default}
+
   .controls{display:flex;flex-direction:column;align-items:center;gap:8px}
   .rollbtn{max-width:300px}
   .hint{color:var(--muted);font-size:12.5px;text-align:center;min-height:16px;padding:0 8px}
- 
+
   .sheetwrap{overflow-x:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);background:rgba(31,25,48,.96)}
   table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
   th,td{text-align:center;font-size:13px}
@@ -129,7 +146,7 @@
   tr.section td.catcol{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding-top:11px}
   tr.bonus td,tr.bonus td.catcol{color:var(--gold)}
   tr.total td{font-size:15px;font-weight:800;color:var(--ink);border-top:1px solid var(--line);padding:10px 6px}
- 
+
   .overlay{position:fixed;inset:0;background:rgba(13,10,20,.86);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;z-index:30}
   .overlay.show{display:flex}
   .result{background:var(--panel);border-radius:20px;padding:26px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
@@ -154,7 +171,7 @@
     <button class="wbtn" id="winMin" title="최소화">—</button>
     <button class="wbtn" id="winClose" title="닫기">✕</button>
   </div>
- 
+
   <div id="root">
   <div class="bg"></div>
   <div class="app">
@@ -162,13 +179,13 @@
       <div class="topbar">
         <div class="title"><span class="dot"></span>요트 다이스 <small id="modeName"></small></div>
       </div>
- 
+
       <div class="card" id="setup">
         <div class="tabs">
           <button id="tabLocal" class="on">로컬 / AI</button>
           <button id="tabOnline">온라인</button>
         </div>
- 
+
         <!-- LOCAL -->
         <div id="localCfg">
           <div class="lbl">규칙 모드</div>
@@ -181,7 +198,7 @@
           <div class="optrow"><div class="toggle on" id="soundToggle"><div class="switch"></div>주사위 소리</div></div>
           <button class="btn" id="startLocal">게임 시작</button>
         </div>
- 
+
         <!-- ONLINE -->
         <div id="onlineCfg" style="display:none">
           <div id="onlineJoin">
@@ -198,11 +215,16 @@
             <div class="neterr" id="netErr"></div>
             <div class="modedesc" style="margin-top:14px">온라인은 같은 서버에 접속한 사람끼리 방 코드로 함께 플레이합니다. 로컬 파일(file://)로 열면 동작하지 않고, 배포된 주소에서 사용하세요.</div>
           </div>
- 
+
           <div id="lobby" style="display:none">
             <div class="lbl">방 코드 — 친구에게 공유</div>
             <div class="roomcode" id="lobbyCode">----</div>
-            <div class="lbl">규칙 모드 <span id="hostOnly" style="text-transform:none;letter-spacing:0;color:var(--muted)"></span></div>
+            <div class="lbl">내 이름</div>
+            <div class="row" style="display:flex;gap:9px;align-items:center">
+              <input class="txt" id="lobbyName" maxlength="10" placeholder="이름">
+              <button class="btn ghost" id="renameBtn" style="margin-top:0;width:auto;padding:11px 16px">변경</button>
+            </div>
+            <div class="lbl mt">규칙 모드 <span id="hostOnly" style="text-transform:none;letter-spacing:0;color:var(--muted)"></span></div>
             <div class="chips" id="modesO"></div>
             <div class="modedesc" id="modedescO"></div>
             <div class="lbl mt">참가자</div>
@@ -212,7 +234,7 @@
           </div>
         </div>
       </div>
- 
+
       <!-- GAME -->
       <div id="game">
         <div class="turnbar">
@@ -220,22 +242,23 @@
           <div class="rolls"><span>굴림</span><span class="pips" id="rollPips"></span></div>
         </div>
         <div class="timerbar"><i id="timerFill"></i></div>
- 
+
         <div class="tray" id="tray">
-          <div class="trayhint" id="trayhint">주사위를 탭하면 고정돼요</div>
+          <div class="trayhint" id="trayhint">3D로 굴러가요</div>
         </div>
- 
+        <div class="dice2d" id="dice2d"></div>
+
         <div class="controls">
           <button class="btn rollbtn" id="rollBtn">굴리기</button>
           <div class="hint" id="hint">주사위를 굴려 시작하세요.</div>
         </div>
- 
+
         <div class="sheetwrap"><table id="sheet"></table></div>
       </div>
     </div>
   </div>
   </div>
- 
+
   <div class="overlay" id="overlay">
     <div class="result">
       <h2 id="resTitle">게임 종료</h2>
@@ -247,16 +270,16 @@
       </div>
     </div>
   </div>
- 
+
   <div class="loaderr" id="loaderr">3D 라이브러리를 불러오지 못했습니다.<br>인터넷 연결을 확인하고 새로고침해 주세요.</div>
- 
+
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/geometries/RoundedBoxGeometry.js';
- 
+
 /* ============================ RULES & SCORING ============================ */
 const COLORS=['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
 const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
@@ -299,7 +322,7 @@ const RULES={
 const DUMP=['aces','twos','threes','yacht','yahtzee','lStraight','sStraight','threeKind','fourKind','fullHouse','fours','fives','sixes','choice','chance'];
 const TURN_MS=15000;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
- 
+
 /* ============================ SOUND (dice rattle) ============================ */
 let soundOn=true;
 const SFX=(()=>{ let ctx=null;
@@ -316,12 +339,12 @@ const SFX=(()=>{ let ctx=null;
     for(let k=0;k<n;k++){ const f=k/n; const at=now+f*0.9*(0.5+Math.random()*0.9); clackAt(at,(0.10+Math.random()*0.16)*(1-f*0.4),1500+Math.random()*1600); } }
   return {ensure,roll};
 })();
- 
+
 /* ============================ 3D DICE (three.js, scripted realism) ============================ */
 let renderer,scene,camera,diceMeshes=[],trayEl,raycaster,pointer;
 let rollPending=0,rollResolve=null;
 const laneX=i=>(i-2)*1.18;
- 
+
 const DIE=1.0, HALF=0.5;
 const BODY_GEO=new RoundedBoxGeometry(DIE,DIE,DIE,6,0.16);
 const PIP_GEO=new THREE.SphereGeometry(0.072,16,16);
@@ -384,7 +407,7 @@ function onTrayPointer(ev){
 }
 function setHeldVisual(i,held){ diceMeshes[i].userData.body.material.emissive.setHex(held?0x49761c:0x000000); }
 function setMeshValue(i,v){ if(v) diceMeshes[i].quaternion.copy(faceUpQuat(v)); diceMeshes[i].position.set(laneX(i),0.5,0); }
- 
+
 function startDieAnim(i,val){
   const m=diceMeshes[i];
   m.userData.anim={t:0,dur:0.95+Math.random()*0.3,fromQ:m.quaternion.clone(),toQ:faceUpQuat(val),
@@ -415,12 +438,12 @@ function loop(t){
   if(renderer)renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
- 
+
 /* ============================ GAME STATE + CONTROLLER ============================ */
 let G={mode:'yacht_kr',players:[],current:0,rollsLeft:3,rolled:false,dice:[],deadline:0,phase:'lobby'};
 let rule=RULES.yacht_kr,catById={},UPPER=[],LOWER=[];
 let busy=false,timerH=null,autoCalled=false;
- 
+
 function applyRule(){ rule=RULES[G.mode];catById={};rule.cats.forEach(c=>catById[c.id]=c);
   UPPER=rule.cats.filter(c=>c.sec==='up').map(c=>c.id);LOWER=rule.cats.filter(c=>c.sec==='low').map(c=>c.id);
   document.getElementById('modeName').textContent='· '+rule.name; }
@@ -433,9 +456,9 @@ const openCats=p=>rule.cats.filter(c=>p.scores[c.id]===null).map(c=>c.id);
 const curPlayer=()=>G.players[G.current];
 const amController=()=>Net.mode==='local'||Net.isHost;
 const isMySeat=()=>Net.mode==='local'||(G.players[G.current]&&G.players[G.current].netId===Net.myId);
- 
+
 function newScores(){const s={};rule.cats.forEach(c=>s[c.id]=null);return s;}
- 
+
 function startGameController(){
   applyRule(); G.phase='play'; G.current=0;
   G.dice=[0,1,2,3,4].map(()=>({value:0,held:false}));
@@ -459,6 +482,7 @@ function startTurnController(){
 async function doRollController(){
   if(G.rollsLeft<=0||rollPending>0) return;
   G.rollsLeft--;G.rolled=true;
+  if(!curPlayer().ai){ G.deadline=Date.now()+TURN_MS; autoCalled=false; startTimer(); } // 굴릴 때마다 15초 리셋
   const idx=[],vals=[];
   G.dice.forEach((d,i)=>{ if(!d.held){const v=1+(Math.random()*6|0);d.value=v;idx.push(i);vals.push(v);} });
   if(Net.isHost) Net.send({p:'roll',indices:idx,values:vals});
@@ -480,7 +504,7 @@ function commitController(catId){
   do{ G.current=(G.current+1)%G.players.length; }while(playerDone(curPlayer()));
   startTurnController();
 }
- 
+
 /* timer */
 function startTimer(){ clearTimer(); if(G.deadline<=0){updTimer();return;} timerH=setInterval(updTimer,100); updTimer(); }
 function clearTimer(){ if(timerH){clearInterval(timerH);timerH=null;} }
@@ -492,7 +516,7 @@ function updTimer(){
   fill.style.background= frac<0.25?'var(--danger)':frac<0.5?'var(--gold)':'var(--accent)';
   if(left<=0 && amController() && !autoCalled){ autoCalled=true; clearTimer(); autoFinish(); }
 }
- 
+
 /* AI / auto-play */
 function evalHand(d,open){let b=0;for(const id of open){const s=catById[id].score(d);if(s>b)b=s;}return b;}
 function aiHoldMask(d,open){let bm=0,bev=-1;for(let m=0;m<32;m++){let ev=0;const N=32;
@@ -514,7 +538,7 @@ async function autoFinish(){
   await sleep(250); const cat=aiPickCat(G.dice.map(d=>d.value),open); renderGame(cat); await sleep(350);
   busy=false; commitController(cat);
 }
- 
+
 /* state sync */
 function serialize(){ return {mode:G.mode,current:G.current,rollsLeft:G.rollsLeft,rolled:G.rolled,deadline:G.deadline,phase:G.phase,
   dice:G.dice.map(d=>({value:d.value,held:d.held})),
@@ -531,10 +555,11 @@ function applyState(s){
     if(!renderer)initThree();
   }
   diceMeshes.forEach((m,i)=>{ if(!m.userData.anim){ setMeshValue(i, G.dice[i].value||1); } setHeldVisual(i,G.dice[i].held); });
+  if(!diceMeshes.some(m=>m.userData.anim)) rollPending=0; // safety: never leave clients stuck
   startTimer();
   if(G.phase==='over')endGame(); else renderGame();
 }
- 
+
 /* ============================ UI HANDLERS ============================ */
 const UI={
   roll(){ if(busy||!isMySeat())return; if(amController())doRollController(); else Net.send({p:'action',a:{type:'roll'}}); },
@@ -548,15 +573,32 @@ function handleAction(fromId,a){ // host receives client actions
   else if(a.type==='hold')toggleHoldController(a.i);
   else if(a.type==='pick')commitController(a.cat);
 }
- 
+
 /* ============================ RENDER ============================ */
 const rollBtn=document.getElementById('rollBtn');
 const rollPipsEl=document.getElementById('rollPips');
 const hintEl=document.getElementById('hint');
 const sheetEl=document.getElementById('sheet');
 rollBtn.onclick=()=>UI.roll();
- 
-function renderGame(highlight){ renderTurn(); renderSheet(highlight); }
+
+function renderGame(highlight){ renderTurn(); renderDice2D(); renderSheet(highlight); }
+function renderDice2D(){
+  const wrap=document.getElementById('dice2d'); if(!wrap)return;
+  wrap.innerHTML='';
+  const mine=isMySeat()&&!busy;
+  G.dice.forEach((d,i)=>{
+    const el=document.createElement('div'); el.className='d2';
+    const animating = !!(diceMeshes[i]&&diceMeshes[i].userData.anim);
+    if(animating) el.classList.add('rolling');
+    else if(!d.value) el.classList.add('blank');
+    if(d.held) el.classList.add('held');
+    const on = (!animating && d.value) ? PIPS[d.value] : [];
+    for(let k=0;k<9;k++){const c=document.createElement('span');c.className='c';if(on.includes(k)){const p=document.createElement('span');p.className='p';c.appendChild(p);}el.appendChild(c);}
+    const canHold = mine && G.rolled && G.rollsLeft>0 && rollPending===0 && !animating;
+    if(canHold) el.onclick=()=>UI.tryToggleHold(i); else el.classList.add('lock');
+    wrap.appendChild(el);
+  });
+}
 function renderTurn(){
   const p=curPlayer();if(!p)return;
   document.getElementById('turnName').textContent=p.name;
@@ -571,8 +613,8 @@ function renderTurn(){
   document.getElementById('trayhint').style.opacity=(mine&&G.rolled&&G.rollsLeft>0)?'1':'0';
   if(p.ai)hintEl.textContent='AI가 플레이하고 있어요…';
   else if(!mine)hintEl.textContent=`${p.name}의 차례를 기다리는 중…`;
-  else if(!G.rolled)hintEl.textContent='주사위를 굴려 시작하세요. (15초)';
-  else if(G.rollsLeft>0)hintEl.textContent='주사위를 탭해 고정하고, 다시 굴리거나 점수 칸을 선택하세요.';
+  else if(!G.rolled)hintEl.textContent='주사위를 굴려 시작하세요. (굴릴 때마다 15초)';
+  else if(G.rollsLeft>0)hintEl.textContent='아래 주사위를 탭해 고정하고, 다시 굴리거나 점수 칸을 선택하세요.';
   else hintEl.textContent='점수표에서 기록할 칸을 선택하세요.';
 }
 function cellMarkup(p,pi,catId,hl){
@@ -600,7 +642,7 @@ function renderSheet(hl){
   sheetEl.querySelectorAll('td.preview[data-cat]').forEach(td=>{td.onclick=()=>UI.pick(td.dataset.cat);});
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
- 
+
 const overlay=document.getElementById('overlay');
 function endGame(){
   clearTimer();
@@ -618,7 +660,7 @@ function endGame(){
 }
 document.getElementById('replaySame').onclick=()=>{ if(!amController())return; G.players.forEach(p=>p.scores=newScores());G.current=0;overlay.classList.remove('show');startTurnController(); };
 document.getElementById('newGame').onclick=()=>location.reload();
- 
+
 /* ============================ SETUP UI (local) ============================ */
 let modeLocal='yacht_kr',playerCount=2;
 let nameVals=['플레이어 1','플레이어 2','AI 3','AI 4','AI 5','AI 6'],typeVals=['human','human','ai','ai','ai','ai'];
@@ -653,7 +695,7 @@ document.getElementById('startLocal').onclick=()=>{
     G.players.push({name:nm,color:COLORS[i],ai:typeVals[i]==='ai',scores:newScores()});}
   startGameController();
 };
- 
+
 /* tabs */
 document.getElementById('tabLocal').onclick=()=>switchTab(true);
 document.getElementById('tabOnline').onclick=()=>switchTab(false);
@@ -663,7 +705,7 @@ function switchTab(local){
   document.getElementById('localCfg').style.display=local?'block':'none';
   document.getElementById('onlineCfg').style.display=local?'none':'block';
 }
- 
+
 /* ============================ ONLINE / NETWORK ============================ */
 const Net={ mode:'local', ws:null, isHost:false, myId:null, code:null, members:[], modeO:'yacht_kr',
   send(payload){ if(this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify({t:'msg',code:this.code,payload})); },
@@ -684,7 +726,7 @@ function onNet(m){
   else if(m.t==='error'){ document.getElementById('netErr').textContent=m.msg||'오류'; }
   else if(m.t==='msg'){ const {from,payload}=m;
     if(payload.p==='state'){ applyState(payload.state); }
-    else if(payload.p==='roll'){ if(!Net.isHost) animateRoll(payload.indices,payload.values); }
+    else if(payload.p==='roll'){ if(!Net.isHost){ payload.indices.forEach((i,k)=>{ if(G.dice[i]) G.dice[i].value=payload.values[k]; }); renderGame(); animateRoll(payload.indices,payload.values).then(()=>renderGame()); } }
     else if(payload.p==='action'){ handleAction(from,payload.a); }
     else if(payload.p==='lobby'){ Net.modeO=payload.mode; renderLobby(); }
     else if(payload.p==='start'){ /* clients wait for state */ }
@@ -696,20 +738,31 @@ document.getElementById('createRoom').onclick=()=>{ SFX.ensure(); const name=(do
 document.getElementById('joinRoom').onclick=()=>{ SFX.ensure(); const name=(document.getElementById('onlineName').value||'').trim()||'게스트';
   const code=(document.getElementById('joinCode').value||'').trim().toUpperCase(); if(code.length<3){document.getElementById('netErr').textContent='방 코드를 입력하세요.';return;}
   connect(()=>Net.ws.send(JSON.stringify({t:'join',code,name}))); };
- 
+
 function enterLobby(){
   document.getElementById('onlineJoin').style.display='none';
   document.getElementById('lobby').style.display='block';
   document.getElementById('lobbyCode').textContent=Net.code;
   document.getElementById('hostOnly').textContent=Net.isHost?'':'(호스트가 선택)';
+  const me=Net.members.find(u=>u.id===Net.myId);
+  document.getElementById('lobbyName').value = me ? me.name : (document.getElementById('onlineName').value||'');
   buildModeChips(document.getElementById('modesO'),document.getElementById('modedescO'),()=>Net.modeO,id=>{ if(!Net.isHost)return; Net.modeO=id; Net.send({p:'lobby',mode:id}); });
   if(!Net.isHost){ document.getElementById('modesO').querySelectorAll('button').forEach(b=>b.disabled=true); }
   renderLobby();
 }
+function doRename(){
+  const name=(document.getElementById('lobbyName').value||'').trim();
+  if(!name) return;
+  if(Net.ws&&Net.ws.readyState===1) Net.ws.send(JSON.stringify({t:'rename',name}));
+}
+document.getElementById('renameBtn').onclick=doRename;
+document.getElementById('lobbyName').addEventListener('keydown',e=>{ if(e.key==='Enter')doRename(); });
 function renderLobby(){
   const mem=document.getElementById('members');mem.innerHTML='';
   Net.members.forEach((u,i)=>{const d=document.createElement('div');d.className='member';
-    d.innerHTML=`<span class="swatch" style="background:${COLORS[i%6]}"></span>${esc(u.name)}${u.host?'<span class="host">HOST</span>':''}`;mem.appendChild(d);});
+    d.innerHTML=`<span class="swatch" style="background:${COLORS[i%6]}"></span>${esc(u.name)}${u.id===Net.myId?' <span class="youtag">나</span>':''}${u.host?'<span class="host">HOST</span>':''}`;mem.appendChild(d);});
+  const nameInput=document.getElementById('lobbyName'); const me=Net.members.find(u=>u.id===Net.myId);
+  if(me && document.activeElement!==nameInput) nameInput.value=me.name;
   document.getElementById('modesO').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.id===Net.modeO));
   document.getElementById('modedescO').textContent=RULES[Net.modeO].desc;
   const startBtn=document.getElementById('startOnline');
@@ -724,12 +777,12 @@ document.getElementById('startOnline').onclick=()=>{
   Net.send({p:'start'});
   startGameController();
 };
- 
+
 /* ============================ TRANSPARENCY (KakaoTalk-style) ============================ */
 document.getElementById('opacity').addEventListener('input',e=>{
   document.documentElement.style.setProperty('--ui', (e.target.value/100).toFixed(2));
 });
- 
+
 /* ============================ ELECTRON DESKTOP (transparent window) ============================ */
 if(window.electronAPI){
   document.querySelectorAll('.wbtn').forEach(b=>b.style.display='flex');
@@ -738,7 +791,7 @@ if(window.electronAPI){
   document.getElementById('winMin').onclick=()=>window.electronAPI.minimize();
   document.getElementById('winClose').onclick=()=>window.electronAPI.close();
 }
- 
+
 /* ============================ BOOT ============================ */
 window.addEventListener('error',e=>{ if(/three|module/i.test(String(e.message||''))){ document.querySelector('.app').style.display='none'; document.getElementById('loaderr').style.display='block'; } });
 </script>
