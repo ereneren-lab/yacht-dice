@@ -14,40 +14,48 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
-    background:radial-gradient(1200px 600px at 50% -10%, rgba(42,33,66,var(--ui)) 0%, transparent 60%),
-               rgba(21,17,31,var(--ui));
+    background:transparent;
     color:var(--ink); font-family:"Space Grotesk","SF Pro Display",-apple-system,system-ui,"Segoe UI",sans-serif;
     min-height:100%; display:flex; flex-direction:column; align-items:center; padding:14px 12px 28px;
     -webkit-tap-highlight-color:transparent;
   }
-  .app{opacity:var(--ui);transition:opacity .12s;width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center}
+  /* whole window (background plate + content) fades together — KakaoTalk-style window opacity */
+  #root{position:relative;opacity:var(--ui);transition:opacity .12s;width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center}
+  .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(1200px 600px at 50% -10%, #2a2142 0%, transparent 60%), #15111f}
+  .app{width:100%;display:flex;flex-direction:column;align-items:center}
   .wrap{width:100%;display:flex;flex-direction:column;gap:14px}
-
-  .topbar{display:flex;align-items:center;justify-content:space-between}
+ 
+  .topbar{display:flex;align-items:center;justify-content:space-between;-webkit-app-region:drag}
+  .topbar button,.topbar input{-webkit-app-region:no-drag}
+  .wbtn{display:none;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:none;cursor:pointer;
+    background:var(--panel2);color:var(--ink);font-size:13px;font-family:inherit;line-height:1}
+  .wbtn:hover{background:#3a3052}
+  .wbtn.on{background:var(--accent);color:var(--accent-ink)}
+  #winClose:hover{background:var(--danger);color:#fff}
   .title{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1;display:flex;align-items:center;gap:9px}
   .title .dot{width:11px;height:11px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
   .title small{font-size:12px;color:var(--muted);font-weight:600}
-
+ 
   /* transparency window control — lives outside the faded app so it stays usable */
-  .opacityctl{position:fixed;top:12px;right:12px;z-index:40;display:flex;align-items:center;gap:8px;
+  .opacityctl{position:fixed;top:12px;right:12px;z-index:40;display:flex;align-items:center;gap:8px;-webkit-app-region:no-drag;
     background:rgba(31,25,48,.92);border:1px solid var(--line);border-radius:999px;padding:7px 12px;
     box-shadow:0 8px 24px rgba(0,0,0,.4);backdrop-filter:blur(6px)}
   .opacityctl span{font-size:13px}
   .opacityctl input[type=range]{width:96px;accent-color:var(--accent)}
-
+ 
   .card{background:rgba(31,25,48,.96);border-radius:18px;padding:20px;box-shadow:0 18px 40px rgba(0,0,0,.4), inset 0 0 0 1px var(--line);width:100%}
   .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
   .lbl.mt{margin-top:18px}
-
+ 
   .tabs{display:flex;gap:8px;margin-bottom:16px}
   .tabs button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:12px 0;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s}
   .tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
-
+ 
   .chips{display:flex;gap:8px}
   .chips button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:11px 4px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s}
   .chips button.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
   .modedesc{color:var(--muted);font-size:12.5px;margin-top:9px;line-height:1.5}
-
+ 
   .names{display:flex;flex-direction:column;gap:9px}
   .names .row{display:flex;align-items:center;gap:9px}
   .names .pill{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;color:#15110f}
@@ -57,28 +65,28 @@
   .seg button{background:transparent;border:none;color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;padding:9px 11px;cursor:pointer}
   .seg button.on{background:var(--accent);color:var(--accent-ink)}
   .seg button.on.ai{background:var(--ai);color:#06222e}
-
+ 
   .optrow{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
   .toggle{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted);font-size:14px;font-weight:600}
   .switch{width:42px;height:24px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;transition:background .15s}
   .switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:all .15s}
   .toggle.on .switch{background:var(--accent)}
   .toggle.on .switch::after{left:21px;background:var(--accent-ink)}
-
+ 
   .btn{width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 6px 18px rgba(174,243,89,.26);transition:transform .08s,opacity .12s;margin-top:20px}
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:var(--panel2);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
   .btn:disabled{opacity:.45;cursor:default}
   .row2{display:flex;gap:9px;margin-top:14px}
   .row2 .btn{margin-top:0}
-
+ 
   .roomcode{font-size:30px;font-weight:800;letter-spacing:.18em;text-align:center;background:var(--panel2);border-radius:12px;padding:16px;margin:4px 0 14px;color:var(--accent)}
   .members{display:flex;flex-direction:column;gap:8px}
   .member{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:10px;padding:10px 12px;font-weight:600}
   .member .swatch{width:12px;height:12px;border-radius:4px;flex:none}
   .member .host{font-size:10px;font-weight:800;letter-spacing:.08em;background:var(--gold);color:#3a2a00;padding:2px 6px;border-radius:5px;margin-left:auto}
   .neterr{color:var(--danger);font-size:13px;margin-top:10px;text-align:center;min-height:16px}
-
+ 
   /* game */
   #game{display:none;flex-direction:column;gap:12px;width:100%}
   .turnbar{display:flex;align-items:center;justify-content:space-between;background:rgba(31,25,48,.96);border-radius:14px;padding:11px 15px;box-shadow:inset 0 0 0 1px var(--line)}
@@ -90,20 +98,20 @@
   .turnbar .pips{display:flex;gap:5px}
   .turnbar .pips i{width:9px;height:9px;border-radius:50%;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
   .turnbar .pips i.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
-
+ 
   .timerbar{height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
   .timerbar i{display:block;height:100%;width:100%;background:var(--accent);transition:width .1s linear, background .3s}
-
+ 
   .tray{position:relative;width:100%;height:236px;border-radius:16px;overflow:hidden;
     background:radial-gradient(120% 120% at 50% 0%, rgba(46,38,72,.5), rgba(21,17,31,.2));
     box-shadow:inset 0 0 0 1px var(--line), inset 0 14px 40px rgba(0,0,0,.35)}
   .tray canvas{display:block;width:100%;height:100%}
   .trayhint{position:absolute;left:0;right:0;bottom:8px;text-align:center;color:var(--muted);font-size:11.5px;pointer-events:none}
-
+ 
   .controls{display:flex;flex-direction:column;align-items:center;gap:8px}
   .rollbtn{max-width:300px}
   .hint{color:var(--muted);font-size:12.5px;text-align:center;min-height:16px;padding:0 8px}
-
+ 
   .sheetwrap{overflow-x:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);background:rgba(31,25,48,.96)}
   table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
   th,td{text-align:center;font-size:13px}
@@ -121,7 +129,7 @@
   tr.section td.catcol{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding-top:11px}
   tr.bonus td,tr.bonus td.catcol{color:var(--gold)}
   tr.total td{font-size:15px;font-weight:800;color:var(--ink);border-top:1px solid var(--line);padding:10px 6px}
-
+ 
   .overlay{position:fixed;inset:0;background:rgba(13,10,20,.86);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;z-index:30}
   .overlay.show{display:flex}
   .result{background:var(--panel);border-radius:20px;padding:26px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
@@ -141,21 +149,26 @@
 <body>
   <div class="opacityctl">
     <span>🪟</span>
-    <input type="range" id="opacity" min="30" max="100" value="100">
+    <input type="range" id="opacity" min="10" max="100" value="100">
+    <button class="wbtn" id="winPin" title="항상 위에 고정">📌</button>
+    <button class="wbtn" id="winMin" title="최소화">—</button>
+    <button class="wbtn" id="winClose" title="닫기">✕</button>
   </div>
-
+ 
+  <div id="root">
+  <div class="bg"></div>
   <div class="app">
     <div class="wrap">
       <div class="topbar">
         <div class="title"><span class="dot"></span>요트 다이스 <small id="modeName"></small></div>
       </div>
-
+ 
       <div class="card" id="setup">
         <div class="tabs">
           <button id="tabLocal" class="on">로컬 / AI</button>
           <button id="tabOnline">온라인</button>
         </div>
-
+ 
         <!-- LOCAL -->
         <div id="localCfg">
           <div class="lbl">규칙 모드</div>
@@ -168,7 +181,7 @@
           <div class="optrow"><div class="toggle on" id="soundToggle"><div class="switch"></div>주사위 소리</div></div>
           <button class="btn" id="startLocal">게임 시작</button>
         </div>
-
+ 
         <!-- ONLINE -->
         <div id="onlineCfg" style="display:none">
           <div id="onlineJoin">
@@ -185,7 +198,7 @@
             <div class="neterr" id="netErr"></div>
             <div class="modedesc" style="margin-top:14px">온라인은 같은 서버에 접속한 사람끼리 방 코드로 함께 플레이합니다. 로컬 파일(file://)로 열면 동작하지 않고, 배포된 주소에서 사용하세요.</div>
           </div>
-
+ 
           <div id="lobby" style="display:none">
             <div class="lbl">방 코드 — 친구에게 공유</div>
             <div class="roomcode" id="lobbyCode">----</div>
@@ -199,7 +212,7 @@
           </div>
         </div>
       </div>
-
+ 
       <!-- GAME -->
       <div id="game">
         <div class="turnbar">
@@ -207,21 +220,22 @@
           <div class="rolls"><span>굴림</span><span class="pips" id="rollPips"></span></div>
         </div>
         <div class="timerbar"><i id="timerFill"></i></div>
-
+ 
         <div class="tray" id="tray">
           <div class="trayhint" id="trayhint">주사위를 탭하면 고정돼요</div>
         </div>
-
+ 
         <div class="controls">
           <button class="btn rollbtn" id="rollBtn">굴리기</button>
           <div class="hint" id="hint">주사위를 굴려 시작하세요.</div>
         </div>
-
+ 
         <div class="sheetwrap"><table id="sheet"></table></div>
       </div>
     </div>
   </div>
-
+  </div>
+ 
   <div class="overlay" id="overlay">
     <div class="result">
       <h2 id="resTitle">게임 종료</h2>
@@ -233,15 +247,16 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="loaderr" id="loaderr">3D 라이브러리를 불러오지 못했습니다.<br>인터넷 연결을 확인하고 새로고침해 주세요.</div>
-
+ 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
-
+import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/geometries/RoundedBoxGeometry.js';
+ 
 /* ============================ RULES & SCORING ============================ */
 const COLORS=['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
 const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
@@ -284,7 +299,7 @@ const RULES={
 const DUMP=['aces','twos','threes','yacht','yahtzee','lStraight','sStraight','threeKind','fourKind','fullHouse','fours','fives','sixes','choice','chance'];
 const TURN_MS=15000;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-
+ 
 /* ============================ SOUND (dice rattle) ============================ */
 let soundOn=true;
 const SFX=(()=>{ let ctx=null;
@@ -301,24 +316,32 @@ const SFX=(()=>{ let ctx=null;
     for(let k=0;k<n;k++){ const f=k/n; const at=now+f*0.9*(0.5+Math.random()*0.9); clackAt(at,(0.10+Math.random()*0.16)*(1-f*0.4),1500+Math.random()*1600); } }
   return {ensure,roll};
 })();
-
+ 
 /* ============================ 3D DICE (three.js, scripted realism) ============================ */
 let renderer,scene,camera,diceMeshes=[],trayEl,raycaster,pointer;
 let rollPending=0,rollResolve=null;
 const laneX=i=>(i-2)*1.18;
-
-function faceTexture(v){
-  const s=160,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
-  const r=26;x.fillStyle='#f6f2e7';
-  x.beginPath();x.moveTo(r,0);x.arcTo(s,0,s,s,r);x.arcTo(s,s,0,s,r);x.arcTo(0,s,0,0,r);x.arcTo(0,0,s,0,r);x.closePath();x.fill();
-  const g=x.createLinearGradient(0,0,s,s);g.addColorStop(0,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(0,0,0,.10)');x.fillStyle=g;x.fill();
-  x.fillStyle='#1a1622';const pad=s*0.22,gap=(s-pad*2)/2;
-  PIPS[v].forEach(idx=>{const cx=pad+(idx%3)*gap,cy=pad+((idx/3)|0)*gap;x.beginPath();x.arc(cx,cy,s*0.082,0,7);x.fill();});
-  const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;
+ 
+const DIE=1.0, HALF=0.5;
+const BODY_GEO=new RoundedBoxGeometry(DIE,DIE,DIE,6,0.16);
+const PIP_GEO=new THREE.SphereGeometry(0.072,16,16);
+const PIP_MAT=new THREE.MeshStandardMaterial({color:0x17131e,roughness:.5,metalness:0});
+const GRID={0:[-1,1],1:[0,1],2:[1,1],3:[-1,0],4:[0,0],5:[1,0],6:[-1,-1],7:[0,-1],8:[1,-1]};
+function facePips(value,axis,sign){
+  const s=0.26,off=HALF+0.004;
+  return PIPS[value].map(idx=>{const [u,v]=GRID[idx];
+    if(axis==='x')return[sign*off, v*s, sign*u*s];
+    if(axis==='y')return[u*s, sign*off, -sign*v*s];
+    return[sign*u*s, v*s, sign*off];});
 }
-function makeMaterials(){
-  const vals=[1,6,2,5,3,4]; // px,nx,py,ny,pz,nz  (opposite faces sum to 7)
-  return vals.map(v=>new THREE.MeshStandardMaterial({map:faceTexture(v),roughness:.45,metalness:.04}));
+function makeDie(){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(BODY_GEO,new THREE.MeshStandardMaterial({color:0xf3eee1,roughness:.4,metalness:0}));
+  body.castShadow=true; g.add(body); g.userData.body=body;
+  [['x',1,1],['x',-1,6],['y',1,2],['y',-1,5],['z',1,3],['z',-1,4]].forEach(([axis,sign,val])=>{
+    facePips(val,axis,sign).forEach(p=>{const pip=new THREE.Mesh(PIP_GEO,PIP_MAT);pip.position.set(p[0],p[1],p[2]);g.add(pip);});
+  });
+  return g;
 }
 function faceUpQuat(v){
   const e=new THREE.Euler();
@@ -343,10 +366,8 @@ function initThree(){
   dir.shadow.mapSize.set(1024,1024);const sc=dir.shadow.camera;sc.left=-6;sc.right=6;sc.top=6;sc.bottom=-6;dir.shadow.radius=4;scene.add(dir);
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.ShadowMaterial({opacity:.32}));
   floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-  const geo=new THREE.BoxGeometry(1,1,1);
   for(let i=0;i<5;i++){
-    const m=new THREE.Mesh(geo,makeMaterials());m.castShadow=true;m.position.set(laneX(i),0.5,0);
-    m.userData={anim:null};scene.add(m);diceMeshes.push(m);
+    const d=makeDie();d.position.set(laneX(i),0.5,0);d.userData.anim=null;scene.add(d);diceMeshes.push(d);
   }
   raycaster=new THREE.Raycaster();pointer=new THREE.Vector2();
   renderer.domElement.addEventListener('pointerdown',onTrayPointer);
@@ -358,12 +379,12 @@ function onTrayPointer(ev){
   const r=renderer.domElement.getBoundingClientRect();
   pointer.x=((ev.clientX-r.left)/r.width)*2-1; pointer.y=-((ev.clientY-r.top)/r.height)*2+1;
   raycaster.setFromCamera(pointer,camera);
-  const hit=raycaster.intersectObjects(diceMeshes)[0];
-  if(hit){ const i=diceMeshes.indexOf(hit.object); UI.tryToggleHold(i); }
+  const hits=raycaster.intersectObjects(diceMeshes,true);
+  if(hits.length){ let o=hits[0].object; while(o&&diceMeshes.indexOf(o)<0)o=o.parent; const i=diceMeshes.indexOf(o); if(i>=0)UI.tryToggleHold(i); }
 }
-function setHeldVisual(i,held){ diceMeshes[i].material.forEach(mat=>{mat.emissive.setHex(held?0x49761c:0x000000);}); }
+function setHeldVisual(i,held){ diceMeshes[i].userData.body.material.emissive.setHex(held?0x49761c:0x000000); }
 function setMeshValue(i,v){ if(v) diceMeshes[i].quaternion.copy(faceUpQuat(v)); diceMeshes[i].position.set(laneX(i),0.5,0); }
-
+ 
 function startDieAnim(i,val){
   const m=diceMeshes[i];
   m.userData.anim={t:0,dur:0.95+Math.random()*0.3,fromQ:m.quaternion.clone(),toQ:faceUpQuat(val),
@@ -394,12 +415,12 @@ function loop(t){
   if(renderer)renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
-
+ 
 /* ============================ GAME STATE + CONTROLLER ============================ */
 let G={mode:'yacht_kr',players:[],current:0,rollsLeft:3,rolled:false,dice:[],deadline:0,phase:'lobby'};
 let rule=RULES.yacht_kr,catById={},UPPER=[],LOWER=[];
 let busy=false,timerH=null,autoCalled=false;
-
+ 
 function applyRule(){ rule=RULES[G.mode];catById={};rule.cats.forEach(c=>catById[c.id]=c);
   UPPER=rule.cats.filter(c=>c.sec==='up').map(c=>c.id);LOWER=rule.cats.filter(c=>c.sec==='low').map(c=>c.id);
   document.getElementById('modeName').textContent='· '+rule.name; }
@@ -412,9 +433,9 @@ const openCats=p=>rule.cats.filter(c=>p.scores[c.id]===null).map(c=>c.id);
 const curPlayer=()=>G.players[G.current];
 const amController=()=>Net.mode==='local'||Net.isHost;
 const isMySeat=()=>Net.mode==='local'||(G.players[G.current]&&G.players[G.current].netId===Net.myId);
-
+ 
 function newScores(){const s={};rule.cats.forEach(c=>s[c.id]=null);return s;}
-
+ 
 function startGameController(){
   applyRule(); G.phase='play'; G.current=0;
   G.dice=[0,1,2,3,4].map(()=>({value:0,held:false}));
@@ -459,7 +480,7 @@ function commitController(catId){
   do{ G.current=(G.current+1)%G.players.length; }while(playerDone(curPlayer()));
   startTurnController();
 }
-
+ 
 /* timer */
 function startTimer(){ clearTimer(); if(G.deadline<=0){updTimer();return;} timerH=setInterval(updTimer,100); updTimer(); }
 function clearTimer(){ if(timerH){clearInterval(timerH);timerH=null;} }
@@ -471,7 +492,7 @@ function updTimer(){
   fill.style.background= frac<0.25?'var(--danger)':frac<0.5?'var(--gold)':'var(--accent)';
   if(left<=0 && amController() && !autoCalled){ autoCalled=true; clearTimer(); autoFinish(); }
 }
-
+ 
 /* AI / auto-play */
 function evalHand(d,open){let b=0;for(const id of open){const s=catById[id].score(d);if(s>b)b=s;}return b;}
 function aiHoldMask(d,open){let bm=0,bev=-1;for(let m=0;m<32;m++){let ev=0;const N=32;
@@ -493,23 +514,27 @@ async function autoFinish(){
   await sleep(250); const cat=aiPickCat(G.dice.map(d=>d.value),open); renderGame(cat); await sleep(350);
   busy=false; commitController(cat);
 }
-
+ 
 /* state sync */
 function serialize(){ return {mode:G.mode,current:G.current,rollsLeft:G.rollsLeft,rolled:G.rolled,deadline:G.deadline,phase:G.phase,
   dice:G.dice.map(d=>({value:d.value,held:d.held})),
   players:G.players.map(p=>({name:p.name,color:p.color,ai:!!p.ai,netId:p.netId||null,scores:p.scores}))}; }
 function broadcastState(){ if(Net.isHost) Net.send({p:'state',state:serialize()}); }
 function applyState(s){
-  const wasMode=G.mode; G.mode=s.mode; if(G.mode!==wasMode||!rule)applyRule();
+  G.mode=s.mode; applyRule();
   G.current=s.current;G.rollsLeft=s.rollsLeft;G.rolled=s.rolled;G.deadline=s.deadline;G.phase=s.phase;
   G.players=s.players.map(p=>({...p}));
   G.dice=s.dice.map(d=>({value:d.value,held:d.held}));
-  if(document.getElementById('game').style.display==='none'){ document.getElementById('setup').style.display='none';document.getElementById('game').style.display='flex'; if(!renderer)initThree(); }
+  if(G.phase==='play'||G.phase==='over'){
+    document.getElementById('setup').style.display='none';
+    document.getElementById('game').style.display='flex';
+    if(!renderer)initThree();
+  }
   diceMeshes.forEach((m,i)=>{ if(!m.userData.anim){ setMeshValue(i, G.dice[i].value||1); } setHeldVisual(i,G.dice[i].held); });
   startTimer();
   if(G.phase==='over')endGame(); else renderGame();
 }
-
+ 
 /* ============================ UI HANDLERS ============================ */
 const UI={
   roll(){ if(busy||!isMySeat())return; if(amController())doRollController(); else Net.send({p:'action',a:{type:'roll'}}); },
@@ -523,14 +548,14 @@ function handleAction(fromId,a){ // host receives client actions
   else if(a.type==='hold')toggleHoldController(a.i);
   else if(a.type==='pick')commitController(a.cat);
 }
-
+ 
 /* ============================ RENDER ============================ */
 const rollBtn=document.getElementById('rollBtn');
 const rollPipsEl=document.getElementById('rollPips');
 const hintEl=document.getElementById('hint');
 const sheetEl=document.getElementById('sheet');
 rollBtn.onclick=()=>UI.roll();
-
+ 
 function renderGame(highlight){ renderTurn(); renderSheet(highlight); }
 function renderTurn(){
   const p=curPlayer();if(!p)return;
@@ -575,7 +600,7 @@ function renderSheet(hl){
   sheetEl.querySelectorAll('td.preview[data-cat]').forEach(td=>{td.onclick=()=>UI.pick(td.dataset.cat);});
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
-
+ 
 const overlay=document.getElementById('overlay');
 function endGame(){
   clearTimer();
@@ -593,7 +618,7 @@ function endGame(){
 }
 document.getElementById('replaySame').onclick=()=>{ if(!amController())return; G.players.forEach(p=>p.scores=newScores());G.current=0;overlay.classList.remove('show');startTurnController(); };
 document.getElementById('newGame').onclick=()=>location.reload();
-
+ 
 /* ============================ SETUP UI (local) ============================ */
 let modeLocal='yacht_kr',playerCount=2;
 let nameVals=['플레이어 1','플레이어 2','AI 3','AI 4','AI 5','AI 6'],typeVals=['human','human','ai','ai','ai','ai'];
@@ -628,7 +653,7 @@ document.getElementById('startLocal').onclick=()=>{
     G.players.push({name:nm,color:COLORS[i],ai:typeVals[i]==='ai',scores:newScores()});}
   startGameController();
 };
-
+ 
 /* tabs */
 document.getElementById('tabLocal').onclick=()=>switchTab(true);
 document.getElementById('tabOnline').onclick=()=>switchTab(false);
@@ -638,7 +663,7 @@ function switchTab(local){
   document.getElementById('localCfg').style.display=local?'block':'none';
   document.getElementById('onlineCfg').style.display=local?'none':'block';
 }
-
+ 
 /* ============================ ONLINE / NETWORK ============================ */
 const Net={ mode:'local', ws:null, isHost:false, myId:null, code:null, members:[], modeO:'yacht_kr',
   send(payload){ if(this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify({t:'msg',code:this.code,payload})); },
@@ -671,7 +696,7 @@ document.getElementById('createRoom').onclick=()=>{ SFX.ensure(); const name=(do
 document.getElementById('joinRoom').onclick=()=>{ SFX.ensure(); const name=(document.getElementById('onlineName').value||'').trim()||'게스트';
   const code=(document.getElementById('joinCode').value||'').trim().toUpperCase(); if(code.length<3){document.getElementById('netErr').textContent='방 코드를 입력하세요.';return;}
   connect(()=>Net.ws.send(JSON.stringify({t:'join',code,name}))); };
-
+ 
 function enterLobby(){
   document.getElementById('onlineJoin').style.display='none';
   document.getElementById('lobby').style.display='block';
@@ -699,12 +724,21 @@ document.getElementById('startOnline').onclick=()=>{
   Net.send({p:'start'});
   startGameController();
 };
-
+ 
 /* ============================ TRANSPARENCY (KakaoTalk-style) ============================ */
 document.getElementById('opacity').addEventListener('input',e=>{
   document.documentElement.style.setProperty('--ui', (e.target.value/100).toFixed(2));
 });
-
+ 
+/* ============================ ELECTRON DESKTOP (transparent window) ============================ */
+if(window.electronAPI){
+  document.querySelectorAll('.wbtn').forEach(b=>b.style.display='flex');
+  const pin=document.getElementById('winPin');
+  pin.onclick=async()=>{ const v=await window.electronAPI.pin(); pin.classList.toggle('on',v); };
+  document.getElementById('winMin').onclick=()=>window.electronAPI.minimize();
+  document.getElementById('winClose').onclick=()=>window.electronAPI.close();
+}
+ 
 /* ============================ BOOT ============================ */
 window.addEventListener('error',e=>{ if(/three|module/i.test(String(e.message||''))){ document.querySelector('.app').style.display='none'; document.getElementById('loaderr').style.display='block'; } });
 </script>
