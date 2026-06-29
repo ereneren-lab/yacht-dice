@@ -1,4 +1,4 @@
-// 요트 다이스 — 정적 파일 + 온라인 멀티플레이(WebSocket 릴레이) 서버
+\// 요트 다이스 — 정적 파일 + 온라인 멀티플레이(WebSocket 릴레이) 서버
 // 실행: npm install && node server.js  →  http://localhost:3000
 const http = require('http');
 const fs = require('fs');
