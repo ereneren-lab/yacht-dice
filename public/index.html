@@ -439,14 +439,14 @@
   const U = [up(1,'에이스'),up(2,'듀얼'),up(3,'트리플'),up(4,'쿼드'),up(5,'펜타'),up(6,'헥사')];
 
   const RULES = {
-    yacht_kr:{ name:'요트 다이스', desc:'국내 앱 규칙. 포카드·풀하우스는 주사위 5개 합산, 상단 63점↑ 보너스 +35.', bonus:{th:63,pts:35}, cats:[...U,
+    yacht_kr:{ name:'요트 다이스', desc:'국내 앱 규칙. 포카드·풀하우스는 주사위 5개 합산, 상단 63점↑ 보너스 +35. 하단 4콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
       {id:'choice',label:'초이스',sec:'low',score:d=>tot(d)},
       {id:'fourKind',label:'포 오브 어 카인드',sec:'low',score:d=>nKind(d,4)?tot(d):0},
       {id:'fullHouse',label:'풀하우스',sec:'low',score:d=>isFull(d)?tot(d):0},
       {id:'sStraight',label:'스몰 스트레이트',sec:'low',score:d=>has4(d)?15:0},
       {id:'lStraight',label:'라지 스트레이트',sec:'low',score:d=>has5(d)?30:0},
       {id:'yacht',label:'요트',sec:'low',score:d=>maxKind(d)>=5?50:0}]},
-    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35.', bonus:{th:63,pts:35}, cats:[...U,
+    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35. 하단 4콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
       {id:'threeKind',label:'쓰리 오브 어 카인드',sec:'low',score:d=>nKind(d,3)?tot(d):0},
       {id:'fourKind',label:'포 오브 어 카인드',sec:'low',score:d=>nKind(d,4)?tot(d):0},
       {id:'fullHouse',label:'풀하우스',sec:'low',score:d=>isFull(d)?25:0},
@@ -622,7 +622,8 @@
 
     _upper(p){ return UPPER_IDS.reduce((a,id)=>a+(p.scores[id]||0),0); }
     _bonus(p){ return this.rule.bonus.pts>0 && this._upper(p)>=this.rule.bonus.th ? this.rule.bonus.pts : 0; }
-    _total(p){ const low=this.rule.cats.filter(c=>c.sec==='low').reduce((a,c)=>a+(p.scores[c.id]||0),0); return this._upper(p)+this._bonus(p)+low; }
+    _lowBonus(p){ const lb=this.rule.lowBonus; if(!lb||!lb.pts)return 0; return lb.ids.every(id=>(p.scores[id]||0)>0)?lb.pts:0; }
+    _total(p){ const low=this.rule.cats.filter(c=>c.sec==='low').reduce((a,c)=>a+(p.scores[c.id]||0),0); return this._upper(p)+this._bonus(p)+this._lowBonus(p)+low; }
     _preview(){
       if(!this.rolled) return null;
       const d=this.dice.map(x=>x.value), p=this.players[this.current], out={};
@@ -640,12 +641,12 @@
       return {
         phase:this.phase, mode:this.mode, modeName:this.rule.name,
         cats:this.rule.cats.map(c=>({id:c.id,label:c.label,sec:c.sec})),
-        bonus:this.rule.bonus,
+        bonus:this.rule.bonus, lowBonus:this.rule.lowBonus||null,
         current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled,
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
         deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(),
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,
-          seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, total:this._total(p) })),
+          seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, lowBonusGot:this._lowBonus(p)>0, total:this._total(p) })),
         winners: this.phase==='over' ? this._winners() : null,
       };
     }
@@ -785,13 +786,13 @@
   function renderSheet(){ if(!S)return;
     let cols=S.players.map((p,pi)=>pi);
     if(compact && S.players.length>2){ cols=cols.filter(pi=>pi===S.current||(isOnline()&&S.players[pi].pid===myPid)); if(!cols.length)cols=[S.current]; }
-    if(isOnline()){ const mi=S.players.findIndex(p=>p.pid===myPid); if(mi>=0)cols=[mi,...cols.filter(x=>x!==mi)]; }
     let h='<thead><tr><th class="catcol"></th>';
     cols.forEach(pi=>{const p=S.players[pi]; const meC=isOnline()&&p.pid===myPid?'me-col':''; h+=`<th class="${pi===S.current?'col-current':''} ${meC}"><div class="hav">${avHTML(p,{sm:true,cur:pi===S.current,off:!p.connected})}<span class="hnm">${esc(p.name)}</span></div></th>`;});
     h+='</tr></thead><tbody>';
     S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
     if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th}</td>`;}).join('')}</tr>`;
     S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
+    if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (4종)</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;return `<td class="${pi===S.current?'col-current':''}">${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length}</td>`;}).join('')}</tr>`;
     h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.total}</td>`;}).join('')}</tr></tbody>`;
     $('sheet').innerHTML=h;
     $('sheet').querySelectorAll('td.preview[data-cat]').forEach(td=>{td.onclick=()=>askPick(td.dataset.cat);});
@@ -878,6 +879,7 @@
     if(rule.bonus.pts>0)h+=`<div class="helprow"><b>보너스</b><span>상단 합 ${rule.bonus.th} 이상 → +${rule.bonus.pts}</span></div>`;
     h+='<div class="hsec">하단</div>';
     rule.cats.filter(c=>c.sec==='low').forEach(c=>h+=`<div class="helprow"><b>${esc(c.label)}</b><span>${helpText(c.id,mode)}</span></div>`);
+    if(rule.lowBonus&&rule.lowBonus.pts>0)h+=`<div class="helprow"><b>콤보 보너스</b><span>포카인드·풀하우스·스몰·라지 스트레이트 4종 모두 득점 시 → +${rule.lowBonus.pts}</span></div>`;
     $('helpBody').innerHTML=h; $('helpOv').classList.add('show');
   }
   $('helpBtn').onclick=openHelp; $('helpClose').onclick=()=>$('helpOv').classList.remove('show');
@@ -895,9 +897,9 @@
     $('resSub').innerHTML=`${w.top}점 · ${s.modeName}`+(beat?'<br><span class="newbest">🎉 최고점 갱신!</span>':'');
     const re=$('ranks'); re.innerHTML=''; let pos=0,prev=null;
     ranked.forEach((r,idx)=>{ if(r.total!==prev){pos=idx+1;prev=r.total;} const md=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':pos;
-      const low=r.total-r.upperSum-(r.bonusGot?s.bonus.pts:0);
+      const low=r.total-r.upperSum-(r.bonusGot?s.bonus.pts:0)-(r.lowBonusGot&&s.lowBonus?s.lowBonus.pts:0);
       const row=document.createElement('div'); row.className='rank'+(pos===1?' first':'');
-      row.innerHTML=`<span class="pos">${md}</span>${avHTML(r,{sm:true})}<span class="nm">${esc(r.name)}${r.ai?' <span class="aitag">AI '+esc(r.personaLabel||'')+'</span>':''}<div class="bd">상단 <b>${r.upperSum}</b>${r.bonusGot?` · 보너스 <b>+${s.bonus.pts}</b>`:''} · 하단 <b>${low}</b></div></span><span class="pts">${r.total}</span>`;
+      row.innerHTML=`<span class="pos">${md}</span>${avHTML(r,{sm:true})}<span class="nm">${esc(r.name)}${r.ai?' <span class="aitag">AI '+esc(r.personaLabel||'')+'</span>':''}<div class="bd">상단 <b>${r.upperSum}</b>${r.bonusGot?` · 보너스 <b>+${s.bonus.pts}</b>`:''}${r.lowBonusGot&&s.lowBonus?` · 콤보 <b>+${s.lowBonus.pts}</b>`:''} · 하단 <b>${low}</b></div></span><span class="pts">${r.total}</span>`;
       re.appendChild(row); });
     const canRe=isOnline()?amHost():true;
     $('replaySame').style.display=canRe?'block':'none';
