@@ -1,83 +1,178 @@
-\// 요트 다이스 — 정적 파일 + 온라인 멀티플레이(WebSocket 릴레이) 서버
+// 요트 다이스 — 정적 서버 + server-authoritative 온라인 멀티플레이
 // 실행: npm install && node server.js  →  http://localhost:3000
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
+const { GameEngine } = require('./public/game-core.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
-const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript', '.css':'text/css', '.png':'image/png', '.ico':'image/x-icon' };
+const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css', '.png':'image/png', '.ico':'image/x-icon' };
+const COLORS = ['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
+const AVA = ['🦊','🐸','🐼','🦁','🐰','🐵'];
 
-// ---- static server ----
+// ---------- static ----------
 const server = http.createServer((req, res) => {
-  let urlPath = decodeURIComponent(req.url.split('?')[0]);
-  if (urlPath === '/') urlPath = '/index.html';
-  const filePath = path.join(PUBLIC, path.normalize(urlPath));
-  if (!filePath.startsWith(PUBLIC)) { res.writeHead(403); return res.end('Forbidden'); }
-  fs.readFile(filePath, (err, data) => {
+  let p = decodeURIComponent(req.url.split('?')[0]);
+  if (p === '/') p = '/index.html';
+  const fp = path.join(PUBLIC, path.normalize(p));
+  if (!fp.startsWith(PUBLIC)) { res.writeHead(403); return res.end('Forbidden'); }
+  fs.readFile(fp, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(filePath)] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': TYPES[path.extname(fp)] || 'application/octet-stream' });
     res.end(data);
   });
 });
 
-// ---- websocket relay ----
+// ---------- rooms ----------
 const wss = new WebSocketServer({ server });
-const rooms = new Map(); // code -> { members: [ {id,name,host,ws} ] }
+const rooms = new Map(); // code -> Room
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const rid = () => Math.random().toString(36).slice(2, 10);
+const rid = () => Math.random().toString(36).slice(2, 12);
 const newCode = () => { let c; do { c = Array.from({length:4}, () => CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(''); } while (rooms.has(c)); return c; };
+const send = (ws, o) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
 
-function memberList(room){ return room.members.map(m => ({ id:m.id, name:m.name, host:m.host })); }
-function broadcastMembers(code){ const room = rooms.get(code); if(!room) return;
-  const msg = JSON.stringify({ t:'members', members: memberList(room) });
-  room.members.forEach(m => { if(m.ws.readyState===1) m.ws.send(msg); });
+function recolor(room){ room.members.forEach((m,i)=>{ m.color = COLORS[i % COLORS.length]; }); }
+function hostPid(room){ const h = room.members.find(m=>!m.ai && m.connected) || room.members.find(m=>m.connected) || room.members[0]; return h ? h.pid : null; }
+function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
+function lobbyPayload(room){
+  const hp = hostPid(room);
+  return { t:'lobby', room:{ code:room.code, mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, phase:room.phase,
+    members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp })) } };
 }
-function send(ws, obj){ if(ws.readyState===1) ws.send(JSON.stringify(obj)); }
+function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
+
+function startEngine(room){
+  if (room.engine) room.engine.destroy();
+  room.members.forEach(m=>{ m.waiting=false; });
+  room.phase = 'play';
+  room.engine = new GameEngine({
+    mode: room.mode, difficulty: room.difficulty, aiFast: !!room.aiFast,
+    players: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected })),
+    onState: (s)=> broadcast(room, { t:'state', state:s }),
+    onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }),
+  });
+  room.engine.start();
+}
+
+function scheduleCleanup(room){
+  if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+  const anyHuman = room.members.some(m=>!m.ai && m.connected);
+  if (!anyHuman){
+    room.cleanupTimer = setTimeout(()=>{
+      if (!room.members.some(m=>!m.ai && m.connected)){ if(room.engine) room.engine.destroy(); rooms.delete(room.code); }
+    }, 120000); // 2분 내 아무도 안 돌아오면 정리
+  }
+}
 
 wss.on('connection', (ws) => {
-  ws.meta = { code:null, id:null };
+  ws.meta = { code:null, pid:null };
 
   ws.on('message', (raw) => {
-    let m; try { m = JSON.parse(raw); } catch(e) { return; }
+    let m; try { m = JSON.parse(raw); } catch(e){ return; }
+    const room = rooms.get(ws.meta.code);
 
     if (m.t === 'create') {
-      const code = newCode(), id = rid();
-      rooms.set(code, { members: [{ id, name:(m.name||'호스트').slice(0,12), host:true, ws }] });
-      ws.meta = { code, id };
-      send(ws, { t:'created', id, code });
-      broadcastMembers(code);
+      const code = newCode(), pid = rid();
+      const r = { code, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:AVA[0], ai:false, connected:true, ws }], mode:'yacht_kr', difficulty:'normal', aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
+      recolor(r); rooms.set(code, r); ws.meta = { code, pid };
+      send(ws, { t:'me', pid, code }); sendLobby(r);
 
     } else if (m.t === 'join') {
-      const code = (m.code||'').toUpperCase();
-      const room = rooms.get(code);
-      if (!room) return send(ws, { t:'error', msg:'방을 찾을 수 없어요.' });
-      if (room.members.length >= 6) return send(ws, { t:'error', msg:'방이 가득 찼어요. (최대 6명)' });
-      const id = rid();
-      room.members.push({ id, name:(m.name||'게스트').slice(0,12), host:false, ws });
-      ws.meta = { code, id };
-      send(ws, { t:'joined', id, code });
-      broadcastMembers(code);
+      const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
+      if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
+      if (r.members.length >= 8) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요.' });
+      const pid = rid();
+      const waiting = r.phase !== 'lobby';   // 진행 중이면 관전(다음 판부터 참여)
+      r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:AVA[r.members.length%AVA.length], ai:false, connected:true, ws, waiting });
+      recolor(r); ws.meta = { code, pid };
+      send(ws, { t:'me', pid, code });
+      if (r.engine) send(ws, { t:'state', state:r.engine.serialize() });  // 관전자에게 현재 판 보여주기
+      sendLobby(r);
 
-    } else if (m.t === 'msg') {
-      const room = rooms.get(m.code);
-      if (!room) return;
-      const out = JSON.stringify({ t:'msg', from: ws.meta.id, payload: m.payload });
-      room.members.forEach(mem => { if (mem.ws !== ws && mem.ws.readyState===1) mem.ws.send(out); });
+    } else if (m.t === 'rejoin') {
+      const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
+      if (!r) return send(ws, { t:'error', code:'no-room', msg:'방이 사라졌어요.' });
+      const mem = r.members.find(x=>x.pid===m.pid);
+      if (!mem) return send(ws, { t:'error', code:'no-seat', msg:'자리를 찾을 수 없어요.' });
+      mem.ws = ws; mem.connected = true; ws.meta = { code, pid:m.pid };
+      if (r.cleanupTimer){ clearTimeout(r.cleanupTimer); r.cleanupTimer=null; }
+      send(ws, { t:'me', pid:m.pid, code });
+      if (r.engine){ r.engine.setConnected(m.pid, true); send(ws, { t:'state', state:r.engine.serialize() }); }
+      sendLobby(r);
+
+    } else if (!room) {
+      return; // 이후 명령은 방이 있어야 함
+
+    } else if (m.t === 'rename') {
+      const me = room.members.find(x=>x.pid===ws.meta.pid);
+      if (me){ me.name=((m.name||'').trim()||me.name).slice(0,12); if(room.engine){ const s=room.engine.players.find(p=>p.pid===me.pid); if(s){s.name=me.name; room.engine._emit&&room.engine._emit();} } sendLobby(room); }
+
+    } else if (m.t === 'setAvatar') {
+      const me = room.members.find(x=>x.pid===ws.meta.pid);
+      const emo = (m.emoji||'').slice(0,4);
+      if (me && emo){ me.avatar=emo; if(room.engine){ const p=room.engine.players.find(pp=>pp.pid===me.pid); if(p){ p.avatar=emo; room.engine._emit&&room.engine._emit(); } } sendLobby(room); }
+
+    } else if (m.t === 'setMode') {
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && ['yacht_kr','yahtzee','yacht_og'].includes(m.mode)){ room.mode=m.mode; sendLobby(room); }
+
+    } else if (m.t === 'setDiff') {
+      if (ws.meta.pid===hostPid(room) && ['easy','normal','hard'].includes(m.d)){ room.difficulty=m.d; sendLobby(room); }
+
+    } else if (m.t === 'setFast') {
+      if (ws.meta.pid===hostPid(room)){ room.aiFast=!!m.v; sendLobby(room); }
+
+    } else if (m.t === 'addAI') {
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && room.members.length<6){
+        const n=room.members.filter(x=>x.ai).length+1;
+        room.members.push({ pid:'ai_'+rid(), name:'AI '+n, avatar:AVA[room.members.length%AVA.length], ai:true, connected:true, ws:null });
+        recolor(room); sendLobby(room);
+      }
+
+    } else if (m.t === 'removeAI') {
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){
+        const idx=room.members.findIndex(x=>x.ai && x.pid===m.pid);
+        if (idx>=0){ room.members.splice(idx,1); recolor(room); sendLobby(room); }
+      }
+
+    } else if (m.t === 'start') {
+      if (ws.meta.pid===hostPid(room) && room.members.length>=2){ startEngine(room); }
+
+    } else if (m.t === 'action') {
+      if (room.engine) room.engine.action(ws.meta.pid, m.a);
+
+    } else if (m.t === 'reaction') {
+      const emo = (m.emoji || '').slice(0, 4);
+      if (emo) broadcast(room, { t: 'reaction', pid: ws.meta.pid, emoji: emo });
+
+    } else if (m.t === 'skip') {
+      if (ws.meta.pid === hostPid(room) && room.engine) room.engine.skipNow();
+
+    } else if (m.t === 'endGame') {
+      if (ws.meta.pid === hostPid(room)) {
+        if (room.engine) { room.engine.destroy(); room.engine = null; }
+        room.phase = 'lobby';
+        sendLobby(room);
+      }
     }
   });
 
   ws.on('close', () => {
-    const { code, id } = ws.meta;
-    const room = rooms.get(code);
-    if (!room) return;
-    const wasHost = room.members.find(m => m.id===id)?.host;
-    room.members = room.members.filter(m => m.id !== id);
-    if (room.members.length === 0) { rooms.delete(code); return; }
-    if (wasHost) room.members[0].host = true; // promote next member
-    broadcastMembers(code);
+    const r = rooms.get(ws.meta.code); if (!r) return;
+    const mem = r.members.find(x=>x.pid===ws.meta.pid); if (!mem) return;
+    mem.connected = false; mem.ws = null;
+    if (r.phase === 'lobby'){
+      r.members = r.members.filter(x=>x.pid!==ws.meta.pid);
+      recolor(r);
+      if (r.members.length===0){ rooms.delete(r.code); return; }
+      sendLobby(r);
+    } else {
+      if (r.engine) r.engine.setConnected(ws.meta.pid, false);
+      sendLobby(r);
+      scheduleCleanup(r);
+    }
   });
 });
 
-server.listen(PORT, () => console.log(`요트 다이스 → http://localhost:${PORT}`));
+server.listen(PORT, () => console.log('요트 다이스 → http://localhost:' + PORT));
