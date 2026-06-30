@@ -23,7 +23,7 @@ async function resolveUrl() {
 async function createWindow() {
   const url = await resolveUrl();
   win = new BrowserWindow({
-    width: 460, height: 880, minWidth: 360, minHeight: 560,
+    width: 980, height: 640, minWidth: 720, minHeight: 480,
     transparent: true,      // 진짜 투명 창 (바탕화면이 비침)
     frame: false,           // 기본 창 테두리 제거
     backgroundColor: '#00000000',
