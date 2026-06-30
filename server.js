@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const { GameEngine } = require('./public/game-core.js');
+const { KBEngine } = require('./public/kb-core.js');
+const { LDEngine } = require('./public/ld-core.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -38,7 +40,7 @@ function hostPid(room){ const h = room.members.find(m=>!m.ai && m.connected) || 
 function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
-  return { t:'lobby', room:{ code:room.code, mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, phase:room.phase,
+  return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase,
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp })) } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
@@ -47,12 +49,20 @@ function startEngine(room){
   if (room.engine) room.engine.destroy();
   room.members.forEach(m=>{ m.waiting=false; });
   room.phase = 'play';
-  room.engine = new GameEngine({
-    mode: room.mode, difficulty: room.difficulty, aiFast: !!room.aiFast,
-    players: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected })),
-    onState: (s)=> broadcast(room, { t:'state', state:s }),
-    onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }),
-  });
+  const players = room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, aiDiff:room.difficulty }));
+  if (room.game === 'kb'){
+    const onState = (s)=> broadcast(room, { t:'state', state:s });
+    room.engine = new KBEngine({ aiFast:!!room.aiFast, players, onState,
+      onRoll: (seat, value)=> broadcast(room, { t:'kbroll', seat, value }) });
+  } else if (room.game === 'ld'){
+    // 숨김정보: 멤버마다 자기 시점 상태를 따로 보냄
+    const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
+    room.engine = new LDEngine({ aiFast:!!room.aiFast, players, spotOn:room.spotOn!==false, diceCount:5, wild:true, turnMs:45000, onState });
+  } else {
+    const onState = (s)=> broadcast(room, { t:'state', state:s });
+    room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, players, onState,
+      onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }) });
+  }
   room.engine.start();
 }
 
@@ -74,21 +84,23 @@ wss.on('connection', (ws) => {
     const room = rooms.get(ws.meta.code);
 
     if (m.t === 'create') {
+      const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:AVA[0], ai:false, connected:true, ws }], mode:'yacht_kr', difficulty:'normal', aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:AVA[0], ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
     } else if (m.t === 'join') {
       const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
-      if (r.members.length >= 8) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요.' });
+      const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : 8;
+      if (r.members.length >= cap) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요.' });
       const pid = rid();
       const waiting = r.phase !== 'lobby';   // 진행 중이면 관전(다음 판부터 참여)
       r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:AVA[r.members.length%AVA.length], ai:false, connected:true, ws, waiting });
       recolor(r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code });
-      if (r.engine) send(ws, { t:'state', state:r.engine.serialize() });  // 관전자에게 현재 판 보여주기
+      if (r.engine) send(ws, { t:'state', state:r.engine.serialize(pid) });  // 관전자에게 현재 판 (라이어는 자기 시점)
       sendLobby(r);
 
     } else if (m.t === 'rejoin') {
@@ -99,7 +111,7 @@ wss.on('connection', (ws) => {
       mem.ws = ws; mem.connected = true; ws.meta = { code, pid:m.pid };
       if (r.cleanupTimer){ clearTimeout(r.cleanupTimer); r.cleanupTimer=null; }
       send(ws, { t:'me', pid:m.pid, code });
-      if (r.engine){ r.engine.setConnected(m.pid, true); send(ws, { t:'state', state:r.engine.serialize() }); }
+      if (r.engine){ r.engine.setConnected(m.pid, true); send(ws, { t:'state', state:r.engine.serialize(m.pid) }); }
       sendLobby(r);
 
     } else if (!room) {
@@ -120,11 +132,14 @@ wss.on('connection', (ws) => {
     } else if (m.t === 'setDiff') {
       if (ws.meta.pid===hostPid(room) && ['easy','normal','hard'].includes(m.d)){ room.difficulty=m.d; sendLobby(room); }
 
+    } else if (m.t === 'setSpot') {
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){ room.spotOn=!!m.v; sendLobby(room); }
+
     } else if (m.t === 'setFast') {
       if (ws.meta.pid===hostPid(room)){ room.aiFast=!!m.v; sendLobby(room); }
 
     } else if (m.t === 'addAI') {
-      if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && room.members.length<6){
+      if (ws.meta.pid===hostPid(room) && room.game==='yacht' && room.phase==='lobby' && room.members.length<6){
         const n=room.members.filter(x=>x.ai).length+1;
         room.members.push({ pid:'ai_'+rid(), name:'AI '+n, avatar:AVA[room.members.length%AVA.length], ai:true, connected:true, ws:null });
         recolor(room); sendLobby(room);

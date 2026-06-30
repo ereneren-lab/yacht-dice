@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>너클본즈 — 주사위 골목</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,800&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#15110d; --bg2:#1d1711; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09);
+    --ink:#f3ece0; --muted:#a89a86; --brass:#e0a23c; --brass-d:#b07d24;
+    --you:#e8a13a; --opp:#9b8cff;
+    --die:#efe7d6; --die2:#ddd2bd; --pip:#241a12;
+    --win:#7bd88f; --danger:#e8696b;
+  }
+  html,body{height:100%}
+  body{background:
+      radial-gradient(1200px 700px at 50% -10%, #2a2017 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 110%, #221a2e 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:'Inter',system-ui,-apple-system,sans-serif;
+    min-height:100%; display:flex; flex-direction:column; align-items:center;
+    -webkit-tap-highlight-color:transparent; overflow-x:hidden}
+  .wrap{width:100%; max-width:560px; padding:18px 18px 60px; margin:0 auto}
+
+  .kbtop{display:flex; align-items:center; gap:12px; margin:4px 2px 16px}
+  .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s;text-decoration:none}
+  .iconbtn:hover{background:var(--panel2)}
+  .kbtop h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600;flex:1}
+  .kbtop .mode-pill{font-size:11.5px;color:var(--brass);font-weight:700;background:rgba(224,162,60,.12);padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:6px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:var(--win)} .dot.off{background:var(--danger)}
+
+  .arena{display:flex; flex-direction:column; align-items:center; gap:9px}
+  .side{width:100%; display:flex; flex-direction:column; align-items:center; gap:8px;
+    border-radius:18px; padding:13px; transition:box-shadow .2s, background .2s}
+  .side.active{background:rgba(255,255,255,.02)}
+  .side.opp.active{box-shadow:0 0 0 2px var(--opp), 0 0 24px rgba(155,140,255,.25)}
+  .side.you.active{box-shadow:0 0 0 2px var(--you), 0 0 24px rgba(232,161,58,.25)}
+  .nameplate{display:flex; align-items:center; gap:9px; width:100%; justify-content:center}
+  .nameplate .av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+  .side.opp .av{background:rgba(155,140,255,.18);box-shadow:0 0 0 2px var(--opp)}
+  .side.you .av{background:rgba(232,161,58,.18);box-shadow:0 0 0 2px var(--you)}
+  .nameplate .nm{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px}
+  .nameplate .nm .off-badge{font-size:10px;font-weight:700;color:var(--danger);background:rgba(232,105,107,.14);padding:2px 6px;border-radius:6px}
+  .nameplate .tot{margin-left:auto;font-family:'Fraunces',serif;font-weight:800;font-size:20px}
+  .side.opp .tot{color:var(--opp)} .side.you .tot{color:var(--you)}
+  .nameplate .turnflag{font-size:11px;font-weight:800;letter-spacing:.04em;padding:3px 8px;border-radius:7px;opacity:0;transition:opacity .2s}
+  .side.active .turnflag{opacity:1}
+  .side.opp .turnflag{background:rgba(155,140,255,.18);color:#cfc6ff}
+  .side.you .turnflag{background:rgba(232,161,58,.18);color:#ffd9a0}
+
+  .board{display:flex; gap:8px; width:100%; max-width:320px}
+  .col{flex:1; display:flex; flex-direction:column; gap:7px; border-radius:12px; padding:7px; position:relative;
+    background:rgba(0,0,0,.18); box-shadow:inset 0 0 0 1px var(--line); cursor:default; transition:background .12s, box-shadow .12s}
+  .col .colscore{position:absolute; left:50%; transform:translateX(-50%); font-family:'Fraunces',serif; font-weight:800; font-size:13px;
+    color:var(--muted); opacity:0; transition:opacity .2s}
+  .side.you .col .colscore{bottom:-21px} .side.opp .col .colscore{top:-21px}
+  .col.has .colscore{opacity:1}
+  .col.place{cursor:pointer; animation:placePulseY 1.7s ease-in-out infinite}
+  .side.opp .col.place{animation:placePulseO 1.7s ease-in-out infinite}
+  @keyframes placePulseY{0%,100%{box-shadow:inset 0 0 0 1.5px rgba(232,161,58,.4)}50%{box-shadow:inset 0 0 0 2px rgba(232,161,58,.85)}}
+  @keyframes placePulseO{0%,100%{box-shadow:inset 0 0 0 1.5px rgba(155,140,255,.4)}50%{box-shadow:inset 0 0 0 2px rgba(155,140,255,.85)}}
+  .col.place:hover{background:rgba(232,161,58,.12)}
+  .side.opp .col.place:hover{background:rgba(155,140,255,.12)}
+
+  .slot{aspect-ratio:1; border-radius:9px; background:rgba(255,255,255,.025); box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+    display:flex; align-items:center; justify-content:center}
+  .die{width:88%; height:88%; border-radius:10px; background:linear-gradient(150deg,var(--die),var(--die2));
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:13%;
+    box-shadow:0 3px 0 rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.07); position:relative}
+  .die .pip{display:flex;align-items:center;justify-content:center}
+  .die .pip i{width:64%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .die.drop{animation:drop .32s cubic-bezier(.3,1.4,.5,1)}
+  @keyframes drop{0%{transform:translateY(-26px) scale(.8);opacity:.2}100%{transform:none;opacity:1}}
+  .die.mult{box-shadow:0 0 0 2px var(--brass), 0 0 14px rgba(224,162,60,.55), inset 0 0 0 1px rgba(0,0,0,.07)}
+  .side.opp .die.mult{box-shadow:0 0 0 2px var(--opp),0 0 14px rgba(155,140,255,.5),inset 0 0 0 1px rgba(0,0,0,.07)}
+  .side.you .die.mult{box-shadow:0 0 0 2px var(--you),0 0 14px rgba(232,161,58,.5),inset 0 0 0 1px rgba(0,0,0,.07)}
+  .die.boom{animation:boom .42s ease forwards}
+  @keyframes boom{0%{transform:scale(1)}30%{transform:scale(1.18) rotate(8deg);filter:brightness(1.6)}100%{transform:scale(0) rotate(40deg);opacity:0}}
+
+  .tray{margin:18px auto 0; max-width:340px; display:flex; flex-direction:column; align-items:center; gap:12px}
+  .rollzone{display:flex;align-items:center;justify-content:center;gap:14px;min-height:74px}
+  .bigdie{width:64px;height:64px;border-radius:13px;background:linear-gradient(150deg,var(--die),var(--die2));
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:9px;
+    box-shadow:0 5px 0 rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.08)}
+  .bigdie .pip{display:flex;align-items:center;justify-content:center}
+  .bigdie .pip i{width:62%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .bigdie.tumble{animation:tumble .5s ease}
+  @keyframes tumble{0%{transform:rotate(0) scale(.9)}25%{transform:rotate(120deg) scale(1.05)}50%{transform:rotate(220deg) scale(.95)}75%{transform:rotate(330deg) scale(1.04)}100%{transform:rotate(360deg) scale(1)}}
+  .rolllabel{color:var(--muted);font-size:13px;text-align:center;min-height:18px}
+  .rolllabel b{color:var(--ink)}
+  .btn{width:100%;max-width:340px;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;
+    cursor:pointer;background:linear-gradient(180deg,var(--brass),var(--brass-d));color:#241a0c;
+    box-shadow:0 6px 18px rgba(224,162,60,.28);transition:transform .08s,opacity .12s}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.4;cursor:default;box-shadow:none}
+  .btn.ghost{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+
+  .ov{position:fixed;inset:0;background:rgba(8,6,4,.74);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .ov.on{display:flex;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .sheet{width:100%;max-width:380px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:22px;padding:24px 22px}
+  .sheet h3{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin-bottom:4px}
+  .sheet p{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:14px}
+  .opt-label{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin:14px 0 8px}
+  .opts{display:flex;gap:8px}
+  .opt{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;padding:11px 8px;
+    font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:.12s;text-align:center}
+  .opt.on{border-color:var(--brass);background:rgba(224,162,60,.14);color:#ffd9a0}
+  .sheet .btn{margin-top:20px}
+  .rules-link{background:none;border:1px solid var(--line);color:var(--brass);border-radius:10px;padding:10px;width:100%;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:2px;transition:background .12s}
+  .rules-link:hover{background:rgba(224,162,60,.1)}
+  .field{width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;padding:12px;
+    font-size:15px;font-family:inherit;margin-top:8px;text-align:center;letter-spacing:.04em}
+  .field::placeholder{color:var(--muted);letter-spacing:0}
+  .field.code{text-transform:uppercase;font-family:'Fraunces',serif;font-weight:800;font-size:22px;letter-spacing:.25em}
+  .row2{display:flex;gap:8px;margin-top:10px}
+  .row2 .btn{margin-top:0}
+  .err{color:var(--danger);font-size:12.5px;text-align:center;margin-top:10px;min-height:16px}
+
+  /* lobby */
+  .lobbycode{font-family:'Fraunces',serif;font-weight:800;font-size:40px;letter-spacing:.28em;text-align:center;color:var(--brass);margin:6px 0 2px;padding-left:.28em}
+  .members{display:flex;flex-direction:column;gap:8px;margin:16px 0 4px}
+  .member{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel2)}
+  .member .mav{width:28px;height:28px;border-radius:50%;background:rgba(224,162,60,.16);display:flex;align-items:center;justify-content:center;font-size:15px}
+  .member .mnm{font-weight:700;font-size:14px}
+  .member .mhost{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);background:rgba(224,162,60,.14);padding:3px 8px;border-radius:6px}
+  .member.waiting{opacity:.55;border-style:dashed}
+  .waiting-line{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+
+  /* illustrated guide */
+  .sheet.guide{max-height:84vh;overflow-y:auto}
+  .guide>p{margin-bottom:6px}
+  .gstep{display:flex;gap:12px;padding:14px 0;border-top:1px solid var(--line);text-align:left}
+  .gstep:first-of-type{border-top:none;padding-top:6px}
+  .gnum{width:26px;height:26px;border-radius:8px;background:rgba(224,162,60,.16);color:var(--brass);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none;font-family:'Fraunces',serif}
+  .gstep b{display:block;font-size:14.5px;margin-bottom:3px}
+  .gstep .gtxt{color:var(--muted);font-size:12.5px;line-height:1.5;display:block}
+  .gstep em{color:var(--ink);font-style:normal;font-weight:700}
+  .ex{display:flex;align-items:center;gap:10px;margin-top:11px;padding:11px 12px;border-radius:12px;background:rgba(0,0,0,.22);flex-wrap:wrap}
+  .ex .lbl{color:var(--muted);font-size:11.5px}
+  .ex .hot{color:var(--brass);font-family:'Fraunces',serif;font-weight:800;font-size:20px}
+  .ex small{color:var(--muted);font-size:11px}
+  .mcol{display:flex;flex-direction:column;gap:4px;padding:5px;border-radius:9px;background:rgba(0,0,0,.25)}
+  .mcol.glow{box-shadow:0 0 0 1.5px var(--brass),0 0 12px rgba(224,162,60,.4)}
+  .minidie{width:26px;height:26px;border-radius:6px;background:linear-gradient(150deg,var(--die),var(--die2));display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:4px;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .minidie .pip{display:flex;align-items:center;justify-content:center}
+  .minidie .pip i{width:62%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .minidie.gone{opacity:.16;filter:grayscale(1)}
+  .marrow{color:var(--brass);font-size:18px;font-weight:800}
+
+  /* result */
+  .result{text-align:center;padding:8px 0}
+  .result .crown{font-size:46px}
+  .result h3{font-family:'Fraunces',serif;font-size:26px;font-weight:800;margin:6px 0 2px}
+  .result .rsub{color:var(--muted);font-size:14px;margin-bottom:16px}
+  .result .scores{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+  .result .sc{flex:1;max-width:130px;border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel2)}
+  .result .sc .who{font-size:12.5px;font-weight:700;margin-bottom:4px}
+  .result .sc .n{font-family:'Fraunces',serif;font-weight:800;font-size:30px}
+  .result .sc.you .n{color:var(--you)} .result .sc.opp .n{color:var(--opp)}
+
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important} }
+  @media(max-width:380px){ .board{gap:6px} .col{padding:5px;gap:5px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kbtop">
+    <a class="iconbtn" href="./" title="골목으로">←</a>
+    <h2>너클본즈</h2>
+    <span class="mode-pill" id="kbMode" style="display:none"></span>
+    <button class="iconbtn" id="kbHelp" title="규칙">?</button>
+  </div>
+
+  <div class="arena" id="arena" style="display:none">
+    <div class="side opp" id="sideOpp">
+      <div class="nameplate">
+        <div class="av" id="avOpp">🐺</div>
+        <span class="nm" id="nmOpp">상대</span>
+        <span class="turnflag">차례</span>
+        <span class="tot" id="totOpp">0</span>
+      </div>
+      <div class="board" id="boardOpp"></div>
+    </div>
+
+    <div class="tray">
+      <div class="rollzone" id="rollzone"></div>
+      <div class="rolllabel" id="rolllabel"></div>
+    </div>
+
+    <div class="side you" id="sideYou">
+      <div class="board" id="boardYou"></div>
+      <div class="nameplate">
+        <div class="av" id="avYou">😎</div>
+        <span class="nm" id="nmYou">나</span>
+        <span class="turnflag">차례</span>
+        <span class="tot" id="totYou">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:340px;margin:16px auto 0" id="rollWrap" style="display:none">
+    <button class="btn" id="rollBtn">굴리기</button>
+  </div>
+</div>
+
+<!-- setup -->
+<div class="ov" id="setupOv">
+  <div class="sheet">
+    <h3>너클본즈</h3>
+    <p>주사위를 굴려 내 격자에 놓고, 같은 줄에 같은 수를 모아 점수를 폭증시켜. 내가 놓은 수는 상대 같은 줄의 같은 수를 부숴버려.</p>
+    <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
+    <div class="opt-label">상대</div>
+    <div class="opts" id="optMode">
+      <button class="opt on" data-m="ai">AI 대전</button>
+      <button class="opt" data-m="2p">2인 (한 기기)</button>
+      <button class="opt" data-m="online">온라인</button>
+    </div>
+    <div id="diffWrap">
+      <div class="opt-label">AI 난이도</div>
+      <div class="opts" id="optDiff">
+        <button class="opt" data-d="easy">쉬움</button>
+        <button class="opt on" data-d="normal">보통</button>
+        <button class="opt" data-d="hard">어려움</button>
+      </div>
+    </div>
+    <div id="onlineBox" style="display:none">
+      <div class="opt-label">내 이름</div>
+      <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
+      <div class="row2">
+        <button class="btn" id="createBtn">방 만들기</button>
+        <button class="btn ghost" id="joinToggle">참가</button>
+      </div>
+      <div id="joinBox" style="display:none">
+        <input class="field code" id="joinCode" maxlength="4" placeholder="코드">
+        <button class="btn" id="joinBtn" style="margin-top:10px">코드로 참가</button>
+      </div>
+      <div class="err" id="onErr"></div>
+    </div>
+    <button class="btn" id="startBtn">시작</button>
+  </div>
+</div>
+
+<!-- lobby -->
+<div class="ov" id="lobbyOv">
+  <div class="sheet">
+    <h3>방 코드</h3>
+    <p>친구에게 코드나 링크를 보내. 둘 다 들어오면 시작!</p>
+    <div class="lobbycode" id="lobbyCode">····</div>
+    <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
+    <div class="members" id="members"></div>
+    <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
+    <button class="btn" id="lobbyStart" style="display:none">시작</button>
+    <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
+  </div>
+</div>
+
+<!-- help -->
+<div class="ov" id="helpOv">
+  <div class="sheet guide">
+    <h3>너클본즈 규칙</h3>
+    <p>주사위를 굴려 3×3 격자에 쌓는 1:1 두뇌 싸움. 5분이면 익혀!</p>
+    <div class="gstep"><span class="gnum">1</span><div>
+      <b>굴리고, 내 줄에 놓기</b>
+      <span class="gtxt">주사위를 굴려서 <em>내 격자의 세로줄 하나</em>를 골라 놓아. 그다음 상대 차례 — 번갈아 진행해.</span>
+    </div></div>
+    <div class="gstep"><span class="gnum">2</span><div>
+      <b>같은 줄에 모으면 점수 폭발</b>
+      <span class="gtxt">한 세로줄에 <em>같은 숫자</em>가 여러 개면 곱해서 커져. 같은 수를 한 줄에 몰아 쌓는 게 핵심!</span>
+      <div class="ex">
+        <div class="mcol glow"><span class="minidie" data-v="3"></span><span class="minidie" data-v="3"></span><span class="minidie" data-v="3"></span></div>
+        <span class="hot">= 27</span><small>3 × (3개)²<br>= 3 × 9</small>
+      </div>
+      <div class="ex">
+        <div class="mcol glow"><span class="minidie" data-v="5"></span><span class="minidie" data-v="5"></span></div>
+        <span class="hot">= 20</span><small>5 × (2개)²<br>= 5 × 4</small>
+      </div>
+    </div></div>
+    <div class="gstep"><span class="gnum">3</span><div>
+      <b>상대의 같은 줄을 부순다</b>
+      <span class="gtxt">내가 어떤 숫자를 놓으면, <em>상대 격자의 같은 줄</em>에 있는 같은 숫자는 전부 부서져. 공격이자 방어!</span>
+      <div class="ex">
+        <span class="lbl">내가 줄에 <b style="color:var(--ink)">4</b>를 놓으면</span>
+        <div class="mcol"><span class="minidie" data-v="4"></span><span class="minidie" data-v="2"></span></div>
+        <span class="marrow">→</span>
+        <div class="mcol"><span class="minidie gone" data-v="4"></span><span class="minidie" data-v="2"></span></div>
+        <span style="font-size:18px">💥</span>
+      </div>
+    </div></div>
+    <div class="gstep"><span class="gnum">4</span><div>
+      <b>꽉 차면 끝 — 총합 승부</b>
+      <span class="gtxt">한 명의 격자(9칸)가 꽉 차면 게임 종료. <em>전체 점수 합이 높은 사람</em>이 이겨.</span>
+    </div></div>
+    <button class="btn" id="helpClose" style="margin-top:8px">알겠어!</button>
+  </div>
+</div>
+
+<!-- result -->
+<div class="ov" id="resultOv">
+  <div class="sheet">
+    <div class="result">
+      <div class="crown" id="resCrown">🏆</div>
+      <h3 id="resTitle">승리!</h3>
+      <div class="rsub" id="resSub"></div>
+      <div class="scores">
+        <div class="sc you"><div class="who" id="rYouName">나</div><div class="n" id="rYouScore">0</div></div>
+        <div class="sc opp"><div class="who" id="rOppName">상대</div><div class="n" id="rOppScore">0</div></div>
+      </div>
+      <button class="btn" id="againBtn">다시 한 판</button>
+      <button class="iconbtn" style="width:100%;margin-top:10px;border-radius:14px;padding:14px" id="toHub2"><span style="font-weight:800">골목으로</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* === kb-core.js (인라인: 외부 파일 없이도 동작 / server.js는 별도 파일 사용) === */
+/* === kb-core.js — 너클본즈 엔진 (브라우저/Node 공용, 서버 권위형) ===
+ * 인터페이스는 요트 GameEngine과 동일한 패턴:
+ *   new KBEngine({players, onState, onRoll, turnMs, rng})
+ *   .start() / .action(pid,a) / .setConnected(pid,b) / .skipNow() / .serialize() / .destroy()
+ *   a = {type:'roll'} | {type:'place', col}
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.KBCore = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const now = () => Date.now();
+
+  // ---- pure scoring ----
+  function colScore(col){ const c={}; for(const v of col) c[v]=(c[v]||0)+1; let s=0; for(const v in c){ s+=(+v)*c[v]*c[v]; } return s; }
+  function boardScore(b){ return b.reduce((a,col)=>a+colScore(col),0); }
+  function isFull(b){ return b.every(col=>col.length>=3); }
+
+  // ---- AI ----
+  function aiChooseCol(boards, p, val, diff){
+    const opp=1-p, legal=[0,1,2].filter(c=>boards[p][c].length<3);
+    if(!legal.length) return 0;
+    if(diff==='easy' && Math.random()<0.62) return legal[(Math.random()*legal.length)|0];
+    let best=[], bs=-1e9;
+    for(const c of legal){
+      const gain = colScore(boards[p][c].concat(val)) - colScore(boards[p][c]);
+      const destroy = colScore(boards[opp][c]) - colScore(boards[opp][c].filter(x=>x!==val));
+      let s;
+      if(diff==='hard') s = gain + destroy*1.2 + (boards[p][c].includes(val)?2:0);
+      else s = gain + destroy + (Math.random()*6-3);
+      if(s>bs){ bs=s; best=[c]; } else if(s===bs) best.push(c);
+    }
+    return best[(Math.random()*best.length)|0];
+  }
+
+  class KBEngine {
+    constructor(opts){
+      opts = opts || {};
+      this.rng = opts.rng || Math.random;
+      this.onState = opts.onState || function(){};
+      this.onRoll = opts.onRoll || function(){};
+      this.TURN_MS = opts.turnMs || 45000;
+      this.aiFast = !!opts.aiFast;
+      this.AID = this.aiFast ? 0.45 : 1;
+      // exactly 2 seats
+      const ps = (opts.players||[]).slice(0,2);
+      while(ps.length<2) ps.push({ pid:'p'+ps.length, name:'P'+(ps.length+1), ai:true });
+      this.players = ps.map((p,seat)=>({
+        pid:p.pid, name:p.name, avatar:p.avatar||null, ai:!!p.ai,
+        aiDiff: p.aiDiff || 'normal', connected: p.connected!==false, seat
+      }));
+      this.boards = [[[],[],[]],[[],[],[]]];
+      this.turn = 0; this.die = null; this.phase='roll';
+      this.deadline = 0; this._timer=null; this._busy=false; this._dead=false;
+    }
+
+    _die(){ return 1 + Math.floor(this.rng()*6); }
+    _emit(){ if(!this._dead) this.onState(this.serialize()); }
+    _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
+
+    start(){ this._dead=false; this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
+
+    _beginTurn(){
+      this._clearTimer();
+      this.phase='roll'; this.die=null;
+      const auto = this._isAuto(this.turn);
+      this.deadline = auto ? 0 : now()+this.TURN_MS;
+      this._emit();
+      if(auto){ this._busy=true; setTimeout(()=>this._aiTurn(), 650*this.AID); }
+      else this._armTimer();
+    }
+
+    _armTimer(){ this._clearTimer(); if(this.deadline>0){ const ms=Math.max(0,this.deadline-now())+60; this._timer=setTimeout(()=>this._timeout(), ms); } }
+    _clearTimer(){ if(this._timer){ clearTimeout(this._timer); this._timer=null; } }
+
+    _timeout(){
+      if(this._dead || this.phase==='over') return;
+      // AFK: auto-roll(if needed) then auto-place
+      const seat=this.turn;
+      if(this.phase==='roll'){ this.die=this._die(); this.onRoll(seat,this.die); this.phase='place'; }
+      const col=aiChooseCol(this.boards, seat, this.die, 'normal');
+      this._doPlace(seat, col);
+    }
+
+    action(pid, a){
+      if(this._dead || this.phase==='over' || this._busy) return;
+      const seat=this.players.findIndex(p=>p.pid===pid);
+      if(seat<0 || seat!==this.turn) return;
+      if(this._isAuto(seat)) return; // auto seats handled internally
+      if(a.type==='roll'){
+        if(this.phase!=='roll') return;
+        this.die=this._die(); this.onRoll(seat,this.die); this.phase='place';
+        // refresh deadline for the place step
+        this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
+      } else if(a.type==='place'){
+        if(this.phase!=='place') return;
+        const col=a.col|0; if(col<0||col>2||this.boards[seat][col].length>=3) return;
+        this._doPlace(seat, col);
+      }
+    }
+
+    _doPlace(seat, col){
+      this._clearTimer();
+      const opp=1-seat, val=this.die;
+      this.boards[seat][col].push(val);
+      const destroyed = this.boards[opp][col].filter(x=>x===val);
+      this.boards[opp][col] = this.boards[opp][col].filter(x=>x!==val);
+      this.die=null;
+      // emit a placement event via onRoll? keep simple: state carries lastMove
+      this._moveSeq=(this._moveSeq||0)+1;
+      this._lastMove = { seq:this._moveSeq, seat, col, val, destroyed: destroyed.length };
+      if(isFull(this.boards[0]) || isFull(this.boards[1])){
+        this.phase='over'; this._busy=false; this._emit(); return;
+      }
+      this.turn = opp; this._busy=false; this._beginTurn();
+    }
+
+    async _aiTurn(){
+      if(this._dead) return;
+      const seat=this.turn;
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      if(this.phase==='roll' || this.die==null){
+        this.die=this._die(); this.onRoll(seat,this.die); this.phase='place'; this._emit();
+        await wait(620*this.AID);
+        if(this._dead || this.turn!==seat) return;
+      }
+      const diff = this.players[seat].ai ? this.players[seat].aiDiff : 'normal';
+      const col = aiChooseCol(this.boards, seat, this.die, diff);
+      this._doPlace(seat, col);
+    }
+
+    setConnected(pid, v){
+      const p=this.players.find(x=>x.pid===pid); if(!p) return;
+      p.connected=!!v;
+      if(!v && p.seat===this.turn && this.phase!=='over' && !this._busy){
+        // AFK auto-takeover
+        this._busy=true; this.deadline=0; this._clearTimer(); setTimeout(()=>this._aiTurn(), 400);
+      }
+      this._emit();
+    }
+
+    skipNow(){ if(this._dead||this.phase==='over'||this._busy) return; this._busy=true; this._clearTimer(); this.deadline=0; setTimeout(()=>this._aiTurn(), 250); }
+
+    _winner(){
+      const a=boardScore(this.boards[0]), b=boardScore(this.boards[1]);
+      if(a===b) return { tie:true, pids:[this.players[0].pid,this.players[1].pid] };
+      const w = a>b?0:1;
+      return { tie:false, pid:this.players[w].pid, seat:w };
+    }
+
+    serialize(){
+      const totals=[boardScore(this.boards[0]), boardScore(this.boards[1])];
+      return {
+        game:'kb',
+        phase:this.phase, turn:this.turn, die:this.die,
+        deadline:this.deadline, turnMs:this.TURN_MS,
+        boards:this.boards.map(b=>b.map(col=>col.slice())),
+        colScores:this.boards.map(b=>b.map(col=>colScore(col))),
+        lastMove:this._lastMove||null,
+        players:this.players.map(p=>({ pid:p.pid, name:p.name, avatar:p.avatar, ai:p.ai, connected:p.connected, seat:p.seat, total:totals[p.seat] })),
+        winner: this.phase==='over' ? this._winner() : null
+      };
+    }
+
+    destroy(){ this._dead=true; this._clearTimer(); }
+  }
+
+  return { KBEngine, colScore, boardScore, isFull, aiChooseCol };
+});
+
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  const pipHTML = v => { let s=''; for(let k=0;k<9;k++) s+=`<div class="pip">${PIPS[v]&&PIPS[v].indexOf(k)>=0?'<i></i>':''}</div>`; return s; };
+  const colScore = KBCore.colScore, boardScore = KBCore.boardScore, isFull = KBCore.isFull;
+  const clone = b => b.map(c=>c.slice());
+  const OPP_AV = ['🐺','🦝','🦊','🐗','🦡'];
+
+  // ---------- state ----------
+  let mode='ai', diff='normal';
+  let engine=null;            // local KBEngine
+  let ws=null, myPid=null, mySeat=0, roomCode=null, lobby=null, amHostFlag=false;
+  let S=null, prevBoards=null, lastSeq=0, busy=false, tumbling=false;
+
+  const online = () => mode==='online';
+  const bottomSeat = () => online() ? mySeat : 0;
+  const isOver = s => s && s.phase==='over';
+  function canControl(seat, s){ if(s.players[seat].ai) return false; return online() ? seat===mySeat : true; }
+
+  // ---------- rules guide ----------
+  document.querySelectorAll('.minidie[data-v]').forEach(d=>{ d.innerHTML=pipHTML(+d.dataset.v); });
+  let rulesSeen=false; try{ rulesSeen=localStorage.getItem('da_kb_rules')==='1'; }catch(e){}
+  function showRules(){ $('helpOv').classList.add('on'); rulesSeen=true; try{ localStorage.setItem('da_kb_rules','1'); }catch(e){} }
+  $('setupRules').onclick = showRules;
+  $('kbHelp').onclick = ()=>$('helpOv').classList.add('on');
+  $('helpClose').onclick = ()=>$('helpOv').classList.remove('on');
+  $('helpOv').addEventListener('click', e=>{ if(e.target.id==='helpOv') $('helpOv').classList.remove('on'); });
+
+  // ---------- setup ----------
+  function openSetup(){ $('setupOv').classList.add('on'); if(!rulesSeen) setTimeout(showRules,280); }
+  $('optMode').onclick = e=>{ const b=e.target.closest('.opt'); if(!b)return; mode=b.dataset.m;
+    document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o===b));
+    $('diffWrap').style.display = mode==='ai'?'block':'none';
+    $('onlineBox').style.display = mode==='online'?'block':'none';
+    $('startBtn').style.display = mode==='online'?'none':'block';
+  };
+  $('optDiff').onclick = e=>{ const b=e.target.closest('.opt'); if(!b)return; diff=b.dataset.d;
+    document.querySelectorAll('#optDiff .opt').forEach(o=>o.classList.toggle('on',o===b)); };
+  $('startBtn').onclick = ()=>{ $('setupOv').classList.remove('on'); startLocal(); };
+  $('againBtn').onclick = ()=>{ $('resultOv').classList.remove('on'); if(online()){ requestRematch(); } else startLocal(); };
+  $('toHub2').onclick = ()=>{ location.href='./'; };
+
+  // ---------- screen ----------
+  function showGame(){ $('arena').style.display='flex'; $('rollWrap').style.display='block'; $('kbMode').style.display='flex'; }
+  function setModePill(){
+    const dot = online() ? `<span class="dot ${ws&&ws.readyState===1?'on':'off'}"></span>` : '';
+    const txt = mode==='ai' ? 'vs AI ('+({easy:'쉬움',normal:'보통',hard:'어려움'}[diff])+')' : mode==='2p' ? '2인' : '온라인';
+    $('kbMode').innerHTML = dot+txt;
+  }
+
+  // ---------- LOCAL start ----------
+  function startLocal(){
+    teardownNet();
+    try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){}
+    mode = mode==='online' ? 'ai' : mode; // safety
+    if(engine){ engine.destroy(); engine=null; }
+    const players = (mode==='2p')
+      ? [{pid:'p0',name:'플레이어 1',ai:false,avatar:'😎'},{pid:'p1',name:'플레이어 2',ai:false,avatar:OPP_AV[Math.random()*OPP_AV.length|0]}]
+      : [{pid:'p0',name:'나',ai:false,avatar:'😎'},{pid:'p1',name:'AI',ai:true,aiDiff:diff,avatar:OPP_AV[Math.random()*OPP_AV.length|0]}];
+    mySeat = 0;
+    S=null; prevBoards=null; lastSeq=0; busy=false;
+    setModePill(); showGame();
+    engine = new KBCore.KBEngine({ players, aiFast:false,
+      onState: s=>onState(s),
+      onRoll: (seat,val)=>tumble(val) });
+    engine.start();
+  }
+
+  // ---------- ONLINE ----------
+  const wsUrl = () => (location.protocol==='https:'?'wss':'ws')+'://'+location.host;
+  function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
+  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+
+  function connect(then){
+    if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
+    try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버에 연결할 수 없어요.'; return; }
+    ws.onopen = ()=>{ setModePill(); then&&then(); };
+    ws.onmessage = ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
+    ws.onclose = ()=>{ setModePill(); };
+    ws.onerror = ()=>{ $('onErr').textContent='연결 오류'; };
+  }
+
+  function onNet(m){
+    if(m.t==='me'){ myPid=m.pid; roomCode=m.code; try{localStorage.setItem('kb_room',roomCode);localStorage.setItem('kb_pid',myPid);}catch(e){} }
+    else if(m.t==='lobby'){ lobby=m.room; renderLobby(); }
+    else if(m.t==='kbroll'){ tumble(m.value); }
+    else if(m.t==='state'){ const s=m.state;
+      if(mySeat==null || (s.players.findIndex(p=>p.pid===myPid)>=0)) mySeat = s.players.findIndex(p=>p.pid===myPid);
+      if(mySeat<0) mySeat=0;
+      $('lobbyOv').classList.remove('on'); setModePill(); showGame(); onState(s);
+    }
+    else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
+      try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} }
+  }
+
+  $('joinToggle').onclick = ()=>{ const b=$('joinBox'); b.style.display = b.style.display==='none'?'block':'none'; };
+  $('createBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'호스트';
+    mode='online'; connect(()=>wsSend({t:'create',game:'kb',name})); };
+  $('joinBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
+    const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='코드 4자리를 입력해.'; return; }
+    mode='online'; connect(()=>wsSend({t:'join',code,name})); };
+
+  function renderLobby(){
+    if(!lobby) return;
+    $('setupOv').classList.remove('on'); $('lobbyOv').classList.add('on');
+    $('lobbyCode').textContent = lobby.code;
+    amHostFlag = lobby.members.some(x=>x.host && x.pid===myPid);
+    const host = $('members'); host.innerHTML='';
+    lobby.members.forEach(mem=>{
+      const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
+      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(mem.name)}</span>${mem.host?'<span class="mhost">호스트</span>':''}`;
+      host.appendChild(d);
+    });
+    const ready = lobby.members.length>=2;
+    $('lobbyWait').style.display = ready?'none':'block';
+    $('lobbyStart').style.display = (ready && amHostFlag)?'block':'none';
+    if(ready && !amHostFlag){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
+  }
+  $('lobbyStart').onclick = ()=>wsSend({t:'start'});
+  $('copyLink').onclick = ()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); copyText(url); $('copyLink').textContent='✓ 복사됨!'; setTimeout(()=>$('copyLink').textContent='🔗 초대 링크 복사',1500); };
+  $('lobbyLeave').onclick = ()=>{ teardownNet(); try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} $('lobbyOv').classList.remove('on'); mode='ai'; resetSetup(); openSetup(); };
+  function requestRematch(){ wsSend({t:'endGame'}); /* 호스트가 endGame하면 로비로; 양쪽 로비에서 재시작 */ }
+
+  // ---------- unified state pipeline ----------
+  function onState(s){
+    const newSeq = s.lastMove ? s.lastMove.seq : 0;
+    if(prevBoards && s.lastMove && newSeq!==lastSeq){
+      animateMove(prevBoards, s, ()=>commit(s));
+    } else {
+      commit(s);
+    }
+  }
+  function commit(s){
+    S=s; prevBoards=clone(s.boards); lastSeq = s.lastMove?s.lastMove.seq:lastSeq; busy=false;
+    render(s, s.boards);
+    if(isOver(s)){ try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){} setTimeout(()=>showResult(s), 600); }
+  }
+
+  function animateMove(prev, s, done){
+    busy=true;
+    const mv=s.lastMove, mover=mv.seat, opp=1-mover, col=mv.col, val=mv.val;
+    // transitional boards: mover col shows the new die; opp col still holds soon-destroyed dice
+    const trans = clone(s.boards);
+    trans[mover] = prev[mover].map(c=>c.slice());
+    trans[mover][col] = prev[mover][col].concat([val]);
+    trans[opp] = prev[opp].map(c=>c.slice());   // keep pre-destruction opp
+    render(s, trans);
+    markDropNewest(mover, col);
+    let any=false;
+    if(mv.destroyed>0){ any = boomDestroyed(opp, col, val); try{SFX.boom();}catch(e){} }
+    setTimeout(done, any?440:230);
+  }
+
+  // ---------- render ----------
+  function sideOf(seat){ return seat===bottomSeat() ? 'you' : 'opp'; }
+  function boardElOf(seat){ return seat===bottomSeat() ? $('boardYou') : $('boardOpp'); }
+
+  function render(s, boards){
+    const bottom=bottomSeat(), top=1-bottom;
+    renderSide('you', bottom, s, boards);
+    renderSide('opp', top, s, boards);
+    // nameplates
+    fillPlate('You', s.players[bottom], boardScore(boards[bottom]));
+    fillPlate('Opp', s.players[top], boardScore(boards[top]));
+    $('sideYou').classList.toggle('active', s.turn===bottom && !isOver(s));
+    $('sideOpp').classList.toggle('active', s.turn===top && !isOver(s));
+    // roll button
+    const rb=$('rollBtn');
+    const myTurnRoll = !isOver(s) && !busy && s.phase==='roll' && canControl(s.turn, s);
+    rb.disabled = !myTurnRoll;
+    rb.textContent = (s.phase==='place' && canControl(s.turn,s)) ? '줄을 선택해' : '굴리기';
+    // label
+    updateLabel(s);
+    // tray
+    renderTray(s);
+  }
+
+  function fillPlate(pos, p, total){
+    $('av'+pos).textContent = p.avatar || (pos==='You'?'😎':'🐺');
+    $('nm'+pos).innerHTML = esc(p.name||(pos==='You'?'나':'상대')) + (p.connected===false?'<span class="off-badge">연결 끊김</span>':'');
+    $('tot'+pos).textContent = total;
+  }
+
+  function renderSide(pos, seat, s, boards){
+    const host = $(pos==='you'?'boardYou':'boardOpp'); host.innerHTML='';
+    const board = boards[seat];
+    for(let c=0;c<3;c++){
+      const col=board[c];
+      const colEl=document.createElement('div');
+      colEl.className='col'+(col.length?' has':'');
+      const canPlace = !isOver(s) && !busy && s.phase==='place' && s.turn===seat && canControl(seat,s) && col.length<3;
+      if(canPlace){ colEl.classList.add('place'); colEl.onclick=()=>dispatchPlace(c); }
+      const cnt={}; col.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+      const cells=[null,null,null];
+      if(pos==='you'){ for(let i=0;i<col.length;i++) cells[2-i]=col[i]; }
+      else { for(let i=0;i<col.length;i++) cells[i]=col[i]; }
+      cells.forEach(v=>{ const slot=document.createElement('div'); slot.className='slot';
+        if(v!=null){ const die=document.createElement('div'); die.className='die'+(cnt[v]>1?' mult':''); die.innerHTML=pipHTML(v); slot.appendChild(die); }
+        colEl.appendChild(slot);
+      });
+      const sc=document.createElement('div'); sc.className='colscore'; sc.textContent=colScore(col)||''; colEl.appendChild(sc);
+      host.appendChild(colEl);
+    }
+  }
+
+  function renderTray(s){
+    if(tumbling) return;
+    const z=$('rollzone'); z.innerHTML='';
+    const d=document.createElement('div'); d.className='bigdie'; d.id='bigdie';
+    if(s && s.die!=null){ d.innerHTML=pipHTML(s.die); }
+    else { d.style.opacity='.25'; d.innerHTML=pipHTML(1); }
+    z.appendChild(d);
+  }
+
+  function updateLabel(s){
+    if(isOver(s)){ setLabel('게임 종료'); return; }
+    const cur = s.players[s.turn];
+    const mine = canControl(s.turn, s);
+    if(s.phase==='roll'){
+      if(mine) setLabel(mode==='2p' ? `<b>${esc(cur.name)}</b> 차례 — 굴려` : '굴려서 주사위를 받아');
+      else setLabel(`<b>${esc(cur.name)}</b> ${cur.ai?'생각 중…':'차례…'}`);
+    } else if(s.phase==='place'){
+      if(mine) setLabel(`<b>${s.die}</b> 나왔어 — 놓을 줄을 골라`);
+      else setLabel(`<b>${esc(cur.name)}</b>: ${s.die} 놓는 중…`);
+    }
+  }
+  const setLabel = h => $('rolllabel').innerHTML=h;
+
+  // ---------- tumble ----------
+  function tumble(val){
+    tumbling=true;
+    const z=$('rollzone'); z.innerHTML='';
+    const d=document.createElement('div'); d.className='bigdie tumble'; d.id='bigdie'; d.innerHTML=pipHTML(val); z.appendChild(d);
+    let ticks=0; const iv=setInterval(()=>{ const t=$('bigdie'); if(t) t.innerHTML=pipHTML(1+(Math.random()*6|0)); if(++ticks>4){ clearInterval(iv); const f=$('bigdie'); if(f) f.innerHTML=pipHTML(val); } },70);
+    setTimeout(()=>{ tumbling=false; if(S) renderTray(S); }, 520);
+  }
+
+  // ---------- drop / boom helpers ----------
+  function markDropNewest(seat, col){
+    const colEl = boardElOf(seat).children[col]; if(!colEl) return;
+    const filled = colEl.querySelectorAll('.slot .die'); if(!filled.length) return;
+    const newest = sideOf(seat)==='you' ? filled[0] : filled[filled.length-1];
+    newest.classList.add('drop');
+  }
+  function boomDestroyed(seat, col, val){
+    const colEl = boardElOf(seat).children[col]; if(!colEl) return false;
+    const pos = sideOf(seat);
+    const board = prevBoards[seat][col];
+    const cells=[null,null,null];
+    if(pos==='you'){ for(let i=0;i<board.length;i++) cells[2-i]=board[i]; }
+    else { for(let i=0;i<board.length;i++) cells[i]=board[i]; }
+    let any=false;
+    colEl.querySelectorAll('.slot').forEach((sl,ri)=>{ const d=sl.querySelector('.die'); if(d && cells[ri]===val){ d.classList.add('boom'); any=true; } });
+    return any;
+  }
+
+  // ---------- dispatch ----------
+  $('rollBtn').onclick = ()=>dispatchRoll();
+  function dispatchRoll(){ const s=S; if(!s||busy||s.phase!=='roll'||isOver(s)) return; if(!canControl(s.turn,s)) return;
+    if(online()) wsSend({t:'action',a:{type:'roll'}}); else engine.action(s.players[s.turn].pid,{type:'roll'}); }
+  function dispatchPlace(col){ const s=S; if(!s||busy||s.phase!=='place'||isOver(s)) return; const seat=s.turn; if(!canControl(seat,s)) return;
+    if(s.boards[seat][col].length>=3) return;
+    if(online()) wsSend({t:'action',a:{type:'place',col}}); else engine.action(s.players[seat].pid,{type:'place',col}); }
+
+  // ---------- result ----------
+  function showResult(s){
+    const bottom=bottomSeat(), top=1-bottom;
+    const sb=boardScore(s.boards[bottom]), st=boardScore(s.boards[top]);
+    $('rYouName').textContent=s.players[bottom].name; $('rOppName').textContent=s.players[top].name;
+    $('rYouScore').textContent=sb; $('rOppScore').textContent=st;
+    let title,crown,sub;
+    if(sb===st){ title='무승부'; crown='🤝'; sub=`${sb} : ${st} — 막상막하`; }
+    else if(sb>st){ title=(mode==='2p'?s.players[bottom].name+' ':'')+'승리!'; crown='🏆'; sub=`${sb} : ${st}`; }
+    else { title=(mode==='online'||mode==='2p')?s.players[top].name+' 승리':'패배…'; crown=(mode==='ai')?'😵':'🏆'; sub=`${sb} : ${st}`; }
+    $('resTitle').textContent=title; $('resCrown').textContent=crown; $('resSub').textContent=sub;
+    try{ sb>=st?SFX.win():SFX.lose(); }catch(e){}
+    $('againBtn').textContent = online() ? '로비로' : '다시 한 판';
+    $('resultOv').classList.add('on');
+  }
+
+  // ---------- sfx ----------
+  const SFX = (()=>{ let ctx; const ac=()=>{ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); return ctx; };
+    function tone(f,t,d,g,type){ const c=ac(); const o=c.createOscillator(),v=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(v); v.connect(c.destination); o.start(t); o.stop(t+d); }
+    return {
+      boom(){ const c=ac(),t=c.currentTime; tone(180,t,.18,.16,'square'); tone(90,t+.02,.22,.12,'sawtooth'); },
+      win(){ const c=ac(),t=c.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.1,.3,.14,'triangle')); },
+      lose(){ const c=ac(),t=c.currentTime; [392,330,262].forEach((f,i)=>tone(f,t+i*.13,.32,.13,'sine')); },
+    };
+  })();
+
+  // ---------- util ----------
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); } }
+  function resetSetup(){ mode='ai'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('diffWrap').style.display='block'; $('onlineBox').style.display='none'; $('startBtn').style.display='block'; $('onErr').textContent=''; }
+
+  // ---------- boot ----------
+  (function boot(){
+    const params=new URLSearchParams(location.search);
+    const room=params.get('room');
+    let savedRoom=null, savedPid=null;
+    try{ savedRoom=localStorage.getItem('kb_room'); savedPid=localStorage.getItem('kb_pid'); }catch(e){}
+    if(room && location.protocol!=='file:'){
+      mode='online'; resetSetup(); mode='online';
+      connect(()=>wsSend({t:'join',code:room.toUpperCase(),name:'게스트'}));
+      return;
+    }
+    if(savedRoom && savedPid && location.protocol!=='file:'){
+      mode='online';
+      connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid}));
+      return;
+    }
+    openSetup();
+  })();
+})();
+</script>
+</body>
+</html>

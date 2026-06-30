@@ -1,11 +1,16 @@
 {
   "name": "yacht-dice",
-  "version": "1.2.0",
-  "description": "요트 다이스 — 로컬/AI/온라인(서버 권위형) 멀티플레이 + 투명 데스크톱 앱",
-  "main": "server.js",
+  "version": "1.4.5",
+  "description": "요트 다이스 — 로컬/AI/온라인(서버 권위형) 멀티플레이 + 데스크톱 앱",
+  "author": "jaesung",
+  "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",
-    "app": "electron electron/main.js"
+    "app": "electron electron/main.js",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
   },
   "engines": {
     "node": ">=18"
@@ -14,6 +19,35 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.jaesung.yachtdice",
+    "productName": "Yacht Dice",
+    "files": [
+      "electron/**/*",
+      "public/**/*",
+      "server.js",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Game"
+    }
   }
 }

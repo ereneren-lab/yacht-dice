@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>라이어 다이스 — 주사위 골목</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,800&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#15110d; --bg2:#1d1711; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09);
+    --ink:#f3ece0; --muted:#a89a86; --brass:#e0a23c; --brass-d:#b07d24;
+    --you:#e8a13a; --opp:#9b8cff; --die:#efe7d6; --die2:#ddd2bd; --pip:#241a12;
+    --win:#7bd88f; --danger:#e8696b;
+  }
+  html,body{height:100%}
+  body{background:
+      radial-gradient(1200px 700px at 50% -10%, #2a2017 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 110%, #221a2e 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:'Inter',system-ui,-apple-system,sans-serif;
+    min-height:100%; display:flex; flex-direction:column; align-items:center;
+    -webkit-tap-highlight-color:transparent; overflow-x:hidden}
+  .wrap{width:100%; max-width:560px; padding:18px 16px 50px; margin:0 auto}
+
+  .topbar{display:flex; align-items:center; gap:12px; margin:4px 2px 14px}
+  .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s;text-decoration:none}
+  .iconbtn:hover{background:var(--panel2)}
+  .topbar h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600;flex:1}
+
+  /* opponents */
+  .opps{display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
+  .opp{flex:1; min-width:96px; max-width:160px; border:1px solid var(--line); border-radius:15px; padding:11px 10px; background:linear-gradient(180deg,var(--panel),var(--bg2));
+    transition:box-shadow .2s, opacity .3s; position:relative}
+  .opp.turn{box-shadow:0 0 0 2px var(--opp), 0 0 22px rgba(155,140,255,.28)}
+  .opp.out{opacity:.4; filter:grayscale(.6)}
+  .opp .ohead{display:flex; align-items:center; gap:8px}
+  .opp .oav{width:30px;height:30px;border-radius:50%;background:rgba(155,140,255,.18);box-shadow:0 0 0 2px var(--opp);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+  .opp .onm{font-weight:800;font-size:13px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .opp .obadge{font-size:9.5px;color:var(--muted);margin-top:1px}
+  .cups{display:flex; gap:3px; flex-wrap:wrap; margin-top:9px; min-height:22px}
+  .cup{width:20px;height:20px;border-radius:5px;background:linear-gradient(150deg,#3a2c1f,#2a2017);box-shadow:inset 0 0 0 1px rgba(224,162,60,.28), 0 1px 2px rgba(0,0,0,.3)}
+  .cup.lost{background:transparent;box-shadow:inset 0 0 0 1px rgba(232,105,107,.4)}
+  .opp .speech{position:absolute; top:-10px; right:8px; background:var(--opp); color:#1a1230; font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:8px; opacity:0; transform:translateY(4px); transition:.2s}
+  .opp.say .speech{opacity:1; transform:none}
+  .opp .speech.shout{background:var(--danger); color:#fff; white-space:nowrap}
+
+  /* center bid */
+  .center{text-align:center; margin:6px 0 14px; min-height:70px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px}
+  .bidnow{font-family:'Fraunces',serif; font-weight:800; font-size:15px; color:var(--muted)}
+  .bidnow .big{display:flex; align-items:center; gap:8px; justify-content:center; font-size:26px; color:var(--ink); margin-top:3px}
+  .bidnow .by{font-size:12px; font-weight:700; color:var(--brass); margin-top:2px}
+  .dieface{width:34px;height:34px;border-radius:8px;background:linear-gradient(150deg,var(--die),var(--die2));display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:5px;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .dieface .pip{display:flex;align-items:center;justify-content:center}
+  .dieface .pip i{width:68%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .status{color:var(--muted); font-size:13px; min-height:18px; text-align:center; margin-top:2px}
+  .status b{color:var(--ink)}
+
+  /* reveal banner */
+  .reveal{border:1px solid var(--line); border-radius:16px; padding:14px; background:rgba(0,0,0,.25); margin:6px 0 14px; text-align:center; animation:pop .3s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .reveal h4{font-family:'Fraunces',serif; font-size:16px; margin-bottom:8px}
+  .reveal .tally{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:8px 0}
+  .reveal .rrow{display:flex; align-items:center; gap:6px; justify-content:center; margin:4px 0; flex-wrap:wrap}
+  .reveal .rnm{font-size:11px; color:var(--muted); width:54px; text-align:right}
+  .sdie{width:32px;height:32px;border-radius:7px;background:linear-gradient(150deg,var(--die),var(--die2));display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:5px;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .sdie.hit{box-shadow:0 0 0 2px var(--brass), 0 0 10px rgba(224,162,60,.5)}
+  .sdie .pip{display:flex;align-items:center;justify-content:center}
+  .sdie .pip i{width:68%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .reveal .verdict{font-weight:800; font-size:15px; margin-top:8px}
+  .verdict.good{color:var(--win)} .verdict.bad{color:var(--danger)}
+  .revbar{height:4px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:13px;overflow:hidden}
+  .revbar i{display:block;height:100%;background:var(--brass);width:100%;transform-origin:left;animation:revcount linear forwards}
+  @keyframes revcount{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+  .revnext{font-size:11px;color:var(--muted);margin-top:7px}
+
+  /* my area */
+  .me{border-top:1px solid var(--line); padding-top:14px; margin-top:2px}
+  .mehead{display:flex; align-items:center; gap:9px; margin-bottom:9px}
+  .mehead .mav{width:30px;height:30px;border-radius:50%;background:rgba(232,161,58,.18);box-shadow:0 0 0 2px var(--you);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .mehead .mnm{font-weight:800;font-size:14px}
+  .mehead .mturn{margin-left:auto;font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;background:rgba(232,161,58,.18);color:#ffd9a0;opacity:0;transition:.2s}
+  .me.turn .mturn{opacity:1}
+  .mydice{display:flex; gap:9px; justify-content:center; margin-bottom:14px; min-height:56px}
+  .mydice .d{width:56px;height:56px}
+  .mdie{width:100%;height:100%;border-radius:11px;background:linear-gradient(150deg,var(--die),var(--die2));display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;box-shadow:0 3px 0 rgba(0,0,0,.32), 0 1px 4px rgba(0,0,0,.3)}
+  .mdie .pip{display:flex;align-items:center;justify-content:center}
+  .mdie .pip i{width:72%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .mdie.roll{animation:rl .5s ease}
+  .mdie.wild{box-shadow:0 3px 0 rgba(0,0,0,.28), 0 0 0 2px var(--brass) inset, 0 0 10px rgba(224,162,60,.45)}
+  .mdie.wild .pip i{background:var(--brass)}
+  .sdie.wild{box-shadow:0 0 0 2px var(--brass)}
+  .sdie.wild .pip i{background:var(--brass)}
+  @keyframes rl{0%{transform:translateY(-10px) rotate(-8deg);opacity:.3}100%{transform:none;opacity:1}}
+
+  /* controls */
+  .controls{display:flex; flex-direction:column; gap:10px}
+  .bidbuild{border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--panel)}
+  .bidbuild .lab{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+  .qtyrow{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:10px}
+  .stepbtn{width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:22px;font-weight:800;cursor:pointer}
+  .stepbtn:active{transform:translateY(1px)}
+  .qtyval{font-family:'Fraunces',serif;font-weight:800;font-size:30px;min-width:48px;text-align:center}
+  .qtyx{color:var(--muted);font-size:18px}
+  .faces{display:flex; gap:6px; justify-content:center}
+  .facebtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;padding:7px;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);transition:.12s}
+  .facebtn.on{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass), 0 0 12px rgba(224,162,60,.3)}
+  .facebtn .pip{display:flex;align-items:center;justify-content:center}
+  .facebtn .pip i{width:62%;aspect-ratio:1;border-radius:50%;background:var(--pip)}
+  .btn{width:100%;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;
+    background:linear-gradient(180deg,var(--brass),var(--brass-d));color:#241a0c;box-shadow:0 5px 16px rgba(224,162,60,.26);transition:transform .08s,opacity .12s}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.4;cursor:default;box-shadow:none}
+  .btn.ghost{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  .btn.danger{background:linear-gradient(180deg,#e8696b,#b0484a);color:#fff;box-shadow:0 5px 16px rgba(232,105,107,.26)}
+  .btn.violet{background:linear-gradient(180deg,#9b8cff,#6f5fd0);color:#160f30;box-shadow:0 5px 16px rgba(155,140,255,.26)}
+  .challenge-row{display:flex; gap:9px}
+  .challenge-row .btn{margin:0}
+  .mini{font-size:11.5px;color:var(--muted);text-align:center}
+
+  /* overlays */
+  .ov{position:fixed;inset:0;background:rgba(8,6,4,.74);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .ov.on{display:flex;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .sheet{width:100%;max-width:380px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:22px;padding:24px 22px}
+  .sheet h3{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin-bottom:4px}
+  .sheet p{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:14px}
+  .opt-label{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin:14px 0 8px}
+  .opts{display:flex;gap:8px}
+  .opt{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;padding:11px 8px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:.12s;text-align:center}
+  .opt.on{border-color:var(--brass);background:rgba(224,162,60,.14);color:#ffd9a0}
+  .toggle{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:11px;padding:11px 14px;background:var(--panel2);margin-top:8px;cursor:pointer}
+  .toggle .tnm{font-weight:700;font-size:13.5px}
+  .toggle .tsw{width:42px;height:24px;border-radius:999px;background:#3a3128;position:relative;transition:.15s;flex:none}
+  .toggle .tsw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#7a6e5e;transition:.15s}
+  .toggle.on .tsw{background:rgba(224,162,60,.5)} .toggle.on .tsw::after{left:21px;background:var(--brass)}
+  .sheet .btn{margin-top:20px}
+  .rules-link{background:none;border:1px solid var(--line);color:var(--brass);border-radius:10px;padding:10px;width:100%;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:background .12s}
+  .rules-link:hover{background:rgba(224,162,60,.1)}
+
+  .guide{max-height:84vh;overflow-y:auto}
+  .gstep{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line);text-align:left}
+  .gstep:first-of-type{border-top:none}
+  .gnum{width:26px;height:26px;border-radius:8px;background:rgba(224,162,60,.16);color:var(--brass);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none;font-family:'Fraunces',serif}
+  .gstep b{display:block;font-size:14px;margin-bottom:2px}
+  .gstep span{color:var(--muted);font-size:12.5px;line-height:1.5;display:block}
+  .gstep em{color:var(--ink);font-style:normal;font-weight:700}
+
+  .result{text-align:center;padding:6px 0}
+  .result .crown{font-size:46px}
+  .result h3{font-family:'Fraunces',serif;font-size:25px;font-weight:800;margin:6px 0 8px}
+  .result .rsub{color:var(--muted);font-size:14px;margin-bottom:18px}
+
+  /* online */
+  .field{width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;padding:12px;font-size:15px;font-family:inherit;margin-top:8px;text-align:center}
+  .field::placeholder{color:var(--muted)}
+  .field.code{text-transform:uppercase;font-family:'Fraunces',serif;font-weight:800;font-size:22px;letter-spacing:.25em}
+  .row2{display:flex;gap:8px;margin-top:10px}
+  .row2 .btn{margin-top:0}
+  .err{color:var(--danger);font-size:12.5px;text-align:center;margin-top:10px;min-height:16px}
+  .lobbycode{font-family:'Fraunces',serif;font-weight:800;font-size:40px;letter-spacing:.28em;text-align:center;color:var(--brass);margin:6px 0 2px;padding-left:.28em}
+  .members{display:flex;flex-direction:column;gap:8px;margin:16px 0 4px}
+  .member{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel2)}
+  .member .mav2{width:28px;height:28px;border-radius:50%;background:rgba(224,162,60,.16);display:flex;align-items:center;justify-content:center;font-size:15px}
+  .member .mnm2{font-weight:700;font-size:14px}
+  .member .mhost{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);background:rgba(224,162,60,.14);padding:3px 8px;border-radius:6px}
+  .member.waiting{opacity:.55;border-style:dashed}
+  .waiting-line{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="iconbtn" href="./" title="골목으로">←</a>
+    <h2>라이어 다이스</h2>
+    <button class="iconbtn" id="kbHelp" title="규칙">?</button>
+  </div>
+
+  <div id="game" style="display:none">
+    <div class="opps" id="opps"></div>
+    <div class="center" id="center"></div>
+    <div id="revealBox"></div>
+    <div class="me" id="meBox">
+      <div class="mehead">
+        <div class="mav" id="meAv">😎</div>
+        <div class="mnm" id="meNm">나</div>
+        <span class="mturn">내 차례</span>
+      </div>
+      <div class="mydice" id="mydice"></div>
+      <div class="controls" id="controls"></div>
+    </div>
+  </div>
+</div>
+
+<!-- setup -->
+<div class="ov" id="setupOv">
+  <div class="sheet">
+    <h3>라이어 다이스</h3>
+    <p>각자 컵 속 주사위를 숨기고, 전체에 특정 숫자가 몇 개인지 뻥카로 베팅해. 거짓말을 잡아내거나 잡혀라.</p>
+    <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
+    <div class="opt-label">대전 방식</div>
+    <div class="opts" id="optMode">
+      <button class="opt on" data-m="ai">AI 대전</button>
+      <button class="opt" data-m="online">온라인</button>
+    </div>
+    <div id="aiBox">
+      <div class="opt-label">인원 (나 + AI)</div>
+      <div class="opts" id="optN">
+        <button class="opt" data-n="2">2인</button>
+        <button class="opt on" data-n="3">3인</button>
+        <button class="opt" data-n="4">4인</button>
+      </div>
+      <div class="opt-label">AI 난이도</div>
+      <div class="opts" id="optDiff">
+        <button class="opt" data-d="easy">쉬움</button>
+        <button class="opt on" data-d="normal">보통</button>
+        <button class="opt" data-d="hard">어려움</button>
+      </div>
+    </div>
+    <div class="toggle on" id="spotToggle"><span class="tnm">정확히(스팟온) 허용</span><span class="tsw"></span></div>
+    <div id="onlineBox" style="display:none">
+      <div class="opt-label">내 이름</div>
+      <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
+      <div class="row2">
+        <button class="btn" id="createBtn">방 만들기</button>
+        <button class="btn ghost" id="joinToggle">참가</button>
+      </div>
+      <div id="joinBox" style="display:none">
+        <input class="field code" id="joinCode" maxlength="4" placeholder="코드">
+        <button class="btn" id="joinBtn" style="margin-top:10px">코드로 참가</button>
+      </div>
+      <div class="err" id="onErr"></div>
+    </div>
+    <button class="btn" id="startBtn">시작</button>
+  </div>
+</div>
+
+<!-- help -->
+<div class="ov" id="helpOv">
+  <div class="sheet guide">
+    <h3>라이어 다이스 규칙</h3>
+    <p>각자 주사위 5개를 컵에 숨기고 굴려. 내 것만 보여.</p>
+    <div class="gstep"><span class="gnum">1</span><div><b>베팅</b><span>"전체에 <em>X가 N개 이상</em>"이라고 선언해. 다음 사람은 더 높게 부르거나(개수↑ 또는 같은 개수에 숫자↑) 도전해.</span></div></div>
+    <div class="gstep"><span class="gnum">2</span><div><b>1은 만능(와일드)</b><span><em>1</em>은 어떤 숫자로도 쳐줘. 베팅은 2~6 숫자에 대해서만 해.</span></div></div>
+    <div class="gstep"><span class="gnum">3</span><div><b>거짓말! (도전)</b><span>앞 사람 베팅이 뻥이라고 생각하면 도전. 까봐서 실제 개수가 베팅보다 <em>적으면</em> 베팅한 사람이, <em>충분하면</em> 도전한 사람이 주사위 1개를 잃어.</span></div></div>
+    <div class="gstep"><span class="gnum">4</span><div><b>정확히 (스팟온)</b><span>개수가 <em>딱 맞다</em>고 부르는 선택. 맞으면 베팅한 사람이, 틀리면 부른 사람이 1개 잃어. (옵션)</span></div></div>
+    <div class="gstep"><span class="gnum">5</span><div><b>최후의 1인</b><span>주사위가 0개면 탈락. <em>마지막까지 남은 사람</em>이 승리.</span></div></div>
+    <button class="btn" id="helpClose" style="margin-top:8px">알겠어!</button>
+  </div>
+</div>
+
+<!-- lobby -->
+<div class="ov" id="lobbyOv">
+  <div class="sheet">
+    <h3>방 코드</h3>
+    <p>친구에게 코드나 링크를 보내. 2~4명 모이면 호스트가 시작!</p>
+    <div class="lobbycode" id="lobbyCode">····</div>
+    <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
+    <div class="toggle on" id="lobbySpot" style="margin-top:12px"><span class="tnm">정확히(스팟온) 허용</span><span class="tsw"></span></div>
+    <div class="members" id="members"></div>
+    <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
+    <button class="btn" id="lobbyStart" style="display:none">시작</button>
+    <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
+  </div>
+</div>
+
+<!-- result -->
+<div class="ov" id="resultOv">
+  <div class="sheet">
+    <div class="result">
+      <div class="crown" id="resCrown">🏆</div>
+      <h3 id="resTitle">승리!</h3>
+      <div class="rsub" id="resSub"></div>
+      <button class="btn" id="againBtn">다시 한 판</button>
+      <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* === ld-core.js (인라인: 외부 파일 없이도 동작 / server.js는 별도 파일 사용) === */
+/* === ld-core.js — 라이어 다이스 엔진 (브라우저/Node 공용, 숨김정보) ===
+ * 규칙: 1=와일드, 베팅은 face 2..6 "전체에 qty개 이상". 도전(dudo)/정확히(calza, 옵션).
+ * 인터페이스:
+ *   new LDEngine({players, diceCount, wild, spotOn, onState, rng, aiFast, revealMs})
+ *   .start() / .action(pid,a) / .serialize(viewerPid) / .setConnected(pid,b) / .destroy()
+ *   a = {type:'bid',qty,face} | {type:'dudo'} | {type:'calza'}
+ *   onState() 콜백은 인자 없이 호출 → 소비자가 serialize(viewerPid)를 직접 호출 (플레이어마다 다른 화면)
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.LDCore = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // ---- math ----
+  function C(n,k){ if(k<0||k>n)return 0; let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return r; }
+  function atLeast(U,t,p){ if(t<=0)return 1; if(t>U)return 0; let s=0; for(let i=t;i<=U;i++) s+=C(U,i)*Math.pow(p,i)*Math.pow(1-p,U-i); return s; }
+  function exactly(U,t,p){ if(t<0||t>U)return 0; return C(U,t)*Math.pow(p,t)*Math.pow(1-p,U-t); }
+
+  // ---- AI ----
+  function legalRaises(bid, total){
+    const out=[];
+    for(let f=bid.face+1; f<=6; f++) out.push({qty:bid.qty, face:f});
+    for(let q=bid.qty+1; q<=total; q++) for(let f=2; f<=6; f++) out.push({qty:q, face:f});
+    return out;
+  }
+  function aiDecide(view, seat, diff, wild, spotOn){
+    const p = wild ? 1/3 : 1/6;
+    const total = view.totalDice;
+    const my = view.players[seat].dice || [];
+    const myLen = my.length;
+    const unknown = total - myLen;
+    const myMatch = f => my.filter(d=>d===f || (wild && d===1)).length;
+    const bid = view.bid;
+    if(!bid){
+      let bestF=2, bestC=-1;
+      for(let f=2; f<=6; f++){ const c=myMatch(f); if(c>bestC || (c===bestC&&f>bestF)){ bestC=c; bestF=f; } }
+      let qty = Math.max(1, Math.round(myMatch(bestF) + unknown*p));
+      if(diff==='easy') qty = Math.max(1, qty + (Math.random()<.5?0:1));
+      qty = Math.min(qty, total);
+      return { type:'bid', qty, face:bestF };
+    }
+    const myc = myMatch(bid.face);
+    const pTrue = atLeast(unknown, bid.qty - myc, p);
+    // 도전 임계값: 높은 난이도일수록 최적(~0.5)에 가깝게
+    const chT = diff==='hard'?0.47 : diff==='normal'?0.40 : 0.25;
+    if(bid.qty > total) return { type:'dudo' };
+    if(pTrue < chT) return { type:'dudo' };   // 거짓일 확률 높음 → 도전
+    if(spotOn){
+      const pEx = exactly(unknown, bid.qty - myc, p);
+      const soT = diff==='hard'?0.36 : 0.44;
+      const soChance = diff==='easy'?0.05 : diff==='normal'?0.2 : 0.35;
+      if(pEx > soT && Math.random() < soChance) return { type:'calza' };
+    }
+    // 참일 만함 → 가장 안전한 최소 레이즈 (강할수록 정확, 약할수록 무작위)
+    const cands = legalRaises(bid, total);
+    if(!cands.length) return { type:'dudo' };
+    const window = cands.slice(0, 18);
+    let best=window[0], bestPr=-1;
+    for(const r of window){ const pr=atLeast(unknown, r.qty - myMatch(r.face), p); if(pr>bestPr){ bestPr=pr; best=r; } }
+    let choice=best;
+    const noise = diff==='easy'?0.6 : diff==='normal'?0.28 : 0.0;
+    if(Math.random() < noise){ choice = window[Math.floor(Math.random()*window.length)]; }
+    else if(Math.random() < (diff==='hard'?0.12:0.08)){ const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; }
+    return { type:'bid', qty:choice.qty, face:choice.face };
+  }
+
+  class LDEngine {
+    constructor(opts){
+      opts = opts||{};
+      this.rng = opts.rng || Math.random;
+      this.onState = opts.onState || function(){};
+      this.wild = opts.wild!==false;
+      this.spotOn = opts.spotOn!==false;
+      this.startDice = opts.diceCount || 5;
+      this.aiFast = !!opts.aiFast;
+      this.AID = this.aiFast ? 0.4 : 1;
+      this.AI_MS = opts.aiMs!=null ? opts.aiMs : (this.aiFast ? 380 : 900);
+      this.REVEAL_MS = opts.revealMs!=null ? opts.revealMs : 4200;
+      this.turnMs = opts.turnMs!=null ? opts.turnMs : 0;   // 0 = 무제한(로컬 싱글). 온라인은 서버가 설정.
+      this.players = (opts.players||[]).map((p,i)=>({
+        pid:p.pid, name:p.name||('P'+(i+1)), avatar:p.avatar||null, ai:!!p.ai,
+        aiDiff:p.aiDiff||'normal', connected:p.connected!==false,
+        dice:[], alive:true, seat:i
+      }));
+      this.phase='bid'; this.turn=0; this.bid=null; this.lastResult=null;
+      this._busy=false; this._dead=false; this._timer=null; this._turnTimer=null;
+    }
+
+    _d(){ return 1 + Math.floor(this.rng()*6); }
+    _emit(){ if(!this._dead) this.onState(); }
+    _aliveSeats(){ return this.players.filter(p=>p.alive).map(p=>p.seat); }
+    _totalDice(){ return this.players.reduce((a,p)=>a+(p.alive?p.dice.length:0),0); }
+    _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
+
+    start(){ this._dead=false; this._newRound(this.turn||0); }
+
+    _newRound(starter){
+      this._clear();
+      this.players.forEach(p=>{ p.dice = p.alive ? Array.from({length:p.dice.length||this.startDice}, ()=>this._d()) : []; });
+      // ensure alive players who never rolled get startDice
+      this.players.forEach(p=>{ if(p.alive && p.dice.length===0) p.dice=Array.from({length:this.startDice},()=>this._d()); });
+      this.bid=null; this.lastResult=null; this.phase='bid';
+      this.turn = this.players[starter] && this.players[starter].alive ? starter : this._nextAlive(starter);
+      this._emit();
+      this._maybeAI();
+    }
+
+    _nextAlive(seat){ const n=this.players.length; for(let i=1;i<=n;i++){ const s=(seat+i)%n; if(this.players[s].alive) return s; } return seat; }
+
+    _maybeAI(){
+      if(this._dead || this.phase!=='bid') return;
+      this._clearTurn();
+      if(this._isAuto(this.turn)){ this._busy=true; setTimeout(()=>this._aiTurn(), this.AI_MS); }
+      else if(this.turnMs>0){ const seat=this.turn; this._turnTimer=setTimeout(()=>this._autoAct(seat), this.turnMs); }
+    }
+
+    _aiTurn(){
+      if(this._dead || this.phase!=='bid') { this._busy=false; return; }
+      const seat=this.turn;
+      const view = this.serialize(this.players[seat].pid); // AI sees only its own dice
+      const a = aiDecide(view, seat, this.players[seat].aiDiff, this.wild, this.spotOn);
+      this._busy=false;
+      this._apply(seat, a);
+    }
+
+    _autoAct(seat){   // 연결됐지만 시간 초과한 사람 대신 자동 결정
+      if(this._dead || this.phase!=='bid' || this.turn!==seat) return;
+      const view = this.serialize(this.players[seat].pid);
+      const a = aiDecide(view, seat, 'normal', this.wild, this.spotOn);
+      this._apply(seat, a);
+    }
+
+    action(pid, a){
+      if(this._dead || this.phase!=='bid' || this._busy) return;
+      const seat=this.players.findIndex(p=>p.pid===pid && p.alive);
+      if(seat<0 || seat!==this.turn) return;
+      if(this._isAuto(seat)) return;
+      this._clearTurn();
+      this._apply(seat, a);
+    }
+
+    _countFace(face){
+      let n=0;
+      for(const p of this.players){ if(!p.alive) continue; for(const d of p.dice){ if(d===face || (this.wild && d===1)) n++; } }
+      return n;
+    }
+
+    _apply(seat, a){
+      if(a.type==='bid'){
+        const qty=a.qty|0, face=a.face|0;
+        if(face<2||face>6||qty<1) return;
+        if(this.bid){ const ok = qty>this.bid.qty || (qty===this.bid.qty && face>this.bid.face); if(!ok) return; }
+        if(qty>this._totalDice()) return;
+        this.bid={ qty, face, by:seat };
+        this.turn=this._nextAlive(seat);
+        this._emit();
+        this._maybeAI();
+      } else if(a.type==='dudo'){
+        if(!this.bid) return;
+        this._resolveDudo(seat);
+      } else if(a.type==='calza'){
+        if(!this.bid || !this.spotOn) return;
+        this._resolveCalza(seat);
+      }
+    }
+
+    _loseDie(seat){ const p=this.players[seat]; if(p.dice.length>0) p.dice.pop(); if(p.dice.length===0) p.alive=false; }
+
+    _finishRound(result){
+      this.phase='reveal'; this.lastResult=result;
+      // 주사위는 아직 그대로 — reveal에 공개되는 주사위 수가 actual과 정확히 일치
+      this._emit();
+      this._timer=setTimeout(()=>{ if(this._dead)return;
+        this._loseDie(result.loserSeat);            // 이제 잃음 (다음 라운드에 컵 줄어듦으로 반영)
+        const aliveNow=this.players.filter(p=>p.alive);
+        if(aliveNow.length<=1){
+          result.winner = aliveNow.length?aliveNow[0].pid:null;
+          this.phase='over'; this._emit(); return;
+        }
+        let starter=result.loserSeat;
+        if(!this.players[starter].alive) starter=this._nextAlive(starter);
+        this._newRound(starter);
+      }, this.REVEAL_MS);
+    }
+
+    _resolveDudo(challenger){
+      const actual=this._countFace(this.bid.face);
+      const bidder=this.bid.by;
+      const bidTrue = actual >= this.bid.qty;
+      const loserSeat = bidTrue ? challenger : bidder;  // 도전 실패→도전자 / 성공→베팅한 사람
+      this._finishRound({ type:'dudo', caller:challenger, bidder, bid:{...this.bid}, actual, bidTrue, loserSeat });
+    }
+
+    _resolveCalza(caller){
+      const actual=this._countFace(this.bid.face);
+      const exact = actual === this.bid.qty;
+      // 정확하면 caller 안전 + 베팅한 사람이 1개 잃음 / 틀리면 caller가 1개 잃음
+      const loserSeat = exact ? this.bid.by : caller;
+      this._finishRound({ type:'calza', caller, bidder:this.bid.by, bid:{...this.bid}, actual, exact, loserSeat });
+    }
+
+    setConnected(pid, v){
+      const p=this.players.find(x=>x.pid===pid); if(!p) return; p.connected=!!v;
+      if(!v && p.seat===this.turn && this.phase==='bid' && !this._busy){ this._clearTurn(); this._busy=true; setTimeout(()=>this._aiTurn(), 500); }
+      this._emit();
+    }
+
+    serialize(viewerPid){
+      const reveal = this.phase==='reveal' || this.phase==='over';
+      return {
+        game:'ld', phase:this.phase, turn:this.turn, bid:this.bid?{...this.bid}:null,
+        wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),
+        lastResult:this.lastResult?{...this.lastResult}:null,
+        revealMs:this.REVEAL_MS,
+        winner: this.phase==='over' && this.lastResult ? (this.lastResult.winner||null) : null,
+        players: this.players.map(p=>({
+          pid:p.pid, name:p.name, avatar:p.avatar, ai:p.ai, alive:p.alive, connected:p.connected, seat:p.seat,
+          diceCount:p.dice.length,
+          dice: (reveal || p.pid===viewerPid) ? p.dice.slice() : null
+        }))
+      };
+    }
+
+    destroy(){ this._dead=true; this._clear(); }
+    _clear(){ if(this._timer){ clearTimeout(this._timer); this._timer=null; } this._clearTurn(); }
+    _clearTurn(){ if(this._turnTimer){ clearTimeout(this._turnTimer); this._turnTimer=null; } }
+  }
+
+  return { LDEngine, aiDecide, atLeast, exactly, legalRaises };
+});
+
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  const pip = v => { let s=''; for(let k=0;k<9;k++) s+=`<div class="pip">${PIPS[v]&&PIPS[v].indexOf(k)>=0?'<i></i>':''}</div>`; return s; };
+  const OPP_AV = ['🐺','🦝','🦊','🐗','🦡','🦉','🐍'];
+  const OPP_NM = ['후안','로사','디에고','마야','카를로스','이사벨'];
+  let MYPID = 'me';
+  let online=false, ws=null, roomCode=null, lobby=null, amHost=false;
+
+  let engine=null, S=null, cfg={n:3, diff:'normal', spotOn:true};
+  let bidQty=1, bidFace=2, busy=false, freshRound=true, lastRevealKey=null, resultShown=false, ffActive=false;
+
+  // rules
+  let rulesSeen=false; try{ rulesSeen=localStorage.getItem('ld_rules')==='1'; }catch(e){}
+  function showRules(){ $('helpOv').classList.add('on'); rulesSeen=true; try{localStorage.setItem('ld_rules','1');}catch(e){} }
+  $('setupRules').onclick=showRules; $('kbHelp').onclick=()=>$('helpOv').classList.add('on');
+  $('helpClose').onclick=()=>$('helpOv').classList.remove('on');
+  $('helpOv').addEventListener('click',e=>{ if(e.target.id==='helpOv')$('helpOv').classList.remove('on'); });
+
+  // setup
+  function openSetup(){ $('setupOv').classList.add('on'); if(!rulesSeen) setTimeout(showRules,280); }
+  $('optMode').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return;
+    document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o===b));
+    online = b.dataset.m==='online';
+    $('aiBox').style.display = online?'none':'block';
+    $('spotToggle').style.display = online?'none':'flex';
+    $('onlineBox').style.display = online?'block':'none';
+    $('startBtn').style.display = online?'none':'block';
+  };
+  $('optN').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return; cfg.n=+b.dataset.n; document.querySelectorAll('#optN .opt').forEach(o=>o.classList.toggle('on',o===b)); };
+  $('optDiff').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return; cfg.diff=b.dataset.d; document.querySelectorAll('#optDiff .opt').forEach(o=>o.classList.toggle('on',o===b)); };
+  $('spotToggle').onclick=()=>{ cfg.spotOn=!cfg.spotOn; $('spotToggle').classList.toggle('on',cfg.spotOn); };
+  $('startBtn').onclick=()=>{ $('setupOv').classList.remove('on'); start(); };
+  $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); if(online){ wsSend({t:'endGame'}); } else start(); };
+  $('toHub').onclick=()=>location.href='./';
+
+  // online setup
+  $('joinToggle').onclick=()=>{ const b=$('joinBox'); b.style.display=b.style.display==='none'?'block':'none'; };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn})); };
+  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트'; const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='코드 4자리를 입력해.'; return; } online=true; connect(()=>wsSend({t:'join',code,name})); };
+
+  function start(){
+    teardownNet(); online=false; MYPID='me'; ffActive=false;
+    try{ localStorage.removeItem('ld_room'); localStorage.removeItem('ld_pid'); }catch(e){}
+    if(engine){ engine.destroy(); engine=null; }
+    const players=[{pid:MYPID,name:'나',avatar:'😎',ai:false}];
+    const av=[...OPP_AV].sort(()=>Math.random()-.5), nm=[...OPP_NM].sort(()=>Math.random()-.5);
+    for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:av[i-1],ai:true,aiDiff:cfg.diff});
+    S=null; busy=false;
+    $('game').style.display='block';
+    engine=new LDCore.LDEngine({ players, diceCount:5, wild:true, spotOn:cfg.spotOn,
+      onState:()=>{ S=engine.serialize(MYPID); render(); } });
+    engine.start();
+  }
+
+  // ---------- online ----------
+  const wsUrl=()=>(location.protocol==='https:'?'wss':'ws')+'://'+location.host;
+  function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
+  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+  function connect(then){
+    teardownNet();
+    if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
+    try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버에 연결할 수 없어요.'; return; }
+    ws.onopen=()=>{ then&&then(); };
+    ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
+    ws.onclose=()=>{};
+    ws.onerror=()=>{ $('onErr').textContent='연결 오류'; };
+  }
+  function onNet(m){
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){} }
+    else if(m.t==='lobby'){ lobby=m.room; $('resultOv').classList.remove('on'); renderLobby(); }
+    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; S=m.state; render(); }
+    else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
+  }
+  function renderLobby(){
+    if(!lobby) return;
+    $('setupOv').classList.remove('on'); $('lobbyOv').classList.add('on');
+    $('lobbyCode').textContent=lobby.code;
+    amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
+    $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);
+    $('lobbySpot').style.opacity = amHost?'1':'.55';
+    const host=$('members'); host.innerHTML='';
+    lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
+      d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}</span>${mem.host?'<span class="mhost">호스트</span>':''}`; host.appendChild(d); });
+    const ready=lobby.members.length>=2;
+    $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
+    if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='상대를 기다리는 중… (2~4인)'; }
+    else if(!amHost){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
+    else { $('lobbyWait').style.display='none'; }
+  }
+  $('lobbySpot').onclick=()=>{ if(!amHost)return; wsSend({t:'setSpot',v:!(lobby&&lobby.spotOn!==false)}); };
+  $('lobbyStart').onclick=()=>wsSend({t:'start'});
+  $('copyLink').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); copyText(url); $('copyLink').textContent='✓ 복사됨!'; setTimeout(()=>$('copyLink').textContent='🔗 초대 링크 복사',1500); };
+  $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} lobby=null; online=false; $('lobbyOv').classList.remove('on'); resetSetupMode(); openSetup(); };
+
+  // ---------- render ----------
+  function mySeat(){ return S.players.findIndex(p=>p.pid===MYPID); }
+  function render(){
+    if(!S) return;
+    if(S.phase==='reveal'||S.phase==='over') freshRound=true;
+    if(S.phase!=='over') resultShown=false;
+    const ms=mySeat();
+    renderOpps(); renderCenter();
+    if(ms<0){   // 관전자 (게임 중 입장 — 엔진 플레이어 아님)
+      $('mydice').innerHTML=''; $('meNm').textContent='관전 중'; $('meAv').textContent='👁';
+      $('meBox').classList.remove('turn');
+      $('controls').innerHTML='<div class="mini" style="padding:12px;text-align:center">관전 중 — 다음 판부터 참여할 수 있어</div>';
+    } else { renderMine(); renderControls(); }
+    renderReveal();
+    if(S.phase==='over') setTimeout(showResult, 700);
+  }
+
+  const GLY=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+  function renderOpps(){
+    const host=$('opps'); host.innerHTML='';
+    const r=S.lastResult;
+    S.players.forEach(p=>{
+      if(p.pid===MYPID) return;
+      let speech='', say=false, shout=false;
+      if(S.phase==='bid' && S.bid && S.bid.by===p.seat){ speech=S.bid.qty+' '+GLY[S.bid.face]; say=true; }
+      else if((S.phase==='reveal'||S.phase==='over') && r && r.caller===p.seat){ speech = r.type==='dudo' ? '거짓말!' : '정확히!'; say=true; shout=true; }
+      const d=document.createElement('div');
+      d.className='opp'+(S.turn===p.seat&&S.phase==='bid'?' turn':'')+(!p.alive?' out':'')+(say?' say':'');
+      let cups=''; for(let i=0;i<p.diceCount;i++) cups+='<div class="cup"></div>';
+      d.innerHTML=`<div class="ohead"><div class="oav">${p.avatar||'🐺'}</div>
+        <div><div class="onm">${esc(p.name)}</div><div class="obadge">${p.alive?(p.diceCount+'개'):'탈락'}</div></div></div>
+        <div class="cups">${cups||'<span style="font-size:11px;color:var(--danger)">탈락</span>'}</div>
+        <div class="speech${shout?' shout':''}" id="sp_${p.seat}">${speech}</div>`;
+      host.appendChild(d);
+    });
+  }
+
+  function faceDie(v,cls){ return `<div class="${cls||'dieface'}">${pip(v)}</div>`; }
+
+  function renderCenter(){
+    const c=$('center');
+    if(S.phase==='reveal'||S.phase==='over'){ c.innerHTML=''; return; }
+    if(!S.bid){ c.innerHTML=`<div class="bidnow">아직 베팅 없음</div><div class="status" id="status"></div>`; }
+    else {
+      const by=S.players[S.bid.by];
+      c.innerHTML=`<div class="bidnow">현재 베팅<div class="big"><span>${S.bid.qty}개</span>${faceDie(S.bid.face)}</div><div class="by">${esc(by.name)}</div></div><div class="status" id="status"></div>`;
+    }
+    setStatus();
+  }
+
+  function setStatus(){
+    const st=$('status'); if(!st) return;
+    if(S.phase==='over'){ st.textContent=''; return; }
+    const cur=S.players[S.turn];
+    if(S.turn===mySeat()) st.innerHTML = S.bid?'<b>내 차례</b> — 더 높게 부르거나 도전해':'<b>내 차례</b> — 첫 베팅을 해';
+    else st.innerHTML = `<b>${esc(cur.name)}</b> ${online?'차례…':'생각 중…'}`;
+  }
+
+  function renderMine(){
+    const me=S.players[mySeat()];
+    $('meAv').textContent=me.avatar||'😎'; $('meNm').textContent=me.name;
+    $('meBox').classList.toggle('turn', S.turn===mySeat()&&S.phase==='bid');
+    const host=$('mydice'); host.innerHTML='';
+    (me.dice||[]).forEach(v=>{ const w=document.createElement('div'); w.className='d'; w.innerHTML=`<div class="mdie${S.wild&&v===1?' wild':''}">${pip(v)}</div>`; host.appendChild(w); });
+    if(!me.alive){ host.innerHTML='<div class="mini" style="padding:12px">탈락했어 — 관전 중</div>'; }
+  }
+
+  // ---------- controls ----------
+  function legalBid(q,f){ if(f<2||f>6||q<1||q>S.totalDice) return false; if(!S.bid) return true; return q>S.bid.qty || (q===S.bid.qty && f>S.bid.face); }
+  function minQtyForFace(f){ if(!S.bid) return 1; return f>S.bid.face ? S.bid.qty : S.bid.qty+1; }
+  function myMatchCount(f){ const me=S.players[mySeat()]; const d=me.dice||[]; return d.filter(v=>v===f||(S.wild&&v===1)).length; }
+  function bestFace(){ let bf=2,bc=-1; for(let f=2;f<=6;f++){ const c=myMatchCount(f); if(c>bc||(c===bc&&f>bf)){bc=c;bf=f;} } return bf; }
+
+  function renderControls(){
+    const host=$('controls'); host.innerHTML='';
+    const me=S.players[mySeat()];
+    // 로컬에서 내가 탈락 → 남은 판 빠르게 보기
+    if(!online && me && !me.alive && S.phase!=='over'){
+      const b=document.createElement('button'); b.className='btn ghost'; b.id='ffBtn';
+      b.textContent = ffActive ? '⏩ 빨리감기 중…' : '⏩ 남은 판 빠르게 보기';
+      b.disabled = ffActive;
+      b.onclick=()=>{ ffActive=true; if(engine){ engine.AI_MS=130; engine.REVEAL_MS=700; } b.textContent='⏩ 빨리감기 중…'; b.disabled=true; };
+      host.appendChild(b);
+      return;
+    }
+    const myTurn = S.turn===mySeat() && S.phase==='bid' && me.alive && !busy;
+    if(!myTurn){ host.innerHTML=''; return; }
+    // 새 라운드(또는 내 차례 첫 진입)면 내 패 기반으로 추천값 세팅
+    if(freshRound){
+      let f=bestFace(); if(S.bid && f<S.bid.face) f=S.bid.face;
+      bidFace=f; bidQty=minQtyForFace(bidFace); freshRound=false;
+    } else {
+      if(bidFace<2)bidFace=2; if(bidFace>6)bidFace=6;
+      if(bidQty<minQtyForFace(bidFace)) bidQty=minQtyForFace(bidFace);
+      if(bidQty>S.totalDice) bidQty=S.totalDice;
+    }
+
+    const build=document.createElement('div'); build.className='bidbuild';
+    let faces=''; for(let f=2;f<=6;f++) faces+=`<button class="facebtn${f===bidFace?' on':''}" data-f="${f}">${pip(f)}</button>`;
+    build.innerHTML=`<div class="lab">베팅</div>
+      <div class="qtyrow"><button class="stepbtn" id="qminus">−</button><div class="qtyval" id="qval">${bidQty}</div><span class="qtyx">개의</span><button class="stepbtn" id="qplus">+</button></div>
+      <div class="faces">${faces}</div>
+      <div class="mini" id="faceHint" style="margin-top:9px"></div>`;
+    host.appendChild(build);
+
+    const bidBtn=document.createElement('button'); bidBtn.className='btn'; bidBtn.id='bidBtn'; bidBtn.textContent='베팅하기';
+    host.appendChild(bidBtn);
+
+    if(S.bid){
+      const row=document.createElement('div'); row.className='challenge-row';
+      row.innerHTML=`<button class="btn danger" id="dudoBtn">거짓말!</button>`+(S.spotOn?`<button class="btn violet" id="calzaBtn">정확히</button>`:'');
+      host.appendChild(row);
+      const m=document.createElement('div'); m.className='mini'; m.textContent='앞 사람 베팅이 뻥 같으면 거짓말!'; host.appendChild(m);
+    }
+
+    // wire
+    $('qminus').onclick=()=>{ const mn=minQtyForFace(bidFace); if(bidQty>mn){ bidQty--; refreshBuild(); } };
+    $('qplus').onclick=()=>{ if(bidQty<S.totalDice){ bidQty++; refreshBuild(); } };
+    build.querySelectorAll('.facebtn').forEach(b=>b.onclick=()=>{ bidFace=+b.dataset.f; bidQty=Math.max(bidQty,minQtyForFace(bidFace)); refreshBuild(); });
+    bidBtn.onclick=()=>{ if(!legalBid(bidQty,bidFace))return; act({type:'bid',qty:bidQty,face:bidFace}); };
+    if($('dudoBtn')) $('dudoBtn').onclick=()=>act({type:'dudo'});
+    if($('calzaBtn')) $('calzaBtn').onclick=()=>act({type:'calza'});
+    refreshBuild();
+  }
+  function refreshBuild(){
+    if($('qval')) $('qval').textContent=bidQty;
+    document.querySelectorAll('.facebtn').forEach(b=>b.classList.toggle('on',+b.dataset.f===bidFace));
+    if($('faceHint')){ const c=myMatchCount(bidFace); $('faceHint').innerHTML=`내 패에 <b style="color:var(--brass)">${c}개</b>${S.wild&&(S.players[mySeat()].dice||[]).includes(1)?' <span style="color:var(--muted)">(와일드 1 포함)</span>':''}`; }
+    if($('qminus')) $('qminus').disabled = bidQty<=minQtyForFace(bidFace);
+    if($('qplus')) $('qplus').disabled = bidQty>=S.totalDice;
+    if($('bidBtn')) $('bidBtn').disabled = !legalBid(bidQty,bidFace);
+  }
+
+  function act(a){ if(busy)return; busy=true; setTimeout(()=>{busy=false;},120);
+    if(online) wsSend({t:'action',a}); else engine.action(MYPID,a); }
+
+  // ---------- reveal ----------
+  function renderReveal(){
+    const box=$('revealBox');
+    if(S.phase!=='reveal' && S.phase!=='over'){ box.innerHTML=''; return; }
+    const r=S.lastResult; if(!r){ box.innerHTML=''; return; }
+    const wild=S.wild, face=r.bid.face;
+    let rows='';
+    S.players.forEach(p=>{
+      const dice=p.dice||[];
+      let cells=dice.map(v=>`<div class="sdie${(v===face||(wild&&v===1))?' hit':''}${wild&&v===1?' wild':''}">${pip(v)}</div>`).join('');
+      if(!dice.length) cells='<span style="font-size:11px;color:var(--muted)">탈락</span>';
+      rows+=`<div class="rrow"><span class="rnm">${esc(p.name)}</span>${cells}</div>`;
+    });
+    const loser=S.players[r.loserSeat];
+    let verdict;
+    if(r.type==='dudo') verdict = r.bidTrue ? `베팅 성공! 실제 ${r.actual}개 — 도전한 ${esc(loser.name)} 주사위 잃음` : `거짓 발각! 실제 ${r.actual}개 — ${esc(loser.name)} 주사위 잃음`;
+    else verdict = r.exact ? `정확히 적중! ${r.actual}개 — ${esc(loser.name)} 주사위 잃음` : `빗나감! 실제 ${r.actual}개 — ${esc(loser.name)} 주사위 잃음`;
+    const good = r.loserSeat!==mySeat();
+    const tail = S.phase==='over'
+      ? `<div class="revnext">잠시 후 결과…</div>`
+      : `<div class="revbar"><i style="animation-duration:${S.revealMs||4200}ms"></i></div><div class="revnext">${esc(loser.name)}가 주사위를 잃고 다음 라운드…</div>`;
+    box.innerHTML=`<div class="reveal"><h4>${r.type==='dudo'?'거짓말! 도전':'정확히! 콜'} — ${r.bid.qty}개의 ${face} 선언</h4>
+      ${rows}<div class="verdict ${good?'good':'bad'}">${verdict}</div>${tail}</div>`;
+    if(S.phase==='reveal'){ const key=r.bid.qty+'_'+r.bid.face+'_'+r.actual+'_'+r.loserSeat; if(key!==lastRevealKey){ lastRevealKey=key; try{ good?SFX.good():SFX.bad(); }catch(e){} } }
+  }
+
+  // ---------- result ----------
+  function showResult(){
+    if(resultShown) return; resultShown=true;
+    const win = S.winner;
+    const spectator = mySeat()<0;
+    const iWon = win===MYPID;
+    const wp = S.players.find(p=>p.pid===win);
+    if(spectator){
+      $('resCrown').textContent='🏁'; $('resTitle').textContent='게임 종료';
+      $('resSub').textContent = (wp?esc(wp.name)+' 우승':'') + (online?' · 다음 판부터 참여 가능':'');
+    } else {
+      $('resCrown').textContent = iWon?'🏆':'😵';
+      $('resTitle').textContent = iWon?'최후의 1인, 승리!':'탈락…';
+      let sub = iWon?'끝까지 살아남았어!':(wp?esc(wp.name)+' 우승':'');
+      if(online) sub += ' · 호스트가 새 판을 시작할 수 있어';
+      $('resSub').textContent = sub;
+      try{ iWon?SFX.win():SFX.lose(); }catch(e){}
+    }
+    $('againBtn').textContent = online?'로비로':'다시 한 판';
+    if(online){ try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
+    $('resultOv').classList.add('on');
+  }
+
+  // ---------- sfx ----------
+  const SFX=(()=>{ let ctx; const ac=()=>{ if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended')ctx.resume(); return ctx; };
+    function tone(f,t,d,g,ty){ const c=ac(),o=c.createOscillator(),v=c.createGain(); o.type=ty||'sine'; o.frequency.setValueAtTime(f,t); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(v);v.connect(c.destination);o.start(t);o.stop(t+d); }
+    return {
+      good(){ const c=ac(),t=c.currentTime; [523,784].forEach((f,i)=>tone(f,t+i*.08,.22,.13,'triangle')); },
+      bad(){ const c=ac(),t=c.currentTime; tone(196,t,.3,.14,'sawtooth'); },
+      win(){ const c=ac(),t=c.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.1,.3,.14,'triangle')); },
+      lose(){ const c=ac(),t=c.currentTime; [392,330,262].forEach((f,i)=>tone(f,t+i*.13,.32,.13,'sine')); },
+    };
+  })();
+
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); } }
+  function resetSetupMode(){ online=false; MYPID='me'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('aiBox').style.display='block'; $('onlineBox').style.display='none'; $('spotToggle').style.display='flex'; $('startBtn').style.display='block'; if($('onErr'))$('onErr').textContent=''; if($('joinBox'))$('joinBox').style.display='none'; }
+
+  (function boot(){
+    const room=new URLSearchParams(location.search).get('room');
+    let sr=null,sp=null; try{sr=localStorage.getItem('ld_room');sp=localStorage.getItem('ld_pid');}catch(e){}
+    if(room && location.protocol!=='file:'){ online=true; resetSetupMode(); online=true; connect(()=>wsSend({t:'join',code:room.toUpperCase(),name:'게스트'})); return; }
+    if(sr && sp && location.protocol!=='file:'){ online=true; connect(()=>wsSend({t:'rejoin',code:sr,pid:sp})); return; }
+    openSetup();
+  })();
+})();
+</script>
+</body>
+</html>
