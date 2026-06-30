@@ -114,7 +114,7 @@
       this.rule = RULES[opts.mode] ? opts.mode : 'yacht_kr';
       this.mode = this.rule; this.rule = RULES[this.mode];
       this.difficulty = opts.difficulty || 'normal';
-      this.TURN_MS = opts.turnMs || 15000;
+      this.TURN_MS = opts.turnMs || 45000;
       this.AID = opts.aiFast ? 0.45 : 1;   // AI 템포 배수
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
@@ -167,7 +167,7 @@
       const idx=[],vals=[];
       this.dice.forEach((d,i)=>{ if(!d.held){ const v=this._d6(); d.value=v; idx.push(i); vals.push(v); } });
       const cp=this.players[this.current];
-      if(!cp.ai && cp.connected!==false){ this.deadline=now()+this.TURN_MS; this._armTimer(); } // 굴릴 때마다 15초
+      if(!cp.ai && cp.connected!==false){ this.deadline=now()+this.TURN_MS; this._armTimer(); } // 굴릴 때마다 시간 리셋
       this.onRoll(idx,vals);
       this._emit();
     }
@@ -225,7 +225,7 @@
         bonus:this.rule.bonus,
         current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled,
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
-        deadline:this.deadline, preview:this._preview(),
+        deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(),
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,
           seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, total:this._total(p) })),
         winners: this.phase==='over' ? this._winners() : null,
