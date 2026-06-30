@@ -999,7 +999,13 @@
   });
 
   // ========== transparency + electron ==========
-  const op=$('opacity'); if(op)op.addEventListener('input',e=>document.documentElement.style.setProperty('--ui',(e.target.value/100).toFixed(2)));
+  const op=$('opacity');
+  function applyOpacity(pct){ const v=Math.max(.1,Math.min(1,pct/100));
+    if(window.electronAPI&&window.electronAPI.setOpacity){ window.electronAPI.setOpacity(v); document.documentElement.style.setProperty('--ui',1); }
+    else { document.documentElement.style.setProperty('--ui',v.toFixed(2)); }
+    LS.set('yd_op',Math.round(v*100)); }
+  if(op){ const saved=+LS.get('yd_op',100); op.value=saved; applyOpacity(saved);
+    op.addEventListener('input',e=>applyOpacity(+e.target.value)); }
   if(window.electronAPI){ document.querySelectorAll('.wbtn').forEach(b=>b.style.display='flex');
     const pin=$('winPin'); if(pin)pin.onclick=async()=>{const v=await window.electronAPI.pin();pin.classList.toggle('on',v);};
     const wm=$('winMin'); if(wm)wm.onclick=()=>window.electronAPI.minimize();
