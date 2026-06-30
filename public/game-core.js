@@ -21,14 +21,14 @@
   const U = [up(1,'에이스'),up(2,'듀얼'),up(3,'트리플'),up(4,'쿼드'),up(5,'펜타'),up(6,'헥사')];
 
   const RULES = {
-    yacht_kr:{ name:'요트 다이스', desc:'국내 앱 규칙. 포카드·풀하우스는 주사위 5개 합산, 상단 63점↑ 보너스 +35.', bonus:{th:63,pts:35}, cats:[...U,
+    yacht_kr:{ name:'요트 다이스', desc:'국내 앱 규칙. 포카드·풀하우스는 주사위 5개 합산, 상단 63점↑ 보너스 +35. 하단 4콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
       {id:'choice',label:'초이스',sec:'low',score:d=>tot(d)},
       {id:'fourKind',label:'포 오브 어 카인드',sec:'low',score:d=>nKind(d,4)?tot(d):0},
       {id:'fullHouse',label:'풀하우스',sec:'low',score:d=>isFull(d)?tot(d):0},
       {id:'sStraight',label:'스몰 스트레이트',sec:'low',score:d=>has4(d)?15:0},
       {id:'lStraight',label:'라지 스트레이트',sec:'low',score:d=>has5(d)?30:0},
       {id:'yacht',label:'요트',sec:'low',score:d=>maxKind(d)>=5?50:0}]},
-    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35.', bonus:{th:63,pts:35}, cats:[...U,
+    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35. 하단 4콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
       {id:'threeKind',label:'쓰리 오브 어 카인드',sec:'low',score:d=>nKind(d,3)?tot(d):0},
       {id:'fourKind',label:'포 오브 어 카인드',sec:'low',score:d=>nKind(d,4)?tot(d):0},
       {id:'fullHouse',label:'풀하우스',sec:'low',score:d=>isFull(d)?25:0},
@@ -204,7 +204,8 @@
 
     _upper(p){ return UPPER_IDS.reduce((a,id)=>a+(p.scores[id]||0),0); }
     _bonus(p){ return this.rule.bonus.pts>0 && this._upper(p)>=this.rule.bonus.th ? this.rule.bonus.pts : 0; }
-    _total(p){ const low=this.rule.cats.filter(c=>c.sec==='low').reduce((a,c)=>a+(p.scores[c.id]||0),0); return this._upper(p)+this._bonus(p)+low; }
+    _lowBonus(p){ const lb=this.rule.lowBonus; if(!lb||!lb.pts)return 0; return lb.ids.every(id=>(p.scores[id]||0)>0)?lb.pts:0; }
+    _total(p){ const low=this.rule.cats.filter(c=>c.sec==='low').reduce((a,c)=>a+(p.scores[c.id]||0),0); return this._upper(p)+this._bonus(p)+this._lowBonus(p)+low; }
     _preview(){
       if(!this.rolled) return null;
       const d=this.dice.map(x=>x.value), p=this.players[this.current], out={};
@@ -222,12 +223,12 @@
       return {
         phase:this.phase, mode:this.mode, modeName:this.rule.name,
         cats:this.rule.cats.map(c=>({id:c.id,label:c.label,sec:c.sec})),
-        bonus:this.rule.bonus,
+        bonus:this.rule.bonus, lowBonus:this.rule.lowBonus||null,
         current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled,
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
         deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(),
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,
-          seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, total:this._total(p) })),
+          seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, lowBonusGot:this._lowBonus(p)>0, total:this._total(p) })),
         winners: this.phase==='over' ? this._winners() : null,
       };
     }
