@@ -143,7 +143,7 @@ wss.on('connection', (ws) => {
       if (room.engine) room.engine.action(ws.meta.pid, m.a);
 
     } else if (m.t === 'reaction') {
-      const emo = (m.emoji || '').slice(0, 4);
+      const emo = (m.emoji || '').slice(0, 12);
       if (emo) broadcast(room, { t: 'reaction', pid: ws.meta.pid, emoji: emo });
 
     } else if (m.t === 'skip') {
