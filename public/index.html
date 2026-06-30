@@ -97,18 +97,18 @@
 
   .dicepane{padding:20px 14px 16px;display:flex;flex-direction:column;align-items:center;gap:14px}
   .dice2d{display:flex;gap:11px;justify-content:center}
-  .d2{width:50px;height:50px;border-radius:12px;background:linear-gradient(145deg,#f6f2e7,#e3dccb);
+  .d2{width:46px;height:46px;border-radius:11px;background:linear-gradient(145deg,#f6f2e7,#e3dccb);
     display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;cursor:pointer;
     box-shadow:0 4px 0 rgba(0,0,0,.32),inset 0 0 0 1px rgba(0,0,0,.06);transition:transform .12s,box-shadow .14s}
   .d2 .c{display:flex;align-items:center;justify-content:center}
   .d2 .p{width:60%;aspect-ratio:1;border-radius:50%;background:#16121d}
-  .d2.held{box-shadow:0 0 0 3px var(--gold),0 0 16px rgba(255,212,94,.55);transform:translateY(-10px)}
+  .d2.held{box-shadow:0 0 0 3px var(--gold),0 0 16px rgba(255,212,94,.55);transform:translateY(-7px)}
   .d2.blank{background:linear-gradient(145deg,#322a48,#231d33)}
   .d2.rolling{animation:wob .18s infinite}
   .d2.land{animation:land .18s}
   .d2.lock{cursor:default}
   @keyframes wob{0%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-3px) rotate(4deg)}100%{transform:translateY(0) rotate(-4deg)}}
-  @keyframes land{0%{transform:scale(1.14)}100%{transform:scale(1)}}
+  @keyframes land{0%{transform:translateY(-3px)}100%{transform:translateY(0)}}
   .rollbtn{max-width:280px}
   .hint{color:var(--muted);font-size:12.5px;text-align:center;min-height:16px;padding:0 6px}
 
@@ -177,7 +177,7 @@
   thead th .hnm{font-size:11px;font-weight:700;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* dice toss + popups */
   .d2.toss{animation:toss .5s ease}
-  @keyframes toss{0%{transform:translateY(-22px) rotate(var(--r,140deg)) scale(.9)}70%{transform:translateY(0) rotate(0) scale(1.06)}100%{transform:translateY(0) rotate(0) scale(1)}}
+  @keyframes toss{0%{transform:translateY(-16px) rotate(var(--r,140deg))}100%{transform:translateY(0) rotate(0)}}
   td.justfill{animation:cellflash .8s}
   @keyframes cellflash{0%{background:var(--accent);color:#15110f}100%{background:transparent}}
   .scorepop{position:fixed;font-weight:800;color:var(--accent);font-size:22px;pointer-events:none;z-index:40;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:pop 1s ease-out forwards}
@@ -200,15 +200,21 @@
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:35}
 
   /* felt tray */
-  .tray{position:relative;max-width:330px;margin:0 auto;border-radius:22px;padding:16px 14px;
+  .tray{position:relative;width:100%;max-width:330px;height:188px;margin:0 auto;border-radius:22px;padding:16px 14px;
     background:radial-gradient(ellipse at 50% 36%, #36996a, #1d6e45 64%, #155539);
     box-shadow:inset 0 0 0 8px #6e4a28, inset 0 0 22px rgba(0,0,0,.5), 0 10px 26px rgba(0,0,0,.45)}
-  .keptzone{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed rgba(255,255,255,.22)}
-  .keptzone .lbl2{font-size:10px;color:rgba(255,255,255,.6);font-weight:800;letter-spacing:.04em}
-  .keptrow{display:flex;gap:7px;justify-content:center;align-items:center;min-height:42px}
-  .keptrow:empty::before{content:'주사위를 탭해 고정하면 여기로 모여요';font-size:10px;color:rgba(255,255,255,.4)}
-  .d2.kept{width:40px;height:40px;border-radius:10px;transform:none}
-  .tray .dice2d{position:relative;display:flex;justify-content:center;gap:8px;flex-wrap:nowrap;min-height:50px}
+  .keptzone{display:flex;flex-direction:column;align-items:center;gap:5px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed rgba(255,255,255,.22)}
+  .keptzone .lbl2{font-size:10px;color:rgba(255,255,255,.6);font-weight:800;letter-spacing:.04em;height:13px}
+  .keptrow{display:flex;gap:6px;justify-content:center;align-items:center;height:58px;flex-wrap:nowrap}
+  .keptrow:empty::before{content:'고정한 주사위가 여기 모여요';font-size:10px;color:rgba(255,255,255,.35)}
+  .d2.kept{transform:none}
+  .d2{position:relative}
+  .d2.flip{transition:transform .28s cubic-bezier(.2,.85,.3,1)}
+  .d2:not(.lock):active{transform:scale(.94)!important}
+  .d2.justheld{animation:heldpop .45s}
+  @keyframes heldpop{0%{box-shadow:0 0 0 3px var(--gold),0 0 0 0 rgba(255,212,94,.75)}45%{box-shadow:0 0 0 3px var(--gold),0 0 24px 7px rgba(255,212,94,.75)}100%{box-shadow:0 0 0 3px var(--gold),0 0 16px rgba(255,212,94,.55)}}
+  .d2 .pin{position:absolute;top:-7px;right:-7px;font-size:10px;background:var(--gold);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.45);z-index:2}
+  .tray .dice2d{position:relative;display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:nowrap;height:58px}
   .d2{will-change:transform}
   /* sheet compact toggle */
   .sheettop{display:flex;justify-content:flex-end;margin-bottom:7px}
@@ -347,7 +353,7 @@
           <div class="timerbar"><i id="timerFill"></i></div>
           <div class="pane dicepane">
             <div class="tray">
-              <div class="keptzone"><span class="lbl2">킵 — 고정한 주사위</span><div class="keptrow" id="keptrow"></div></div>
+              <div class="keptzone"><span class="lbl2" id="keptLbl">킵 0/5</span><div class="keptrow" id="keptrow"></div></div>
               <div class="dice2d" id="dice2d"></div>
             </div>
             <button class="btn rollbtn" id="rollBtn">굴리기</button>
@@ -686,7 +692,8 @@
       score(){ if(!soundOn||!ensure())return; const t=ctx.currentTime; tone(620,t,0.10,0.13,'square'); tone(930,t+0.06,0.12,0.10,'square'); },
       ding(){ if(!soundOn||!ensure())return; const t=ctx.currentTime; tone(880,t,0.18,0.18,'triangle'); tone(1320,t+0.12,0.22,0.15,'triangle'); },
       win(){ if(!soundOn||!ensure())return; const t=ctx.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,t+i*0.11,0.32,0.15,'triangle')); },
-      big(){ if(!soundOn||!ensure())return; const t=ctx.currentTime; [523,659,784,1047,1319].forEach((f,i)=>tone(f,t+i*0.07,0.42,0.17,'sawtooth')); } };
+      big(){ if(!soundOn||!ensure())return; const t=ctx.currentTime; [523,659,784,1047,1319].forEach((f,i)=>tone(f,t+i*0.07,0.42,0.17,'sawtooth')); },
+      click(){ if(!soundOn||!ensure())return; const t=ctx.currentTime; const o=ctx.createOscillator(),g=ctx.createGain(); o.type='square'; o.frequency.setValueAtTime(900,t); o.frequency.exponentialRampToValueAtTime(280,t+0.045); g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.06); o.connect(g);g.connect(ctx.destination); o.start(t); o.stop(t+0.07); } };
   })();
 
   // ---------- state ----------
@@ -715,17 +722,29 @@
 
   // ---------- dice ----------
   const diceEl=$('dice2d'), keptEl=$('keptrow');
-  function makeDie(d,i,anim){ const el=document.createElement('div'); el.className='d2';
+  function tactile(){ SFX.click(); try{navigator.vibrate&&navigator.vibrate(15);}catch(e){} }
+  function makeDie(d,i,anim){ const el=document.createElement('div'); el.className='d2'; el.dataset.i=i;
     if(anim){ el.classList.add('toss'); el.style.setProperty('--r',(Math.random()<.5?'-':'')+(120+(Math.random()*120|0))+'deg'); el.style.animationDelay=(i*0.04)+'s'; }
     if(!d.value&&!anim)el.classList.add('blank'); if(d.held)el.classList.add('held','kept');
     const on=(d.value&&!anim)?PIPS[d.value]:[];
     for(let k=0;k<9;k++){const c=document.createElement('span');c.className='c';if(on.indexOf(k)>=0){const p=document.createElement('span');p.className='p';c.appendChild(p);}el.appendChild(c);}
+    if(d.held){ const pin=document.createElement('span'); pin.className='pin'; pin.textContent='🔒'; el.appendChild(pin); }
     const act=canAct()&&S.rolled&&S.rollsLeft>0&&!anim;
-    if(act)el.onclick=()=>sendAction({type:'hold',i}); else el.classList.add('lock');
+    if(act)el.onclick=()=>{ tactile(); sendAction({type:'hold',i}); }; else el.classList.add('lock');
     return el;
   }
-  function renderDice2D(){ if(!S){diceEl.innerHTML='';keptEl.innerHTML='';return;} diceEl.innerHTML=''; keptEl.innerHTML='';
-    S.dice.forEach((d,i)=>{ const anim=animating.has(i); (d.held?keptEl:diceEl).appendChild(makeDie(d,i,anim)); });
+  let prevHeld=new Set();
+  function renderDice2D(){ if(!S){diceEl.innerHTML='';keptEl.innerHTML='';prevHeld=new Set();return;}
+    const old={}; document.querySelectorAll('#dice2d .d2,#keptrow .d2').forEach(el=>{ old[el.dataset.i]=el.getBoundingClientRect(); });
+    diceEl.innerHTML=''; keptEl.innerHTML=''; const heldNow=new Set();
+    S.dice.forEach((d,i)=>{ const anim=animating.has(i); (d.held?keptEl:diceEl).appendChild(makeDie(d,i,anim)); if(d.held)heldNow.add(i); });
+    const lbl=$('keptLbl'); if(lbl)lbl.textContent=`킵 ${heldNow.size}/5`;
+    if(!animLock){ document.querySelectorAll('#dice2d .d2,#keptrow .d2').forEach(el=>{ const o=old[el.dataset.i];
+      if(o){ const n=el.getBoundingClientRect(); const dx=o.left-n.left, dy=o.top-n.top;
+        if(Math.abs(dx)>1||Math.abs(dy)>1){ el.style.transition='none'; el.style.transform=`translate(${dx}px,${dy}px)`; el.getBoundingClientRect(); el.classList.add('flip'); el.style.transition=''; el.style.transform=''; } }
+      if(heldNow.has(+el.dataset.i)&&!prevHeld.has(+el.dataset.i))el.classList.add('justheld');
+    }); }
+    prevHeld=heldNow;
   }
   function onRoll(indices){ animLock=true; animating=new Set(indices); SFX.roll(); renderDice2D(); renderTurn();
     clearTimeout(animTimer); animTimer=setTimeout(()=>{ animating.clear(); animLock=false; renderGame(); }, 700);
