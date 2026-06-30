@@ -185,9 +185,12 @@
   /* reactions */
   .reactbar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
   .reactbar button{width:36px;height:36px;border-radius:10px;border:none;background:var(--panel2);font-size:18px;cursor:pointer}
+  .reactbar button.phrase{width:auto;padding:0 11px;font-size:13px;font-weight:800;color:var(--ink)}
   .reactbar button:hover{background:#3a3052;transform:translateY(-2px)}
-  .floatemo{position:fixed;font-size:40px;pointer-events:none;z-index:50;animation:floatup 1.7s ease-out forwards}
-  @keyframes floatup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-12px) scale(1.15)}100%{opacity:0;transform:translateY(-100px) scale(1)}}
+  .floatemo{position:fixed;font-size:40px;pointer-events:none;z-index:50;animation:floatup 3s ease-out forwards}
+  .floatemo.txt{font-size:18px;font-weight:800;color:#fff;background:rgba(20,16,30,.92);padding:6px 12px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.45);white-space:nowrap;animation:floatuptxt 3s ease-out forwards}
+  @keyframes floatuptxt{0%{opacity:0;transform:translateX(-50%) translateY(0) scale(.8)}10%{opacity:1;transform:translateX(-50%) translateY(-10px) scale(1.05)}70%{opacity:1;transform:translateX(-50%) translateY(-60px) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-110px) scale(1)}}
+  @keyframes floatup{0%{opacity:0;transform:translateY(0) scale(.5)}10%{opacity:1;transform:translateY(-10px) scale(1.15)}70%{opacity:1;transform:translateY(-60px) scale(1)}100%{opacity:0;transform:translateY(-110px) scale(1)}}
   /* help + breakdown */
   .helpwrap{max-height:58vh;overflow-y:auto;text-align:left;margin-bottom:6px}
   .helprow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -529,7 +532,7 @@
       this.rule = RULES[opts.mode] ? opts.mode : 'yacht_kr';
       this.mode = this.rule; this.rule = RULES[this.mode];
       this.difficulty = opts.difficulty || 'normal';
-      this.TURN_MS = opts.turnMs || 15000;
+      this.TURN_MS = opts.turnMs || 45000;
       this.AID = opts.aiFast ? 0.45 : 1;   // AI 템포 배수
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
@@ -582,7 +585,7 @@
       const idx=[],vals=[];
       this.dice.forEach((d,i)=>{ if(!d.held){ const v=this._d6(); d.value=v; idx.push(i); vals.push(v); } });
       const cp=this.players[this.current];
-      if(!cp.ai && cp.connected!==false){ this.deadline=now()+this.TURN_MS; this._armTimer(); } // 굴릴 때마다 15초
+      if(!cp.ai && cp.connected!==false){ this.deadline=now()+this.TURN_MS; this._armTimer(); } // 굴릴 때마다 시간 리셋
       this.onRoll(idx,vals);
       this._emit();
     }
@@ -640,7 +643,7 @@
         bonus:this.rule.bonus,
         current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled,
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
-        deadline:this.deadline, preview:this._preview(),
+        deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(),
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,
           seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, total:this._total(p) })),
         winners: this.phase==='over' ? this._winners() : null,
@@ -658,7 +661,8 @@
   const COLORS=['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
   const AVATARS=['🦊','🐸','🐼','🦁','🐰','🐵'];
   const CHOICES=['🦊','🐸','🐼','🦁','🐰','🐵','🐶','🐱','🐯','🐨','🐷','🐮','🐔','🐧','🐢','🐝','🦉','🦄','🐙','🦖','🤖','👾','😎','👻'];
-  const REACTS=['👍','😂','😮','😅','🎲','🔥','😎','😭'];
+  const REACTS=['👍','😂','😮','🔥','🎲','😎','😭','🥹','👏','💯','🍀','😱','🤔','🙏'];
+  const PHRASES=['나이스!','ㅋㅋㅋ','대박','헐','아깝다','굿!','가자!','운빨ㅋ','오졌다','조졌다'];
   const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
   const BASE_TITLE='요트 다이스';
   const $=id=>document.getElementById(id);
@@ -737,7 +741,9 @@
   function renderDice2D(){ if(!S){diceEl.innerHTML='';keptEl.innerHTML='';prevHeld=new Set();return;}
     const old={}; document.querySelectorAll('#dice2d .d2,#keptrow .d2').forEach(el=>{ old[el.dataset.i]=el.getBoundingClientRect(); });
     diceEl.innerHTML=''; keptEl.innerHTML=''; const heldNow=new Set();
-    S.dice.forEach((d,i)=>{ const anim=animating.has(i); (d.held?keptEl:diceEl).appendChild(makeDie(d,i,anim)); if(d.held)heldNow.add(i); });
+    const items=S.dice.map((d,i)=>({d,i}));
+    items.filter(o=>!o.d.held).forEach(o=>{ diceEl.appendChild(makeDie(o.d,o.i,animating.has(o.i))); });
+    items.filter(o=>o.d.held).sort((a,b)=>(a.d.value-b.d.value)||(a.i-b.i)).forEach(o=>{ keptEl.appendChild(makeDie(o.d,o.i,animating.has(o.i))); heldNow.add(o.i); });
     const lbl=$('keptLbl'); if(lbl)lbl.textContent=`킵 ${heldNow.size}/5`;
     if(!animLock){ document.querySelectorAll('#dice2d .d2,#keptrow .d2').forEach(el=>{ const o=old[el.dataset.i];
       if(o){ const n=el.getBoundingClientRect(); const dx=o.left-n.left, dy=o.top-n.top;
@@ -812,18 +818,25 @@
   // ---------- timer ----------
   setInterval(()=>{ const fill=$('timerFill'); if(!fill||!S||S.phase!=='play')return;
     if(S.deadline<=0){fill.style.width='100%';fill.style.background='var(--ai)';return;}
-    const frac=Math.max(0,S.deadline-Date.now())/15000; fill.style.width=(frac*100)+'%';
+    const frac=Math.max(0,S.deadline-Date.now())/(S.turnMs||45000); fill.style.width=(frac*100)+'%';
     fill.style.background=frac<0.25?'var(--danger)':frac<0.5?'var(--gold)':'var(--accent)';
   },100);
 
   // ---------- reactions ----------
   function buildReactbar(){ const bar=$('reactbar'); if(!bar)return;
-    if(isOnline()){ bar.style.display='flex'; bar.innerHTML=''; REACTS.forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>{const t=Date.now();if(t-lastReact<500)return;lastReact=t;wsSend({t:'reaction',emoji:e});};bar.appendChild(b);}); }
+    if(isOnline()){ bar.style.display='flex'; bar.innerHTML='';
+      const send=(v)=>{const t=Date.now();if(t-lastReact<500)return;lastReact=t;wsSend({t:'reaction',emoji:v});};
+      REACTS.forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>send(e);bar.appendChild(b);});
+      PHRASES.forEach(p=>{const b=document.createElement('button');b.className='phrase';b.textContent=p;b.onclick=()=>send(p);bar.appendChild(b);});
+    }
     else bar.style.display='none';
   }
   function floatReaction(pid,emoji){ let anchor=$('sheet').querySelector(`.av[data-pid="${pid}"]`)||$('turnBanner');
     const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
-    el.style.left=(r.left+r.width/2-20)+'px'; el.style.top=(r.top-10)+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),1700);
+    const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.]/.test(emoji);
+    if(isText){ el.classList.add('txt'); el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top-12)+'px'; }
+    else { el.style.left=(r.left+r.width/2-20)+'px'; el.style.top=(r.top-10)+'px'; }
+    document.body.appendChild(el); setTimeout(()=>el.remove(),3000);
   }
   const LINES={
     aggro:{big:['가자!! 🔥','이게 공격이지','크게 간다'],zero:['칫, 아깝네','과감했는데…'],mid:['이 정도쯤','나쁘지 않아']},
@@ -832,9 +845,9 @@
     gambler:{big:['올인 성공! 🎲','운빨 ㅋㅋ','대박'],zero:['에이 꽝','한 방 노렸는데'],mid:['가보자고','감으로!']},
   };
   function bubble(pid,text){ const a=$('sheet').querySelector(`.av[data-pid="${pid}"]`)||$('turnBanner'); if(!a)return; const r=a.getBoundingClientRect(); const el=document.createElement('div'); el.className='bubble'; el.textContent=text; el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top-8)+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),1800); }
-  function aiSpeak(p,catId,val){ if(!p||!p.ai||!p.persona)return; const L=LINES[p.persona]||LINES.safe; const big=catId==='yacht'||catId==='yahtzee'||val>=30; const pool=big?L.big:(val===0?L.zero:L.mid); if(pool===L.mid&&Math.random()>0.4)return; bubble(p.pid,pool[Math.floor(Math.random()*pool.length)]); }
+  function aiSpeak(p,catId,val){ if(!p||!p.ai||!p.persona)return; const L=LINES[p.persona]||LINES.safe; const big=val>=30; const pool=big?L.big:(val===0?L.zero:L.mid); if(pool===L.mid&&Math.random()>0.4)return; bubble(p.pid,pool[Math.floor(Math.random()*pool.length)]); }
   const BIGLBL={yacht:'요트',yahtzee:'야찌',lStraight:'라지 스트레이트'};
-  function isBig(f){ return f.catId==='yacht'||f.catId==='yahtzee'||(f.catId==='lStraight'&&f.val>0); }
+  function isBig(f){ return f.val>0 && (f.catId==='yacht'||f.catId==='yahtzee'||f.catId==='lStraight'); }
   function bigCombo(name,catId){ SFX.big(); const fx=document.createElement('div'); fx.className='bigfx'; fx.innerHTML=`<div class="bigtxt">✨ ${esc(BIGLBL[catId]||'대박')}!</div><div class="bigsub">${esc(name)}</div>`; document.body.appendChild(fx); setTimeout(()=>fx.remove(),1400); }
 
   // ---------- confetti + toast ----------
