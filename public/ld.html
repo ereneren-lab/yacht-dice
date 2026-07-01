@@ -96,6 +96,18 @@
   .statsbar{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;margin:4px 0 12px;font-size:12.5px;color:var(--muted)}
   .statsbar b{color:var(--brass);font-weight:800}
   .statsbar button{margin-left:4px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit}
+  .achbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}
+  .achbadge{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:18px;width:56px;padding:6px 2px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);opacity:.4;filter:grayscale(1)}
+  .achbadge.on{opacity:1;filter:none;border-color:var(--brass)}
+  .achbadge span{font-size:8.5px;font-weight:700;color:var(--muted);text-align:center;line-height:1.1}
+  .achbadge.on span{color:var(--ink)}
+  .tutdots{display:flex;gap:6px;justify-content:center;margin-top:6px}
+  .tutdots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:.2s;display:block}
+  .tutdots i.on{background:var(--brass);width:18px;border-radius:4px}
+  .tutart{display:flex;gap:9px;justify-content:center;align-items:center;flex-wrap:wrap;min-height:50px}
+  .tutp{background:var(--panel);border:1.5px solid var(--line);border-radius:11px;padding:8px 11px;text-align:center;font-size:14px;font-weight:800;color:var(--ink)}
+  .tutp.hl{border-color:var(--brass);color:var(--brass)}
+  .tutbig{font-size:38px;line-height:1}
 
   /* my area */
   .me{border-top:1px solid var(--line); padding-top:14px; margin-top:2px}
@@ -188,6 +200,7 @@
   .member .mav2{width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--brass) 16%,transparent);display:flex;align-items:center;justify-content:center;font-size:15px}
   .member .mnm2{font-weight:700;font-size:14px}
   .member .mhost{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);padding:3px 8px;border-radius:6px}
+  .member .airm{margin-left:6px;border:none;background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger);width:24px;height:24px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:800;flex:none}
   .member.waiting{opacity:.55;border-style:dashed}
   .waiting-line{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
 
@@ -257,7 +270,9 @@
     <h3>라이어 다이스</h3>
     <p>각자 컵 속 주사위를 숨기고, 전체에 특정 숫자가 몇 개인지 뻥카로 베팅해. 거짓말을 잡아내거나 잡혀라.</p>
     <div class="statsbar" id="statsbar"></div>
+    <div class="achbar" id="achbar"></div>
     <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
+    <button class="rules-link" id="setupTut" style="margin-left:12px">▶ 튜토리얼</button>
     <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div></div>
     <div class="opt-label">대전 방식</div>
     <div class="opts" id="optMode">
@@ -310,7 +325,21 @@
   </div>
 </div>
 
-<!-- lobby -->
+<!-- tutorial -->
+<div class="ov" id="tutOv">
+  <div class="sheet" style="text-align:center">
+    <div id="tutArt" style="min-height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:10px"></div>
+    <h3 id="tutTitle" style="text-align:center"></h3>
+    <p id="tutBody" style="text-align:center;min-height:60px"></p>
+    <div class="tutdots" id="tutDots"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn ghost" id="tutPrev" style="flex:1">이전</button>
+      <button class="btn" id="tutNext" style="flex:1.4">다음</button>
+    </div>
+    <button class="rules-link" id="tutSkip" style="margin-top:10px">건너뛰기</button>
+  </div>
+</div>
+
 <div class="ov" id="lobbyOv">
   <div class="sheet">
     <h3>방 코드</h3>
@@ -319,6 +348,7 @@
     <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
     <div class="toggle on" id="lobbySpot" style="margin-top:12px"><span class="tnm">정확히(스팟온) 허용</span><span class="tsw"></span></div>
     <div class="members" id="members"></div>
+    <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
     <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
     <button class="btn" id="lobbyStart" style="display:none">시작</button>
     <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
@@ -333,6 +363,7 @@
       <h3 id="resTitle">승리!</h3>
       <div class="rsub" id="resSub"></div>
       <button class="btn" id="againBtn">다시 한 판</button>
+      <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
       <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
     </div>
   </div>
@@ -599,10 +630,31 @@
   $('muteBtn').onclick=()=>{ soundOn=!soundOn; try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){} syncMute(); };
   syncMute();
   $('helpClose').onclick=()=>$('helpOv').classList.remove('on');
+  /* ===== 튜토리얼 ===== */
+  const TUT=[
+    {e:'🥤',t:'라이어 다이스에 온 걸 환영해!',b:'각자 컵 속에 주사위 5개를 숨겨. 전체 주사위에 같은 숫자가 몇 개인지 뻥카(블러핑)로 베팅하는 심리 게임이야.',art:()=>'<span class="tutbig">🥤🎲</span>'},
+    {e:'🎯',t:'베팅 = "전체에 N개의 X"',b:'예: "전체에 4가 3개 있다"고 선언해. 내 패 + 남들 패(안 보임)를 합쳐서 추측하는 거야.',art:()=>'<div class="tutart"><div class="tutp hl">'+GLY[4]+' 가 3개</div></div>'},
+    {e:'🃏',t:'1은 만능(와일드)!',b:'주사위 1은 어떤 숫자로도 쳐줘. 4를 셀 때 1도 4로 포함되니까, 실제론 생각보다 많아.',art:()=>'<div class="tutart"><span class="tutbig">'+GLY[1]+'</span><div class="tutp">= 아무 숫자나</div></div>'},
+    {e:'⬆️',t:'올리거나, 의심하거나',b:'내 차례엔 더 높게 베팅(개수↑, 또는 같은 개수에 숫자↑)하거나, 앞사람이 뻥이라고 의심할 수 있어.',art:()=>'<div class="tutart"><div class="tutp">'+GLY[4]+' 3개</div><div style="color:var(--brass);font-weight:800;font-size:18px">→</div><div class="tutp hl">'+GLY[4]+' 4개</div></div>'},
+    {e:'❗',t:'거짓말!(Dudo)',b:'앞사람을 의심했을 때 — 실제 개수가 베팅보다 적으면 베팅한 사람이 주사위를 잃어. 많거나 같으면 의심한 네가 잃어.',art:()=>'<span class="tutbig">❗🎲</span>'},
+    {e:'🎯',t:'정확히!(Calza)',b:'개수가 "딱 맞다"에 베팅할 수도 있어. 정확히 맞으면 네가 이득, 틀리면 손해야.',art:()=>'<span class="tutbig">🎯</span>'},
+    {e:'🏆',t:'마지막 1명이 승리',b:'주사위를 다 잃으면 탈락! 끝까지 살아남는 한 명이 우승이야. 자, 한 판 해볼까?',art:()=>'<span class="tutbig">🏆</span>'},
+  ];
+  let tutStep=0;
+  function renderTut(){ const s=TUT[tutStep];
+    $('tutArt').innerHTML=s.art(); $('tutTitle').textContent=s.e+' '+s.t; $('tutBody').textContent=s.b;
+    $('tutDots').innerHTML=TUT.map((_,i)=>`<i class="${i===tutStep?'on':''}"></i>`).join('');
+    $('tutPrev').style.visibility=tutStep===0?'hidden':'visible';
+    $('tutNext').textContent=tutStep===TUT.length-1?'🎲 바로 해보기':'다음';
+  }
+  $('setupTut').onclick=()=>{ tutStep=0; renderTut(); $('tutOv').classList.add('on'); };
+  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); start(); } };
+  $('tutPrev').onclick=()=>{ if(tutStep>0){ tutStep--; renderTut(); } };
+  $('tutSkip').onclick=()=>$('tutOv').classList.remove('on');
   $('helpOv').addEventListener('click',e=>{ if(e.target.id==='helpOv')$('helpOv').classList.remove('on'); });
 
   // setup
-  function openSetup(){ $('setupOv').classList.add('on'); renderStats(); if(!rulesSeen) setTimeout(showRules,280); }
+  function openSetup(){ $('setupOv').classList.add('on'); renderStats(); renderAch(); if(!rulesSeen) setTimeout(showRules,280); }
   $('optMode').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return;
     document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o===b));
     online = b.dataset.m==='online';
@@ -617,6 +669,15 @@
   $('startBtn').onclick=()=>{ $('setupOv').classList.remove('on'); start(); };
   $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); if(online){ wsSend({t:'endGame'}); } else start(); };
   $('toHub').onclick=()=>location.href='./';
+  function shareResult(){
+    if(!S)return; const iWon=S.winner===MYPID; const wp=S.players.find(p=>p.pid===S.winner);
+    const st=(Stats.d.streak>=2)?` 🔥${Stats.d.streak}연승!`:'';
+    const text = iWon ? `주사위 골목 · 라이어 다이스에서 최후의 1인 우승!${st} 🤥` : `주사위 골목 · 라이어 다이스 한 판 붙었어. ${wp?esc(wp.name)+' 우승':''} 🤥`;
+    const url=location.origin+location.pathname;
+    if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
+    else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 자랑해!'); }
+  }
+  $('shareBtn').onclick=shareResult;
 
   // online setup
   $('joinToggle').onclick=()=>{ const b=$('joinBox'); b.style.display=b.style.display==='none'?'block':'none'; };
@@ -655,12 +716,19 @@
     if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){} }
     else if(m.t==='lobby'){
       const cur=m.room.members;
+      const hadPrev = prevMembers!==null;
       if(prevMembers){
         cur.forEach(x=>{ if(x.pid!==MYPID && !prevMembers.some(p=>p.pid===x.pid)) showToast('🚪 '+x.name+' 입장'); });
         prevMembers.forEach(p=>{ if(p.pid!==MYPID && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); });
       }
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
-      lobby=m.room; $('resultOv').classList.remove('on'); renderLobby();
+      lobby=m.room;
+      const wasHost=amHost;
+      amHost = cur.some(x=>x.host && x.pid===MYPID);
+      if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
+      // 게임 진행 중(결과창 전) 들어온 lobby는 화면 전환 안 함
+      if($('game').style.display==='block' && !$('resultOv').classList.contains('on')) return;
+      $('resultOv').classList.remove('on'); renderLobby();
     }
     else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; S=m.state;
       if(prevConn){ S.players.forEach(p=>{ if(!p.ai && p.pid!==MYPID && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) showToast((p.connected?'🔌 ':'⚠️ ')+p.name+(p.connected?' 재접속':' 연결 끊김')); }); }
@@ -679,7 +747,9 @@
     $('lobbySpot').style.opacity = amHost?'1':'.55';
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
-      d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}</span>${mem.host?'<span class="mhost">호스트</span>':''}`; host.appendChild(d); });
+      d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`; host.appendChild(d); });
+    host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
+    $('lobbyAddAi').style.display = (amHost && lobby.members.length<4) ? 'block' : 'none';
     const ready=lobby.members.length>=2;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
     if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='상대를 기다리는 중… (2~4인)'; }
@@ -688,6 +758,7 @@
   }
   $('lobbySpot').onclick=()=>{ if(!amHost)return; wsSend({t:'setSpot',v:!(lobby&&lobby.spotOn!==false)}); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
+  $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('copyLink').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); copyText(url); $('copyLink').textContent='✓ 복사됨!'; setTimeout(()=>$('copyLink').textContent='🔗 초대 링크 복사',1500); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} lobby=null; online=false; $('lobbyOv').classList.remove('on'); resetSetupMode(); openSetup(); };
 
@@ -942,13 +1013,24 @@
   })();
 
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  const Stats={ d:(function(){try{return JSON.parse(localStorage.getItem('ld_stats'))||{games:0,wins:0};}catch(e){return{games:0,wins:0};}})(),
+  const ACH_LD=[
+    {id:'win1',icon:'🎲',name:'첫 승리',desc:'1승 달성',ck:d=>d.wins>=1},
+    {id:'streak3',icon:'🔥',name:'3연승',desc:'3연승 달성',ck:d=>d.bestStreak>=3},
+    {id:'streak5',icon:'👑',name:'무패가도',desc:'5연승 달성',ck:d=>d.bestStreak>=5},
+    {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
+    {id:'games50',icon:'💯',name:'백전노장',desc:'50판 플레이',ck:d=>d.games>=50},
+  ];
+  let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('ld_ach'))||[];}catch(e){return[];}})();
+  const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,streak:0,bestStreak:0},JSON.parse(localStorage.getItem('ld_stats'))||{});}catch(e){return{games:0,wins:0,streak:0,bestStreak:0};}})(),
     save(){try{localStorage.setItem('ld_stats',JSON.stringify(this.d));}catch(e){}},
-    record(won){ this.d.games++; if(won)this.d.wins++; this.save(); renderStats(); } };
+    record(won){ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; this.save(); checkAch(); renderStats(); renderAch(); } };
+  function checkAch(){ ACH_LD.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('ld_ach',JSON.stringify(achUnlocked));}catch(e){} try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); }
   function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
-    el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b><button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
-    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적을 초기화할까?')){ Stats.d={games:0,wins:0}; Stats.save(); renderStats(); } };
+    const streak = d.streak>=2 ? ` · <b>🔥${d.streak}연승</b>` : '';
+    el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b>${streak}<button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
+    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적과 도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,streak:0,bestStreak:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('ld_ach','[]');}catch(e){} renderStats(); renderAch(); } };
   }
+  function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH_LD.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); } }
   function resetSetupMode(){ online=false; MYPID='me'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('aiBox').style.display='block'; $('onlineBox').style.display='none'; $('spotToggle').style.display='flex'; $('startBtn').style.display='block'; if($('onErr'))$('onErr').textContent=''; if($('joinBox'))$('joinBox').style.display='none'; }
 

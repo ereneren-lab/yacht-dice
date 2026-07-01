@@ -146,6 +146,11 @@
   .statsbar .stat b{display:block;font-size:17px;color:var(--accent);line-height:1.1}
   .statsbar .stat span{font-size:10px;color:var(--muted)}
   .statsbar .reset{font-size:11px;color:var(--muted);text-decoration:underline;cursor:pointer;align-self:center;padding:0 4px}
+  .achbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:-6px 0 16px}
+  .achbadge{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:18px;width:56px;padding:6px 2px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);opacity:.4;filter:grayscale(1)}
+  .achbadge.on{opacity:1;filter:none;border-color:var(--accent)}
+  .achbadge span{font-size:8.5px;font-weight:700;color:var(--muted);text-align:center;line-height:1.1}
+  .achbadge.on span{color:var(--ink)}
   .tbctrls{display:flex;align-items:center;gap:8px}
   .iconbtn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;background:var(--panel2);color:var(--ink);font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
   .iconbtn:hover{background:#3a3052}
@@ -278,6 +283,7 @@
     <!-- SETUP -->
     <div class="card" id="setup">
       <div class="statsbar" id="statsbar"></div>
+      <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
       <div class="tabs">
         <button id="tabLocal" class="on">로컬 / AI</button>
@@ -384,7 +390,7 @@
       <div id="ranks"></div>
       <div class="btns">
         <button class="btn" id="replaySame">다시 하기</button>
-        <button class="btn ghost" id="shareBtn">📋 결과 복사</button>
+        <button class="btn ghost" id="shareBtn">📤 결과 자랑하기</button>
         <button class="btn ghost" id="newGame">처음으로</button>
       </div>
     </div>
@@ -680,16 +686,28 @@
   // ---------- prefs + stats ----------
   let soundOn=(function(){try{return localStorage.getItem('alley_sound')!=='0';}catch(e){return true;}})();
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null;
-  const Stats={ data:LS.get('yd_stats',{games:0,best:0,wins:0,yachts:0}), save(){LS.set('yd_stats',this.data);},
+  const ACH_YT=[
+    {id:'win1',icon:'🎲',name:'첫 승리',desc:'1승 달성',ck:d=>d.wins>=1},
+    {id:'streak3',icon:'🔥',name:'3연승',desc:'3연승 달성',ck:d=>(d.bestStreak||0)>=3},
+    {id:'streak5',icon:'👑',name:'무패가도',desc:'5연승 달성',ck:d=>(d.bestStreak||0)>=5},
+    {id:'yacht1',icon:'🎯',name:'야추!',desc:'야추 1회',ck:d=>d.yachts>=1},
+    {id:'score250',icon:'⭐',name:'고득점',desc:'한 판 250점',ck:d=>d.best>=250},
+    {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
+  ];
+  let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('yd_ach'))||[];}catch(e){return[];}})();
+  const Stats={ data:LS.get('yd_stats',{games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0}), save(){LS.set('yd_stats',this.data);},
     record(s,mine){ const me=s.players.filter(p=>mine.includes(p.pid)); if(!me.length)return false;
       const myTop=Math.max.apply(null,me.map(p=>p.total)); const beat=myTop>this.data.best;
       this.data.games++; this.data.best=Math.max(this.data.best,myTop);
-      const wp=new Set((s.winners&&s.winners.pids)||[]); if(me.some(p=>wp.has(p.pid)))this.data.wins++;
+      const wp=new Set((s.winners&&s.winners.pids)||[]); const iWon=me.some(p=>wp.has(p.pid));
+      if(iWon){this.data.wins++; this.data.streak=(this.data.streak||0)+1; if(this.data.streak>(this.data.bestStreak||0))this.data.bestStreak=this.data.streak;} else this.data.streak=0;
       me.forEach(p=>{if((p.scores.yacht||0)>0)this.data.yachts++;if((p.scores.yahtzee||0)>0)this.data.yachts++;});
-      this.save(); renderStats(); return beat; },
-    reset(){ this.data={games:0,best:0,wins:0,yachts:0}; this.save(); renderStats(); } };
+      this.save(); checkAch(); renderStats(); renderAch(); return beat; },
+    reset(){ this.data={games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0}; this.save(); achUnlocked=[]; try{localStorage.setItem('yd_ach','[]');}catch(e){} renderStats(); renderAch(); } };
+  function checkAch(){ ACH_YT.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.data)){ achUnlocked.push(a.id); try{localStorage.setItem('yd_ach',JSON.stringify(achUnlocked));}catch(e){} try{toast('🏅 도전과제: '+a.name);}catch(e){} } }); }
+  function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH_YT.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.data;
-    el.innerHTML=`<div class="stat"><b>${d.games}</b><span>플레이</span></div><div class="stat"><b>${d.best}</b><span>최고점</span></div><div class="stat"><b>${d.wins}</b><span>승리</span></div><div class="stat"><b>${d.yachts}</b><span>요트</span></div><span class="reset" id="statReset">초기화</span>`;
+    el.innerHTML=`<div class="stat"><b>${d.games}</b><span>플레이</span></div><div class="stat"><b>${d.best}</b><span>최고점</span></div><div class="stat"><b>${d.wins}</b><span>승리</span></div><div class="stat"><b>${d.yachts}</b><span>요트</span></div>`+((d.streak||0)>=2?`<div class="stat"><b>🔥${d.streak}</b><span>연승</span></div>`:'')+`<span class="reset" id="statReset">초기화</span>`;
     $('statReset').onclick=()=>{ if(confirm('전적을 초기화할까요?'))Stats.reset(); };
   }
 
@@ -920,8 +938,10 @@
   }
   $('replaySame').onclick=()=>{ $('overlay').classList.remove('show'); recorded=false; prevSnap=null; lastMyTurn=false; sawPlay=false; if(isOnline())wsSend({t:'start'}); else if(eng)eng.start(); };
   $('shareBtn').onclick=()=>{ if(!S)return; const ranked=[...S.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
-    let t='🎲 요트 다이스 ('+S.modeName+')\n'; ranked.forEach((r,i)=>{t+=`${['🥇','🥈','🥉'][i]||(i+1)+'.'} ${r.name} — ${r.total}점\n`;});
-    if(isOnline()&&LS.get('yd_room'))t+='방코드: '+LS.get('yd_room'); copyText(t.trim()); };
+    let t='🎲 주사위 골목 · 요트 다이스 ('+S.modeName+')\n'; ranked.forEach((r,i)=>{t+=`${['🥇','🥈','🥉'][i]||(i+1)+'.'} ${r.name} — ${r.total}점\n`;});
+    const text=t.trim(); const url=location.origin+location.pathname;
+    if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
+    else { copyText(text+'\n'+url); } };
   $('newGame').onclick=()=>leave();
   function leave(){ stopBlink(); if(isOnline()){LS.del('yd_room');LS.del('yd_pid');try{ws&&ws.close();}catch(e){}} location.reload(); }
 
@@ -1052,7 +1072,7 @@
   function applyTheme(t){ theme=t; document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} const box=$('themeChips'); if(box)[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.t===t)); }
   applyTheme(theme);
   (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>applyTheme(id);box.appendChild(b);}); })();
-  renderStats();
+  renderStats(); renderAch();
   (function(){ const room=LS.get('yd_room'),pid=LS.get('yd_pid');
     if(room&&pid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; connect(()=>wsSend({t:'rejoin',code:room,pid})); return; }
     const ur=(new URLSearchParams(location.search)).get('room');
