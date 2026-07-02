@@ -166,6 +166,13 @@ wss.on('connection', (ws) => {
       const emo = (m.emoji || '').slice(0, 12);
       if (emo) broadcast(room, { t: 'reaction', pid: ws.meta.pid, emoji: emo });
 
+    } else if (m.t === 'chat') {
+      const txt = (m.text || '').slice(0, 200).trim();
+      if (txt) {
+        const mem = room.members.find(x=>x.pid===ws.meta.pid);
+        broadcast(room, { t: 'chat', pid: ws.meta.pid, name: mem ? mem.name : '?', text: txt });
+      }
+
     } else if (m.t === 'skip') {
       if (ws.meta.pid === hostPid(room) && room.engine) room.engine.skipNow();
 

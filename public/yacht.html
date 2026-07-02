@@ -188,6 +188,17 @@
   .reactbar button{width:36px;height:36px;border-radius:10px;border:none;background:var(--panel2);font-size:18px;cursor:pointer}
   .reactbar button.phrase{width:auto;padding:0 11px;font-size:13px;font-weight:800;color:var(--ink)}
   .reactbar button:hover{background:#3a3052;transform:translateY(-2px)}
+  /* chat */
+  .chatbox{margin-top:8px}
+  .chatlog{max-height:130px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:6px;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+  .chatlog:empty{display:none}
+  .chatlog .cmsg{line-height:1.35;word-break:break-word;color:var(--ink)}
+  .chatlog .cmsg b{color:var(--accent);font-weight:800;margin-right:4px}
+  .chatlog .cmsg.me b{color:var(--gold)}
+  .chatlog .csys{color:var(--muted);font-size:11.5px;text-align:center}
+  .chatrow{display:flex;gap:6px}
+  .chatrow input{flex:1;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;font-family:inherit;min-width:0}
+  .chatrow button{padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-ink);font-weight:800;cursor:pointer;font-family:inherit;flex:none}
   .floatemo{position:fixed;font-size:40px;pointer-events:none;z-index:50;animation:floatup 3s ease-out forwards}
   .floatemo.txt{font-size:18px;font-weight:800;color:#fff;background:rgba(20,16,30,.92);padding:6px 12px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.45);white-space:nowrap;animation:floatuptxt 3s ease-out forwards}
   @keyframes floatuptxt{0%{opacity:0;transform:translateX(-50%) translateY(0) scale(.8)}10%{opacity:1;transform:translateX(-50%) translateY(-10px) scale(1.05)}70%{opacity:1;transform:translateX(-50%) translateY(-60px) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-110px) scale(1)}}
@@ -372,6 +383,13 @@
             <button class="btn rollbtn" id="rollBtn">굴리기</button>
             <div class="hint" id="hint">주사위를 굴려 시작하세요.</div>
             <div class="reactbar" id="reactbar" style="display:none"></div>
+            <div class="chatbox" id="chatBox" style="display:none">
+              <div class="chatlog" id="chatLog"></div>
+              <div class="chatrow">
+                <input id="chatInput" placeholder="메시지 입력…" maxlength="200" autocomplete="off">
+                <button id="chatSend">보내기</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="rightcol">
@@ -853,8 +871,22 @@
       const send=(v)=>{const t=Date.now();if(t-lastReact<500)return;lastReact=t;wsSend({t:'reaction',emoji:v});};
       REACTS.forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>send(e);bar.appendChild(b);});
       PHRASES.forEach(p=>{const b=document.createElement('button');b.className='phrase';b.textContent=p;b.onclick=()=>send(p);bar.appendChild(b);});
+      $('chatBox').style.display='block'; setupChat();
     }
-    else bar.style.display='none';
+    else { bar.style.display='none'; $('chatBox').style.display='none'; }
+  }
+  // ---------- chat ----------
+  let chatBound=false;
+  function setupChat(){ if(chatBound)return; chatBound=true;
+    const send=()=>{ const el=$('chatInput'); const t=(el.value||'').trim(); if(!t)return; wsSend({t:'chat',text:t}); el.value=''; };
+    $('chatSend').onclick=send;
+    $('chatInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); } });
+  }
+  function addChat(pid,name,text){ const log=$('chatLog'); if(!log)return;
+    const d=document.createElement('div'); d.className='cmsg'+(pid===myPid?' me':'');
+    d.innerHTML='<b>'+esc(name)+'</b>'+esc(text);
+    log.appendChild(d); log.scrollTop=log.scrollHeight;
+    while(log.children.length>60) log.removeChild(log.firstChild);
   }
   function floatReaction(pid,emoji){ let anchor=$('sheet').querySelector(`.av[data-pid="${pid}"]`)||$('turnBanner');
     const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
@@ -997,6 +1029,7 @@
     else if(m.t==='state'){ bootReconnect=false; onState(m.state); }
     else if(m.t==='roll'){ onRoll(m.indices); }
     else if(m.t==='reaction'){ floatReaction(m.pid,m.emoji); }
+    else if(m.t==='chat'){ addChat(m.pid,m.name,m.text); }
     else if(m.t==='error'){ if(m.code==='no-room'||m.code==='no-seat'){LS.del('yd_room');LS.del('yd_pid');} reconnecting=false;
       if(bootReconnect){ bootReconnect=false; switchTab(true); $('netErr').textContent=''; const ur=(new URLSearchParams(location.search)).get('room'); if(ur){ switchTab(false); $('joinBox').style.display='block'; $('joinCode').value=ur.toUpperCase(); } } else { $('netErr').textContent=m.msg||'오류'; showJoinUI(); } }
   }
