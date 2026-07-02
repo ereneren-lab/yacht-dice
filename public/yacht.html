@@ -184,10 +184,16 @@
   .scorepop{position:fixed;font-weight:800;color:var(--accent);font-size:22px;pointer-events:none;z-index:40;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:pop 1s ease-out forwards}
   @keyframes pop{0%{opacity:0;transform:translateY(8px) scale(.8)}22%{opacity:1;transform:translateY(-2px) scale(1.15)}100%{opacity:0;transform:translateY(-34px) scale(1)}}
   /* reactions */
-  .reactbar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-height:104px;overflow-y:auto;padding:2px 4px}
-  .reactbar button{width:36px;height:36px;border-radius:10px;border:none;background:var(--panel2);font-size:18px;cursor:pointer}
+  .reactzone{position:relative;margin-top:8px;text-align:center}
+  .reacttoggle{padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+  .reacttoggle:hover{background:#3a3052}
+  .reacttoggle.open{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  .reactbar{display:none;position:absolute;bottom:46px;left:50%;transform:translateX(-50%);width:min(340px,92vw);max-height:min(50vh,260px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:60;gap:6px;justify-content:center;flex-wrap:wrap}
+  .reactbar.open{display:flex}
+  .reactbar button{width:38px;height:38px;border-radius:10px;border:none;background:var(--panel2);font-size:19px;cursor:pointer}
   .reactbar button.phrase{width:auto;padding:0 11px;font-size:13px;font-weight:800;color:var(--ink)}
   .reactbar button:hover{background:#3a3052;transform:translateY(-2px)}
+  .reactbar .rsep{flex-basis:100%;height:1px;background:var(--line);margin:4px 0}
   /* chat */
   .chatbox{margin-top:8px}
   .chatlog{max-height:130px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:6px;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
@@ -382,7 +388,10 @@
             </div>
             <button class="btn rollbtn" id="rollBtn">굴리기</button>
             <div class="hint" id="hint">주사위를 굴려 시작하세요.</div>
-            <div class="reactbar" id="reactbar" style="display:none"></div>
+            <div class="reactzone" id="reactzone" style="display:none">
+              <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
+              <div class="reactbar" id="reactbar"></div>
+            </div>
             <div class="chatbox" id="chatBox" style="display:none">
               <div class="chatlog" id="chatLog"></div>
               <div class="chatrow">
@@ -866,14 +875,26 @@
   },100);
 
   // ---------- reactions ----------
+  let reactBuilt=false;
   function buildReactbar(){ const bar=$('reactbar'); if(!bar)return;
-    if(isOnline()){ bar.style.display='flex'; bar.innerHTML='';
-      const send=(v)=>{const t=Date.now();if(t-lastReact<500)return;lastReact=t;wsSend({t:'reaction',emoji:v});};
-      REACTS.forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>send(e);bar.appendChild(b);});
-      PHRASES.forEach(p=>{const b=document.createElement('button');b.className='phrase';b.textContent=p;b.onclick=()=>send(p);bar.appendChild(b);});
+    if(isOnline()){
+      $('reactzone').style.display='block';
+      if(!reactBuilt){ reactBuilt=true; bar.innerHTML='';
+        const send=(v)=>{const t=Date.now();if(t-lastReact<500)return;lastReact=t;wsSend({t:'reaction',emoji:v});};
+        REACTS.forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>send(e);bar.appendChild(b);});
+        const sep=document.createElement('div'); sep.className='rsep'; bar.appendChild(sep);
+        PHRASES.forEach(p=>{const b=document.createElement('button');b.className='phrase';b.textContent=p;b.onclick=()=>send(p);bar.appendChild(b);});
+        setupReactToggle();
+      }
       $('chatBox').style.display='block'; setupChat();
     }
-    else { bar.style.display='none'; $('chatBox').style.display='none'; }
+    else { $('reactzone').style.display='none'; $('chatBox').style.display='none'; }
+  }
+  function setupReactToggle(){
+    const tog=$('reactToggle'), bar=$('reactbar');
+    tog.onclick=(e)=>{ e.stopPropagation(); const open=bar.classList.toggle('open'); tog.classList.toggle('open',open); };
+    bar.onclick=(e)=>e.stopPropagation();                                   // 팝업 내부 클릭은 안 닫힘 → 연타 가능
+    document.addEventListener('click',()=>{ bar.classList.remove('open'); tog.classList.remove('open'); }); // 바깥 클릭 시 닫힘
   }
   // ---------- chat ----------
   let chatBound=false, lastChatSent=0;
