@@ -184,7 +184,7 @@
   .scorepop{position:fixed;font-weight:800;color:var(--accent);font-size:22px;pointer-events:none;z-index:40;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:pop 1s ease-out forwards}
   @keyframes pop{0%{opacity:0;transform:translateY(8px) scale(.8)}22%{opacity:1;transform:translateY(-2px) scale(1.15)}100%{opacity:0;transform:translateY(-34px) scale(1)}}
   /* reactions */
-  .reactbar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  .reactbar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-height:104px;overflow-y:auto;padding:2px 4px}
   .reactbar button{width:36px;height:36px;border-radius:10px;border:none;background:var(--panel2);font-size:18px;cursor:pointer}
   .reactbar button.phrase{width:auto;padding:0 11px;font-size:13px;font-weight:800;color:var(--ink)}
   .reactbar button:hover{background:#3a3052;transform:translateY(-2px)}
@@ -690,8 +690,8 @@
   const COLORS=['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
   const AVATARS=['🦊','🐸','🐼','🦁','🐰','🐵'];
   const CHOICES=['🦊','🐸','🐼','🦁','🐰','🐵','🐶','🐱','🐯','🐨','🐷','🐮','🐔','🐧','🐢','🐝','🦉','🦄','🐙','🦖','🤖','👾','😎','👻'];
-  const REACTS=['🔥','😂','😏','😮','💯','🤡','👀','😈','🎲','👏','🍀','🙏'];
-  const PHRASES=['나이스!','야추 가자','보너스 놓쳤네','그거 버려?','운빨ㅋ','역전각','풀하우스 ㄱㄱ','아 아까워','조졌다','굳이?'];
+  const REACTS=['🔥','😂','🤯','😱','💀','🫵','🧂','😏','😈','🙄','🥱','🤏','🤝','😝','🤡','😭','🥹','🤬','😤','🥳','🎉','😎','👑','🫡','💅','🤴','🍿','☕','🙌','💪','🫶','👏','✨','⭐','🆒','💯','👀','😮','🎲','🍀','🙏'];
+  const PHRASES=['나이스!','요트 가자','제발 요트🙏','레전드','소름','역대급','말이 되냐','운도 실력임','그거밖에 안 나와?','손 떨리나ㅋ','실력 맞아?','예상했음','그럴 줄 알았다','계산 끝','다 계획대로','봐주는 중','워밍업이야','역전각','풀하우스 ㄱㄱ','보너스 놓쳤네','그거 버려?','운빨ㅋ','아 아까워','조졌다','굳이?','다시 하자'];
   const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
   const BASE_TITLE='요트 다이스';
   const $=id=>document.getElementById(id);
@@ -708,7 +708,7 @@
     {id:'win1',icon:'🎲',name:'첫 승리',desc:'1승 달성',ck:d=>d.wins>=1},
     {id:'streak3',icon:'🔥',name:'3연승',desc:'3연승 달성',ck:d=>(d.bestStreak||0)>=3},
     {id:'streak5',icon:'👑',name:'무패가도',desc:'5연승 달성',ck:d=>(d.bestStreak||0)>=5},
-    {id:'yacht1',icon:'🎯',name:'야추!',desc:'야추 1회',ck:d=>d.yachts>=1},
+    {id:'yacht1',icon:'🎯',name:'요트!',desc:'요트 1회 달성',ck:d=>d.yachts>=1},
     {id:'score250',icon:'⭐',name:'고득점',desc:'한 판 250점',ck:d=>d.best>=250},
     {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
   ];
