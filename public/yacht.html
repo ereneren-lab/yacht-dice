@@ -876,17 +876,29 @@
     else { bar.style.display='none'; $('chatBox').style.display='none'; }
   }
   // ---------- chat ----------
-  let chatBound=false;
+  let chatBound=false, lastChatSent=0;
+  function chatMyName(){ let m=((lobby&&lobby.members)||[]).find(x=>x.pid===myPid); if(!m&&S&&S.players)m=S.players.find(x=>x.pid===myPid); return m?m.name:'나'; }
   function setupChat(){ if(chatBound)return; chatBound=true;
-    const send=()=>{ const el=$('chatInput'); const t=(el.value||'').trim(); if(!t)return; wsSend({t:'chat',text:t}); el.value=''; };
+    const el=$('chatInput');
+    const send=()=>{ const t=(el.value||'').trim(); if(!t)return;
+      const now=Date.now(); if(now-lastChatSent<350)return; lastChatSent=now;   // 도배 방지
+      wsSend({t:'chat',text:t});
+      addChat(myPid, chatMyName(), t);                                          // 내 메시지는 즉시 표시
+      el.value=''; el.focus(); };                                              // 보낸 뒤 포커스 유지
     $('chatSend').onclick=send;
-    $('chatInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); } });
+    el.addEventListener('keydown',e=>{
+      // 한글 등 IME 조합 확정용 Enter는 전송으로 처리하지 않음
+      if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); send(); }
+    });
   }
   function addChat(pid,name,text){ const log=$('chatLog'); if(!log)return;
+    // 사용자가 이전 대화를 보려고 위로 스크롤한 상태면 강제로 내리지 않음
+    const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 44;
     const d=document.createElement('div'); d.className='cmsg'+(pid===myPid?' me':'');
     d.innerHTML='<b>'+esc(name)+'</b>'+esc(text);
-    log.appendChild(d); log.scrollTop=log.scrollHeight;
+    log.appendChild(d);
     while(log.children.length>60) log.removeChild(log.firstChild);
+    if(nearBottom || pid===myPid) log.scrollTop=log.scrollHeight;               // 맨 아래거나 내 메시지일 때만 자동 스크롤
   }
   function floatReaction(pid,emoji){ let anchor=$('sheet').querySelector(`.av[data-pid="${pid}"]`)||$('turnBanner');
     const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
@@ -1029,7 +1041,7 @@
     else if(m.t==='state'){ bootReconnect=false; onState(m.state); }
     else if(m.t==='roll'){ onRoll(m.indices); }
     else if(m.t==='reaction'){ floatReaction(m.pid,m.emoji); }
-    else if(m.t==='chat'){ addChat(m.pid,m.name,m.text); }
+    else if(m.t==='chat'){ if(m.pid!==myPid) addChat(m.pid,m.name,m.text); }
     else if(m.t==='error'){ if(m.code==='no-room'||m.code==='no-seat'){LS.del('yd_room');LS.del('yd_pid');} reconnecting=false;
       if(bootReconnect){ bootReconnect=false; switchTab(true); $('netErr').textContent=''; const ur=(new URLSearchParams(location.search)).get('room'); if(ur){ switchTab(false); $('joinBox').style.display='block'; $('joinCode').value=ur.toUpperCase(); } } else { $('netErr').textContent=m.msg||'오류'; showJoinUI(); } }
   }
