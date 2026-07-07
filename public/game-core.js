@@ -28,7 +28,7 @@
       {id:'sStraight',label:'스몰 스트레이트',sec:'low',score:d=>has4(d)?15:0},
       {id:'lStraight',label:'라지 스트레이트',sec:'low',score:d=>has5(d)?30:0},
       {id:'yacht',label:'요트',sec:'low',score:d=>maxKind(d)>=5?50:0}]},
-    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35. 하단 4콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
+    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35. 하단 5콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['threeKind','fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
       {id:'threeKind',label:'쓰리 오브 어 카인드',sec:'low',score:d=>nKind(d,3)?tot(d):0},
       {id:'fourKind',label:'포 오브 어 카인드',sec:'low',score:d=>nKind(d,4)?tot(d):0},
       {id:'fullHouse',label:'풀하우스',sec:'low',score:d=>isFull(d)?25:0},

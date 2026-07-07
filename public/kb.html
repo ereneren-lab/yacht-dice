@@ -96,6 +96,14 @@
   @keyframes tumble{0%{transform:rotate(0) scale(.9)}25%{transform:rotate(120deg) scale(1.05)}50%{transform:rotate(220deg) scale(.95)}75%{transform:rotate(330deg) scale(1.04)}100%{transform:rotate(360deg) scale(1)}}
   .rolllabel{color:var(--muted);font-size:13px;text-align:center;min-height:18px}
   .rolllabel b{color:var(--ink)}
+  .scorehelp{display:inline-block;margin-top:8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:inherit}
+  .scorehelp:hover{background:var(--brass);color:var(--bg)}
+  .infopop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:120;padding:20px}
+  .infopop.on{display:flex}
+  .infocard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:330px;width:100%;text-align:center}
+  .infocard h3{font-size:18px;margin-bottom:8px;color:var(--brass)}
+  .infocard p{font-size:14px;color:var(--ink);line-height:1.6;margin-bottom:16px}
+  .infocard button{padding:11px 20px;border-radius:10px;border:none;background:var(--brass);color:var(--bg);font-weight:800;cursor:pointer;font-family:inherit;width:100%}
   .btn{width:100%;max-width:340px;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;
     cursor:pointer;background:linear-gradient(180deg,var(--brass),var(--brass-d));color:var(--bg);
     box-shadow:0 6px 18px color-mix(in srgb,var(--brass) 28%,transparent);transition:transform .08s,opacity .12s}
@@ -258,6 +266,7 @@
     <div class="tray">
       <div class="rollzone" id="rollzone"></div>
       <div class="rolllabel" id="rolllabel"></div>
+      <button class="scorehelp" id="kbInfoBtn">❓ 점수 · 파괴 규칙</button>
     </div>
 
     <div class="side you" id="sideYou">
@@ -370,6 +379,14 @@
       <span class="gtxt">한 명의 격자(9칸)가 꽉 차면 게임 종료. <em>전체 점수 합이 높은 사람</em>이 이겨.</span>
     </div></div>
     <button class="btn" id="helpClose" style="margin-top:8px">알겠어!</button>
+  </div>
+</div>
+
+<div class="infopop" id="infoOv">
+  <div class="infocard">
+    <h3 id="infoTitle"></h3>
+    <p id="infoBody"></p>
+    <button id="infoClose">알겠어!</button>
   </div>
 </div>
 
@@ -613,6 +630,14 @@
   $('muteBtn').onclick=()=>{ soundOn=!soundOn; try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){} syncMute(); };
   syncMute();
   $('helpClose').onclick = ()=>$('helpOv').classList.remove('on');
+  /* ===== 점수 · 파괴 규칙 설명 ===== */
+  $('kbInfoBtn').onclick=()=>{
+    $('infoTitle').textContent='너클본즈 점수 · 파괴';
+    $('infoBody').textContent='한 세로줄에 같은 숫자를 모으면 점수가 곱으로 커져 — 3이 2개면 (3×2)×2=12점, 3개면 (3×3)×3=27점! 그리고 네가 놓은 숫자와 같은 게 상대의 같은 줄에 있으면 그 주사위가 전부 파괴돼. 공격이 핵심이야.';
+    $('infoOv').classList.add('on');
+  };
+  $('infoClose').onclick=()=>$('infoOv').classList.remove('on');
+  $('infoOv').onclick=(e)=>{ if(e.target===$('infoOv')) $('infoOv').classList.remove('on'); };
   /* ===== 튜토리얼 ===== */
   const TUT=[
     {e:'🎲',t:'너클본즈에 온 걸 환영해!',b:'3×3 격자에 주사위를 채우는 1:1 두뇌 대결이야. 같은 줄에 같은 수를 모으면 점수가 폭발해!',art:()=>'<span class="tutbig">🎲 🆚 🎲</span>'},

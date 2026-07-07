@@ -150,8 +150,16 @@
   .btn.ghost{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
   .btn.danger{background:linear-gradient(180deg,#e8696b,#b0484a);color:#fff;box-shadow:0 5px 16px rgba(232,105,107,.26)}
   .btn.violet{background:linear-gradient(180deg,#9b8cff,#6f5fd0);color:#160f30;box-shadow:0 5px 16px rgba(155,140,255,.26)}
-  .challenge-row{display:flex; gap:9px}
+  .challenge-row{display:flex; gap:9px; align-items:center; justify-content:center}
   .challenge-row .btn{margin:0}
+  .qh{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--panel2);color:var(--muted);font-size:12px;font-weight:800;cursor:pointer;border:1px solid var(--line);flex:none}
+  .qh:hover{background:var(--brass);color:var(--bg)}
+  .infopop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:120;padding:20px}
+  .infopop.on{display:flex}
+  .infocard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:320px;width:100%;text-align:center}
+  .infocard h3{font-size:18px;margin-bottom:8px;color:var(--brass)}
+  .infocard p{font-size:14px;color:var(--ink);line-height:1.55;margin-bottom:16px}
+  .infocard button{padding:11px 20px;border-radius:10px;border:none;background:var(--brass);color:var(--bg);font-weight:800;cursor:pointer;font-family:inherit;width:100%}
   .mini{font-size:11.5px;color:var(--muted);text-align:center}
 
   /* overlays */
@@ -337,6 +345,14 @@
       <button class="btn" id="tutNext" style="flex:1.4">다음</button>
     </div>
     <button class="rules-link" id="tutSkip" style="margin-top:10px">건너뛰기</button>
+  </div>
+</div>
+
+<div class="infopop" id="infoOv">
+  <div class="infocard">
+    <h3 id="infoTitle"></h3>
+    <p id="infoBody"></p>
+    <button id="infoClose">알겠어!</button>
   </div>
 </div>
 
@@ -630,6 +646,14 @@
   $('muteBtn').onclick=()=>{ soundOn=!soundOn; try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){} syncMute(); };
   syncMute();
   $('helpClose').onclick=()=>$('helpOv').classList.remove('on');
+  /* ===== 항목 설명 (거짓말/정확히) ===== */
+  const LD_INFO={
+    dudo:['거짓말! (도전)','앞 사람 베팅이 뻥이라고 도전하는 거야. 모두 주사위를 까서 — 실제 개수가 베팅보다 적으면 베팅한 사람이, 충분하면(같거나 많으면) 도전한 네가 주사위 1개를 잃어.'],
+    calza:['정확히 (스팟온)','개수가 딱 맞다고 부르는 선택이야. 정확히 맞으면 베팅한 사람이 1개 잃고, 틀리면 부른 네가 1개 잃어. 위험하지만 딱 맞히면 판을 뒤집을 수 있어.'],
+  };
+  function showInfo(id){ const info=LD_INFO[id]; if(!info)return; $('infoTitle').textContent=info[0]; $('infoBody').textContent=info[1]; $('infoOv').classList.add('on'); }
+  $('infoClose').onclick=()=>$('infoOv').classList.remove('on');
+  $('infoOv').onclick=(e)=>{ if(e.target===$('infoOv')) $('infoOv').classList.remove('on'); };
   /* ===== 튜토리얼 ===== */
   const TUT=[
     {e:'🥤',t:'라이어 다이스에 온 걸 환영해!',b:'각자 컵 속에 주사위 5개를 숨겨. 전체 주사위에 같은 숫자가 몇 개인지 뻥카(블러핑)로 베팅하는 심리 게임이야.',art:()=>'<span class="tutbig">🥤🎲</span>'},
@@ -924,8 +948,9 @@
 
     if(S.bid){
       const row=document.createElement('div'); row.className='challenge-row';
-      row.innerHTML=`<button class="btn danger" id="dudoBtn">거짓말!</button>`+(S.spotOn?`<button class="btn violet" id="calzaBtn">정확히</button>`:'');
+      row.innerHTML=`<button class="btn danger" id="dudoBtn">거짓말!</button><span class="qh" data-c="dudo">?</span>`+(S.spotOn?`<button class="btn violet" id="calzaBtn">정확히</button><span class="qh" data-c="calza">?</span>`:'');
       host.appendChild(row);
+      row.querySelectorAll('.qh').forEach(q=>q.onclick=(e)=>{ e.stopPropagation(); showInfo(q.dataset.c); });
       const m=document.createElement('div'); m.className='mini'; m.textContent='앞 사람 베팅이 뻥 같으면 거짓말!'; host.appendChild(m);
     }
 

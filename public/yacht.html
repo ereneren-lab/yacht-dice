@@ -85,6 +85,8 @@
   .aitag{font-size:10px;font-weight:800;background:var(--ai);color:#06222e;padding:2px 6px;border-radius:5px}
   .youtag{font-size:10px;font-weight:800;background:var(--accent);color:var(--accent-ink);padding:2px 6px;border-radius:5px}
   .turnbar .rolls{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+  .turnbar .rolls.prog{margin-left:10px}
+  .turnbar .rolls.prog b{color:var(--accent);font-weight:800;font-size:13px}
   .turnbar .pips{display:flex;gap:5px}
   .turnbar .pips i{width:9px;height:9px;border-radius:50%;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
   .turnbar .pips i.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
@@ -183,6 +185,15 @@
   @keyframes cellflash{0%{background:var(--accent);color:#15110f}100%{background:transparent}}
   .scorepop{position:fixed;font-weight:800;color:var(--accent);font-size:22px;pointer-events:none;z-index:40;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:pop 1s ease-out forwards}
   @keyframes pop{0%{opacity:0;transform:translateY(8px) scale(.8)}22%{opacity:1;transform:translateY(-2px) scale(1.15)}100%{opacity:0;transform:translateY(-34px) scale(1)}}
+  /* help / info */
+  .qh{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--panel2);color:var(--muted);font-size:10px;font-weight:800;margin-left:5px;cursor:pointer;vertical-align:middle;border:1px solid var(--line)}
+  .qh:hover{background:var(--accent);color:var(--accent-ink)}
+  .infopop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:120;padding:20px}
+  .infopop.on{display:flex}
+  .infocard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:320px;width:100%;text-align:center}
+  .infocard h3{font-size:18px;margin-bottom:8px;color:var(--accent)}
+  .infocard p{font-size:14px;color:var(--ink);line-height:1.55;margin-bottom:16px}
+  .infocard button{padding:11px 20px;border-radius:10px;border:none;background:var(--accent);color:var(--accent-ink);font-weight:800;cursor:pointer;font-family:inherit;width:100%}
   /* reactions */
   .reactzone{position:relative;margin-top:8px;text-align:center}
   .reacttoggle{padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
@@ -372,6 +383,7 @@
           <div class="turnbanner other" id="turnBanner" style="display:none"></div>
           <div class="pane turnbar">
             <div class="rolls"><span>남은 굴림</span><span class="pips" id="rollPips"></span></div>
+            <div class="rolls prog"><span>기록</span><b id="progressLbl">0/12</b></div>
             <div class="tbctrls">
               <button class="iconbtn" id="helpBtn" title="게임 방법" aria-label="게임 방법">📖</button>
               <button class="iconbtn" id="skipBtn" title="AI로 진행(호스트)" aria-label="AI로 진행" style="display:none">⏭</button>
@@ -420,6 +432,14 @@
         <button class="btn ghost" id="shareBtn">📤 결과 자랑하기</button>
         <button class="btn ghost" id="newGame">처음으로</button>
       </div>
+    </div>
+  </div>
+
+  <div class="infopop" id="infoOv">
+    <div class="infocard">
+      <h3 id="infoTitle"></h3>
+      <p id="infoBody"></p>
+      <button id="infoClose">알겠어!</button>
     </div>
   </div>
 
@@ -483,7 +503,7 @@
       {id:'sStraight',label:'스몰 스트레이트',sec:'low',score:d=>has4(d)?15:0},
       {id:'lStraight',label:'라지 스트레이트',sec:'low',score:d=>has5(d)?30:0},
       {id:'yacht',label:'요트',sec:'low',score:d=>maxKind(d)>=5?50:0}]},
-    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35. 하단 4콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
+    yahtzee:{ name:'야찌', desc:'해즈브로 Yahtzee 규칙. 풀하우스 25 / 스트레이트 30·40 고정, 트리플 추가. 보너스 +35. 하단 5콤보 완성 시 +50.', bonus:{th:63,pts:35}, lowBonus:{ids:['threeKind','fourKind','fullHouse','sStraight','lStraight'],pts:50}, cats:[...U,
       {id:'threeKind',label:'쓰리 오브 어 카인드',sec:'low',score:d=>nKind(d,3)?tot(d):0},
       {id:'fourKind',label:'포 오브 어 카인드',sec:'low',score:d=>nKind(d,4)?tot(d):0},
       {id:'fullHouse',label:'풀하우스',sec:'low',score:d=>isFull(d)?25:0},
@@ -815,6 +835,7 @@
     const bn=$('turnBanner'); if(bn){ const mine=isMyTurn(); bn.style.display='flex'; bn.className='turnbanner '+(mine?'me':'other');
       bn.innerHTML=avHTML(p,{cur:true,off:!p.connected})+`<span class="nm">${esc(p.name)}</span>`+(p.ai?'<span class="aitag">AI '+esc(p.personaLabel||'')+'</span>':'')+(mine?'<span>— 내 차례!</span>':'<span style="color:var(--muted);font-weight:600">차례</span>')+(!p.connected?' <span class="aitag" style="background:var(--danger);color:#fff">끊김·AI진행</span>':''); }
     const rp=$('rollPips'); rp.innerHTML=''; for(let i=0;i<3;i++){const d=document.createElement('i');if(i<S.rollsLeft)d.classList.add('live');rp.appendChild(d);}
+    const pl=$('progressLbl'); if(pl){ const meP=S.players.find(x=>x.pid===myPid)||S.players[S.current]; const filled=meP?S.cats.filter(c=>meP.scores[c.id]!==null).length:0; pl.textContent=filled+'/'+S.cats.length; }
     const me=canAct(), rb=$('rollBtn'); rb.disabled=!me||S.rollsLeft<=0; rb.style.display=spec?'none':'block';
     rb.textContent=p.ai?'AI가 굴리는 중…':(!S.rolled?'굴리기':(S.rollsLeft>0?`다시 굴리기 (${S.rollsLeft})`:'굴림 끝'));
     const sk=$('skipBtn'); if(sk){ const show=isOnline()&&amHost()&&S.phase==='play'&&p.pid!==myPid; sk.style.display=show?'flex':'none'; }
@@ -834,19 +855,67 @@
       return `<td class="preview ${cur} ${prev===0?'zero':''} ${click?'':'lock'}" ${click?`data-cat="${catId}"`:''}>${prev}</td>`; }
     return `<td class="empty ${cur}">·</td>`;
   }
+  // ---------- 항목 설명 ----------
+  function catDesc(id, mode){
+    const common={
+      aces:['에이스','주사위 눈 1의 개수만큼 점수. (1이 세 개면 3점)'],
+      twos:['듀얼','주사위 눈 2를 모두 더한 값. (2가 세 개면 6점)'],
+      threes:['트리플','주사위 눈 3을 모두 더한 값.'],
+      fours:['쿼드','주사위 눈 4를 모두 더한 값.'],
+      fives:['펜타','주사위 눈 5를 모두 더한 값.'],
+      sixes:['헥사','주사위 눈 6을 모두 더한 값.'],
+      choice:['초이스','주사위 5개의 눈을 전부 더함. 아무 조합이나 가능.'],
+      chance:['찬스','주사위 5개의 눈을 전부 더함. 아무 조합이나 가능.'],
+      bonus:['상단 보너스','에이스~헥사(상단 6칸)의 합이 기준점 이상이면 추가 점수를 받아.'],
+      lowBonus:['콤보 보너스','아래 표시된 콤보들을 모두 완성하면 추가 점수를 받아.'],
+    };
+    const byRule={
+      yacht_kr:{
+        fourKind:['포 오브 어 카인드','같은 눈이 4개 이상이면 주사위 5개 전부의 합.'],
+        fullHouse:['풀하우스','같은 눈 3개 + 다른 같은 눈 2개면 주사위 5개 전부의 합.'],
+        sStraight:['스몰 스트레이트','연속된 눈 4개(예: 2·3·4·5)면 15점.'],
+        lStraight:['라지 스트레이트','연속된 눈 5개(1~5 또는 2~6)면 30점.'],
+        yacht:['요트','같은 눈이 5개면 50점. 최고 족보야!'],
+        lowBonus:['콤보 보너스','포카드·풀하우스·스몰·라지 스트레이트 4종을 모두 완성하면 +50점.'],
+      },
+      yahtzee:{
+        threeKind:['쓰리 오브 어 카인드','같은 눈이 3개 이상이면 주사위 5개 전부의 합.'],
+        fourKind:['포 오브 어 카인드','같은 눈이 4개 이상이면 주사위 5개 전부의 합.'],
+        fullHouse:['풀하우스','같은 눈 3개 + 다른 같은 눈 2개면 25점 고정.'],
+        sStraight:['스몰 스트레이트','연속된 눈 4개면 30점 고정.'],
+        lStraight:['라지 스트레이트','연속된 눈 5개면 40점 고정.'],
+        yahtzee:['야찌','같은 눈이 5개면 50점. 최고 족보야!'],
+        lowBonus:['콤보 보너스','쓰리·포 오브 어 카인드·풀하우스·스몰·라지 스트레이트 5종을 모두 완성하면 +50점.'],
+      },
+      yacht_og:{
+        fourKind:['포 오브 어 카인드','같은 눈이 4개 이상이면 그 눈 4개의 합.'],
+        fullHouse:['풀하우스','같은 눈 3개 + 다른 같은 눈 2개면 주사위 5개 전부의 합.'],
+        sStraight:['리틀 스트레이트','정확히 1·2·3·4·5면 30점.'],
+        lStraight:['빅 스트레이트','정확히 2·3·4·5·6면 30점.'],
+        yacht:['요트','같은 눈이 5개면 50점. 최고 족보야!'],
+      },
+    };
+    return (byRule[mode] && byRule[mode][id]) || common[id] || null;
+  }
+  const qIcon = id => `<span class="qh" data-c="${id}">?</span>`;
+  function showInfo(id){ const info=catDesc(id, S?S.mode:'yacht_kr'); if(!info)return; $('infoTitle').textContent=info[0]; $('infoBody').textContent=info[1]; $('infoOv').classList.add('on'); }
+  $('infoClose').onclick=()=>$('infoOv').classList.remove('on');
+  $('infoOv').onclick=(e)=>{ if(e.target===$('infoOv')) $('infoOv').classList.remove('on'); };
+
   function renderSheet(){ if(!S)return;
     let cols=S.players.map((p,pi)=>pi);
     if(compact && S.players.length>2){ cols=cols.filter(pi=>pi===S.current||(isOnline()&&S.players[pi].pid===myPid)); if(!cols.length)cols=[S.current]; }
     let h='<thead><tr><th class="catcol"></th>';
     cols.forEach(pi=>{const p=S.players[pi]; const meC=isOnline()&&p.pid===myPid?'me-col':''; h+=`<th class="${pi===S.current?'col-current':''} ${meC}"><div class="hav">${avHTML(p,{sm:true,cur:pi===S.current,off:!p.connected})}<span class="hnm">${esc(p.name)}</span></div></th>`;});
     h+='</tr></thead><tbody>';
-    S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
-    if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th}</td>`;}).join('')}</tr>`;
-    S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
-    if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (4종)</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;return `<td class="${pi===S.current?'col-current':''}">${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length}</td>`;}).join('')}</tr>`;
+    S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
+    if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)${qIcon('bonus')}</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th}</td>`;}).join('')}</tr>`;
+    S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
+    if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;return `<td class="${pi===S.current?'col-current':''}">${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length}</td>`;}).join('')}</tr>`;
     h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.total}</td>`;}).join('')}</tr></tbody>`;
     $('sheet').innerHTML=h;
     $('sheet').querySelectorAll('td.preview[data-cat]').forEach(td=>{td.onclick=()=>askPick(td.dataset.cat);});
+    $('sheet').querySelectorAll('.qh').forEach(q=>{q.onclick=(e)=>{e.stopPropagation();showInfo(q.dataset.c);};});
   }
 
   // ---------- fills ----------
@@ -860,8 +929,13 @@
 
   // ---------- pick confirm ----------
   function askPick(catId){ if(!canAct())return; const c=S.cats.find(x=>x.id===catId), pts=S.preview?S.preview[catId]:0;
-    $('cfTitle').textContent=`${c?c.label:''} 칸`;
-    $('cfSub').innerHTML=`<b style="color:var(--accent);font-size:22px">${pts}점</b> 으로 기록할까요?`;
+    if(pts===0){
+      $('cfTitle').textContent=`${c?c.label:''} 칸 — 0점 처리 ⚠️`;
+      $('cfSub').innerHTML=`이 칸을 <b style="color:var(--danger);font-size:22px">0점</b>으로 버릴까요?<br><span style="color:var(--muted);font-size:12px">한 번 기록하면 이 칸은 다시 쓸 수 없어요.</span>`;
+    } else {
+      $('cfTitle').textContent=`${c?c.label:''} 칸`;
+      $('cfSub').innerHTML=`<b style="color:var(--accent);font-size:22px">${pts}점</b> 으로 기록할까요?`;
+    }
     $('confirm').classList.add('show');
     $('cfOk').onclick=()=>{ $('confirm').classList.remove('show'); sendAction({type:'pick',cat:catId}); };
     $('cfCancel').onclick=()=>$('confirm').classList.remove('show');
@@ -982,7 +1056,7 @@
   // ---------- snapshot entry ----------
   function onState(s){ const fills=computeFills(s); S=s; if(s.phase==='play')sawPlay=true;
     if(isOnline()&&s.players){ if(prevConn){ s.players.forEach(p=>{ if(!p.ai && p.pid!==myPid && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) toast((p.connected?'🔌 ':'⚠️ ')+(p.name||'상대')+(p.connected?' 재접속':' 연결 끊김')); }); } prevConn={}; s.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; }); }
-    if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; if(!gameShown){gameShown=true;buildReactbar();} }
+    if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; buildReactbar(); }
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f; }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
     const mt=isMyTurn(); if(isOnline()){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
     if(s.phase==='over'){ stopBlink(); if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false; showResult(s,beat); SFX.win(); confetti(); } }
