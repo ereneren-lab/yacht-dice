@@ -79,11 +79,25 @@
   @keyframes revcount{from{transform:scaleX(1)}to{transform:scaleX(0)}}
   .revnext{font-size:11px;color:var(--muted);margin-top:7px}
   /* 이모지 반응 (온라인) */
-  .reactbar{display:none;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-  .reactbar button{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);font-size:19px;cursor:pointer;transition:.1s}
+  .reactzone{position:relative;margin-top:12px;text-align:center}
+  .reacttoggle{padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+  .reacttoggle.open{background:var(--brass);color:var(--bg);border-color:transparent}
+  .reactbar{display:none;position:absolute;bottom:46px;left:50%;transform:translateX(-50%);width:min(340px,92vw);max-height:min(50vh,260px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:60;gap:6px;justify-content:center;flex-wrap:wrap}
+  .reactbar.open{display:flex}
+  .reactbar button{width:38px;height:38px;border-radius:10px;border:none;background:var(--panel2);font-size:19px;cursor:pointer}
   .reactbar button:hover{transform:translateY(-2px);background:var(--panel)}
-  .reactbar button.phrase{width:auto;padding:0 11px;font-size:12.5px;font-weight:800;color:var(--ink)}
+  .reactbar button.phrase{width:auto;padding:0 11px;font-size:13px;font-weight:800;color:var(--ink)}
   .reactbar button.phrase:hover{background:var(--brass);color:var(--bg)}
+  .reactbar .rsep{flex-basis:100%;height:1px;background:var(--line);margin:4px 0}
+  .chatbox{margin-top:10px;max-width:360px;margin-left:auto;margin-right:auto}
+  .chatlog{max-height:130px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:6px;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+  .chatlog:empty{display:none}
+  .chatlog .cmsg{line-height:1.35;word-break:break-word;color:var(--ink)}
+  .chatlog .cmsg b{color:var(--brass);font-weight:800;margin-right:4px}
+  .chatlog .cmsg.me b{color:var(--win)}
+  .chatrow{display:flex;gap:6px}
+  .chatrow input{flex:1;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;font-family:inherit;min-width:0}
+  .chatrow button{padding:0 14px;border-radius:9px;border:none;background:var(--brass);color:var(--bg);font-weight:800;cursor:pointer;font-family:inherit;flex:none}
   .floatemo{position:fixed;font-size:40px;pointer-events:none;z-index:120;animation:floatup 2.7s ease-out forwards}
   .floatemo.txt{font-size:15px;font-weight:800;color:var(--ink);background:var(--panel);border:1.5px solid var(--brass);padding:7px 13px;border-radius:13px;box-shadow:0 6px 18px rgba(0,0,0,.42);white-space:nowrap;animation:floatuptxt 2.9s ease-out forwards}
   @keyframes floatup{0%{opacity:0;transform:translateY(0) scale(.5)}12%{opacity:1;transform:translateY(-12px) scale(1.2)}70%{opacity:1;transform:translateY(-64px) scale(1)}100%{opacity:0;transform:translateY(-120px) scale(1)}}
@@ -194,6 +208,11 @@
   .result .crown{font-size:46px}
   .result h3{font-family:var(--font);font-size:25px;font-weight:800;margin:6px 0 8px}
   .result .rsub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .rematch-msg{font-size:15px;font-weight:800;color:var(--brass);margin-bottom:10px;text-align:center}
+  .rematch-voters{display:flex;flex-direction:column;gap:5px;margin:0 auto 12px;max-width:240px}
+  .rmvoter{font-size:13px;color:var(--ink);text-align:left;padding:6px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:8px}
+  .rematch-btns{display:flex;gap:8px}
+  .rematch-wait{font-size:12.5px;color:var(--muted);text-align:center;margin-top:8px}
 
   /* online */
   .field{width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;padding:12px;font-size:15px;font-family:inherit;margin-top:8px;text-align:center}
@@ -252,6 +271,7 @@
     <a class="iconbtn" href="./" title="골목으로">←</a>
     <h2>라이어 다이스</h2>
     <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기">🔊</button>
+    <button class="iconbtn" id="endBtn" title="판 종료 → 로비(호스트)" style="display:none">🏁</button>
     <button class="iconbtn" id="kbHelp" title="규칙">?</button>
   </div>
 
@@ -268,7 +288,17 @@
       <div class="mydice" id="mydice"></div>
       <div class="controls" id="controls"></div>
     </div>
-    <div class="reactbar" id="reactbar"></div>
+    <div class="reactzone" id="reactzone" style="display:none">
+      <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
+      <div class="reactbar" id="reactbar"></div>
+    </div>
+    <div class="chatbox" id="chatBox" style="display:none">
+      <div class="chatlog" id="chatLog"></div>
+      <div class="chatrow">
+        <input id="chatInput" placeholder="메시지 입력…" maxlength="200" autocomplete="off">
+        <button id="chatSend">보내기</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -378,9 +408,20 @@
       <div class="crown" id="resCrown">🏆</div>
       <h3 id="resTitle">승리!</h3>
       <div class="rsub" id="resSub"></div>
-      <button class="btn" id="againBtn">다시 한 판</button>
-      <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
-      <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
+      <div id="resultBtns">
+        <button class="btn" id="againBtn">다시 한 판</button>
+        <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
+        <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
+      </div>
+      <div id="rematchBox" style="display:none">
+        <div id="rematchMsg" class="rematch-msg"></div>
+        <div id="rematchVoters" class="rematch-voters"></div>
+        <div id="rematchBtns" class="rematch-btns">
+          <button class="btn" id="rmAccept">✅ 수락</button>
+          <button class="btn ghost" id="rmDecline">❌ 거절</button>
+        </div>
+        <div id="rematchWait" class="rematch-wait" style="display:none">다른 사람들의 응답을 기다리는 중…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -691,8 +732,26 @@
   $('optDiff').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return; cfg.diff=b.dataset.d; document.querySelectorAll('#optDiff .opt').forEach(o=>o.classList.toggle('on',o===b)); };
   $('spotToggle').onclick=()=>{ cfg.spotOn=!cfg.spotOn; $('spotToggle').classList.toggle('on',cfg.spotOn); };
   $('startBtn').onclick=()=>{ $('setupOv').classList.remove('on'); start(); };
-  $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); if(online){ wsSend({t:'endGame'}); } else start(); };
+  $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); start(); } };
+  function renderRematch(d){
+    $('resultOv').classList.add('on');
+    $('resultBtns').style.display='none';
+    $('rematchBox').style.display='block';
+    $('rematchMsg').textContent = `🔄 ${d.proposer}님이 재경기를 제안했어요!`;
+    const mine=(d.voters.find(v=>v.pid===MYPID)||{}).vote;
+    $('rematchBtns').style.display = mine?'none':'flex';
+    $('rematchWait').style.display = mine?'block':'none';
+    $('rematchVoters').innerHTML = d.voters.map(v=>{
+      const ic=v.vote==='accept'?'✅':v.vote==='decline'?'❌':'⏳';
+      return `<div class="rmvoter">${ic} ${chatEsc(v.name)}${v.pid===MYPID?' <b>(나)</b>':''}</div>`;
+    }).join('');
+  }
+  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
+  function rematchLeave(){ try{teardownNet();}catch(e){} try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.reload(); }
+  $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
+  $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('toHub').onclick=()=>location.href='./';
+  $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
   function shareResult(){
     if(!S)return; const iWon=S.winner===MYPID; const wp=S.players.find(p=>p.pid===S.winner);
     const st=(Stats.d.streak>=2)?` 🔥${Stats.d.streak}연승!`:'';
@@ -755,16 +814,21 @@
       $('resultOv').classList.remove('on'); renderLobby();
     }
     else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; S=m.state;
+      if(S.phase!=='over'){ $('resultOv').classList.remove('on'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
       if(prevConn){ S.players.forEach(p=>{ if(!p.ai && p.pid!==MYPID && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) showToast((p.connected?'🔌 ':'⚠️ ')+p.name+(p.connected?' 재접속':' 연결 끊김')); }); }
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
       render();
     }
     else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
+    else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
+    else if(m.t==='rematchAsk'){ renderRematch(m); }
+    else if(m.t==='rematchKicked'){ showToast('재경기에서 빠졌어요'); rematchLeave(); }
+    else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
   }
   function renderLobby(){
     if(!lobby) return;
-    $('setupOv').classList.remove('on'); $('lobbyOv').classList.add('on');
+    $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);
@@ -794,12 +858,40 @@
   const PHRASES=['콜?','뻥이지 ㅋㅋ','쫄았네','들켰어~','운빨ㄴㄴ','다 보여','거짓말 탐지','각오해','ㄱㄱ'];
   let lastReact=0, reactBuilt=false;
   function buildReactbar(){ const bar=$('reactbar'); if(!bar)return;
-    bar.style.display = online ? 'flex' : 'none';
-    if(online && !reactBuilt){ reactBuilt=true; bar.innerHTML='';
-      const send=v=>{ const t=Date.now(); if(t-lastReact<300)return; lastReact=t; wsSend({t:'reaction',emoji:v}); };
-      REACTS.forEach(e=>{ const b=document.createElement('button'); b.textContent=e; b.onclick=()=>send(e); bar.appendChild(b); });
-      PHRASES.forEach(p=>{ const b=document.createElement('button'); b.className='phrase'; b.textContent=p; b.onclick=()=>send(p); bar.appendChild(b); });
-    }
+    if(online){
+      $('reactzone').style.display='block';
+      if(!reactBuilt){ reactBuilt=true; bar.innerHTML='';
+        const send=v=>{ const t=Date.now(); if(t-lastReact<300)return; lastReact=t; wsSend({t:'reaction',emoji:v}); };
+        REACTS.forEach(e=>{ const b=document.createElement('button'); b.textContent=e; b.onclick=()=>send(e); bar.appendChild(b); });
+        const sep=document.createElement('div'); sep.className='rsep'; bar.appendChild(sep);
+        PHRASES.forEach(p=>{ const b=document.createElement('button'); b.className='phrase'; b.textContent=p; b.onclick=()=>send(p); bar.appendChild(b); });
+        setupReactToggle();
+      }
+      $('chatBox').style.display='block'; setupChat();
+    } else { $('reactzone').style.display='none'; $('chatBox').style.display='none'; }
+  }
+  function setupReactToggle(){
+    const tog=$('reactToggle'), bar=$('reactbar');
+    tog.onclick=(e)=>{ e.stopPropagation(); const open=bar.classList.toggle('open'); tog.classList.toggle('open',open); };
+    bar.onclick=(e)=>e.stopPropagation();
+    document.addEventListener('click',()=>{ bar.classList.remove('open'); tog.classList.remove('open'); });
+  }
+  let chatBound=false, lastChatSent=0;
+  function chatEsc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function chatMyName(){ let m=((lobby&&lobby.members)||[]).find(x=>x.pid===MYPID); if(!m&&S&&S.players)m=S.players.find(x=>x.pid===MYPID); return m?m.name:'나'; }
+  function setupChat(){ if(chatBound)return; chatBound=true;
+    const el=$('chatInput');
+    const send=()=>{ const t=(el.value||'').trim(); if(!t)return; const now=Date.now(); if(now-lastChatSent<350)return; lastChatSent=now; wsSend({t:'chat',text:t}); addChat(MYPID, chatMyName(), t); el.value=''; el.focus(); };
+    $('chatSend').onclick=send;
+    el.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); send(); } });
+  }
+  function addChat(pid,name,text){ const log=$('chatLog'); if(!log)return;
+    const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 44;
+    const d=document.createElement('div'); d.className='cmsg'+(pid===MYPID?' me':'');
+    d.innerHTML='<b>'+chatEsc(name)+'</b>'+chatEsc(text);
+    log.appendChild(d);
+    while(log.children.length>60) log.removeChild(log.firstChild);
+    if(nearBottom || pid===MYPID) log.scrollTop=log.scrollHeight;
   }
   function floatReaction(pid,emoji){
     let anchor = pid===MYPID ? $('meBox') : document.querySelector('.opp[data-pid="'+pid+'"]');
@@ -841,6 +933,7 @@
 
   function render(){
     if(!S) return;
+    $('endBtn').style.display = (online && amHost && S.phase!=='over') ? 'flex' : 'none';
     if(S.phase==='reveal'||S.phase==='over') freshRound=true;
     if(S.phase!=='over') resultShown=false;
     const ms=mySeat();

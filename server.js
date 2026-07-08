@@ -8,6 +8,7 @@ const { GameEngine } = require('./public/game-core.js');
 const { KBEngine } = require('./public/kb-core.js');
 const { LDEngine } = require('./public/ld-core.js');
 const { LCREngine } = require('./public/lcr-core.js');
+const { YutEngine } = require('./public/yut-core.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -47,6 +48,7 @@ function lobbyPayload(room){
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
 
 function startEngine(room){
+  if (room.rematch){ if(room.rematch.timer) clearTimeout(room.rematch.timer); room.rematch=null; }
   if (room.engine) room.engine.destroy();
   room.members.forEach(m=>{ m.waiting=false; });
   room.phase = 'play';
@@ -62,12 +64,48 @@ function startEngine(room){
   } else if (room.game === 'lcr'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
     room.engine = new LCREngine({ aiFast:!!room.aiFast, players, startChips:3, turnMs:45000, aiMs:1400, onState });
+  } else if (room.game === 'yut'){
+    const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
+    room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), turnMs:60000, aiMs:1100, onState });
   } else {
     const onState = (s)=> broadcast(room, { t:'state', state:s });
     room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, players, onState,
       onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }) });
   }
   room.engine.start();
+}
+
+// ---------- 재경기 투표 ----------
+function rematchAskPayload(room){
+  const r=room.rematch; const proposer=room.members.find(m=>m.pid===r.proposer);
+  return { t:'rematchAsk', proposer: proposer?proposer.name:'?', proposerPid:r.proposer,
+    voters: room.members.filter(m=>!m.ai && m.connected).map(m=>({ pid:m.pid, name:m.name, vote:r.votes[m.pid]||null })) };
+}
+function broadcastRematch(room){ if(room.rematch) broadcast(room, rematchAskPayload(room)); }
+function checkRematchComplete(room){
+  if(!room.rematch) return;
+  const humans = room.members.filter(m=>!m.ai && m.connected);
+  if(humans.every(m=>room.rematch.votes[m.pid])) resolveRematch(room);
+}
+function resolveRematch(room){
+  const r=room.rematch; if(!r) return;
+  if(r.timer) clearTimeout(r.timer);
+  const votes=r.votes;
+  const accepted = room.members.filter(m => m.ai || (votes[m.pid]==='accept' && m.connected));
+  const removed  = room.members.filter(m => !m.ai && m.connected && votes[m.pid]!=='accept');
+  room.rematch=null;
+  removed.forEach(m=>{ send(m.ws, { t:'rematchKicked' }); });
+  room.members = accepted;
+  recolor(room);
+  const humanCount = room.members.filter(m=>!m.ai && m.connected).length;
+  if(room.members.length>=2 && humanCount>=1){
+    startEngine(room);            // 수락자끼리 새 게임
+  } else {
+    if(room.engine){ room.engine.destroy(); room.engine=null; }
+    room.phase='lobby';
+    broadcast(room, { t:'rematchCancelled' });
+    sendLobby(room);
+  }
 }
 
 function scheduleCleanup(room){
@@ -88,20 +126,20 @@ wss.on('connection', (ws) => {
     const room = rooms.get(ws.meta.code);
 
     if (m.t === 'create') {
-      const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : 'yacht';
+      const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:AVA[0], ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
     } else if (m.t === 'join') {
       const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
-      const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : r.game==='lcr' ? 6 : 8;
+      const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : r.game==='lcr' ? 6 : r.game==='yut' ? 6 : 8;
       if (r.members.length >= cap) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요.' });
       const pid = rid();
       const waiting = r.phase !== 'lobby';   // 진행 중이면 관전(다음 판부터 참여)
-      r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:AVA[r.members.length%AVA.length], ai:false, connected:true, ws, waiting });
+      r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting });
       recolor(r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code });
       if (r.engine) send(ws, { t:'state', state:r.engine.serialize(pid) });  // 관전자에게 현재 판 (라이어는 자기 시점)
@@ -159,6 +197,24 @@ wss.on('connection', (ws) => {
     } else if (m.t === 'start') {
       if (ws.meta.pid===hostPid(room) && room.members.length>=2){ startEngine(room); }
 
+    } else if (m.t === 'rematchPropose') {
+      // 누구나 제안 가능. 게임이 존재하고(로비가 아니고) 진행중 투표가 없을 때만
+      if (room && room.engine && !room.rematch) {
+        room.rematch = { proposer: ws.meta.pid, votes: {} };
+        room.rematch.votes[ws.meta.pid] = 'accept';                                   // 제안자 자동 수락
+        room.members.forEach(mm=>{ if(mm.ai) room.rematch.votes[mm.pid]='accept'; });  // AI 자동 수락
+        broadcastRematch(room);
+        room.rematch.timer = setTimeout(()=>resolveRematch(room), 30000);              // 30초 무응답 → 처리(=제외)
+        checkRematchComplete(room);
+      }
+
+    } else if (m.t === 'rematchVote') {
+      if (room && room.rematch && !room.rematch.votes[ws.meta.pid]) {
+        room.rematch.votes[ws.meta.pid] = (m.v==='accept') ? 'accept' : 'decline';
+        broadcastRematch(room);
+        checkRematchComplete(room);
+      }
+
     } else if (m.t === 'action') {
       if (room.engine) room.engine.action(ws.meta.pid, m.a);
 
@@ -196,6 +252,7 @@ wss.on('connection', (ws) => {
       sendLobby(r);
     } else {
       if (r.engine) r.engine.setConnected(ws.meta.pid, false);
+      if (r.rematch) checkRematchComplete(r);   // 투표 중 이탈 시 남은 사람만으로 완료 판정
       sendLobby(r);
       scheduleCleanup(r);
     }
