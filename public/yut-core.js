@@ -66,10 +66,12 @@
       opt = opt || {};
       const nm = opt.markers || 4;
       this.markers = nm;
+      this.teamMode = !!opt.teamMode;
+      this.winnerTeam = null;
       this.goal = (opt.goal && opt.goal <= nm) ? opt.goal : nm;  // 승리 목표(완주시킬 말 수)
       this.players = (opt.players || []).map((p, i) => ({
         pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null,
-        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, connected: p.connected !== false,
+        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (i % 2) : i), connected: p.connected !== false,
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
@@ -82,6 +84,7 @@
       this.winner = null;
       this.captured = null;        // 마지막 잡기 정보(연출용)
       this.moveSeq = 0; this.lastMovePath = null;  // 말 이동 경로(연출용)
+      this.skipSeq = 0; this.lastSkip = null;  // 이동 불가 턴 넘김(연출용)
       this.rng = opt.rng || Math.random;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
@@ -109,7 +112,7 @@
       if (this.throwsLeft > 0) { this._emit(); this._maybeAI(); return; }
       this.phase = 'move';
       // 움직일 수 있는 말이 하나도 없으면 턴 넘김
-      if (!this._anyMovable(seat)) { this._endTurn(); return; }
+      if (!this._anyMovable(seat)) { this._skipTurn(seat); return; }
       this._emit(); this._maybeAI();
     }
 
@@ -126,14 +129,17 @@
     }
 
     // 말 이동: pendingIndex 의 step 으로 pieceId 이동 (업힌 말 함께)
-    doMove(pid, pieceId, pendingIndex, dir, carry) {
+    doMove(pid, pieceId, pendingIndex, dir, carry, ownerSeat) {
       if (this._dead || this.phase !== 'move') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat !== this.turn) return;
       if (pendingIndex == null) pendingIndex = 0;
       if (pendingIndex < 0 || pendingIndex >= this.pending.length) return;
       const steps = this.pending[pendingIndex];
-      const pl = this.players[seat];
+      // 소유자: 기본은 자기 말, 팀전이면 같은 팀 팀원 말도 제어 가능
+      let owner = seat;
+      if (ownerSeat != null && this.teamMode) { const os = this.players[ownerSeat]; if (os && os.team === this.players[seat].team) owner = ownerSeat; }
+      const pl = this.players[owner];
       const pc = pl.pieces.find(p => p.id === pieceId);
       if (!pc || pc.done) return;
       const r = step(pc.node, pc.route, pc.out, steps, dir);
@@ -141,14 +147,15 @@
       // 이동 경로(한 칸씩) 기록 — 연출용
       const mpath = []; { let cn = pc.node, cr = pc.route, co = pc.out; const dstep = steps < 0 ? -1 : 1; const cnt = Math.abs(steps);
         for (let k = 0; k < cnt; k++) { const rr = step(cn, cr, co, dstep, k === 0 ? dir : null); if (rr.noMove) break; if (rr.done) { mpath.push({ done: true }); break; } mpath.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true; } }
-      this.moveSeq++; this.lastMovePath = { seq: this.moveSeq, seat, pieceId, path: mpath };
+      this.moveSeq++; this.lastMovePath = { seq: this.moveSeq, seat: owner, pieceId, path: mpath };
       this._clear();
       this.pending.splice(pendingIndex, 1);
       this.captured = null;
 
-      // 업기: 같은 자리·같은 편 말들. carry===false면 이 말만, 아니면 전부 함께
+      // 업기: 같은 칸의 말들. 팀전이면 같은 팀 전체, 아니면 자기 말만. carry===false면 이 말만
+      const mates = this.teamMode ? this.players.filter(p => p.team === pl.team) : [pl];
       const sameCell = (pc.out && !pc.done)
-        ? pl.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)
+        ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)), [])
         : [pc];
       const group = (carry === false) ? [pc] : sameCell;
 
@@ -160,6 +167,7 @@
         let caught = false;
         for (const op of this.players) {
           if (op.seat === seat) continue;
+          if (this.teamMode && op.team === pl.team) continue; // 같은 팀은 안 잡음
           for (const opc of op.pieces) {
             if (!opc.done && opc.out && opc.node === r.node) {
               opc.out = false; opc.node = 0; opc.route = 'outer';
@@ -171,17 +179,18 @@
       }
 
       // 승리 판정
-      if (pl.pieces.filter(p => p.done).length >= this.goal) { this.phase = 'over'; this.winner = pl.pid; this._emit(); return; }
+      if (pl.pieces.filter(p => p.done).length >= this.goal) { this.phase = 'over'; this.winner = pl.pid; this.winnerTeam = pl.team; this._emit(); return; }
 
       // 다음 단계
       if (this.throwsLeft > 0) { this.phase = 'throw'; this._emit(); this._maybeAI(); return; }
       if (this.pending.length > 0) {
-        if (!this._anyMovable(seat)) { this._endTurn(); return; }
+        if (!this._anyMovable(seat)) { this._skipTurn(seat); return; }
         this._emit(); this._maybeAI(); return;
       }
       this._endTurn();
     }
 
+    _skipTurn(seat) { this.skipSeq++; this.lastSkip = { seq: this.skipSeq, seat, backdo: !!(this.lastThrow && this.lastThrow.step === -1) }; this._endTurn(); }
     _endTurn() {
       this.pending = []; this.throwsLeft = 1; this.phase = 'throw';
       let n = this.turn;
@@ -208,6 +217,7 @@
             else {
               for (const op of this.players) {
                 if (op.seat === seat) continue;
+                if (this.teamMode && op.team === pl.team) continue;
                 for (const opc of op.pieces) {
                   if (!opc.done && opc.out && opc.node === r.node) sc += 60;
                 }
@@ -248,16 +258,16 @@
     action(pid, a) {
       if (!a) return;
       if (a.type === 'throw') this.doThrow(pid, a.power);
-      else if (a.type === 'move') this.doMove(pid, a.pieceId, a.pendingIndex, a.dir, a.carry);
+      else if (a.type === 'move') this.doMove(pid, a.pieceId, a.pendingIndex, a.dir, a.carry, a.ownerSeat);
     }
     serialize() {
       return {
-        game: 'yut', phase: this.phase, turn: this.turn, markers: this.markers, goal: this.goal,
+        game: 'yut', phase: this.phase, turn: this.turn, markers: this.markers, goal: this.goal, teamMode: this.teamMode, winnerTeam: this.winnerTeam,
         pending: this.pending.slice(), throwsLeft: this.throwsLeft,
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
-        winner: this.winner, captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath,
+        winner: this.winner, captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         players: this.players.map((p, i) => ({
-          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i,
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
           doneCount: p.pieces.filter(pc => pc.done).length
         }))

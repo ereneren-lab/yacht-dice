@@ -66,7 +66,7 @@ function startEngine(room){
     room.engine = new LCREngine({ aiFast:!!room.aiFast, players, startChips:3, turnMs:45000, aiMs:1400, onState });
   } else if (room.game === 'yut'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
-    room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), turnMs:60000, aiMs:1100, onState });
+    room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, turnMs:60000, aiMs:1100, onState });
   } else {
     const onState = (s)=> broadcast(room, { t:'state', state:s });
     room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, players, onState,
@@ -128,14 +128,14 @@ wss.on('connection', (ws) => {
     if (m.t === 'create') {
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
     } else if (m.t === 'join') {
       const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
-      const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : r.game==='lcr' ? 6 : r.game==='yut' ? 6 : 8;
+      const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : r.game==='lcr' ? 6 : r.game==='yut' ? (r.teamMode?4:6) : 8;
       if (r.members.length >= cap) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요.' });
       const pid = rid();
       const waiting = r.phase !== 'lobby';   // 진행 중이면 관전(다음 판부터 참여)
