@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>요트 다이스</title>
 <style>
-  :root{ --bg:#15110d; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09); --ink:#f3ece0; --muted:#a89a86; --accent:#e0a23c; --accent-ink:#15110d; --gold:#e8a13a; --ai:#9b8cff; --danger:#e8696b; --ui:1; }
+  :root{ --bg:#15110d; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09); --ink:#f3ece0; --muted:#a89a86; --accent:#e0a23c; --accent-ink:#15110d; --gold:#e8a13a; --ai:#9b8cff; --danger:#e8696b; --ui:1; --font:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif; }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{background:transparent;color:var(--ink);
-    font-family:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif;
+    font-family:var(--font);
     min-height:100%;display:flex;flex-direction:column;align-items:center;padding:12px;-webkit-tap-highlight-color:transparent}
   #root{position:relative;opacity:var(--ui);transition:opacity .12s;width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center}
   .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(1200px 600px at 50% -10%, #2a2142 0%, transparent 60%), #15111f}
@@ -22,7 +22,7 @@
   .title small{font-size:12px;color:var(--muted);font-weight:600}
 
   .opacityctl{position:fixed;top:12px;right:12px;z-index:9999;display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag;
-    background:rgba(31,25,48,.96);border:1px solid var(--line);border-radius:999px;padding:9px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
   .opacityctl span{font-size:15px}
   .opacityctl input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:26px;background:transparent;cursor:pointer;margin:0}
   .opacityctl input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--panel2)}
@@ -34,7 +34,7 @@
   .wbtn.on{background:var(--accent);color:var(--accent-ink)}
   #winClose:hover{background:var(--danger);color:#fff}
 
-  .card{background:rgba(31,25,48,.97);border-radius:18px;padding:20px;box-shadow:0 18px 40px rgba(0,0,0,.4),inset 0 0 0 1px var(--line);width:100%;max-width:460px;align-self:center}
+  .card{background:var(--panel);border-radius:18px;padding:20px;box-shadow:0 18px 40px rgba(0,0,0,.4),inset 0 0 0 1px var(--line);width:100%;max-width:460px;align-self:center}
   .lbl{font-size:11px;letter-spacing:.12em;color:var(--muted);margin:0 0 9px}
   .lbl.mt{margin-top:16px}
   .chips{display:flex;gap:8px}
@@ -77,7 +77,7 @@
   .gamewrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
   .leftcol{width:320px;flex:none;display:flex;flex-direction:column;gap:11px}
   .rightcol{flex:1;min-width:280px}
-  .pane{background:rgba(31,25,48,.97);border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)}
+  .pane{background:var(--panel);border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)}
 
   .turnbar{display:flex;align-items:center;justify-content:space-between;padding:12px 15px}
   .turnbar .who{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:700}
@@ -99,7 +99,7 @@
     display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;cursor:pointer;
     box-shadow:0 4px 0 rgba(0,0,0,.32),inset 0 0 0 1px rgba(0,0,0,.06);transition:transform .12s,box-shadow .14s}
   .d2 .c{display:flex;align-items:center;justify-content:center}
-  .d2 .p{width:60%;aspect-ratio:1;border-radius:50%;background:#16121d}
+  .d2 .p{width:60%;aspect-ratio:1;border-radius:50%;background:var(--bg)}
   .d2.held{box-shadow:0 0 0 3px var(--gold),0 0 16px rgba(255,212,94,.55);transform:translateY(-7px)}
   .d2.blank{background:linear-gradient(145deg,#322a48,#231d33)}
   .d2.rolling{animation:wob .18s infinite}
@@ -110,12 +110,12 @@
   .rollbtn{max-width:280px}
   .hint{color:var(--muted);font-size:12.5px;text-align:center;min-height:16px;padding:0 6px}
 
-  .sheetwrap{overflow-x:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);background:rgba(31,25,48,.97)}
+  .sheetwrap{overflow-x:auto;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);background:var(--panel)}
   table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
   th,td{text-align:center;font-size:13px}
-  thead th{position:sticky;top:0;background:#241d37;padding:9px 6px;font-size:12.5px;font-weight:700;border-bottom:1px solid var(--line);white-space:nowrap}
+  thead th{position:sticky;top:0;background:var(--panel2);padding:9px 6px;font-size:12.5px;font-weight:700;border-bottom:1px solid var(--line);white-space:nowrap}
   thead th .swatch{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
-  th.catcol,td.catcol{position:sticky;left:0;background:#241d37;text-align:left;padding:7px 12px;color:var(--muted);font-weight:600;white-space:nowrap;min-width:96px;border-right:1px solid var(--line)}
+  th.catcol,td.catcol{position:sticky;left:0;background:var(--panel2);text-align:left;padding:7px 12px;color:var(--muted);font-weight:600;white-space:nowrap;min-width:96px;border-right:1px solid var(--line)}
   tbody td{padding:6px;border-bottom:1px solid rgba(255,255,255,.04);min-width:50px}
   td.val{color:var(--ink);font-weight:700}
   td.empty{color:transparent}
@@ -293,6 +293,135 @@
   html[data-theme="grapefruit"]{ --bg:#1a0e12; --panel:#2c1820; --panel2:#371e28; --line:rgba(255,255,255,.10); --ink:#fbe9ec; --muted:#c08a96; --accent:#ff7a8a; --accent-ink:#1a0e12; --gold:#ffb14e; --ai:#ff6f91; --danger:#ff5470; }
   html[data-theme="bluelemon"]{ --bg:#0b1020; --panel:#161f38; --panel2:#1d2845; --line:rgba(255,255,255,.10); --ink:#e8f0ff; --muted:#8497c0; --accent:#4fd6ff; --accent-ink:#0b1020; --gold:#ffe14d; --ai:#7fb4ff; --danger:#ff5d8f; }
   html[data-theme="sesame"]{ --bg:#121212; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --accent:#c9bcd8; --accent-ink:#121212; --gold:#e8e2d4; --ai:#b8a0e0; --danger:#e88a8a; }
+html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#8a8a92; --brass:#b07d2a; --brass-d:#8a5f18; --you:#c2842a; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; --accent:#c8842a; --accent-ink:#ffffff; --gold:#c8842a; --ai:#7a5cc0; }
+html[data-theme="excel"]{ --bg:#e8e8e8; --bg2:#ffffff; --panel:#ffffff; --panel2:#f3f6f4; --line:#d4d4d4; --ink:#1a1a1a; --muted:#7a7a7a; --brass:#217346; --brass-d:#185c37; --you:#217346; --opp:#c43e1c; --die:#217346; --die2:#185c37; --pip:#ffffff; --win:#217346; --danger:#c43e1c; --brass-ink:#ffffff; --accent:#217346; --accent-ink:#ffffff; --gold:#217346; --ai:#c43e1c; --font:"Segoe UI","맑은 고딕","Malgun Gothic",Calibri,sans-serif; }
+#excelChrome, #excelStatus{ display:none }
+html[data-theme="excel"] #excelChrome{ display:block;position:fixed;top:0;left:0;right:0;z-index:200;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif;box-shadow:0 2px 5px rgba(0,0,0,.12) }
+html[data-theme="excel"] #excelStatus{ display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;z-index:200;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif }
+html[data-theme="excel"] .opacityctl{ display:none }
+html[data-theme="excel"] .app{ padding-top:182px;padding-bottom:46px;padding-left:32px }
+html[data-theme="excel"] #excelRows{ display:flex }
+.xl-title{ background:#217346;color:#fff;font-size:12px;padding:5px 12px;display:flex;justify-content:space-between;align-items:center }
+.xl-twin{ letter-spacing:2px;font-size:11px;opacity:.9 }
+.xl-tabs{ background:#f3f2f1;display:flex;gap:1px;padding:4px 8px 0;font-size:12px;border-bottom:1px solid #d4d4d4;overflow:hidden;white-space:nowrap }
+.xl-tabs b{ background:#217346;color:#fff;padding:5px 13px;border-radius:3px 3px 0 0;font-weight:400 }
+.xl-tabs span{ padding:5px 11px;color:#444 }
+.xl-tabs .xl-on{ border-bottom:2px solid #217346;color:#217346;font-weight:600;background:#fff }
+.xl-ribbon{ display:flex;background:#fff;border-bottom:1px solid #d4d4d4;padding:3px 4px;font-size:10px;color:#4a4a4a;overflow:hidden;white-space:nowrap;height:54px;align-items:stretch }
+.xl-ribbon .xlr-grp{ display:flex;flex-direction:column;justify-content:center;gap:4px;padding:2px 9px;border-right:1px solid #e6e6e6 }
+.xl-ribbon .xlr-paste{ display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;line-height:1;color:#217346 }
+.xl-ribbon .xlr-paste span{ font-size:9px;color:#4a4a4a;margin-top:2px }
+.xl-ribbon .xlr-r1, .xl-ribbon .xlr-r2{ display:flex;align-items:center;gap:6px }
+.xl-ribbon .xlr-font b, .xl-ribbon .xlr-font i, .xl-ribbon .xlr-font u{ display:inline-block;min-width:15px;text-align:center;border:1px solid #e0e0e0;border-radius:2px;padding:0 2px }
+.xl-ribbon .xlr-sz{ border:1px solid #d0d0d0;padding:0 5px;background:#fff }
+.xl-ribbon .xlr-fill{ color:#e0a020 }
+.xl-formula{ background:#fff;display:flex;align-items:stretch;padding:0;border-bottom:1px solid #d4d4d4;font-size:12px;height:26px }
+.xl-namebox{ min-width:64px;display:flex;align-items:center;justify-content:center;border-right:1px solid #d4d4d4;color:#333 }
+.xl-fxwrap{ display:flex;align-items:center;gap:10px;padding-left:12px;flex:1;overflow:hidden }
+.xl-fx{ color:#999;font-style:italic;font-size:13px }
+.xl-fx sub{ font-size:9px }
+.xl-input{ color:#333;font-family:Consolas,'Courier New',monospace;white-space:nowrap }
+.xl-cols{ display:flex;background:#f3f2f1;font-size:11px;color:#5a5a5a;border-bottom:1px solid #b0b0b0;height:20px }
+.xl-cols span{ flex:1;text-align:center;line-height:20px;border-right:1px solid #dcdcdc }
+.xl-cols .xl-corner{ flex:none;width:32px;background:linear-gradient(135deg,transparent 47%,#b0b0b0 47% 53%,transparent 53%);background-color:#e8e8e8 }
+#excelRows{ display:none;flex-direction:column;position:fixed;left:0;top:182px;bottom:46px;width:32px;background:#f3f2f1;z-index:150;border-right:1px solid #b0b0b0 }
+#excelRows span{ flex:1;min-height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#5a5a5a;border-bottom:1px solid #dcdcdc }
+.xl-sheets{ background:#f3f2f1;display:flex;gap:1px;padding:3px 8px 0;font-size:11.5px;border-top:1px solid #d4d4d4 }
+.xl-sheets span{ padding:4px 15px;background:#e0e0e0;color:#555;border-radius:0 0 2px 2px }
+.xl-sheets span.on{ background:#fff;color:#217346;font-weight:600;border-top:2px solid #217346 }
+.xl-sheets .xl-add{ background:transparent;color:#999;padding:4px 8px }
+.xl-statusbar{ background:#217346;color:#fff;font-size:11px;padding:3px 12px;display:flex;justify-content:space-between;align-items:center }
+.xl-statusbar .xl-zoom{ letter-spacing:1px }
+html[data-theme="excel"] #sheet{ border-collapse:collapse;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif }
+html[data-theme="excel"] #sheet td, html[data-theme="excel"] #sheet th{ border:1px solid #d0d0d0 !important;border-radius:0 !important;color:#000 !important }
+html[data-theme="excel"] #sheet thead th{ background:#f2f2f2 !important;color:#000 !important;font-weight:600 }
+html[data-theme="excel"] #sheet .catcol{ background:#fafafa !important;color:#000 !important;font-weight:400;text-align:left }
+html[data-theme="excel"] #sheet .total td, html[data-theme="excel"] #sheet .total .catcol{ background:#fff !important;font-weight:700;color:#000 !important;border-top:2px solid #999 !important }
+html[data-theme="excel"] #sheet .bonus .catcol, html[data-theme="excel"] #sheet .bonus td{ background:#fafafa !important;color:#000 !important }
+html[data-theme="excel"] #sheet .col-current{ background:#eef2f7 !important }
+/* 헤더 아바타 숨기고 이름만 (엑셀 열 제목처럼) */
+html[data-theme="excel"] .hav .av, html[data-theme="excel"] .hav img{ display:none !important }
+html[data-theme="excel"] .hav{ justify-content:center }
+html[data-theme="excel"] .hav .hnm{ font-weight:600;color:#000 }
+/* 카테고리명을 엑셀 데이터 라벨(항목 N)로 위장 */
+html[data-theme="excel"] #sheet .catcol[data-xl]{ font-size:0 !important }
+html[data-theme="excel"] #sheet .catcol[data-xl]::before{ content:attr(data-xl);font-size:12px;font-weight:400;font-family:Consolas,'Courier New',monospace }
+html[data-theme="excel"] #sheet .bonus .catcol{ font-size:0 !important }
+html[data-theme="excel"] #sheet .bonus .catcol::before{ content:'소계';font-size:12px }
+html[data-theme="excel"] #sheet .qh{ display:none !important }
+/* 엑셀 채팅 = 메모/댓글 패널 */
+html[data-theme="excel"] .chatbox{ margin-top:10px;border:1px solid #d0d0d0;background:#fff;border-radius:2px }
+html[data-theme="excel"] .chatbox::before{ content:'💬 메모';display:block;background:#f2f2f2;padding:4px 10px;font-size:11px;color:#333;border-bottom:1px solid #d0d0d0;font-weight:600 }
+html[data-theme="excel"] .chatlog{ background:#fff !important;border:none !important;border-radius:0 !important;padding:8px 10px !important }
+html[data-theme="excel"] .chatlog .cmsg b{ color:#217346 !important }
+html[data-theme="excel"] .chatlog .cmsg.me b{ color:#1a5fb4 !important }
+html[data-theme="excel"] .chatrow{ padding:6px;border-top:1px solid #eee }
+html[data-theme="excel"] .chatrow input{ border-radius:2px !important;border:1px solid #c0c0c0 !important }
+html[data-theme="excel"] .chatrow button{ border-radius:2px !important;background:#f3f3f3 !important;color:#333 !important;border:1px solid #b0b0b0 !important }
+html[data-theme="excel"] .card{ box-shadow:0 1px 4px rgba(0,0,0,.1),inset 0 0 0 1px #d4d4d4 !important;border-radius:2px !important }
+html[data-theme="excel"] .bg, html[data-theme="hanji"] .bg{ background:transparent !important }
+html[data-theme="excel"] .turnbanner, html[data-theme="hanji"] .turnbanner{ background:var(--panel2) !important;color:var(--ink) !important;box-shadow:inset 0 0 0 1px var(--line) !important }
+html[data-theme="excel"] .turnbanner.me{ background:#e2efe6 !important;color:#185c37 !important;box-shadow:inset 0 0 0 1px #217346 !important }
+html[data-theme="hanji"] .turnbanner.me{ background:color-mix(in srgb,var(--accent) 14%,#fff) !important;color:var(--accent) !important;box-shadow:inset 0 0 0 1px var(--accent) !important }
+html[data-theme="hanji"] .tray{ background:var(--panel2) !important;box-shadow:inset 0 0 0 2px var(--accent),0 1px 5px rgba(0,0,0,.12) !important }
+html[data-theme="excel"] .keptzone, html[data-theme="hanji"] .keptzone{ border-bottom-color:rgba(0,0,0,.15) !important }
+html[data-theme="excel"] .d2.blank, html[data-theme="hanji"] .d2.blank{ background:var(--panel) !important;box-shadow:inset 0 0 0 1px var(--line) !important }
+html[data-theme="excel"] .d2 .p, html[data-theme="hanji"] .d2 .p{ background:#555 !important }
+/* 엑셀: 각진 모서리 + 플랫(그림자 제거) + 셀 테두리 */
+html[data-theme="excel"] .card, html[data-theme="excel"] .btn, html[data-theme="excel"] .tray, html[data-theme="excel"] .turnbanner, html[data-theme="excel"] .chips button, html[data-theme="excel"] .tabs button, html[data-theme="excel"] input.txt, html[data-theme="excel"] .d2, html[data-theme="excel"] .iconbtn, html[data-theme="excel"] .keptrow > *{ border-radius:2px !important }
+html[data-theme="excel"] .card{ box-shadow:none !important;border:1px solid #d0d0d0 !important }
+html[data-theme="excel"] .turnbanner{ box-shadow:none !important;border:1px solid #d0d0d0 !important }
+html[data-theme="excel"] .turnbanner.me{ border:1px solid #217346 !important }
+html[data-theme="excel"] .tray{ box-shadow:none !important;border:1px solid #b7c9be !important;background:#f6f9f7 !important }
+html[data-theme="excel"] .btn{ box-shadow:none !important;font-weight:600 }
+html[data-theme="excel"] .d2{ box-shadow:inset 0 0 0 1px #c8c8c8 !important;background:#fff !important }
+html[data-theme="excel"] .chips button, html[data-theme="excel"] .tabs button{ box-shadow:none !important }
+html[data-theme="excel"] #game .card, html[data-theme="excel"] #setup{ box-shadow:none !important }
+html[data-theme="excel"] .btn:not(.rollbtn){ background:#f3f3f3 !important;color:#1a1a1a !important;border:1px solid #b0b0b0 !important }
+/* === 더 엑셀처럼: 건조하게 === */
+html[data-theme="excel"] #game .card{ background:transparent !important;border:none !important;padding:0 !important;box-shadow:none !important;max-width:none }
+html[data-theme="excel"] .gamewrap{ gap:10px !important;align-items:flex-start }
+html[data-theme="excel"] .turnbanner{ background:#fff !important;border:1px solid #d0d0d0 !important;border-left:3px solid #9aa0a6 !important;border-radius:0 !important;font-size:12px !important;padding:8px 11px !important;text-align:left !important;box-shadow:none !important;color:#1a1a1a !important }
+html[data-theme="excel"] .turnbanner.me{ background:#f4f5f7 !important;color:#1a1a1a !important;box-shadow:none !important;border-left:3px solid #5a5a5a !important }
+html[data-theme="excel"] .turnbanner *{ color:#1a1a1a !important }
+html[data-theme="excel"] .rolls, html[data-theme="excel"] .rolls span, html[data-theme="excel"] .rolls b{ font-size:11px !important;color:#555 !important }
+html[data-theme="excel"] .rolls > span:first-child{ font-size:0 !important }
+html[data-theme="excel"] .rolls > span:first-child::after{ content:"재계산 가능";font-size:11px;color:#555 }
+html[data-theme="excel"] .rolls.prog > span:first-child{ font-size:0 !important }
+html[data-theme="excel"] .rolls.prog > span:first-child::after{ content:"진행률";font-size:11px;color:#555 }
+html[data-theme="excel"] .hav, html[data-theme="excel"] .av{ border-radius:2px !important }
+html[data-theme="excel"] .btn{ border-radius:2px !important;font-size:12px !important;padding:9px 12px !important;font-weight:600 !important }
+html[data-theme="excel"] *{ text-shadow:none !important }
+html[data-theme="excel"] #sheet td:not(.catcol){ text-align:right !important;padding-right:9px !important;font-variant-numeric:tabular-nums }
+html[data-theme="excel"] #sheet thead th{ text-align:center !important }
+html[data-theme="excel"] #sheet{ font-size:12px !important }
+html[data-theme="excel"] #sheet td, html[data-theme="excel"] #sheet .catcol{ padding:4px 8px !important }
+html[data-theme="excel"] .keptzone .lbl2{ font-size:10px !important;color:#666 !important }
+html[data-theme="excel"] .card{ border-radius:2px !important }
+html[data-theme="excel"] #setup{ border:1px solid #d0d0d0 !important;box-shadow:none !important }
+/* === 게임 티 제거: 제목/안내/버튼 위장 === */
+html[data-theme="excel"] .topbar{ display:none !important }
+html[data-theme="excel"] .hint{ display:none !important }
+html[data-theme="excel"] .sheettop{ display:none !important }
+html[data-theme="excel"] .turnbanner{ font-size:11.5px !important;padding:5px 9px !important }
+html[data-theme="excel"] .turnbanner .av, html[data-theme="excel"] .turnbanner img{ display:none !important }
+html[data-theme="excel"] .hav .av, html[data-theme="excel"] .hav img{ width:17px !important;height:17px !important;border-radius:2px !important }
+html[data-theme="excel"] .reacttoggle{ font-size:10px !important;padding:3px 8px !important;background:#f3f3f3 !important;color:#555 !important;border:1px solid #d0d0d0 !important;border-radius:2px !important }
+html[data-theme="excel"] .rollbtn{ background:#e6e6e6 !important;color:#1a1a1a !important;border:1px solid #a0a0a0 !important;border-radius:2px !important;box-shadow:none !important;font-size:12px !important }
+html[data-theme="excel"] .keptzone .lbl2{ font-size:9px !important;color:#888 !important;text-transform:none }
+html[data-theme="excel"] .d2{ width:38px !important;height:38px !important;box-shadow:inset 0 0 0 1px #d0d0d0 !important }
+html[data-theme="excel"] .d2 .p{ background:#666 !important }
+html[data-theme="excel"] .d2 .c{ display:none !important }
+html[data-theme="excel"] .d2 .pin{ display:none !important }
+html[data-theme="excel"] .d2::after{ content:attr(data-value);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:#1a1a1a;font-family:'Segoe UI','맑은 고딕',sans-serif }
+html[data-theme="excel"] .d2.held{ box-shadow:inset 0 0 0 2px #217346 !important;transform:none !important }
+html[data-theme="excel"] .d2.blank::after{ content:'' }
+/* 아이콘 버튼들(📖☀️🎨✕) 축소 */
+html[data-theme="excel"] .card .iconbtn{ width:24px !important;height:24px !important;font-size:11px !important;background:#f3f3f3 !important;border:1px solid #d0d0d0 !important;border-radius:2px !important;color:#666 !important }
+html[data-theme="excel"] body{ background:#ffffff; background-image:linear-gradient(rgba(33,115,70,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(33,115,70,.07) 1px,transparent 1px); background-size:28px 28px; background-attachment:fixed; }
+html[data-theme="excel"] .board{ border:1px solid #d4d4d4 }
+html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
+html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme="hanji"] .tabs button.on, html[data-theme="hanji"] .tchip.on, html[data-theme="hanji"] .chips button.on{ color:#fff8ec !important; }
   .tcdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
 </style>
 <link rel="manifest" href="manifest.json">
@@ -300,6 +429,24 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
+  <div id="excelChrome" aria-hidden="true">
+    <div class="xl-title"><span class="xl-tls">📗 통합 문서1 - Excel</span><span class="xl-twin">— ▢ ✕</span></div>
+    <div class="xl-tabs"><b onclick="window.__unmask&&window.__unmask()" style="cursor:pointer" title="파일">파일</b><span class="xl-on">홈</span><span>삽입</span><span>페이지 레이아웃</span><span>수식</span><span>데이터</span><span>검토</span><span>보기</span><span>도움말</span></div>
+    <div class="xl-ribbon">
+      <span class="xlr-grp"><span class="xlr-paste">📋<span>붙여넣기</span></span></span>
+      <span class="xlr-grp xlr-font"><span class="xlr-r1">맑은 고딕　<span class="xlr-sz">11</span>　A˄ A˅</span><span class="xlr-r2"><b>가</b> <i>가</i> <u>가</u>　<span class="xlr-fill">🖌</span>　▦</span></span>
+      <span class="xlr-grp xlr-align"><span class="xlr-r1">≡ ≡ ≡　⫶</span><span class="xlr-r2">⬱ ⬲　🔀 병합하고 가운데 맞춤</span></span>
+      <span class="xlr-grp xlr-num"><span class="xlr-r1">일반　▾</span><span class="xlr-r2">￦ ﹪ ⁹⁄₀　⯆⯅</span></span>
+      <span class="xlr-grp xlr-cond"><span class="xlr-r1">▦ 조건부 서식</span><span class="xlr-r2">▦ 표 서식　▦ 셀 스타일</span></span>
+    </div>
+    <div class="xl-formula"><span class="xl-namebox">A1</span><span class="xl-fxwrap"><span class="xl-fx"><i>f</i><sub>x</sub></span><span class="xl-input">=SUMIF(B2:B15,"&gt;0",C2:C15)</span></span></div>
+    <div class="xl-cols" id="xlCols"></div>
+  </div>
+  <div id="excelStatus" aria-hidden="true">
+    <div class="xl-sheets"><span class="on">Sheet1</span><span>Sheet2</span><span>Sheet3</span><span class="xl-add">＋</span></div>
+    <div class="xl-statusbar"><span>준비</span><span class="xl-stats">평균: 3.46　개수: 13　합계: 45</span><span class="xl-zoom">🔍 ─　＋　100%</span></div>
+  </div>
+  <div id="excelRows" aria-hidden="true"></div>
   <div class="opacityctl">
     <span>🪟</span>
     <input type="range" id="opacity" min="10" max="100" value="100">
@@ -393,7 +540,8 @@
               <button class="iconbtn" id="helpBtn" title="게임 방법" aria-label="게임 방법">📖</button>
               <button class="iconbtn" id="skipBtn" title="AI로 진행(호스트)" aria-label="AI로 진행" style="display:none">⏭</button>
               <button class="iconbtn" id="endBtn" title="판 종료 → 로비(호스트)" aria-label="판 종료" style="display:none">🏁</button>
-              <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리">🔊</button>
+              <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
+      <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리">🔊</button>
               <button class="iconbtn" id="leaveBtn" title="나가기" aria-label="나가기">✕</button>
             </div>
           </div>
@@ -813,7 +961,7 @@
   // ---------- dice ----------
   const diceEl=$('dice2d'), keptEl=$('keptrow');
   function tactile(){ SFX.click(); try{navigator.vibrate&&navigator.vibrate(15);}catch(e){} }
-  function makeDie(d,i,anim){ const el=document.createElement('div'); el.className='d2'; el.dataset.i=i;
+  function makeDie(d,i,anim){ const el=document.createElement('div'); el.className='d2'; el.dataset.i=i; el.dataset.value=(d.value&&!anim)?d.value:'';
     if(anim){ el.classList.add('toss'); el.style.setProperty('--r',(Math.random()<.5?'-':'')+(120+(Math.random()*120|0))+'deg'); el.style.animationDelay=(i*0.04)+'s'; }
     if(!d.value&&!anim)el.classList.add('blank'); if(d.held)el.classList.add('held','kept');
     const on=(d.value&&!anim)?PIPS[d.value]:[];
@@ -830,7 +978,7 @@
     const items=S.dice.map((d,i)=>({d,i}));
     items.filter(o=>!o.d.held).forEach(o=>{ diceEl.appendChild(makeDie(o.d,o.i,animating.has(o.i))); });
     items.filter(o=>o.d.held).sort((a,b)=>(a.d.value-b.d.value)||(a.i-b.i)).forEach(o=>{ keptEl.appendChild(makeDie(o.d,o.i,animating.has(o.i))); heldNow.add(o.i); });
-    const lbl=$('keptLbl'); if(lbl)lbl.textContent=`킵 ${heldNow.size}/5`;
+    const lbl=$('keptLbl'); if(lbl)lbl.textContent=(document.documentElement.dataset.theme==='excel'?'선택 ':'킵 ')+heldNow.size+'/5';
     if(!animLock){ document.querySelectorAll('#dice2d .d2,#keptrow .d2').forEach(el=>{ const o=old[el.dataset.i];
       if(o){ const n=el.getBoundingClientRect(); const dx=o.left-n.left, dy=o.top-n.top;
         if(Math.abs(dx)>1||Math.abs(dy)>1){ el.style.transition='none'; el.style.transform=`translate(${dx}px,${dy}px)`; el.getBoundingClientRect(); el.classList.add('flip'); el.style.transition=''; el.style.transform=''; } }
@@ -847,11 +995,12 @@
   function renderTurn(){ if(!S)return; const p=curPlayer(); if(!p)return; const spec=spectating();
     $('specBar').style.display=spec?'flex':'none';
     const bn=$('turnBanner'); if(bn){ const mine=isMyTurn(); bn.style.display='flex'; bn.className='turnbanner '+(mine?'me':'other');
-      bn.innerHTML=avHTML(p,{cur:true,off:!p.connected})+`<span class="nm">${esc(p.name)}</span>`+(p.ai?'<span class="aitag">AI '+esc(p.personaLabel||'')+'</span>':'')+(mine?'<span>— 내 차례!</span>':'<span style="color:var(--muted);font-weight:600">차례</span>')+(!p.connected?' <span class="aitag" style="background:var(--danger);color:#fff">끊김·AI진행</span>':''); }
+      bn.innerHTML=avHTML(p,{cur:true,off:!p.connected})+`<span class="nm">${esc(p.name)}</span>`+(p.ai?'<span class="aitag">AI '+esc(p.personaLabel||'')+'</span>':'')+(mine?(document.documentElement.dataset.theme==='excel'?'<span>— 편집 중</span>':'<span>— 내 차례!</span>'):(document.documentElement.dataset.theme==='excel'?'<span style="color:var(--muted);font-weight:600">대기</span>':'<span style="color:var(--muted);font-weight:600">차례</span>'))+(!p.connected?' <span class="aitag" style="background:var(--danger);color:#fff">끊김·AI진행</span>':''); }
     const rp=$('rollPips'); rp.innerHTML=''; for(let i=0;i<3;i++){const d=document.createElement('i');if(i<S.rollsLeft)d.classList.add('live');rp.appendChild(d);}
     const pl=$('progressLbl'); if(pl){ const meP=S.players.find(x=>x.pid===myPid)||S.players[S.current]; const filled=meP?S.cats.filter(c=>meP.scores[c.id]!==null).length:0; pl.textContent=filled+'/'+S.cats.length; }
     const me=canAct(), rb=$('rollBtn'); rb.disabled=!me||S.rollsLeft<=0; rb.style.display=spec?'none':'block';
-    rb.textContent=p.ai?'AI가 굴리는 중…':(!S.rolled?'굴리기':(S.rollsLeft>0?`다시 굴리기 (${S.rollsLeft})`:'굴림 끝'));
+    const xlT=document.documentElement.dataset.theme==='excel';
+    rb.textContent=p.ai?(xlT?'계산 중…':'AI가 굴리는 중…'):(!S.rolled?(xlT?'계산 (F9)':'굴리기'):(S.rollsLeft>0?(xlT?`재계산 (${S.rollsLeft})`:`다시 굴리기 (${S.rollsLeft})`):(xlT?'완료':'굴림 끝')));
     const sk=$('skipBtn'); if(sk){ const show=isOnline()&&amHost()&&S.phase==='play'&&p.pid!==myPid; sk.style.display=show?'flex':'none'; }
     const eb=$('endBtn'); if(eb){ eb.style.display=(isOnline()&&amHost()&&S.phase==='play')?'flex':'none'; }
     const h=$('hint');
@@ -916,18 +1065,25 @@
   $('infoClose').onclick=()=>$('infoOv').classList.remove('on');
   $('infoOv').onclick=(e)=>{ if(e.target===$('infoOv')) $('infoOv').classList.remove('on'); };
 
+  const XL_SHORT={ aces:'1s',twos:'2s',threes:'3s',fours:'4s',fives:'5s',sixes:'6s',choice:'CH',chance:'CN',threeKind:'3K',fourKind:'4K',fullHouse:'FH',twoPair:'2P',sStraight:'SS',lStraight:'LS',yacht:'YT' };
   function renderSheet(){ if(!S)return;
     let cols=S.players.map((p,pi)=>pi);
     if(compact && S.players.length>2){ cols=cols.filter(pi=>pi===S.current||(isOnline()&&S.players[pi].pid===myPid)); if(!cols.length)cols=[S.current]; }
     let h='<thead><tr><th class="catcol"></th>';
     cols.forEach(pi=>{const p=S.players[pi]; const meC=isOnline()&&p.pid===myPid?'me-col':''; h+=`<th class="${pi===S.current?'col-current':''} ${meC}"><div class="hav">${avHTML(p,{sm:true,cur:pi===S.current,off:!p.connected})}<span class="hnm">${esc(p.name)}</span></div></th>`;});
     h+='</tr></thead><tbody>';
-    S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
+    S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
     if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)${qIcon('bonus')}</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th}</td>`;}).join('')}</tr>`;
-    S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
+    S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
     if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;return `<td class="${pi===S.current?'col-current':''}">${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length}</td>`;}).join('')}</tr>`;
     h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.total}</td>`;}).join('')}</tr></tbody>`;
     $('sheet').innerHTML=h;
+    try{ if(document.documentElement.dataset.theme==='excel' && S){ const cur=S.players[S.current];
+      const st=document.querySelector('.xl-stats'); if(st && cur){ const vals=Object.values(cur.scores||{}).filter(v=>typeof v==='number' && v>0); const cnt=vals.length||1; const sum=cur.total||0; st.textContent='평균: '+(sum/cnt).toFixed(2)+'　개수: '+cnt+'　합계: '+sum; }
+      const nb=document.querySelector('.xl-namebox'); if(nb) nb.textContent=String.fromCharCode(66+S.current)+'17';
+      const fi=document.querySelector('.xl-input'); if(fi) fi.textContent='=SUM('+String.fromCharCode(66+S.current)+'2:'+String.fromCharCode(66+S.current)+'16)';
+    }}catch(e){}
+    try{ buildReactbar(); }catch(e){}
     $('sheet').querySelectorAll('td.preview[data-cat]').forEach(td=>{td.onclick=()=>askPick(td.dataset.cat);});
     $('sheet').querySelectorAll('.qh').forEach(q=>{q.onclick=(e)=>{e.stopPropagation();showInfo(q.dataset.c);};});
   }
@@ -965,6 +1121,7 @@
   // ---------- reactions ----------
   let reactBuilt=false;
   function buildReactbar(){ const bar=$('reactbar'); if(!bar)return;
+    const ci=$('chatInput'); if(ci && document.activeElement===ci) return; // 타이핑/한글 조합 중이면 갱신 스킵(입력 끊김 방지)
     if(isOnline()){
       $('reactzone').style.display='block';
       if(!reactBuilt){ reactBuilt=true; bar.innerHTML='';
@@ -976,7 +1133,7 @@
       }
       $('chatBox').style.display='block'; setupChat();
     }
-    else { $('reactzone').style.display='none'; $('chatBox').style.display='none'; }
+    else { const xl=document.documentElement.dataset.theme==='excel'; $('reactzone').style.display='none'; if(xl){ $('chatBox').style.display='block'; setupChat(); } else $('chatBox').style.display='none'; }
   }
   function setupReactToggle(){
     const tog=$('reactToggle'), bar=$('reactbar');
@@ -989,11 +1146,9 @@
   function chatMyName(){ let m=((lobby&&lobby.members)||[]).find(x=>x.pid===myPid); if(!m&&S&&S.players)m=S.players.find(x=>x.pid===myPid); return m?m.name:'나'; }
   function setupChat(){ if(chatBound)return; chatBound=true;
     const el=$('chatInput');
-    const send=()=>{ const t=(el.value||'').trim(); if(!t)return;
-      const now=Date.now(); if(now-lastChatSent<350)return; lastChatSent=now;   // 도배 방지
-      wsSend({t:'chat',text:t});
-      addChat(myPid, chatMyName(), t);                                          // 내 메시지는 즉시 표시
-      el.value=''; el.focus(); };                                              // 보낸 뒤 포커스 유지
+    let queue=[], timer=null;
+    const flush=()=>{ if(!queue.length){ timer=null; return; } const t=queue.shift(); try{wsSend({t:'chat',text:t});}catch(e){} addChat(myPid, chatMyName(), t); timer=setTimeout(flush, 320); };
+    const send=()=>{ const t=(el.value||'').trim(); if(!t)return; if(queue.length>=8)return; queue.push(t.slice(0,200)); el.value=''; el.focus(); if(!timer)flush(); };
     $('chatSend').onclick=send;
     el.addEventListener('keydown',e=>{
       // 한글 등 IME 조합 확정용 Enter는 전송으로 처리하지 않음
@@ -1244,7 +1399,7 @@
   }
 
   // ========== boot ==========
-  const THEMES=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽에이드','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8']];
+  const THEMES=[['sesame','흑임자','#c9bcd8'],['espresso','다크','#e0a23c'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346']];
   let theme=(function(){try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';}})();
   function applyTheme(t){ theme=t; document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} const box=$('themeChips'); if(box)[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.t===t)); }
   applyTheme(theme);
@@ -1257,6 +1412,23 @@
   })();
 })();
 </script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
+(function(){
+  var cols=document.getElementById('xlCols');
+  if(cols && !cols.children.length){ cols.innerHTML='<span class="xl-corner"></span>'; for(var i=0;i<16;i++){ var s=document.createElement('span'); s.textContent=String.fromCharCode(65+i); cols.appendChild(s); } }
+  var rows=document.getElementById('excelRows');
+  if(rows && !rows.children.length){ for(var r=1;r<=32;r++){ var s=document.createElement('span'); s.textContent=r; rows.appendChild(s); } }
+  var origTitle=document.title;
+  window.__unmask=function(){ document.documentElement.dataset.theme="espresso"; try{localStorage.setItem("alley_theme","espresso");}catch(e){} var lb=document.getElementById("lightBtn"); if(lb)lb.textContent="☀️"; try{updTitle();}catch(e){} };
+  var origFav=null;
+  function updTitle(){ var ex=document.documentElement.dataset.theme==='excel'; document.title=ex?'통합 문서1 - Excel':origTitle;
+    try{ var l=document.querySelector('link[rel="icon"]'); if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l);} if(origFav===null)origFav=l.getAttribute('href')||'';
+      l.setAttribute('href', ex?'data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect width=\'32\' height=\'32\' rx=\'4\' fill=\'#217346\'/><text x=\'16\' y=\'23\' font-size=\'20\' font-family=\'Arial\' font-weight=\'bold\' fill=\'white\' text-anchor=\'middle\'>X</text></svg>'):origFav);
+    }catch(e){}
+  }
+  try{ new MutationObserver(updTitle).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']}); }catch(e){}
+  updTitle();
+})();</script>
+<script>(function(){var lb=document.getElementById('lightBtn');if(!lb)return;function sync(){lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️';}lb.onclick=function(){var cur=document.documentElement.dataset.theme||'espresso';var t=cur==='hanji'?'espresso':'hanji';document.documentElement.dataset.theme=t;try{localStorage.setItem('alley_theme',t);}catch(e){}sync();};sync();setTimeout(sync,250);})();</script>
 </body>
 </html>

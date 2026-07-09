@@ -68,10 +68,11 @@
       this.markers = nm;
       this.teamMode = !!opt.teamMode;
       this.winnerTeam = null;
+      this.rankings = [];  // 완주 순서(개인전 순위)
       this.goal = (opt.goal && opt.goal <= nm) ? opt.goal : nm;  // 승리 목표(완주시킬 말 수)
       this.players = (opt.players || []).map((p, i) => ({
         pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null,
-        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (i % 2) : i), connected: p.connected !== false,
+        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (i % 2) : i), catches: 0, connected: p.connected !== false,
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
@@ -164,22 +165,29 @@
       } else {
         group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; });
         // 잡기: 도착 노드에 다른 편 말이 있으면 원위치
-        let caught = false;
+        let caught = false, caughtN = 0;
         for (const op of this.players) {
           if (op.seat === seat) continue;
           if (this.teamMode && op.team === pl.team) continue; // 같은 팀은 안 잡음
           for (const opc of op.pieces) {
             if (!opc.done && opc.out && opc.node === r.node) {
               opc.out = false; opc.node = 0; opc.route = 'outer';
-              caught = true;
+              caught = true; caughtN++;
             }
           }
         }
-        if (caught) { this.throwsLeft++; this.captured = { seat, node: r.node }; } // 잡으면 한 번 더
+        if (caught) { pl.catches += caughtN; this.throwsLeft++; this.captured = { seat, node: r.node }; } // 잡으면 한 번 더
       }
 
       // 승리 판정
-      if (pl.pieces.filter(p => p.done).length >= this.goal) { this.phase = 'over'; this.winner = pl.pid; this.winnerTeam = pl.team; this._emit(); return; }
+      if (pl.pieces.filter(p => p.done).length >= this.goal) {
+        if (this.teamMode) { this.phase = 'over'; this.winner = pl.pid; this.winnerTeam = pl.team; this._emit(); return; }
+        // 개인전: 순위 기록 후 게임 계속 (꼴찌까지 가림)
+        if (!this.rankings.includes(pl.pid)) this.rankings.push(pl.pid);
+        const remaining = this.players.filter(p => !this.rankings.includes(p.pid));
+        if (remaining.length <= 1) { if (remaining.length === 1) this.rankings.push(remaining[0].pid); this.phase = 'over'; this.winner = this.rankings[0]; this._emit(); return; }
+        this._endTurn(); return;  // 이 플레이어는 완주 → 다음 사람으로
+      }
 
       // 다음 단계
       if (this.throwsLeft > 0) { this.phase = 'throw'; this._emit(); this._maybeAI(); return; }
@@ -194,7 +202,7 @@
     _endTurn() {
       this.pending = []; this.throwsLeft = 1; this.phase = 'throw';
       let n = this.turn;
-      for (let k = 1; k <= this.N; k++) { const s = (this.turn + k) % this.N; n = s; break; }
+      for (let k = 1; k <= this.N; k++) { const s = (this.turn + k) % this.N; if (!this.rankings.includes(this.players[s].pid)) { n = s; break; } }
       this.turn = n;
       this._emit();
       this._maybeAI();
@@ -265,9 +273,9 @@
         game: 'yut', phase: this.phase, turn: this.turn, markers: this.markers, goal: this.goal, teamMode: this.teamMode, winnerTeam: this.winnerTeam,
         pending: this.pending.slice(), throwsLeft: this.throwsLeft,
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
-        winner: this.winner, captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
+        winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         players: this.players.map((p, i) => ({
-          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team,
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
           doneCount: p.pieces.filter(pc => pc.done).length
         }))
