@@ -72,7 +72,7 @@
       this.goal = (opt.goal && opt.goal <= nm) ? opt.goal : nm;  // 승리 목표(완주시킬 말 수)
       this.players = (opt.players || []).map((p, i) => ({
         pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null,
-        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (i % 2) : i), catches: 0, connected: p.connected !== false,
+        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (p.team != null ? p.team : (i % 2)) : i), catches: 0, connected: p.connected !== false,
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;

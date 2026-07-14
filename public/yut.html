@@ -65,6 +65,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .charbtn.on{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 30%,transparent) }
   .charbtn .cknm{ position:absolute;bottom:0;left:0;right:0;font-size:8.5px;text-align:center;background:rgba(0,0,0,.52);color:#fff;font-weight:800;padding:1px 0 }
   .pchip{ display:flex;align-items:center;gap:7px;padding:6px 11px 6px 7px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);font-size:12px;font-weight:700 }
+  .pchip.tm0{ border-left:6px solid #4a90d9; background:rgba(74,144,217,.12) }
+  .pchip.tm1{ border-left:6px solid #e0683c; background:rgba(224,104,60,.12) }
   .pchip .pav{ width:30px;height:30px;border-radius:50%;object-fit:cover;border:2.5px solid var(--line);vertical-align:middle;background:#fff }
   .statsbar{ display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;margin:4px 0 12px;font-size:12.5px;color:var(--muted) }
   .statsbar b{ color:var(--brass);font-weight:800 }
@@ -84,6 +86,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .member .mhost{ margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);padding:3px 8px;border-radius:6px }
   .member .airm{ margin-left:6px;border:none;background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger);width:24px;height:24px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:800;flex:none }
   .waiting-line{ text-align:center;font-size:12.5px;color:var(--muted);margin:8px 0 }
+  .mteam{ font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;margin-left:6px }
+  .mteam0{ background:rgba(74,144,217,.16);color:#4a90d9 }
+  .mteam1{ background:rgba(224,104,60,.16);color:#e0683c }
+  .teambtn{ margin-left:auto;font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;border:1.5px solid var(--brass);background:var(--panel2);color:var(--brass);cursor:pointer }
+  .teambtn:hover{ background:var(--brass);color:var(--brass-ink) }
   /* 윷 게임 */
   .players-strip{ display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:4px }
   .mission-panel{ background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 11px;margin-bottom:10px }
@@ -122,14 +129,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .game-center .board{ width:100%; max-width:min(400px, calc(100vh - 165px)); }
   }
   @media (max-width:780px){
-    body.ingame .app{ max-width:560px; padding:6px 8px 10px; }
-    #game{ grid-template-columns:1fr; gap:6px; }
+    body.ingame .app{ padding:6px 8px 10px; }
     .game-col{ gap:6px; }
-    .game-center{ order:1; }
-    .game-right{ order:2; position:static; }
-    .game-left{ order:3; position:static; }
-    /* 보드를 화면 높이 기준으로 제한 → 세로 스크롤 방지 (컨트롤 공간 확보) */
-    .game-center .board{ max-width:min(90vw, 47vh); }
     .players-strip{ margin-bottom:2px }
     /* 컨트롤 압축 */
     .throwarea{ margin:4px 0 2px }
@@ -141,6 +142,24 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .chatbox{ margin-top:4px }
     .chatlog{ max-height:74px }
     .gaugehint{ font-size:10px;margin-bottom:4px }
+  }
+  /* 중간 폭(레티나 데스크톱 등): 2단 — 보드+컨트롤 가로, 미션·채팅 아래 */
+  @media (min-width:481px) and (max-width:780px){
+    body.ingame .app{ max-width:96vw; }
+    #game{ grid-template-columns:minmax(0,1fr) 210px; grid-template-areas:"center right" "left left"; gap:8px 10px; }
+    .game-center{ grid-area:center; }
+    .game-right{ grid-area:right; position:static; }
+    .game-left{ grid-area:left; position:static; }
+    .game-center .board{ max-width:min(54vw, 66vh); }
+  }
+  /* 좁은 폭(폰 세로): 1단 세로 */
+  @media (max-width:480px){
+    body.ingame .app{ max-width:560px; }
+    #game{ grid-template-columns:1fr; gap:6px; }
+    .game-center{ order:1; }
+    .game-right{ order:2; position:static; }
+    .game-left{ order:3; position:static; }
+    .game-center .board{ max-width:min(90vw, 47vh); }
   }
   #pieceLayer .pcpiece{ transition:transform .14s cubic-bezier(.4,.05,.3,1) }
   #pieceLayer .pcpiece.pitfall{ transition:transform .62s cubic-bezier(.5,.02,.86,.36) }
@@ -178,8 +197,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes respop{ 0%{transform:scale(.4);opacity:0} 55%{transform:scale(1.28)} 100%{transform:scale(1);opacity:1} }
   .throwresult .big{ font-size:15px;color:var(--muted);font-weight:700 }
   .pendingrow{ display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:26px;margin-top:6px }
-  .pchipm{ padding:4px 10px;border-radius:9px;background:var(--panel2);border:1.5px solid var(--brass);color:var(--brass);font-weight:800;font-size:13px;transition:all .12s }
-  .pchipm[data-pi]{ cursor:pointer } .pchipm[data-pi]:hover{ transform:translateY(-1px);box-shadow:0 2px 7px rgba(0,0,0,.22);filter:brightness(1.12) } .pchipm.sel{ background:var(--brass);color:var(--brass-ink);transform:translateY(-2px);box-shadow:0 3px 10px rgba(0,0,0,.25) }
+  .pchipm{ display:inline-flex;flex-direction:column;align-items:center;gap:0;padding:5px 14px;border-radius:11px;background:var(--panel2);border:2px solid var(--brass);color:var(--brass);transition:all .12s }
+  .pcm-nm{ font-size:15px;font-weight:900;line-height:1.15 }
+  .pcm-st{ font-size:9.5px;font-weight:700;opacity:.7;letter-spacing:.5px }
+  .pchipm.pick{ cursor:pointer;border-style:dashed }
+  .pchipm.pick:hover{ transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.22);filter:brightness(1.1) }
+  .pchipm.sel{ background:var(--brass);color:var(--brass-ink);border-style:solid;transform:translateY(-3px);box-shadow:0 4px 12px rgba(0,0,0,.28) }
+  .pchipm.sel .pcm-st{ opacity:.92 }
+  .pchipm.sel .pcm-nm::after{ content:' ✓' }
   /* 말 트레이 */
   .tray{ display:flex;flex-direction:column;gap:6px;margin:10px 0 4px }
   .tray-row{ display:flex;align-items:center;gap:9px;padding:7px 11px;border-radius:11px;background:var(--panel);border:1.5px solid var(--line) }
@@ -552,7 +577,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.goal = (opt.goal && opt.goal <= nm) ? opt.goal : nm;  // 승리 목표(완주시킬 말 수)
       this.players = (opt.players || []).map((p, i) => ({
         pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null,
-        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (i % 2) : i), catches: 0, connected: p.connected !== false,
+        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (p.team != null ? p.team : (i % 2)) : i), catches: 0, connected: p.connected !== false,
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
@@ -1157,7 +1182,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // 플레이어 스트립
     const strip=$('playersStrip'); strip.innerHTML='';
     S.players.forEach((p,pi)=>{
-      const d=document.createElement('div'); d.className='pchip'+(S.turn===pi&&S.phase!=='over'?' turn':''); d.dataset.pid=p.pid;
+      const d=document.createElement('div'); d.className='pchip'+(S.turn===pi&&S.phase!=='over'?' turn':'')+(S.teamMode&&S.players[pi]?' tm'+S.players[pi].team:''); d.dataset.pid=p.pid;
       const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; d.innerHTML=`<img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''} <span class="pdone">${p.doneCount}/${S.goal||S.markers}</span>`;
       strip.appendChild(d);
     });
@@ -1177,7 +1202,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     renderTray();
     // pending
     const _pend=S.pending||[]; if(selStep!=null && selStep>=_pend.length) selStep=null;
-    $('pendingRow').innerHTML=_pend.map((st,i)=>`<span class="pchipm${i===selStep?' sel':''}" data-pi="${i}">${YUT_NAME[st]}</span>`).join('');
+    $('pendingRow').innerHTML=_pend.map((st,i)=>{ const steps=st>0?st+'칸':'뒤로'; const pickable=canAct()&&_pend.length>1; return `<span class="pchipm${i===selStep?' sel':''}${pickable?' pick':''}" data-pi="${i}"><b class="pcm-nm">${YUT_NAME[st]}</b><span class="pcm-st">${steps}</span></span>`; }).join('');
     if(canAct() && _pend.length>1) $('pendingRow').querySelectorAll('.pchipm').forEach(c=>{ c.onclick=()=>{ const pi=+c.dataset.pi; selStep=(selStep===pi)?null:pi; render(); }; });
     // 던지기 버튼 / 턴 정보
     const ms=mySeat();
@@ -1187,11 +1212,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('powerGauge').classList.toggle('on',showGauge);
     { const gh=$('gaugeHint'); if(gh) gh.classList.toggle('show',showGauge); }
     if(!showGauge && gauging){ gauging=false; if(gaugeRAF)cancelAnimationFrame(gaugeRAF); $('powerFill').style.width='0%'; }
-    if(S.phase==='over'){ btn.disabled=true; btn.textContent='게임 종료'; ti.textContent=''; }
+    const spectating = online && ms<0; // players에 없으면 관전 중
+    if(spectating){ btn.disabled=true; btn.textContent='👀 관전 중'; ti.innerHTML='👀 <b>관전 중</b> — 다음 판부터 참여해요'; }
+    else if(S.phase==='over'){ btn.disabled=true; btn.textContent='게임 종료'; ti.textContent=''; }
     else if(S.turn===ms){
       ti.classList.add('myturn');
       if(S.phase==='throw'){ btn.disabled=false; btn.classList.add('ready'); btn.textContent='🎲 꾹 눌렀다 떼기'+(S.throwsLeft>1?` · ${S.throwsLeft}번`:''); ti.innerHTML='🎯 <b>내 차례</b> — 꾹 눌렀다 떼! 세게 던질수록 윷·모 확률 ↑'; }
-      else { btn.disabled=true; btn.textContent='👇 말을 골라 탭하세요'; const _p=(S.pending||[]); const _pt=_p.map(s=>YUT_NAME[s]).join(', ');
+      else { btn.disabled=true; btn.textContent='👇 말을 골라 탭하세요'; const _p=(S.pending||[]); const _pt=_p.map(s=>YUT_NAME[s]+(s>0?'('+s+'칸)':'')).join(', ');
         ti.innerHTML = _p.length>1
           ? '남은 이동 <b>'+_pt+'</b> · 위 칸을 탭해 <b>먼저 쓸 이동</b>을 고르거나, 바로 말 선택'
           : '움직일 말 선택 · 남은 이동 <b>'+_pt+'</b>'; }
@@ -1393,7 +1420,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const others=ANIMAL_ORDER.filter(a=>a!==cfg.character), nm=[...NM].sort(()=>Math.random()-.5);
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; resultShown=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null; moveSeqSeen=0; animatingId=null; initMissions();
-    $('setupOv').classList.remove('on'); $('game').style.display='block'; $('modePill').textContent='· AI 대전';
+    $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
     engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, limitMs:(cfg.timer||0)*60000, aiMs:900, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
@@ -1423,10 +1450,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
       lobby=m.room; const wasHost=amHost; amHost=cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
-      if($('game').style.display==='block' && S && S.phase!=='over') return;
+      if($('game').style.display==='grid' && S && S.phase!=='over') return;
       renderLobby();
     }
-    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; $('modePill').textContent='· 온라인'; S=m.state;
+    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· 온라인'; S=m.state;
       if(S.phase!=='over'){ $('resultOv').classList.remove('on'); resetRematchUI(); }
       if(prevConn){ S.players.forEach(p=>{ if(!p.ai && p.pid!==MYPID && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) showToast((p.connected?'🔌 ':'⚠️ ')+p.name+(p.connected?' 재접속':' 연결 끊김')); }); }
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
@@ -1447,9 +1474,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member';
-      d.innerHTML=`${ANIMAL_IMG[mem.avatar]?`<img class="mav-img" src="${ANIMAL_IMG[mem.avatar]}" style="border-color:${mem.host?'var(--brass)':'var(--line)'}">`:`<div class="mav">${mem.avatar||'🎲'}</div>`}<span class="mnm">${esc(mem.name)}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      const tBadge=(lobby.teamMode&&!mem.spectator)?`<span class="mteam mteam${mem.team}">${mem.team===0?'🔵 청팀':'🔴 홍팀'}</span>`:'';
+      const tBtn=(lobby.teamMode&&!mem.spectator&&mem.pid===MYPID)?`<button class="teambtn" data-team="${mem.team===0?1:0}">↔ 팀 바꾸기</button>`:'';
+      const specBadge=mem.spectator?`<span class="mhost" style="background:rgba(130,130,130,.18);color:var(--muted)">👀 관전</span>`:'';
+      d.innerHTML=`${ANIMAL_IMG[mem.avatar]?`<img class="mav-img" src="${ANIMAL_IMG[mem.avatar]}" style="border-color:${mem.host?'var(--brass)':'var(--line)'}">`:`<div class="mav">${mem.avatar||'🎲'}</div>`}<span class="mnm">${esc(mem.name)}</span>${specBadge}${tBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${tBtn}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
+    host.querySelectorAll('.teambtn').forEach(b=>b.onclick=()=>wsSend({t:'setTeam',team:+b.dataset.team}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
     const ready=lobby.members.length>=2;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';

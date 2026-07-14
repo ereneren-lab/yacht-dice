@@ -43,7 +43,7 @@ function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
   return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase,
-    members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp })) } };
+    members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
 
@@ -52,7 +52,7 @@ function startEngine(room){
   if (room.engine) room.engine.destroy();
   room.members.forEach(m=>{ m.waiting=false; });
   room.phase = 'play';
-  const players = room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, aiDiff:room.difficulty }));
+  const players = room.members.filter(m=>!m.spectator).map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, aiDiff:room.difficulty, team:m.team }));
   if (room.game === 'kb'){
     const onState = (s)=> broadcast(room, { t:'state', state:s });
     room.engine = new KBEngine({ aiFast:!!room.aiFast, players, onState,
@@ -132,7 +132,7 @@ wss.on('connection', (ws) => {
     if (m.t === 'create') {
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
@@ -140,10 +140,11 @@ wss.on('connection', (ws) => {
       const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
       const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : r.game==='lcr' ? 6 : r.game==='yut' ? (r.teamMode?4:6) : 8;
-      if (r.members.length >= cap) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요.' });
+      if (r.members.length >= cap + 8) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요 (관전 포함).' });
       const pid = rid();
-      const waiting = r.phase !== 'lobby';   // 진행 중이면 관전(다음 판부터 참여)
-      r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting });
+      const spectator = r.members.length >= cap;   // 정원 초과 → 관전자
+      const waiting = spectator || r.phase !== 'lobby';   // 관전자 또는 진행 중 입장
+      const t0=r.members.filter(x=>x.team===0).length, t1=r.members.filter(x=>x.team===1).length; r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting, spectator, team:(t0<=t1?0:1) });
       recolor(r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code });
       if (r.engine) send(ws, { t:'state', state:r.engine.serialize(pid) });  // 관전자에게 현재 판 (라이어는 자기 시점)
@@ -180,6 +181,8 @@ wss.on('connection', (ws) => {
 
     } else if (m.t === 'setSpot') {
       if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){ room.spotOn=!!m.v; sendLobby(room); }
+    } else if (m.t === 'setTeam') {
+      if (room.phase==='lobby' && room.teamMode && (m.team===0||m.team===1)){ const me=room.members.find(x=>x.pid===ws.meta.pid); if(me){ me.team=m.team; sendLobby(room); } }
 
     } else if (m.t === 'setFast') {
       if (ws.meta.pid===hostPid(room)){ room.aiFast=!!m.v; sendLobby(room); }
@@ -188,7 +191,7 @@ wss.on('connection', (ws) => {
       const cap = room.game==='kb' ? 2 : room.game==='ld' ? 4 : 6;
       if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && room.members.length<cap){
         const n=room.members.filter(x=>x.ai).length+1;
-        room.members.push({ pid:'ai_'+rid(), name:'AI '+n, avatar:AVA[room.members.length%AVA.length], ai:true, connected:true, ws:null });
+        const at0=room.members.filter(x=>x.team===0).length, at1=room.members.filter(x=>x.team===1).length; room.members.push({ pid:'ai_'+rid(), name:'AI '+n, avatar:AVA[room.members.length%AVA.length], ai:true, connected:true, ws:null, team:(at0<=at1?0:1) });
         recolor(room); sendLobby(room);
       }
 
