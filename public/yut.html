@@ -37,6 +37,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .wbtn:hover{background:var(--brass-d)}
   .wbtn.on{background:var(--brass);color:var(--brass-ink)}
   #winClose:hover{background:var(--danger);color:#fff}
+  #leaveBtn:hover{ background:var(--danger);color:#fff }
   .topbar{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
   #timerHud{ align-items:center;gap:3px;padding:4px 10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;margin-right:4px }
   #timerHud.urgent{ background:var(--danger);color:#fff;border-color:transparent;animation:tickpulse 1s infinite }
@@ -326,6 +327,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <button class="iconbtn" id="lightBtn" title="다크/라이트 모드" aria-label="다크/라이트 모드 전환">☀️</button>
       <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리 켜기/끄기">🔊</button>
       <button class="iconbtn" id="endBtn" title="판 종료 → 로비(호스트)" aria-label="판 종료" style="display:none">🏁</button>
+      <button class="iconbtn" id="leaveBtn" title="게임에서 나가기" aria-label="게임에서 나가기" style="display:none">✕</button>
       <button class="iconbtn" id="yutHelp" title="규칙">?</button>
     </div>
 
@@ -1198,6 +1200,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('game').classList.toggle('online', !!online);
     if(S.limitMs>0 && !gameTimerInt && S.phase!=='over' && $('game').style.display!=='none') startGameTimer();
     $('endBtn').style.display = (online && amHost && S.phase!=='over') ? 'flex' : 'none';
+    $('leaveBtn').style.display = online ? 'flex' : 'none';
     // 플레이어 스트립
     const strip=$('playersStrip'); strip.innerHTML='';
     S.players.forEach((p,pi)=>{
@@ -1550,6 +1553,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   $('toHub').onclick=()=>location.href='./';
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
+  $('leaveBtn').onclick=()=>{ if(confirm('게임에서 나갈까요? (다시 들어오려면 방 코드가 필요해요)')) rematchLeave(); };
   $('setupRules').onclick=()=>$('helpOv').classList.add('on');
   $('yutHelp').onclick=()=>$('helpOv').classList.add('on');
   $('helpClose').onclick=()=>$('helpOv').classList.remove('on');
