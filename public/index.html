@@ -160,14 +160,31 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 </script>
 <script>
 (function(){
-  var T=[['sesame','흑임자','#c9bcd8'],['espresso','다크','#e0a23c'],['hanji','라이트','#f2f2f4']];
+  var T=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
   function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
-  function s(t){ document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} r(); }
+  function s(t){ document.documentElement.dataset.theme=t;
+    try{ localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t); }catch(e){}
+    r(); if(window.__alleySyncLight) window.__alleySyncLight(); }
+  window.__alleySetTheme=s;
   s(g());
 })();
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
-<script>(function(){var lb=document.getElementById('lightBtn');if(!lb)return;function sync(){lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️';}lb.onclick=function(){var cur=document.documentElement.dataset.theme||'espresso';var t=cur==='hanji'?'espresso':'hanji';document.documentElement.dataset.theme=t;try{localStorage.setItem('alley_theme',t);}catch(e){}sync();};sync();setTimeout(sync,250);})();</script>
+<script>(function(){
+  var lb=document.getElementById('lightBtn'); if(!lb)return;
+  function sync(){ lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️'; }
+  window.__alleySyncLight=sync;
+  lb.onclick=function(){
+    var cur=document.documentElement.dataset.theme||'espresso';
+    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; }catch(e){}
+    // 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 (흑임자를 잃지 않는다)
+    var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
+    if(window.__alleySetTheme) window.__alleySetTheme(t);
+    else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
+    sync();
+  };
+  sync(); setTimeout(sync,250);
+})();</script>
 </body>
 </html>

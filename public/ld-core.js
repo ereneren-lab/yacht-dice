@@ -86,6 +86,8 @@
       }));
       this.phase='bid'; this.turn=0; this.bid=null; this.lastResult=null;
       this._busy=false; this._dead=false; this._timer=null; this._turnTimer=null;
+      this.turnDeadline=0;              // 제한시간 있는 사람 턴의 마감 시각(ms). 0 = 없음
+      this.lastAuto=null; this.autoSeq=0;  // 시간 초과 자동 베팅 알림용
     }
 
     _d(){ return 1 + Math.floor(this.rng()*6); }
@@ -103,8 +105,8 @@
       this.players.forEach(p=>{ if(p.alive && p.dice.length===0) p.dice=Array.from({length:this.startDice},()=>this._d()); });
       this.bid=null; this.lastResult=null; this.phase='bid';
       this.turn = this.players[starter] && this.players[starter].alive ? starter : this._nextAlive(starter);
+      this._maybeAI();   // 먼저 턴 마감시각을 잡아야 emit에 turnLeft가 실린다
       this._emit();
-      this._maybeAI();
     }
 
     _nextAlive(seat){ const n=this.players.length; for(let i=1;i<=n;i++){ const s=(seat+i)%n; if(this.players[s].alive) return s; } return seat; }
@@ -113,7 +115,7 @@
       if(this._dead || this.phase!=='bid') return;
       this._clearTurn();
       if(this._isAuto(this.turn)){ this._busy=true; setTimeout(()=>this._aiTurn(), this.AI_MS); }
-      else if(this.turnMs>0){ const seat=this.turn; this._turnTimer=setTimeout(()=>this._autoAct(seat), this.turnMs); }
+      else if(this.turnMs>0){ const seat=this.turn; this.turnDeadline=Date.now()+this.turnMs; this._turnTimer=setTimeout(()=>this._autoAct(seat), this.turnMs); }
     }
 
     _aiTurn(){
@@ -129,6 +131,8 @@
       if(this._dead || this.phase!=='bid' || this.turn!==seat) return;
       const view = this.serialize(this.players[seat].pid);
       const a = aiDecide(view, seat, 'normal', this.wild, this.spotOn);
+      this._clearTurn();
+      this.lastAuto = { seat, pid:this.players[seat].pid, seq:++this.autoSeq, act:{...a} };  // 클라가 "시간 초과 자동 베팅" 안내
       this._apply(seat, a);
     }
 
@@ -155,8 +159,8 @@
         if(qty>this._totalDice()) return;
         this.bid={ qty, face, by:seat };
         this.turn=this._nextAlive(seat);
+        this._maybeAI();   // 먼저 턴 마감시각을 잡아야 emit에 turnLeft가 실린다
         this._emit();
-        this._maybeAI();
       } else if(a.type==='dudo'){
         if(!this.bid) return;
         this._resolveDudo(seat);
@@ -170,6 +174,8 @@
 
     _finishRound(result){
       this.phase='reveal'; this.lastResult=result;
+      // 판정 당시 주사위 박제 — _loseDie 이후(over)에도 reveal 근거가 그대로 보이게
+      result.snapshot = this.players.map(p=>({ pid:p.pid, seat:p.seat, name:p.name, dice:p.dice.slice() }));
       // 주사위는 아직 그대로 — reveal에 공개되는 주사위 수가 actual과 정확히 일치
       this._emit();
       this._timer=setTimeout(()=>{ if(this._dead)return;
@@ -214,6 +220,9 @@
         wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),
         lastResult:this.lastResult?{...this.lastResult}:null,
         revealMs:this.REVEAL_MS,
+        turnMs:this.turnMs,
+        turnLeft: (this.phase==='bid' && this.turnDeadline) ? Math.max(0, this.turnDeadline-Date.now()) : 0,
+        lastAuto: this.lastAuto?{...this.lastAuto}:null,
         winner: this.phase==='over' && this.lastResult ? (this.lastResult.winner||null) : null,
         players: this.players.map(p=>({
           pid:p.pid, name:p.name, avatar:p.avatar, ai:p.ai, alive:p.alive, connected:p.connected, seat:p.seat,
@@ -225,7 +234,7 @@
 
     destroy(){ this._dead=true; this._clear(); }
     _clear(){ if(this._timer){ clearTimeout(this._timer); this._timer=null; } this._clearTurn(); }
-    _clearTurn(){ if(this._turnTimer){ clearTimeout(this._turnTimer); this._turnTimer=null; } }
+    _clearTurn(){ if(this._turnTimer){ clearTimeout(this._turnTimer); this._turnTimer=null; } this.turnDeadline=0; }
   }
 
   return { LDEngine, aiDecide, atLeast, exactly, legalRaises };

@@ -140,6 +140,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .mehead .mnm{font-weight:800;font-size:14px}
   .mehead .mturn{margin-left:auto;font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;background:rgba(232,161,58,.18);color:var(--brass);opacity:0;transition:.2s}
   .me.turn .mturn{opacity:1}
+  /* 턴 제한시간 (온라인) */
+  .turntimer{display:none; align-items:center; gap:6px; margin-left:8px; font-size:11.5px; font-weight:800; color:var(--brass); white-space:nowrap}
+  .turntimer.on{display:flex}
+  .turntimer .tbar{width:64px;height:6px;border-radius:4px;background:rgba(255,255,255,.10);overflow:hidden}
+  .turntimer .tbar i{display:block;height:100%;width:100%;border-radius:4px;background:var(--brass);transition:width .2s linear}
+  .turntimer.warn{color:var(--danger); animation:tblink .8s ease-in-out infinite}
+  .turntimer.warn .tbar i{background:var(--danger)}
+  @keyframes tblink{0%,100%{opacity:1}50%{opacity:.45}}
   .mydice{display:flex; gap:9px; justify-content:center; margin-bottom:14px; min-height:56px}
   .mydice .d{width:56px;height:56px}
   .mdie{width:100%;height:100%;border-radius:11px;background:linear-gradient(150deg,var(--die),var(--die2));display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;box-shadow:0 3px 0 rgba(0,0,0,.32), 0 1px 4px rgba(0,0,0,.3)}
@@ -297,6 +305,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <div class="mav" id="meAv">😎</div>
         <div class="mnm" id="meNm">나</div>
         <span class="mturn">내 차례</span>
+        <span class="turntimer" id="turnTimer"><span class="tnum">45초</span><span class="tbar"><i></i></span></span>
       </div>
       <div class="mydice" id="mydice"></div>
       <div class="controls" id="controls"></div>
@@ -427,6 +436,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="rsub" id="resSub"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
+        <button class="btn ghost" id="toLobbyBtn" style="margin-top:10px;display:none">🏛 로비로</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
       </div>
@@ -533,6 +543,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       }));
       this.phase='bid'; this.turn=0; this.bid=null; this.lastResult=null;
       this._busy=false; this._dead=false; this._timer=null; this._turnTimer=null;
+      this.turnDeadline=0;              // 제한시간 있는 사람 턴의 마감 시각(ms). 0 = 없음
+      this.lastAuto=null; this.autoSeq=0;  // 시간 초과 자동 베팅 알림용
     }
 
     _d(){ return 1 + Math.floor(this.rng()*6); }
@@ -550,8 +562,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.players.forEach(p=>{ if(p.alive && p.dice.length===0) p.dice=Array.from({length:this.startDice},()=>this._d()); });
       this.bid=null; this.lastResult=null; this.phase='bid';
       this.turn = this.players[starter] && this.players[starter].alive ? starter : this._nextAlive(starter);
+      this._maybeAI();   // 먼저 턴 마감시각을 잡아야 emit에 turnLeft가 실린다
       this._emit();
-      this._maybeAI();
     }
 
     _nextAlive(seat){ const n=this.players.length; for(let i=1;i<=n;i++){ const s=(seat+i)%n; if(this.players[s].alive) return s; } return seat; }
@@ -560,7 +572,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(this._dead || this.phase!=='bid') return;
       this._clearTurn();
       if(this._isAuto(this.turn)){ this._busy=true; setTimeout(()=>this._aiTurn(), this.AI_MS); }
-      else if(this.turnMs>0){ const seat=this.turn; this._turnTimer=setTimeout(()=>this._autoAct(seat), this.turnMs); }
+      else if(this.turnMs>0){ const seat=this.turn; this.turnDeadline=Date.now()+this.turnMs; this._turnTimer=setTimeout(()=>this._autoAct(seat), this.turnMs); }
     }
 
     _aiTurn(){
@@ -576,6 +588,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(this._dead || this.phase!=='bid' || this.turn!==seat) return;
       const view = this.serialize(this.players[seat].pid);
       const a = aiDecide(view, seat, 'normal', this.wild, this.spotOn);
+      this._clearTurn();
+      this.lastAuto = { seat, pid:this.players[seat].pid, seq:++this.autoSeq, act:{...a} };  // 클라가 "시간 초과 자동 베팅" 안내
       this._apply(seat, a);
     }
 
@@ -602,8 +616,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(qty>this._totalDice()) return;
         this.bid={ qty, face, by:seat };
         this.turn=this._nextAlive(seat);
+        this._maybeAI();   // 먼저 턴 마감시각을 잡아야 emit에 turnLeft가 실린다
         this._emit();
-        this._maybeAI();
       } else if(a.type==='dudo'){
         if(!this.bid) return;
         this._resolveDudo(seat);
@@ -617,6 +631,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
     _finishRound(result){
       this.phase='reveal'; this.lastResult=result;
+      // 판정 당시 주사위 박제 — _loseDie 이후(over)에도 reveal 근거가 그대로 보이게
+      result.snapshot = this.players.map(p=>({ pid:p.pid, seat:p.seat, name:p.name, dice:p.dice.slice() }));
       // 주사위는 아직 그대로 — reveal에 공개되는 주사위 수가 actual과 정확히 일치
       this._emit();
       this._timer=setTimeout(()=>{ if(this._dead)return;
@@ -661,6 +677,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),
         lastResult:this.lastResult?{...this.lastResult}:null,
         revealMs:this.REVEAL_MS,
+        turnMs:this.turnMs,
+        turnLeft: (this.phase==='bid' && this.turnDeadline) ? Math.max(0, this.turnDeadline-Date.now()) : 0,
+        lastAuto: this.lastAuto?{...this.lastAuto}:null,
         winner: this.phase==='over' && this.lastResult ? (this.lastResult.winner||null) : null,
         players: this.players.map(p=>({
           pid:p.pid, name:p.name, avatar:p.avatar, ai:p.ai, alive:p.alive, connected:p.connected, seat:p.seat,
@@ -672,12 +691,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
     destroy(){ this._dead=true; this._clear(); }
     _clear(){ if(this._timer){ clearTimeout(this._timer); this._timer=null; } this._clearTurn(); }
-    _clearTurn(){ if(this._turnTimer){ clearTimeout(this._turnTimer); this._turnTimer=null; } }
+    _clearTurn(){ if(this._turnTimer){ clearTimeout(this._turnTimer); this._turnTimer=null; } this.turnDeadline=0; }
   }
 
   return { LDEngine, aiDecide, atLeast, exactly, legalRaises };
 });
-
 </script>
 <script>
 (() => {
@@ -730,7 +748,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('tutNext').textContent=tutStep===TUT.length-1?'🎲 바로 해보기':'다음';
   }
   $('setupTut').onclick=()=>{ tutStep=0; renderTut(); $('tutOv').classList.add('on'); };
-  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); start(); } };
+  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); $('setupOv').classList.remove('on'); start(); } };   // 설정창도 같이 닫아야 베팅 버튼이 눌린다
   $('tutPrev').onclick=()=>{ if(tutStep>0){ tutStep--; renderTut(); } };
   $('tutSkip').onclick=()=>$('tutOv').classList.remove('on');
   $('helpOv').addEventListener('click',e=>{ if(e.target.id==='helpOv')$('helpOv').classList.remove('on'); });
@@ -749,7 +767,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('optDiff').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return; cfg.diff=b.dataset.d; document.querySelectorAll('#optDiff .opt').forEach(o=>o.classList.toggle('on',o===b)); };
   $('spotToggle').onclick=()=>{ cfg.spotOn=!cfg.spotOn; $('spotToggle').classList.toggle('on',cfg.spotOn); };
   $('startBtn').onclick=()=>{ $('setupOv').classList.remove('on'); start(); };
-  $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); start(); } };
+  $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); $('againBtn').disabled=true; showToast('🔄 재경기를 제안했어요 — 응답을 기다리는 중'); } else { $('resultOv').classList.remove('on'); start(); } };
+  // 로비로: 호스트는 서버에 판 종료 요청(모두 로비), 게스트는 방에 남은 채 로비 화면에서 대기
+  $('toLobbyBtn').onclick=()=>{
+    if(!online) return;
+    if(amHost){ wsSend({t:'endGame'}); return; }
+    $('resultOv').classList.remove('on'); resetRematchUI();
+    $('game').style.display='none'; document.body.classList.remove('ingame');
+    if(lobby) renderLobby(); else $('lobbyOv').classList.add('on');
+    showToast('🏛 방에 남아 대기 중 — 호스트가 새 판을 시작하면 이어져요');
+  };
   function renderRematch(d){
     $('resultOv').classList.add('on');
     $('resultBtns').style.display='none';
@@ -763,11 +790,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       return `<div class="rmvoter">${ic} ${chatEsc(v.name)}${v.pid===MYPID?' <b>(나)</b>':''}</div>`;
     }).join('');
   }
-  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
+  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; const ab=$('againBtn'); if(ab)ab.disabled=false; }
   function rematchLeave(){ try{teardownNet();}catch(e){} try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.reload(); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
-  $('toHub').onclick=()=>location.href='./';
+  $('toHub').onclick=()=>{ try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.href='./'; };   // 골목으로 나가면 방 복귀 정보도 정리
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
   function shareResult(){
     if(!S)return; const iWon=S.winner===MYPID; const wp=S.players.find(p=>p.pid===S.winner);
@@ -846,7 +873,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function renderLobby(){
     if(!lobby) return;
-    $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
+    $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on'); stopTurnTimer();
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);
@@ -949,9 +976,45 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
   }
 
+  // ---------- 턴 제한시간 (온라인: 서버가 turnMs=45000) ----------
+  let turnDeadline=0, turnTotal=45000, turnWarned=false, turnTick=null, lastAutoSeq=0, seenState=false;
+  function tickTurn(){
+    const el=$('turnTimer'); if(!el) return;
+    if(!turnDeadline){ el.classList.remove('on','warn'); return; }
+    const left=Math.max(0, turnDeadline-Date.now());
+    el.classList.add('on');
+    const num=el.querySelector('.tnum'); if(num) num.textContent=Math.ceil(left/1000)+'초';
+    const bar=el.querySelector('.tbar i'); if(bar) bar.style.width=Math.max(0,Math.min(100, left/(turnTotal||45000)*100))+'%';
+    const warn = left<=10000;
+    el.classList.toggle('warn', warn);
+    if(warn && !turnWarned){ turnWarned=true; showToast('⏰ 10초 남았어 — 넘기면 자동으로 베팅돼!'); try{SFX.pop();}catch(e){} }
+  }
+  function stopTurnTimer(){ turnDeadline=0; turnWarned=false; if(turnTick){ clearInterval(turnTick); turnTick=null; } const el=$('turnTimer'); if(el) el.classList.remove('on','warn'); }
+  function syncTurnTimer(){
+    const ms=mySeat(), me = ms>=0 ? S.players[ms] : null;
+    const mine = !!me && me.alive && S.phase==='bid' && S.turn===ms;
+    if(mine && S.turnLeft>0){
+      const nd=Date.now()+S.turnLeft;
+      if(Math.abs(nd-turnDeadline)>800){ turnDeadline=nd; turnWarned=false; }   // 새 턴이면 리셋(같은 턴 재emit은 유지)
+      turnTotal=S.turnMs||45000;
+      if(!turnTick) turnTick=setInterval(tickTurn,200);
+      tickTurn();
+    } else stopTurnTimer();
+  }
+  function checkAutoAct(){   // 시간 초과로 대신 베팅된 경우 안내
+    const la=S.lastAuto; if(!la){ lastAutoSeq=0; return; }   // 새 엔진(새 판)이면 seq 리셋
+    if(!seenState){ lastAutoSeq=la.seq; return; }
+    if(la.seq<=lastAutoSeq) return;
+    lastAutoSeq=la.seq;
+    const a=la.act||{};
+    const what = a.type==='bid' ? `${a.qty}개의 ${GLY[a.face]||a.face}` : (a.type==='dudo'?'거짓말!':'정확히!');
+    if(la.pid===MYPID) showToast('⏰ 시간 초과 — 자동으로 "'+what+'"을(를) 냈어요');
+    else { const p=S.players.find(x=>x.pid===la.pid); if(p && !p.ai) showToast('⏰ '+p.name+' 시간 초과 — 자동 베팅'); }
+  }
+
   function render(){
     if(!S) return;
-    $('endBtn').style.display = (online && amHost && S.phase!=='over') ? 'flex' : 'none';
+    $('endBtn').style.display = (online && amHost) ? 'flex' : 'none';   // 판 종료(over) 후에도 로비 복귀 경로 유지
     if(S.phase==='reveal'||S.phase==='over') freshRound=true;
     if(S.phase!=='over') resultShown=false;
     const ms=mySeat();
@@ -962,6 +1025,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       $('controls').innerHTML='<div class="mini" style="padding:12px;text-align:center">관전 중 — 다음 판부터 참여할 수 있어</div>';
     } else { renderMine(); renderControls(); }
     renderReveal(); buildReactbar();
+    syncTurnTimer(); checkAutoAct(); seenState=true;
     if(S.phase==='over') setTimeout(showResult, 700);
   }
 
@@ -1021,6 +1085,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function minQtyForFace(f){ if(!S.bid) return 1; return f>S.bid.face ? S.bid.qty : S.bid.qty+1; }
   function myMatchCount(f){ const me=S.players[mySeat()]; const d=me.dice||[]; return d.filter(v=>v===f||(S.wild&&v===1)).length; }
   function bestFace(){ let bf=2,bc=-1; for(let f=2;f<=6;f++){ const c=myMatchCount(f); if(c>bc||(c===bc&&f>bf)){bc=c;bf=f;} } return bf; }
+  // AI와 같은 기대값 기반 추천 수량: 내 패의 개수 + 안 보이는 주사위 × 확률(와일드면 1/3)
+  function recQtyForFace(f){
+    const p = S.wild ? 1/3 : 1/6;
+    const myLen = ((S.players[mySeat()]||{}).dice||[]).length;
+    const unknown = Math.max(0, S.totalDice - myLen);
+    let q = Math.round(myMatchCount(f) + unknown*p);
+    q = Math.max(1, minQtyForFace(f), q);
+    return Math.min(q, S.totalDice);
+  }
 
   function renderControls(){
     const host=$('controls'); host.innerHTML='';
@@ -1039,7 +1112,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     // 새 라운드(또는 내 차례 첫 진입)면 내 패 기반으로 추천값 세팅
     if(freshRound){
       let f=bestFace(); if(S.bid && f<S.bid.face) f=S.bid.face;
-      bidFace=f; bidQty=minQtyForFace(bidFace); freshRound=false;
+      bidFace=f; bidQty=recQtyForFace(bidFace); freshRound=false;
     } else {
       if(bidFace<2)bidFace=2; if(bidFace>6)bidFace=6;
       if(bidQty<minQtyForFace(bidFace)) bidQty=minQtyForFace(bidFace);
@@ -1077,7 +1150,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function refreshBuild(){
     if($('qval')) $('qval').textContent=bidQty;
     document.querySelectorAll('.facebtn').forEach(b=>b.classList.toggle('on',+b.dataset.f===bidFace));
-    if($('faceHint')){ const c=myMatchCount(bidFace); $('faceHint').innerHTML=`내 패에 <b style="color:var(--brass)">${c}개</b>${S.wild&&(S.players[mySeat()].dice||[]).includes(1)?' <span style="color:var(--muted)">(와일드 1 포함)</span>':''}`; }
+    if($('faceHint')){ const c=myMatchCount(bidFace), rq=recQtyForFace(bidFace); $('faceHint').innerHTML=`내 패에 <b style="color:var(--brass)">${c}개</b>${S.wild&&(S.players[mySeat()].dice||[]).includes(1)?' <span style="color:var(--muted)">(와일드 1 포함)</span>':''} · <span style="color:var(--muted)">추천</span> <b style="color:var(--brass)">${rq}개</b>`; }
     if($('qminus')) $('qminus').disabled = bidQty<=minQtyForFace(bidFace);
     if($('qplus')) $('qplus').disabled = bidQty>=S.totalDice;
     if($('bidBtn')) $('bidBtn').disabled = !legalBid(bidQty,bidFace);
@@ -1092,8 +1165,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(S.phase!=='reveal' && S.phase!=='over'){ box.innerHTML=''; return; }
     const r=S.lastResult; if(!r){ box.innerHTML=''; return; }
     const wild=S.wild, face=r.bid.face;
+    // 판정 당시 스냅샷 사용 — over 시 패자가 주사위를 잃어도 판정 근거가 그대로 보이게
+    const src = (r.snapshot && r.snapshot.length) ? r.snapshot : S.players;
     let rows='';
-    S.players.forEach(p=>{
+    src.forEach(p=>{
       const dice=p.dice||[];
       let cells=dice.map(v=>`<div class="sdie${(v===face||(wild&&v===1))?' hit':''}${wild&&v===1?' wild':''}">${pip(v)}</div>`).join('');
       if(!dice.length) cells='<span style="font-size:11px;color:var(--muted)">탈락</span>';
@@ -1126,12 +1201,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       $('resCrown').textContent = iWon?'🏆':'😵';
       $('resTitle').textContent = iWon?'최후의 1인, 승리!':'탈락…';
       let sub = iWon?'끝까지 살아남았어!':(wp?esc(wp.name)+' 우승':'');
-      if(online) sub += ' · 호스트가 새 판을 시작할 수 있어';
+      if(online) sub += amHost ? ' · 재경기를 제안하거나 로비로 돌아갈 수 있어' : ' · 재경기 제안 / 로비 대기 중 선택해';
       $('resSub').textContent = sub;
       try{ iWon?SFX.win():SFX.lose(); }catch(e){}
     }
-    $('againBtn').textContent = online?'로비로':'다시 한 판';
-    if(online){ try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
+    // 라벨과 실제 동작 일치: 다시 하기 = 재경기 제안 / 로비로 = 방에 남은 채 로비 복귀
+    $('againBtn').textContent = online?'🔄 다시 하기 (재경기 제안)':'다시 한 판';
+    $('againBtn').disabled = false;
+    $('toLobbyBtn').style.display = online?'block':'none';
+    $('toLobbyBtn').textContent = (online && amHost) ? '🏛 판 끝내고 로비로 (모두)' : '🏛 로비로';
+    // ld_room/ld_pid는 유지 — 방에 남아있는 동안 새로고침해도 재접속돼야 한다
     if(!spectator) Stats.record(iWon);
     $('resultOv').classList.add('on');
   }
@@ -1193,14 +1272,31 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 </script>
 <script>
 (function(){
-  var T=[['sesame','흑임자','#c9bcd8'],['espresso','다크','#e0a23c'],['hanji','라이트','#f2f2f4']];
+  var T=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
   function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
-  function s(t){ document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} r(); }
+  function s(t){ document.documentElement.dataset.theme=t;
+    try{ localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t); }catch(e){}
+    r(); if(window.__alleySyncLight) window.__alleySyncLight(); }
+  window.__alleySetTheme=s;
   s(g());
 })();
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
-<script>(function(){var lb=document.getElementById('lightBtn');if(!lb)return;function sync(){lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️';}lb.onclick=function(){var cur=document.documentElement.dataset.theme||'espresso';var t=cur==='hanji'?'espresso':'hanji';document.documentElement.dataset.theme=t;try{localStorage.setItem('alley_theme',t);}catch(e){}sync();};sync();setTimeout(sync,250);})();</script>
+<script>(function(){
+  var lb=document.getElementById('lightBtn'); if(!lb)return;
+  function sync(){ lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️'; }
+  window.__alleySyncLight=sync;
+  lb.onclick=function(){
+    var cur=document.documentElement.dataset.theme||'espresso';
+    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; }catch(e){}
+    /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자 등을 잃지 않는다 */
+    var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
+    if(window.__alleySetTheme) window.__alleySetTheme(t);
+    else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
+    sync();
+  };
+  sync(); setTimeout(sync,250);
+})();</script>
 </body>
 </html>

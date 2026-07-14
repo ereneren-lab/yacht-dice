@@ -42,10 +42,15 @@ function hostPid(room){ const h = room.members.find(m=>!m.ai && m.connected) || 
 function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
-  return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase,
+  return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room),
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
+
+// 게임별 최소 인원. lcr은 좌/우가 서로 다른 사람이어야 성립하므로 3인부터.
+const MIN_PLAYERS = { lcr: 3 };
+function minPlayers(room){ return MIN_PLAYERS[room.game] || 2; }
+function playableCount(room){ return room.members.filter(m=>!m.spectator).length; }
 
 function startEngine(room){
   if (room.rematch){ if(room.rematch.timer) clearTimeout(room.rematch.timer); room.rematch=null; }
@@ -102,7 +107,7 @@ function resolveRematch(room){
   room.members = accepted;
   recolor(room);
   const humanCount = room.members.filter(m=>!m.ai && m.connected).length;
-  if(room.members.length>=2 && humanCount>=1){
+  if(playableCount(room)>=minPlayers(room) && humanCount>=1){
     startEngine(room);            // 수락자끼리 새 게임
   } else {
     if(room.engine){ room.engine.destroy(); room.engine=null; }
@@ -202,7 +207,8 @@ wss.on('connection', (ws) => {
       }
 
     } else if (m.t === 'start') {
-      if (ws.meta.pid===hostPid(room) && room.members.length>=2){ startEngine(room); }
+      if (ws.meta.pid===hostPid(room) && playableCount(room)>=minPlayers(room)){ startEngine(room); }
+      else if (ws.meta.pid===hostPid(room)){ send(ws, { t:'error', msg:`${minPlayers(room)}명부터 시작할 수 있어요` }); }
 
     } else if (m.t === 'rematchPropose') {
       // 누구나 제안 가능. 게임이 존재하고(로비가 아니고) 진행중 투표가 없을 때만

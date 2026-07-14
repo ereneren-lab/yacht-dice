@@ -1,7 +1,7 @@
 {
   "name": "주사위 골목 Dice Alley",
   "short_name": "주사위 골목",
-  "description": "뒷골목 주사위 도박장 — 요트 · 너클본즈 · 라이어 다이스",
+  "description": "뒷골목 주사위 도박장 — 윷놀이 · 요트 다이스 · 너클본즈 · 라이어 다이스 · 좌·중·우(LCR)",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

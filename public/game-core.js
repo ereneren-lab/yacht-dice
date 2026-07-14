@@ -114,7 +114,7 @@
       this.rule = RULES[opts.mode] ? opts.mode : 'yacht_kr';
       this.mode = this.rule; this.rule = RULES[this.mode];
       this.difficulty = opts.difficulty || 'normal';
-      this.TURN_MS = opts.turnMs || 45000;
+      this.TURN_MS = (typeof opts.turnMs === 'number') ? opts.turnMs : 45000;  // 0 = 시간 제한 없음(로컬)
       this.AID = opts.aiFast ? 0.45 : 1;   // AI 템포 배수
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
@@ -123,6 +123,7 @@
       this.phase='play'; this.current=0; this.rollsLeft=3; this.rolled=false;
       this.dice=[0,1,2,3,4].map(()=>({value:0,held:false}));
       this.deadline=0; this._timer=null; this._busy=false; this._dead=false;
+      this._aiGen=0;   // AI 대행(자동 진행) 세대 토큰 — 재접속 등으로 무효화할 때 증가
     }
     start(){ this.phase='play'; this.current=0; this.players.forEach(p=>p.scores=emptyScores(this.rule)); this._beginTurn(); }
     destroy(){ this._dead=true; if(this._timer){clearTimeout(this._timer);this._timer=null;} }
@@ -133,24 +134,28 @@
 
     _beginTurn(){
       if(this._dead) return;
+      this._aiGen++;                                // 이전 턴의 자동 진행은 모두 무효화
       this.rollsLeft=3; this.rolled=false;
       this.dice=[0,1,2,3,4].map(()=>({value:0,held:false}));
       const p=this.players[this.current];
       const auto = p.ai || p.connected===false;     // 끊긴 사람도 자동 진행
-      this.deadline = auto ? 0 : now()+this.TURN_MS;
+      this.deadline = (auto || this.TURN_MS<=0) ? 0 : now()+this.TURN_MS;   // TURN_MS 0 = 무제한
       this._busy = !!auto;
       this._emit(); this._armTimer();
-      if (auto) setTimeout(()=>this._aiTurn(), 700*this.AID);
+      if (auto) this._scheduleAuto(700*this.AID);
     }
+    // 자동 진행(AI 대행) 예약 — 세대 토큰이 바뀌면 예약된 것도 취소된다
+    _scheduleAuto(ms){ const g=++this._aiGen; setTimeout(()=>{ if(this._aiGen===g) this._aiTurn(g); }, ms); }
     _armTimer(){
       if(this._timer){ clearTimeout(this._timer); this._timer=null; }
       if(this.deadline>0){ const ms=Math.max(0,this.deadline-now())+60; this._timer=setTimeout(()=>this._timeout(), ms); }
     }
     _timeout(){
       if(this._dead||this.phase!=='play') return;
+      const g=++this._aiGen;
       this._busy=true;
       const seat=this.current, open=this._open(seat);
-      const finish=()=>{ if(this._dead)return; const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona]); this._busy=false; this._commit(seat,cat); };
+      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona]); this._busy=false; this._commit(seat,cat); };
       if(!this.rolled){ this._doRoll(); setTimeout(finish, 900); } else finish();
     }
     action(pid,a){
@@ -167,7 +172,7 @@
       const idx=[],vals=[];
       this.dice.forEach((d,i)=>{ if(!d.held){ const v=this._d6(); d.value=v; idx.push(i); vals.push(v); } });
       const cp=this.players[this.current];
-      if(!cp.ai && cp.connected!==false){ this.deadline=now()+this.TURN_MS; this._armTimer(); } // 굴릴 때마다 시간 리셋
+      if(!cp.ai && cp.connected!==false && this.TURN_MS>0){ this.deadline=now()+this.TURN_MS; this._armTimer(); } // 굴릴 때마다 시간 리셋
       this.onRoll(idx,vals);
       this._emit();
     }
@@ -180,27 +185,40 @@
       do { this.current=(this.current+1)%this.players.length; } while(this._done(this.players[this.current]));
       this._beginTurn();
     }
-    async _aiTurn(){
-      if(this._dead||this.phase!=='play') return;
+    async _aiTurn(gen){
+      if(gen===undefined) gen=++this._aiGen;
+      // 매 재개 지점에서 세대 토큰 확인 — 재접속 등으로 무효화됐으면 즉시 중단
+      const alive=()=>!this._dead && this.phase==='play' && this._aiGen===gen;
+      if(!alive()) return;
       const seat=this.current, open=this._open(seat);
       const wait=ms=>new Promise(r=>setTimeout(r,ms));
       this._doRoll(); await wait(800*this.AID);
-      while(this.rollsLeft>0 && !this._dead){
+      while(alive() && this.rollsLeft>0){
         const mask=aiHoldMask(this.dice.map(d=>d.value),open,this.rule,this.difficulty,PERSONAS[this.players[seat].persona]);
         if(mask===31) break;
         this.dice.forEach((d,i)=>d.held=!!(mask>>i&1)); this._emit(); await wait(650*this.AID);
+        if(!alive()) return;
         this._doRoll(); await wait(800*this.AID);
       }
-      if(this._dead) return;
+      if(!alive()) return;
       const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona]);
       await wait(450*this.AID);
-      if(this._dead||this.phase!=='play') return;
+      if(!alive()) return;
       this._busy=false; this._commit(seat,cat);
     }
-    setConnected(pid,v){ const s=this._seat(pid); if(s>=0 && this.players[s].connected!==v){ this.players[s].connected=v;
-      if(!v && s===this.current && this.phase==='play' && !this._busy){ this._busy=true; this.deadline=0; this._armTimer(); setTimeout(()=>this._aiTurn(),500); }
-      this._emit(); } }
-    skipNow(){ if(this._dead||this.phase!=='play'||this._busy) return; this._busy=true; this.deadline=0; this._armTimer(); setTimeout(()=>this._aiTurn(),250); }
+    setConnected(pid,v){ const s=this._seat(pid); if(s<0) return; const p=this.players[s]; if(p.connected===v) return;
+      p.connected=v;
+      if(this.phase==='play' && s===this.current && !p.ai){
+        if(!v){ if(!this._busy){ this._busy=true; this.deadline=0; this._armTimer(); this._scheduleAuto(500); } }
+        else {  // 재접속: 진행 중/예약된 AI 대행을 무효화하고 턴을 사람에게 돌려준다
+          this._aiGen++;
+          this._busy=false;
+          this.deadline = this.TURN_MS>0 ? now()+this.TURN_MS : 0;
+          this._armTimer();
+        }
+      }
+      this._emit(); }
+    skipNow(){ if(this._dead||this.phase!=='play'||this._busy) return; this._busy=true; this.deadline=0; this._armTimer(); this._scheduleAuto(250); }
 
     _upper(p){ return UPPER_IDS.reduce((a,id)=>a+(p.scores[id]||0),0); }
     _bonus(p){ return this.rule.bonus.pts>0 && this._upper(p)>=this.rule.bonus.th ? this.rule.bonus.pts : 0; }

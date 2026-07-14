@@ -33,22 +33,45 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ==== kb 2단 (게임 왼쪽 · 반응+채팅 오른쪽) ==== */
   .kb-side{ display:flex; flex-direction:column; gap:10px; }
   @media (min-width:781px){
-    body.ingame .wrap{ max-width:920px; transition:max-width .2s }
+    body.ingame .wrap{ max-width:920px; transition:max-width .2s; padding-bottom:24px }
     .kb-grid{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
     .kb-side{ position:sticky; top:8px; }
+    /* 로컬(AI/2인): 오른쪽 사이드 컬럼이 비어 있으니 접고, 남는 가로를 써서
+       [상대 보드 | 굴림판 | 내 보드]를 가로로 배치 → 세로 스크롤 제거.
+       주의: #arena는 인라인 display:flex라 grid로 못 바꾼다 → flex-direction:row로 처리 */
+    body.ingame.kblocal .wrap{ max-width:1060px }
+    body.kblocal .kb-grid{ grid-template-columns:1fr; }
+    body.kblocal .arena{ flex-direction:row; justify-content:center; align-items:center; gap:16px; width:100% }
+    body.kblocal .arena>.side{ flex:1 1 0; min-width:0; max-width:346px }
+    body.kblocal .arena>.tray{ flex:0 0 300px; margin:0 }
+  }
+  /* 온라인은 채팅 컬럼(260px)이 있어, 화면이 충분히 넓을 때만 가로 배치로 전환 */
+  @media (min-width:1181px){
+    body.ingame.kbnet .wrap{ max-width:1220px }
+    body.kbnet .arena{ flex-direction:row; align-items:center; gap:16px; width:100% }
+    body.kbnet .arena>.side{ flex:1 1 0; min-width:0 }
+    body.kbnet .arena>.tray{ flex:0 0 300px; margin:0 }
   }
 
   .kbtop{display:flex; align-items:center; gap:12px; margin:4px 2px 16px}
   .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
     font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s;text-decoration:none}
   .iconbtn:hover{background:var(--panel2)}
-  .kbtop h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1}
-  .kbtop .mode-pill{font-size:11.5px;color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 12%,transparent);padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:6px}
+  .kbtop h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1;white-space:nowrap;min-width:0}
+  .kbtop .mode-pill{font-size:11.5px;color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 12%,transparent);padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none}
+  /* 좁은 화면(390px 등)에서 제목이 두 줄로 깨지지 않게 헤더 요소를 압축 */
+  @media (max-width:480px){
+    .kbtop{gap:6px}
+    .kbtop h2{font-size:17px}
+    .kbtop .mode-pill{font-size:10px;padding:4px 7px;gap:4px}
+    .iconbtn{width:33px;height:33px;border-radius:9px;font-size:15px}
+  }
   .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
   .dot.on{background:var(--win)} .dot.off{background:var(--danger)}
 
   .arena{display:flex; flex-direction:column; align-items:center; gap:9px}
-  .side{width:100%; display:flex; flex-direction:column; align-items:center; gap:8px;
+  /* gap 24px: 열 아래(위)로 21px 튀어나오는 .colscore가 이름표와 겹치지 않도록 확보한 여백 */
+  .side{width:100%; display:flex; flex-direction:column; align-items:center; gap:24px;
     border-radius:18px; padding:13px; transition:box-shadow .2s, background .2s}
   .side.active{background:rgba(255,255,255,.02)}
   .side.opp.active{box-shadow:0 0 0 2px var(--opp), 0 0 24px rgba(155,140,255,.25)}
@@ -712,7 +735,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('tutNext').textContent=tutStep===TUT.length-1?'🎲 바로 해보기':'다음';
   }
   $('setupTut').onclick=()=>{ tutStep=0; renderTut(); $('tutOv').classList.add('on'); };
-  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); startLocal(); } };
+  // 튜토리얼 마지막에서 바로 시작 — 설정창(setupOv)도 반드시 함께 닫아야 게임 조작이 가능하다
+  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); $('setupOv').classList.remove('on'); startLocal(); } };
   $('tutPrev').onclick=()=>{ if(tutStep>0){ tutStep--; renderTut(); } };
   $('tutSkip').onclick=()=>$('tutOv').classList.remove('on');
   $('helpOv').addEventListener('click', e=>{ if(e.target.id==='helpOv') $('helpOv').classList.remove('on'); });
@@ -759,7 +783,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('shareBtn').onclick=shareResult;
 
   // ---------- screen ----------
-  function showGame(){ document.body.classList.add('ingame'); $('arena').style.display='flex'; $('rollWrap').style.display='block'; $('kbMode').style.display='flex'; }
+  function showGame(){ document.body.classList.add('ingame');
+    // 로컬(AI/2인)은 오른쪽 사이드 컬럼이 없으므로 가로 배치 레이아웃을 쓴다 (CSS에서 분기)
+    document.body.classList.toggle('kbnet', online());
+    document.body.classList.toggle('kblocal', !online());
+    $('arena').style.display='flex'; $('rollWrap').style.display='block'; $('kbMode').style.display='flex'; }
   function setModePill(){
     const dot = online() ? `<span class="dot ${ws&&ws.readyState===1?'on':'off'}"></span>` : '';
     const txt = mode==='ai' ? 'vs AI ('+({easy:'쉬움',normal:'보통',hard:'어려움'}[diff])+')' : mode==='2p' ? '2인' : '온라인';
@@ -1163,14 +1191,31 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 </script>
 <script>
 (function(){
-  var T=[['sesame','흑임자','#c9bcd8'],['espresso','다크','#e0a23c'],['hanji','라이트','#f2f2f4']];
+  var T=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
   function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
-  function s(t){ document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} r(); }
+  function s(t){ document.documentElement.dataset.theme=t;
+    try{ localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t); }catch(e){}
+    r(); if(window.__alleySyncLight) window.__alleySyncLight(); }
+  window.__alleySetTheme=s;
   s(g());
 })();
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
-<script>(function(){var lb=document.getElementById('lightBtn');if(!lb)return;function sync(){lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️';}lb.onclick=function(){var cur=document.documentElement.dataset.theme||'espresso';var t=cur==='hanji'?'espresso':'hanji';document.documentElement.dataset.theme=t;try{localStorage.setItem('alley_theme',t);}catch(e){}sync();};sync();setTimeout(sync,250);})();</script>
+<script>(function(){
+  var lb=document.getElementById('lightBtn'); if(!lb)return;
+  function sync(){ lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️'; }
+  window.__alleySyncLight=sync;
+  lb.onclick=function(){
+    var cur=document.documentElement.dataset.theme||'espresso';
+    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; }catch(e){}
+    /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자 등을 잃지 않는다 */
+    var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
+    if(window.__alleySetTheme) window.__alleySetTheme(t);
+    else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
+    sync();
+  };
+  sync(); setTimeout(sync,250);
+})();</script>
 </body>
 </html>

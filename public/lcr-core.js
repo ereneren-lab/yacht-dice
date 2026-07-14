@@ -25,6 +25,7 @@
       this.phase = 'roll';          // 'roll' | 'over'
       this.winner = null;
       this.lastRoll = null;          // {seat, name, dice:[], moves:[]}
+      this.rollSeq = 0;              // 굴림 일련번호 — 클라가 "새 굴림"을 확실히 구분하는 용도
       this.rng = opt.rng || Math.random;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 950;
@@ -36,7 +37,7 @@
     aliveCount() { return this.chips.filter(c => c > 0).length; }
     _firstAlive(from) { for (let k = 0; k < this.N; k++) { const s = (from + k) % this.N; if (this.chips[s] > 0) return s; } return from; }
     _nextAlive(from) { for (let k = 1; k <= this.N; k++) { const s = (from + k) % this.N; if (this.chips[s] > 0) return s; } return from; }
-    _emit() { try { this.onState(); } catch (e) {} }
+    _emit() { try { this.onState(); } catch (e) { try { console.error('[lcr] render error', e); } catch (_) {} } }
 
     start() {
       if (this._dead) return;
@@ -64,6 +65,7 @@
         const mv = this._apply(f, seat); if (mv) moves.push(mv);
       }
       this.lastRoll = { seat, name: this.players[seat].name, dice, moves };
+      this.rollSeq++;
       if (this.aliveCount() <= 1) {
         this.phase = 'over';
         const w = this.chips.findIndex(c => c > 0);
@@ -99,7 +101,7 @@
     serialize(viewer) {
       return {
         game: 'lcr', phase: this.phase, turn: this.turn, pot: this.pot, maxPot: this.maxPot, winner: this.winner,
-        startChips: this.startChips,
+        startChips: this.startChips, rollSeq: this.rollSeq,
         lastRoll: this.lastRoll ? { seat: this.lastRoll.seat, name: this.lastRoll.name, dice: this.lastRoll.dice.slice(), moves: this.lastRoll.moves.map(m => ({ ...m })) } : null,
         players: this.players.map((p, i) => ({ pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, chips: this.chips[i], alive: this.chips[i] > 0 }))
       };

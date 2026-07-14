@@ -83,20 +83,45 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .member .mhost{ margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);padding:3px 8px;border-radius:6px }
   .member .airm{ margin-left:6px;border:none;background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger);width:24px;height:24px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:800;flex:none }
   .waiting-line{ text-align:center;font-size:12.5px;color:var(--muted);margin:8px 0 }
-  /* 게임 */
-  .players{ display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:6px 0 16px }
-  .pcard{ flex:1 1 calc(50% - 9px);min-width:128px;max-width:230px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center;transition:.2s;position:relative }
+  /* 게임 — 좌석은 항상 "한 줄"로: 화면 왼쪽→오른쪽 = 좌석 순서(원형) */
+  .seatring{ display:flex;align-items:stretch;justify-content:center;gap:5px;margin:6px 0 4px }
+  .players{ display:flex;flex-wrap:nowrap;gap:5px;justify-content:center;flex:1;min-width:0 }
+  .wrapmark{ display:flex;align-items:center;justify-content:center;flex:none;width:16px;font-size:13px;color:var(--muted);opacity:.75 }
+  .seathint{ text-align:center;font-size:10.5px;color:var(--muted);font-weight:700;margin:0 0 12px;letter-spacing:.01em }
+  .seathint b{ color:var(--brass);font-weight:800 }
+  .pcard{ flex:1 1 0;min-width:0;max-width:150px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:11px 4px 10px;text-align:center;transition:border-color .2s,box-shadow .2s,opacity .2s;position:relative }
   .pcard.turn{ border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 22%,transparent) }
   .pcard.out{ opacity:.4 }
   .pcard.duel{ border-color:var(--danger);animation:duelpulse 1.1s ease-in-out infinite }
   @keyframes duelpulse{ 0%,100%{box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 30%,transparent)} 50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--danger) 14%,transparent)} }
-  .pcard .pav{ font-size:26px;line-height:1 }
-  .pcard .pnm{ font-weight:800;font-size:13px;margin:4px 0 5px }
-  .pcard .chipn{ font-weight:900;font-size:26px;color:var(--brass);line-height:1 }
+  .pcard .pav{ font-size:24px;line-height:1 }
+  .pcard .pnm{ font-weight:800;font-size:12px;margin:4px 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
+  .pcard .chipn{ font-weight:900;font-size:24px;color:var(--brass);line-height:1;display:inline-block }
   .pcard .chipl{ font-size:9.5px;color:var(--muted);font-weight:700 }
-  .pcard .me-tag{ position:absolute;top:6px;right:8px;font-size:9px;font-weight:800;color:var(--brass) }
-  .pcard .turnflag{ position:absolute;top:6px;left:8px;font-size:9px;font-weight:800;color:var(--brass);opacity:0 }
+  .pcard .me-tag{ position:absolute;top:5px;right:6px;font-size:9px;font-weight:800;color:var(--brass) }
+  .pcard .turnflag{ position:absolute;top:5px;left:6px;font-size:9px;font-weight:800;color:var(--brass);opacity:0 }
   .pcard.turn .turnflag{ opacity:1 }
+  .pcard .seatno{ position:absolute;bottom:4px;left:6px;font-size:8.5px;font-weight:800;color:var(--muted);opacity:.7 }
+  /* 칩 이동 연출 */
+  .pcard.gave{ animation:cardGave .6s ease }
+  .pcard.got{ animation:cardGot .6s ease }
+  @keyframes cardGave{ 0%{background:color-mix(in srgb,var(--danger) 26%,var(--panel))} 100%{background:var(--panel)} }
+  @keyframes cardGot{ 0%{background:color-mix(in srgb,var(--win) 30%,var(--panel))} 100%{background:var(--panel)} }
+  .pcard.got .chipn{ animation:chipPop .6s cubic-bezier(.2,1.6,.4,1) }
+  .pcard.gave .chipn{ animation:chipDrop .6s ease }
+  @keyframes chipPop{ 0%{transform:scale(1)} 35%{transform:scale(1.6);color:var(--win)} 100%{transform:scale(1)} }
+  @keyframes chipDrop{ 0%{transform:scale(1)} 35%{transform:scale(.72);color:var(--danger)} 100%{transform:scale(1)} }
+  .chipfly{ position:absolute;top:-9px;font-size:12.5px;font-weight:900;pointer-events:none;z-index:5;white-space:nowrap;animation:chipFly .9s ease-out forwards }
+  .chipfly.give{ color:var(--danger) } .chipfly.get{ color:var(--win) } .chipfly.potf{ color:var(--brass) }
+  @keyframes chipFly{ 0%{opacity:0;transform:translateY(6px) scale(.7)} 20%{opacity:1;transform:translateY(-2px) scale(1.1)} 75%{opacity:1;transform:translateY(-14px) scale(1)} 100%{opacity:0;transform:translateY(-26px) scale(1)} }
+  .pot.potgot{ animation:potFlash .6s ease }
+  @keyframes potFlash{ 0%{background:color-mix(in srgb,var(--brass) 34%,var(--panel2));transform:scale(1.08)} 100%{background:var(--panel2);transform:scale(1)} }
+  @media (max-width:520px){
+    .pcard{ padding:9px 2px 9px }
+    .pcard .pav{ font-size:20px } .pcard .pnm{ font-size:10px } .pcard .chipn{ font-size:20px }
+    .pcard .chipl{ font-size:8.5px } .pcard .seatno{ display:none }
+    .players{ gap:4px }
+  }
   .pot{ text-align:center;background:var(--panel2);border:1.5px dashed var(--brass);border-radius:14px;padding:10px;margin:0 auto 14px;max-width:180px }
   .pot .potn{ font-size:28px;font-weight:900;color:var(--brass);line-height:1 }
   .pot .potl{ font-size:10.5px;color:var(--muted);font-weight:700;margin-top:2px }
@@ -104,7 +129,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .ldie{ width:54px;height:54px;border-radius:12px;background:var(--die);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:var(--pip);border:2px solid var(--brass-d);box-shadow:0 3px 0 var(--brass-d);animation:dpop .3s ease }
   @keyframes dpop{ 0%{transform:scale(.4) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1} }
   .ldie.fL{ color:#e0683c }.ldie.fR{ color:#3c9ae0 }.ldie.fC{ color:var(--brass-d) }.ldie.fdot{ color:var(--muted);font-size:30px }
-  .rolllog{ text-align:center;font-size:12.5px;color:var(--muted);min-height:18px;margin-bottom:12px;line-height:1.4 }
+  /* 롤 로그 — 주사위 바로 아래(메인 컬럼). 이 게임의 핵심 정보라 크게. */
+  .rolllog{ text-align:center;font-size:14px;color:var(--ink);min-height:22px;margin:2px 0 12px;line-height:1.45;font-weight:700;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 10px }
+  .rolllog:empty{ display:none }
+  .rolllog .rl-who{ color:var(--brass);font-weight:900 }
+  .rolllog .rl-give{ color:var(--danger) }
+  .rolllog .rl-get{ color:var(--win);font-weight:900 }
+  .rolllog .rl-pot{ color:var(--brass);font-weight:900 }
+  .rolllog .rl-none{ color:var(--muted);font-weight:700 }
+  /* 지난 굴림 기록(사이드) */
+  .loghist{ display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:11.5px;color:var(--muted);line-height:1.35 }
+  .loghist:empty{ display:none }
   .rollbtn{ display:block;width:100%;padding:16px;border-radius:14px;border:none;background:var(--brass);color:var(--bg);font-weight:900;font-size:16px;cursor:pointer;font-family:inherit }
   .rollbtn:hover{ background:var(--brass-d) }
   .rollbtn:disabled{ opacity:.45;cursor:default;background:var(--panel2);color:var(--muted) }
@@ -172,17 +207,24 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div id="game" style="display:none">
       <div class="lcr-grid">
         <div class="lcr-main">
-          <div class="players" id="players"></div>
-          <div class="pot"><div class="potn" id="potN">0</div><div class="potl">가운데 팟 🎯</div></div>
+          <div class="seatring">
+            <div class="wrapmark" title="양 끝은 서로 이웃 (원형)">↩</div>
+            <div class="players" id="players"></div>
+            <div class="wrapmark" title="양 끝은 서로 이웃 (원형)">↪</div>
+          </div>
+          <div class="seathint">← <b>L</b> 은 왼쪽 이웃 · <b>R</b> 은 오른쪽 이웃 → · 양 끝(↩↪)은 서로 이웃이야 (원형)</div>
+          <div class="pot" id="potBox"><div class="potn" id="potN">0</div><div class="potl">가운데 팟 🎯</div></div>
           <div class="dicerow" id="dicerow"></div>
+          <div class="rolllog" id="rolllog"></div>
           <button class="rollbtn" id="rollBtn">🎲 굴리기</button>
           <div class="reactzone" id="reactzone" style="display:none">
             <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
             <div class="reactbar" id="reactbar"></div>
           </div>
         </div>
-        <div class="lcr-side">
-          <div class="rolllog" id="rolllog"></div>
+        <div class="lcr-side" id="lcrSide">
+          <div class="lbl" style="margin:0 0 2px">📜 굴림 기록</div>
+          <div class="loghist" id="loghist"></div>
           <div class="chatbox" id="chatBox" style="display:none">
             <div class="chatlog" id="chatLog"></div>
             <div class="chatrow">
@@ -323,6 +365,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.chips = this.players.map(() => start);
       this.startChips = start; this.pot = 0; this.maxPot = 0; this.turn = 0; this.phase = 'roll';
       this.winner = null; this.lastRoll = null;
+      this.rollSeq = 0;              // 굴림 일련번호 — 클라가 "새 굴림"을 확실히 구분하는 용도
       this.rng = opt.rng || Math.random;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 950;
@@ -332,7 +375,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     aliveCount() { return this.chips.filter(c => c > 0).length; }
     _firstAlive(from) { for (let k = 0; k < this.N; k++) { const s = (from + k) % this.N; if (this.chips[s] > 0) return s; } return from; }
     _nextAlive(from) { for (let k = 1; k <= this.N; k++) { const s = (from + k) % this.N; if (this.chips[s] > 0) return s; } return from; }
-    _emit() { try { this.onState(); } catch (e) {} }
+    _emit() { try { this.onState(); } catch (e) { try { console.error('[lcr] render error', e); } catch (_) {} } }
     start() { if (this._dead) return; this.turn = this._firstAlive(0); this._emit(); this._maybeAI(); }
     rollFace() { return FACES[Math.floor(this.rng() * 6)]; }
     action(pid, a) {
@@ -348,6 +391,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const n = Math.min(3, this.chips[seat]); const dice = [], moves = [];
       for (let i = 0; i < n; i++) { const f = this.rollFace(); dice.push(f); const mv = this._apply(f, seat); if (mv) moves.push(mv); }
       this.lastRoll = { seat, name: this.players[seat].name, dice, moves };
+      this.rollSeq++;
       if (this.aliveCount() <= 1) {
         this.phase = 'over'; const w = this.chips.findIndex(c => c > 0);
         if (w >= 0) { this.chips[w] += this.pot; this.pot = 0; this.winner = this.players[w].pid; }
@@ -376,7 +420,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     _clearTimer() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
     setConnected(pid, v) { const p = this.players.find(x => x.pid === pid); if (p) p.connected = v; this._maybeAI(); }
     serialize(viewer) {
-      return { game: 'lcr', phase: this.phase, turn: this.turn, pot: this.pot, maxPot: this.maxPot, winner: this.winner, startChips: this.startChips,
+      return { game: 'lcr', phase: this.phase, turn: this.turn, pot: this.pot, maxPot: this.maxPot, winner: this.winner, startChips: this.startChips, rollSeq: this.rollSeq,
         lastRoll: this.lastRoll ? { seat: this.lastRoll.seat, name: this.lastRoll.name, dice: this.lastRoll.dice.slice(), moves: this.lastRoll.moves.map(m => ({ ...m })) } : null,
         players: this.players.map((p, i) => ({ pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, chips: this.chips[i], alive: this.chips[i] > 0 })) };
     }
@@ -474,7 +518,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(nearBottom || pid===MYPID) log.scrollTop=log.scrollHeight;
   }
   function floatReaction(pid,emoji){
-    let anchor = document.querySelector('.pcard[data-pid="'+pid+'"]') || $('pot') || document.body;
+    let anchor = document.querySelector('.pcard[data-pid="'+pid+'"]') || $('potBox') || document.body;
     const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.~]/.test(emoji);
     const el=document.createElement('div'); el.className='floatemo'+(isText?' txt':''); el.textContent=emoji;
@@ -501,45 +545,85 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('endBtn').style.display = (online && amHost && S.phase==='roll') ? 'flex' : 'none';
     const ms=mySeat();
     const aliveN=S.players.filter(p=>p.alive).length;
-    // 플레이어 카드
+    // 새 굴림인지 판정 (연출/SFX는 새 굴림에만)
+    const lr=S.lastRoll;
+    const key = lr && lr.dice.length ? (S.rollSeq!=null ? 'r'+S.rollSeq : S.turn+'_'+lr.seat+'_'+lr.dice.join('')) : null;
+    const fresh = !!key && key!==lastRollKey;
+    if(!lr) { lastRollKey=null; duelOn=false; const lh=$('loghist'); if(lh)lh.innerHTML=''; }   // 새 판 시작 → duel 토스트 재무장 + 기록 비우기
+    // 이번 굴림에서 칩을 준 사람 / 받은 사람
+    const gave = fresh && lr ? lr.seat : -1;
+    const got = {};   // seat -> 받은 칩 수
+    let potGain = 0;
+    if(fresh && lr) lr.moves.forEach(m=>{ if(m.to>=0) got[m.to]=(got[m.to]||0)+1; else potGain++; });
+    const gaveN = fresh && lr ? lr.moves.length : 0;
+
+    // 플레이어 카드 — 한 줄(좌석 순서 = 화면 순서)
     const wrap=$('players'); wrap.innerHTML='';
     S.players.forEach(p=>{
-      const duel = aliveN===2 && p.alive && S.phase==='roll';
+      // 처음부터 2인인 판은 '결투'가 아니다 (3인 이상이었다가 둘만 남은 경우만)
+      const duel = S.players.length>2 && aliveN===2 && p.alive && S.phase==='roll';
       const d=document.createElement('div');
-      d.className='pcard'+(S.turn===p.seat&&S.phase==='roll'?' turn':'')+(!p.alive?' out':'')+(duel?' duel':'');
+      const isGiver = p.seat===gave && gaveN>0, isGetter = got[p.seat]>0;
+      d.className='pcard'+(S.turn===p.seat&&S.phase==='roll'?' turn':'')+(!p.alive?' out':'')+(duel?' duel':'')
+        +(isGetter?' got':'')+(isGiver&&!isGetter?' gave':'');
       d.dataset.pid=p.pid;
-      d.innerHTML=`<span class="turnflag">차례</span>${p.pid===MYPID?'<span class="me-tag">나</span>':''}<div class="pav">${p.avatar||'🎲'}</div><div class="pnm">${esc(p.name)}${p.ai?' 🤖':''}</div><div class="chipn">${p.chips}</div><div class="chipl">칩</div>`;
+      d.innerHTML=`<span class="turnflag">차례</span>${p.pid===MYPID?'<span class="me-tag">나</span>':''}<span class="seatno">#${p.seat+1}</span><div class="pav">${p.avatar||'🎲'}</div><div class="pnm">${esc(p.name)}${p.ai?' 🤖':''}</div><div class="chipn">${p.chips}</div><div class="chipl">칩</div>`;
+      // 떠오르는 +N / −N 배지
+      if(isGetter) d.insertAdjacentHTML('beforeend',`<span class="chipfly get">+${got[p.seat]}</span>`);
+      else if(isGiver) d.insertAdjacentHTML('beforeend',`<span class="chipfly give">−${gaveN}</span>`);
       wrap.appendChild(d);
     });
     $('potN').textContent=S.pot;
-    // 주사위
+    const pb=$('potBox');
+    if(pb){ pb.classList.remove('potgot'); if(potGain>0){ void pb.offsetWidth; pb.classList.add('potgot'); } }
+    // 주사위 + 롤 로그
     const dr=$('dicerow');
-    if(S.lastRoll && S.lastRoll.dice.length){
-      const key=S.turn+'_'+S.lastRoll.seat+'_'+S.lastRoll.dice.join('');
-      dr.innerHTML=S.lastRoll.dice.map(f=>`<div class="ldie ${FCLS[f]}">${FCH[f]}</div>`).join('');
-      $('rolllog').innerHTML=rollText(S.lastRoll);
-      if(key!==lastRollKey){ lastRollKey=key; try{SFX.roll();}catch(e){} }
+    if(lr && lr.dice.length){
+      dr.innerHTML=lr.dice.map(f=>`<div class="ldie ${FCLS[f]}">${FCH[f]}</div>`).join('');
+      $('rolllog').innerHTML=rollText(lr);
+      if(fresh){ lastRollKey=key; try{SFX.roll();}catch(e){} pushHist(lr); }
     } else { dr.innerHTML=''; $('rolllog').textContent=''; }
-    // 굴리기 버튼
-    const btn=$('rollBtn');
-    if(S.phase==='over'){ btn.disabled=true; btn.textContent='게임 종료'; }
-    else if(ms<0){ btn.disabled=true; btn.textContent='관전 중'; }
-    else if(S.turn===ms){ btn.disabled=busy; btn.textContent='🎲 굴리기 ('+Math.min(3,S.players[ms].chips)+'개)'; }
-    else { btn.disabled=true; const who=S.players[S.turn]; btn.textContent=(who?esc(who.name):'상대')+' 차례…'; }
-    if(aliveN===2 && S.phase==='roll'){ if(!duelOn){ duelOn=true; try{SFX.duel();}catch(e){} showToast('⚔️ 마지막 결투! 단 둘 남았다'); } }
-    else if(aliveN>2){ duelOn=false; }
+    updateRollBtn();
+    // 결투 연출: 3인 이상 판에서 둘만 남았을 때, 판당 1회만
+    if(S.players.length>2 && aliveN===2 && S.phase==='roll' && !duelOn){
+      duelOn=true; try{SFX.duel();}catch(e){} showToast('⚔️ 마지막 결투! 단 둘 남았다');
+    }
     buildReactbar();
     if(S.phase==='over') setTimeout(showResult, 600);
   }
+  // 굴리기 버튼만 갱신 (카드 재생성 없이 → 진행 중인 칩 이동 연출을 끊지 않는다)
+  function updateRollBtn(){
+    if(!S)return;
+    const btn=$('rollBtn'), ms=mySeat();
+    if(S.phase==='over'){ btn.disabled=true; btn.textContent='게임 종료'; }
+    else if(ms<0){ btn.disabled=true; btn.textContent='관전 중'; }
+    else if(S.turn===ms){ btn.disabled=busy; btn.textContent='🎲 굴리기 ('+Math.min(3,S.players[ms].chips)+'개)'; }
+    else { btn.disabled=true; const who=S.players[S.turn]; btn.textContent=(who?who.name:'상대')+' 차례…'; }
+  }
   function rollText(lr){
     if(!lr||!lr.dice.length) return '';
-    const who=esc(lr.name);
-    if(!lr.moves.length) return `${who} — 전부 유지 (•) 😌`;
+    const who=`<span class="rl-who">${esc(lr.name)}</span>`;
+    if(!lr.moves.length) return `${who} <span class="rl-none">— 전부 유지 (•) 😌</span>`;
     const parts=lr.moves.map(m=>{
-      if(m.f==='C') return '가운데 팟으로';
-      const tgt=S.players[m.to]; return (m.f==='L'?'← 왼쪽 ':'오른쪽 → ')+esc(tgt?tgt.name:'')+'에게';
+      if(m.f==='C') return '<span class="rl-pot">🎯 팟에 1칩</span>';
+      const tgt=S.players[m.to], nm=esc(tgt?tgt.name:'');
+      return m.f==='L' ? `← 왼쪽 <span class="rl-get">${nm}</span>에게 1칩` : `오른쪽 <span class="rl-get">${nm}</span>에게 1칩 →`;
     });
-    return `${who}: ${parts.join(', ')}`;
+    return `${who} <span class="rl-give">−${lr.moves.length}칩</span> · ${parts.join(' · ')}`;
+  }
+  function histText(lr){
+    if(!lr||!lr.dice.length) return '';
+    const who=esc(lr.name);
+    if(!lr.moves.length) return `${who} — 유지 •`;
+    const parts=lr.moves.map(m=> m.f==='C' ? '팟' : esc((S.players[m.to]||{}).name||''));
+    return `${who} → ${parts.join(', ')}`;
+  }
+  function pushHist(lr){
+    const el=$('loghist'); if(!el)return;
+    const d=document.createElement('div'); d.textContent=histText(lr);
+    el.appendChild(d);
+    while(el.children.length>40) el.removeChild(el.firstChild);
+    el.scrollTop=el.scrollHeight;
   }
 
   /* ===== 결과 ===== */
@@ -573,10 +657,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function doRoll(){
     if(!S||S.phase!=='roll')return; const ms=mySeat(); if(S.turn!==ms)return;
-    busy=true; render();
+    busy=true; updateRollBtn();
     if(online){ wsSend({t:'action',a:{type:'roll'}}); }
     else { engine.action(MYPID,{type:'roll'}); }
-    setTimeout(()=>{ busy=false; if(S)render(); }, 260);
+    setTimeout(()=>{ busy=false; if(S)updateRollBtn(); }, 260);
   }
   $('rollBtn').onclick=doRoll;
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
@@ -622,7 +706,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       wasPlaying=true;
       render();
     }
-    else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} }
+    else if(m.t==='error'){
+      const msg=m.msg||'오류';
+      showToast('⚠️ '+msg);
+      // code가 붙은 치명적 오류(방 없음/가득참/자리없음)만 셋업으로 되돌린다.
+      // "3명부터 시작할 수 있어요" 같은 경고로 로비에서 튕겨나가면 안 됨.
+      if(m.code || !lobby){
+        $('onErr').textContent=msg; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
+        lobby=null; prevMembers=null;
+        try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){}
+      }
+    }
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }
@@ -641,9 +735,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
-    const ready=lobby.members.length>=2;
+    // LCR은 3명부터 (2인이면 L·R이 같은 사람이라 게임이 성립하지 않음). 서버가 주는 min을 신뢰.
+    const MIN = Math.max(3, lobby.min||0);
+    const ready=lobby.members.length>=MIN;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
-    if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='상대를 기다리는 중… (2~6인)'; }
+    if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent=`상대를 기다리는 중… (${MIN}~6인 · 현재 ${lobby.members.length}명)`; }
     else if(!amHost){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
     else { $('lobbyWait').style.display='none'; }
   }
@@ -734,14 +830,31 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 <script>
 /* ===== 테마 ===== */
 (function(){
-  const T=[['sesame','흑임자','#c9bcd8'],['espresso','다크','#e0a23c'],['hanji','라이트','#f2f2f4']];
+  const T=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
   function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
-  function s(t){ document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} r(); }
+  function s(t){ document.documentElement.dataset.theme=t;
+    try{ localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t); }catch(e){}
+    r(); if(window.__alleySyncLight) window.__alleySyncLight(); }
+  window.__alleySetTheme=s;
   s(g());
 })();
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
 </script>
-<script>(function(){var lb=document.getElementById('lightBtn');if(!lb)return;function sync(){lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️';}lb.onclick=function(){var cur=document.documentElement.dataset.theme||'espresso';var t=cur==='hanji'?'espresso':'hanji';document.documentElement.dataset.theme=t;try{localStorage.setItem('alley_theme',t);}catch(e){}sync();};sync();setTimeout(sync,250);})();</script>
+<script>(function(){
+  var lb=document.getElementById('lightBtn'); if(!lb)return;
+  function sync(){ lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️'; }
+  window.__alleySyncLight=sync;
+  lb.onclick=function(){
+    var cur=document.documentElement.dataset.theme||'espresso';
+    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; }catch(e){}
+    /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자를 잃지 않는다 */
+    var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
+    if(window.__alleySetTheme) window.__alleySetTheme(t);
+    else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
+    sync();
+  };
+  sync(); setTimeout(sync,250);
+})();</script>
 </body>
 </html>
