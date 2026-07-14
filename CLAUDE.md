@@ -11,22 +11,33 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 
 ## 게임과 파일
 
-| 게임 | HTML | 엔진 |
-|------|------|------|
-| 윷놀이 | `public/yut.html` | `public/yut-core.js` **+ HTML 인라인 (이중)** |
-| 요트 다이스 | `public/yacht.html` | `public/game-core.js` |
-| 너클본즈 | `public/kb.html` | `public/kb-core.js` |
-| 라이어 다이스 | `public/ld.html` | `public/ld-core.js` |
-| 좌·중·우(LCR) | `public/lcr.html` | `public/lcr-core.js` |
-| 허브 | `public/index.html` | — |
+| 게임 | HTML | 엔진 파일 (서버용) | HTML 내 인라인 사본 |
+|------|------|--------------------|---------------------|
+| 윷놀이 | `public/yut.html` | `public/yut-core.js` | yut.html 526행~ |
+| 요트 다이스 | `public/yacht.html` | `public/game-core.js` | yacht.html 658행~ |
+| 너클본즈 | `public/kb.html` | `public/kb-core.js` | kb.html 485행~ |
+| 라이어 다이스 | `public/ld.html` | `public/ld-core.js` | ld.html 448행~ |
+| 좌·중·우(LCR) | `public/lcr.html` | `public/lcr-core.js` | lcr.html 308행~ |
+| 허브 | `public/index.html` | — | — |
 
 서버는 게임 엔진을 `require`해서 방마다 인스턴스 1개를 돌린다(권위 서버). 클라는 상태 스냅샷을 받아 렌더만 한다.
 
-## ⚠️ 엔진 이중 구조 (제일 중요)
+## ⚠️ 엔진 이중 구조 (제일 중요) — 윷만이 아니라 **5종 전부**
 
-**윷 엔진은 `yut-core.js`(서버용 UMD)와 `yut.html` 안 인라인(브라우저용) 두 곳에 동일하게 존재한다.** 엔진 로직을 고칠 때 **반드시 두 곳 다** 수정해야 한다. 한쪽만 고치면 로컬/온라인 동작이 갈린다.
+**모든 게임 엔진은 `*-core.js`(서버가 `require`)와 해당 HTML 안 인라인 사본(브라우저용) 두 곳에 동일하게 존재한다.** 엔진 로직을 고칠 때 **반드시 두 곳 다** 수정해야 한다. 한쪽만 고치면 로컬/온라인 동작이 갈린다.
 
-> 개선 아이디어: 빌드 스크립트로 `yut-core.js`를 HTML에 자동 주입해 단일 소스화 (아직 미구현).
+- HTML은 `<script src="*-core.js">`로 불러오지 **않는다.** core 파일 내용이 UMD 래퍼째로 통째로 붙여넣어져 있다 (외부 파일 없이도 페이지가 동작하도록 한 의도적 복사).
+- UMD 래퍼가 Node에선 `module.exports`, 브라우저에선 `window.YutCore` / `LCRCore` 등으로 갈라주므로 **같은 소스를 양쪽에 그대로** 쓸 수 있다.
+- `lcr`의 인라인 사본은 여러 줄을 한 줄로 압축한 **다른 포맷**이라 눈으로는 비교가 어렵다. 드리프트를 놓치기 쉬우니 주의.
+
+동기화 확인법 (주석·공백 제거 후 core가 HTML 안에 통째로 들어있는지 대조):
+```bash
+node -e 'const fs=require("fs");const s=x=>x.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\/\/.*$/gm,"").replace(/\s+/g,"");
+for(const[n,c,h]of[["yut","yut-core.js","yut.html"],["kb","kb-core.js","kb.html"],["ld","ld-core.js","ld.html"],["lcr","lcr-core.js","lcr.html"],["yacht","game-core.js","yacht.html"]])
+console.log(n, s(fs.readFileSync("public/"+h,"utf8")).includes(s(fs.readFileSync("public/"+c,"utf8")))?"OK":"DRIFT")'
+```
+
+> 개선 아이디어: 빌드 스크립트로 `*-core.js`를 HTML에 자동 주입해 단일 소스화 (아직 미구현).
 
 ## 개발 워크플로
 
