@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>주사위 골목 — Dice Alley</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --font:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif;
+    --bg:#15110d; --bg2:#1d1711; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09);
+    --ink:#f3ece0; --muted:#a89a86; --brass:#e0a23c; --brass-d:#b07d24; --win:#7bd88f;
+  }
+  html[data-theme="mintchoco"]{ --bg:#0e1512; --bg2:#121b17; --panel:#182420; --panel2:#1f2e29; --line:rgba(255,255,255,.09); --ink:#eaf7f0; --muted:#88a89a; --brass:#5ee0a8; --brass-d:#2fae7a; --you:#5ee0a8; --opp:#c9a0ff; --die:#eef6f0; --die2:#d4e6dc; --pip:#14241c; --win:#6fe0a0; --danger:#ff6b7a; }
+  html[data-theme="grapefruit"]{ --bg:#1a0e12; --bg2:#221218; --panel:#2c1820; --panel2:#371e28; --line:rgba(255,255,255,.10); --ink:#fbe9ec; --muted:#c08a96; --brass:#ff7a8a; --brass-d:#d44e62; --you:#ffb14e; --opp:#ff6f91; --die:#ffeef0; --die2:#f5d8de; --pip:#2c1820; --win:#88e0a0; --danger:#ff5470; }
+  html[data-theme="bluelemon"]{ --bg:#0b1020; --bg2:#0f1628; --panel:#161f38; --panel2:#1d2845; --line:rgba(255,255,255,.10); --ink:#e8f0ff; --muted:#8497c0; --brass:#4fd6ff; --brass-d:#2a9fd4; --you:#ffe14d; --opp:#7fb4ff; --die:#eef4ff; --die2:#d4e0f5; --pip:#0f1628; --win:#5ee0a8; --danger:#ff5d8f; }
+  html[data-theme="sesame"]{ --bg:#121212; --bg2:#181818; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --brass:#c9bcd8; --brass-d:#9a8ab0; --you:#e8e2d4; --opp:#b8a0e0; --die:#ebe7df; --die2:#d2cdc2; --pip:#1a1a1a; --win:#9ad0a8; --danger:#e88a8a; }
+html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#8a8a92; --brass:#b07d2a; --brass-d:#8a5f18; --you:#c2842a; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; }
+html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
+html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme="hanji"] .tchip.on{ }
+  html,body{height:100%}
+  body{background:
+      radial-gradient(1200px 700px at 50% -10%, #2a2017 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 110%, #221a2e 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:var(--font);
+    min-height:100%; display:flex; flex-direction:column; align-items:center;
+    -webkit-tap-highlight-color:transparent}
+  .wrap{width:100%; max-width:560px; padding:30px 18px 60px; margin:0 auto}
+  .brand{display:flex; align-items:center; gap:12px; margin:6px 2px 4px}
+  .brand .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(150deg,var(--brass),var(--brass-d));
+    display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 14px color-mix(in srgb,var(--brass) 30%,transparent)}
+  .brand h1{font-family:var(--font); font-weight:800; font-size:25px; letter-spacing:-.01em}
+  .brand h1 .en{display:block;font-size:11px;letter-spacing:.34em;color:var(--brass);font-family:var(--font);font-weight:700;text-transform:uppercase;margin-top:2px}
+  .lede{color:var(--muted); font-size:14px; margin:16px 2px 22px; line-height:1.55}
+
+  .cards{display:flex; flex-direction:column; gap:13px}
+  .gcard{position:relative; display:block; text-decoration:none; color:inherit; border:1px solid var(--line); border-radius:18px; padding:18px 18px 16px;
+    background:linear-gradient(180deg,var(--panel),var(--bg2)); overflow:hidden; cursor:pointer;
+    transition:transform .12s, border-color .15s, box-shadow .15s}
+  .gcard:hover{transform:translateY(-2px); border-color:color-mix(in srgb,var(--brass) 45%,transparent); box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .gcard.soon{cursor:default; opacity:.6}
+  .gcard.soon:hover{transform:none; border-color:var(--line); box-shadow:none}
+  .gcard .gtop{display:flex; align-items:center; gap:13px}
+  .gcard .ic{width:52px;height:52px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:28px;flex:none;
+    background:var(--panel2); box-shadow:inset 0 0 0 1px var(--line)}
+  .gcard h2{font-family:var(--font); font-size:20px; font-weight:600}
+  .gcard .sub{color:var(--muted); font-size:12.5px; margin-top:3px; line-height:1.45}
+  .gcard .tag{position:absolute; top:14px; right:14px; font-size:10.5px; font-weight:800; letter-spacing:.06em;
+    padding:4px 9px; border-radius:999px; text-transform:uppercase}
+  .tag.play{background:rgba(123,216,143,.16); color:var(--win)}
+  .tag.soon{background:rgba(255,255,255,.07); color:var(--muted)}
+  .gcard .meta{display:flex; gap:7px; margin-top:13px; flex-wrap:wrap}
+  .pill{font-size:11px; color:var(--muted); background:rgba(255,255,255,.05); border:1px solid var(--line); padding:4px 9px; border-radius:8px}
+  .foot{color:var(--muted); font-size:11.5px; text-align:center; margin-top:28px; line-height:1.6}
+
+  /* 투명 위젯 컨트롤 (Electron 앱 전용) */
+  .opacityctl{position:fixed;top:10px;right:12px;z-index:9999;display:none;align-items:center;gap:9px;-webkit-app-region:no-drag;background:rgba(20,16,12,.62);backdrop-filter:blur(7px);padding:6px 11px;border-radius:13px;border:1px solid var(--line)}
+  .opacityctl span{font-size:14px}
+  .opacityctl input[type=range]{-webkit-appearance:none;appearance:none;width:100px;height:24px;background:transparent;cursor:pointer;margin:0}
+  .opacityctl input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--panel2)}
+  .opacityctl input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--panel2)}
+  .opacityctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--brass);border:2px solid #15110d;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .opacityctl input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--brass);border:2px solid #15110d}
+  .wbtn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:none;cursor:pointer;background:var(--panel2);color:var(--ink);font-size:13px;font-family:inherit}
+  .wbtn:hover{background:#3a2e22}
+  .wbtn.on{background:var(--brass);color:#15110d}
+
+  /* 테마 선택 */
+  .themerow{display:flex;align-items:center;gap:10px;margin:2px 0 6px;flex-wrap:wrap}
+  .tlbl{font-size:12px;color:var(--muted);font-weight:600}
+  .themechips{display:flex;gap:6px;flex-wrap:wrap}
+  .tchip{display:inline-flex;align-items:center;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:.12s}
+  .tchip i{width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .tchip:hover{color:var(--ink)}
+  .tchip.on{background:var(--brass);color:var(--bg);border-color:transparent}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15110d">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div class="opacityctl">
+  <span>🪟</span>
+  <input type="range" id="opacity" min="20" max="100" value="100">
+  <button class="wbtn" id="winPin" title="항상 위에 고정">📌</button>
+  <button class="wbtn" id="winMin" title="최소화">—</button>
+  <button class="wbtn" id="winClose" title="닫기">✕</button>
+</div>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">🎲</div>
+    <h1>주사위 골목<span class="en">Dice Alley</span></h1>
+  </div>
+  <p class="lede">뒷골목 주사위 도박장에 온 걸 환영해. 한 판 고르고 들어와.</p>
+  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" title="다크/라이트 모드" style="margin-left:auto;background:none;border:1px solid var(--line);border-radius:9px;color:var(--ink);width:34px;height:34px;cursor:pointer;font-size:15px">☀️</button></div>
+
+  <div class="cards">
+    <a class="gcard" href="kb.html">
+      <span class="tag play">플레이</span>
+      <div class="gtop">
+        <div class="ic">🦴</div>
+        <div><h2>너클본즈</h2><div class="sub">3×3 격자에 주사위를 쌓아 곱점을 노리고, 상대의 같은 칸은 부순다.</div></div>
+      </div>
+      <div class="meta"><span class="pill">1:1</span><span class="pill">vs AI</span><span class="pill">온라인</span></div>
+    </a>
+
+    <a class="gcard" href="yacht.html">
+      <span class="tag play">플레이</span>
+      <div class="gtop">
+        <div class="ic">🎲</div>
+        <div><h2>요트 다이스</h2><div class="sub">상단 보너스·콤보·온라인 멀티까지. 친구들과 방 잡고 점수 대결.</div></div>
+      </div>
+      <div class="meta"><span class="pill">온라인</span><span class="pill">AI</span><span class="pill">최대 6인</span></div>
+    </a>
+
+    <a class="gcard" href="ld.html">
+      <span class="tag play">플레이</span>
+      <div class="gtop">
+        <div class="ic">🤥</div>
+        <div><h2>라이어 다이스</h2><div class="sub">컵 속 주사위를 숨기고 뻥카를 친다. 1은 만능, 거짓말을 잡아라.</div></div>
+      </div>
+      <div class="meta"><span class="pill">2~4인</span><span class="pill">vs AI</span><span class="pill">블러핑</span></div>
+    </a>
+
+    <a class="gcard" href="lcr.html">
+      <span class="tag play">플레이</span>
+      <div class="gtop">
+        <div class="ic">🔀</div>
+        <div><h2>LCR (좌·중·우)</h2><div class="sub">칩을 옆으로 넘기는 순수 운빨 파티 게임. 마지막 한 명이 팟까지 싹쓸이.</div></div>
+      </div>
+      <div class="meta"><span class="pill">3~6인</span><span class="pill">온라인</span><span class="pill">운빨</span></div>
+    </a>
+    <a class="gcard" href="yut.html">
+      <span class="tag play">플레이</span>
+      <div class="gtop">
+        <div class="ic">🎲</div>
+        <div><h2>윷놀이</h2><div class="sub">도·개·걸·윷·모! 지름길로 질러가고 상대 말을 잡으며 내 말을 모두 완주시켜라. 정통 규칙.</div></div>
+      </div>
+      <div class="meta"><span class="pill">2~6인</span><span class="pill">온라인</span><span class="pill">정통 규칙</span></div>
+    </a>
+  </div>
+
+  <p class="foot">주사위 골목 · 다섯 가지 주사위 게임이 모였다 🎲</p>
+</div>
+<script>
+  (function(){ var r=new URLSearchParams(location.search).get('room'); if(r){ location.replace('yacht.html?room='+encodeURIComponent(r)); } })();
+</script>
+<script>
+(function(){
+  if(!window.electronAPI) return;            // Electron 앱에서만 표시/동작
+  const ctl=document.querySelector('.opacityctl'); if(ctl)ctl.style.display='flex';
+  const op=document.getElementById('opacity');
+  function apply(pct){ const v=Math.max(.2,Math.min(1,pct/100)); window.electronAPI.setOpacity(v); try{localStorage.setItem('alley_op',Math.round(v*100));}catch(e){} }
+  if(op){ let s=100; try{s=+localStorage.getItem('alley_op')||100;}catch(e){} if(!s)s=100; op.value=s; apply(s); op.addEventListener('input',e=>apply(+e.target.value)); }
+  const pin=document.getElementById('winPin'); if(pin)pin.onclick=async()=>{const v=await window.electronAPI.pin();pin.classList.toggle('on',v);};
+  const wm=document.getElementById('winMin'); if(wm)wm.onclick=()=>window.electronAPI.minimize();
+  const wc=document.getElementById('winClose'); if(wc)wc.onclick=()=>window.electronAPI.close();
+})();
+</script>
+<script>
+(function(){
+  var T=[['sesame','흑임자','#c9bcd8'],['espresso','다크','#e0a23c'],['hanji','라이트','#f2f2f4']];
+  function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
+  function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
+  function s(t){ document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} r(); }
+  s(g());
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
+<script>(function(){var lb=document.getElementById('lightBtn');if(!lb)return;function sync(){lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️';}lb.onclick=function(){var cur=document.documentElement.dataset.theme||'espresso';var t=cur==='hanji'?'espresso':'hanji';document.documentElement.dataset.theme=t;try{localStorage.setItem('alley_theme',t);}catch(e){}sync();};sync();setTimeout(sync,250);})();</script>
+</body>
+</html>
