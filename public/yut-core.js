@@ -87,16 +87,35 @@
       this.moveSeq = 0; this.lastMovePath = null;  // 말 이동 경로(연출용)
       this.skipSeq = 0; this.lastSkip = null;  // 이동 불가 턴 넘김(연출용)
       this.rng = opt.rng || Math.random;
+      // 구렁텅이: 매판 랜덤으로 순수 outer 칸(지름길·합류칸 제외) 하나에 함정
+      { const pitCand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]; this.pitNode = pitCand[Math.floor(this.rng() * pitCand.length)]; }
+      this.pitSeq = 0; this.pitFall = null;  // 구렁텅이 연출용
+      this.limitMs = opt.limitMs || 0; this.gameStartTime = null; this.timedOut = false;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
       this.turnMs = opt.turnMs || 0;
       this.aiFast = !!opt.aiFast;
       this._timer = null; this._dead = false;
     }
-    _emit() { try { this.onState(); } catch (e) {} }
+    _emit() { try { this.onState(); } catch (e) { if(typeof console!=='undefined'&&console.error)console.error('onState/render error:', e && e.message, e && e.stack); } }
     _clear() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
 
-    start() { if (this._dead) return; this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = []; this._emit(); this._maybeAI(); }
+    start() { if (this._dead) return; this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = []; this.gameStartTime = Date.now(); this._emit(); this._maybeAI(); }
+    timeUp() {
+      if (this._dead || this.phase === 'over') return;
+      const prog = p => { let s = 0; for (const pc of p.pieces) { if (pc.done) s += 100; else if (pc.out) s += 1; } return s; };
+      if (this.teamMode) { // 팀전: 팀별 진행도 합으로 승리팀 결정
+        const teams = {}; this.players.forEach(p => { teams[p.team] = (teams[p.team] || 0) + prog(p); });
+        let best = null, bs = -Infinity; for (const t in teams) { if (teams[t] > bs) { bs = teams[t]; best = +t; } }
+        this.winnerTeam = best; const rep = this.players.find(p => p.team === best); this.winner = rep ? rep.pid : null;
+      } else { // 개인전: 진행도 순으로 남은 순위 채움
+        const rem = this.players.filter(p => !this.rankings.includes(p.pid));
+        rem.sort((a, b) => prog(b) - prog(a));
+        rem.forEach(p => { if (!this.rankings.includes(p.pid)) this.rankings.push(p.pid); });
+        this.winner = this.rankings[0];
+      }
+      this.phase = 'over'; this.timedOut = true; this._emit();
+    }
 
     // 던지기
     doThrow(pid, power) {
@@ -177,6 +196,12 @@
           }
         }
         if (caught) { pl.catches += caughtN; this.throwsLeft++; this.captured = { seat, node: r.node }; } // 잡으면 한 번 더
+
+        // 구렁텅이: 순수 outer 함정 칸에 멈추면 그 말(업은 말 포함) 처음으로
+        if (r.route === 'outer' && r.node === this.pitNode) {
+          group.forEach(g => { g.out = false; g.node = 0; g.route = 'outer'; });
+          this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
+        }
       }
 
       // 승리 판정
@@ -211,7 +236,8 @@
     // ---- AI ----
     _bestMove(seat) {
       const pl = this.players[seat];
-      let best = null, bestScore = -Infinity;
+      const diff = pl.aiDiff || 'normal';
+      const cands = [];
       for (let pi = 0; pi < this.pending.length; pi++) {
         const s = this.pending[pi];
         for (const pc of pl.pieces) {
@@ -227,17 +253,21 @@
                 if (op.seat === seat) continue;
                 if (this.teamMode && op.team === pl.team) continue;
                 for (const opc of op.pieces) {
-                  if (!opc.done && opc.out && opc.node === r.node) sc += 60;
+                  if (!opc.done && opc.out && opc.node === r.node) sc += (diff === 'hard' ? 85 : 60);
                 }
               }
               sc += (r.route === 'sc10' ? 25 : r.route === 'sc5' ? 15 : 0);
               sc += (pc.out ? 5 : 0);
+              if (diff === 'hard' && r.route === 'outer' && r.node === this.pitNode) sc -= 120; // 고수: 늪 회피
             }
-            if (sc > bestScore) { bestScore = sc; best = { pieceId: pc.id, pendingIndex: pi, dir }; }
+            cands.push({ mv: { pieceId: pc.id, pendingIndex: pi, dir }, sc });
           }
         }
       }
-      return best;
+      if (!cands.length) return null;
+      if (diff === 'easy' && this.rng() < 0.45) return cands[Math.floor(this.rng() * cands.length)].mv; // 초보: 가끔 아무 말이나
+      cands.sort((a, b) => b.sc - a.sc);
+      return cands[0].mv;
     }
     _maybeAI() {
       this._clear();
@@ -246,7 +276,8 @@
       const auto = p && (p.ai || !p.connected);
       const ms = this.aiFast ? 120 : this.aiMs;
       if (this.phase === 'throw' && auto) {
-        this._timer = setTimeout(() => this.doThrow(p.pid), ms);
+        const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
+        this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
       } else if (this.phase === 'move' && auto) {
         this._timer = setTimeout(() => {
           const mv = this._bestMove(this.turn);
@@ -274,6 +305,8 @@
         pending: this.pending.slice(), throwsLeft: this.throwsLeft,
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
+        pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
+        limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         players: this.players.map((p, i) => ({
           pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),

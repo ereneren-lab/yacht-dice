@@ -66,13 +66,17 @@ function startEngine(room){
     room.engine = new LCREngine({ aiFast:!!room.aiFast, players, startChips:3, turnMs:45000, aiMs:1400, onState });
   } else if (room.game === 'yut'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
-    room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, turnMs:60000, aiMs:1100, onState });
+    room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, limitMs:(room.timer||0)*60000, turnMs:60000, aiMs:1100, onState });
   } else {
     const onState = (s)=> broadcast(room, { t:'state', state:s });
     room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, players, onState,
       onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }) });
   }
   room.engine.start();
+  if (room.gameTimer) { clearTimeout(room.gameTimer); room.gameTimer = null; }
+  if (room.timer && room.timer > 0 && room.engine.timeUp) {
+    room.gameTimer = setTimeout(() => { try { if (room.engine && room.engine.phase !== 'over') room.engine.timeUp(); } catch(e){} }, room.timer * 60000);
+  }
 }
 
 // ---------- 재경기 투표 ----------
@@ -113,7 +117,7 @@ function scheduleCleanup(room){
   const anyHuman = room.members.some(m=>!m.ai && m.connected);
   if (!anyHuman){
     room.cleanupTimer = setTimeout(()=>{
-      if (!room.members.some(m=>!m.ai && m.connected)){ if(room.engine) room.engine.destroy(); rooms.delete(room.code); }
+      if (!room.members.some(m=>!m.ai && m.connected)){ if(room.gameTimer){clearTimeout(room.gameTimer);room.gameTimer=null;} if(room.engine) room.engine.destroy(); rooms.delete(room.code); }
     }, 120000); // 2분 내 아무도 안 돌아오면 정리
   }
 }
@@ -128,7 +132,7 @@ wss.on('connection', (ws) => {
     if (m.t === 'create') {
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null };
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
@@ -248,7 +252,7 @@ wss.on('connection', (ws) => {
     if (r.phase === 'lobby'){
       r.members = r.members.filter(x=>x.pid!==ws.meta.pid);
       recolor(r);
-      if (r.members.length===0){ rooms.delete(r.code); return; }
+      if (r.members.length===0){ if(r.gameTimer){clearTimeout(r.gameTimer);r.gameTimer=null;} rooms.delete(r.code); return; }
       sendLobby(r);
     } else {
       if (r.engine) r.engine.setConnected(ws.meta.pid, false);

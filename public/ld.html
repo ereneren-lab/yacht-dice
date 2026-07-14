@@ -29,6 +29,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     min-height:100%; display:flex; flex-direction:column; align-items:center;
     -webkit-tap-highlight-color:transparent; overflow-x:hidden}
   .wrap{width:100%; max-width:560px; padding:18px 16px 50px; margin:0 auto}
+  /* ==== ld 2단 (게임 왼쪽 · 반응+채팅 오른쪽) ==== */
+  .ld-side{ display:flex; flex-direction:column; gap:10px; }
+  @media (min-width:781px){
+    body.ingame .wrap{ max-width:900px; transition:max-width .2s }
+    .ld-grid{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
+    .ld-side{ position:sticky; top:8px; }
+  }
 
   .topbar{display:flex; align-items:center; gap:12px; margin:4px 2px 14px}
   .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
@@ -280,6 +287,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   </div>
 
   <div id="game" style="display:none">
+    <div class="ld-grid">
+      <div class="ld-main">
     <div class="opps" id="opps"></div>
     <div class="center" id="center"></div>
     <div id="revealBox"></div>
@@ -292,6 +301,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="mydice" id="mydice"></div>
       <div class="controls" id="controls"></div>
     </div>
+      </div>
+      <div class="ld-side">
     <div class="reactzone" id="reactzone" style="display:none">
       <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
       <div class="reactbar" id="reactbar"></div>
@@ -301,6 +312,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="chatrow">
         <input id="chatInput" placeholder="메시지 입력…" maxlength="200" autocomplete="off">
         <button id="chatSend">보내기</button>
+      </div>
+    </div>
       </div>
     </div>
   </div>
@@ -779,7 +792,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const av=[...OPP_AV].sort(()=>Math.random()-.5), nm=[...OPP_NM].sort(()=>Math.random()-.5);
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:av[i-1],ai:true,aiDiff:cfg.diff});
     S=null; busy=false;
-    $('game').style.display='block';
+    $('game').style.display='block'; document.body.classList.add('ingame');
     engine=new LDCore.LDEngine({ players, diceCount:5, wild:true, spotOn:cfg.spotOn,
       onState:()=>{ S=engine.serialize(MYPID); render(); } });
     engine.start();
@@ -817,7 +830,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if($('game').style.display==='block' && !$('resultOv').classList.contains('on')) return;
       $('resultOv').classList.remove('on'); renderLobby();
     }
-    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; S=m.state;
+    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; document.body.classList.add('ingame'); S=m.state;
       if(S.phase!=='over'){ $('resultOv').classList.remove('on'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
       if(prevConn){ S.players.forEach(p=>{ if(!p.ai && p.pid!==MYPID && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) showToast((p.connected?'🔌 ':'⚠️ ')+p.name+(p.connected?' 재접속':' 연결 끊김')); }); }
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
@@ -832,7 +845,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function renderLobby(){
     if(!lobby) return;
-    $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
+    $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);

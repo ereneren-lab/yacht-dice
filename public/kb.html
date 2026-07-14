@@ -30,6 +30,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     min-height:100%; display:flex; flex-direction:column; align-items:center;
     -webkit-tap-highlight-color:transparent; overflow-x:hidden}
   .wrap{width:100%; max-width:560px; padding:18px 18px 60px; margin:0 auto}
+  /* ==== kb 2단 (게임 왼쪽 · 반응+채팅 오른쪽) ==== */
+  .kb-side{ display:flex; flex-direction:column; gap:10px; }
+  @media (min-width:781px){
+    body.ingame .wrap{ max-width:920px; transition:max-width .2s }
+    .kb-grid{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
+    .kb-side{ position:sticky; top:8px; }
+  }
 
   .kbtop{display:flex; align-items:center; gap:12px; margin:4px 2px 16px}
   .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
@@ -276,6 +283,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <button class="iconbtn" id="kbHelp" title="규칙">?</button>
   </div>
 
+  <div class="kb-grid">
+  <div class="kb-main">
   <div class="arena" id="arena" style="display:none">
     <div class="side opp" id="sideOpp">
       <div class="nameplate">
@@ -303,6 +312,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       </div>
     </div>
   </div>
+  </div>
+  <div class="kb-side">
   <div class="reactzone" id="reactzone" style="display:none">
     <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
     <div class="reactbar" id="reactbar"></div>
@@ -313,6 +324,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <input id="chatInput" placeholder="메시지 입력…" maxlength="200" autocomplete="off">
       <button id="chatSend">보내기</button>
     </div>
+  </div>
+  </div>
   </div>
 
   <div style="max-width:340px;margin:16px auto 0" id="rollWrap" style="display:none">
@@ -746,7 +759,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('shareBtn').onclick=shareResult;
 
   // ---------- screen ----------
-  function showGame(){ $('arena').style.display='flex'; $('rollWrap').style.display='block'; $('kbMode').style.display='flex'; }
+  function showGame(){ document.body.classList.add('ingame'); $('arena').style.display='flex'; $('rollWrap').style.display='block'; $('kbMode').style.display='flex'; }
   function setModePill(){
     const dot = online() ? `<span class="dot ${ws&&ws.readyState===1?'on':'off'}"></span>` : '';
     const txt = mode==='ai' ? 'vs AI ('+({easy:'쉬움',normal:'보통',hard:'어려움'}[diff])+')' : mode==='2p' ? '2인' : '온라인';
@@ -827,7 +840,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   function renderLobby(){
     if(!lobby) return;
-    $('setupOv').classList.remove('on'); $('arena').style.display='none'; $('rollWrap').style.display='none'; $('kbMode').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
+    $('setupOv').classList.remove('on'); $('arena').style.display='none'; document.body.classList.remove('ingame'); $('rollWrap').style.display='none'; $('kbMode').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent = lobby.code;
     amHostFlag = lobby.members.some(x=>x.host && x.pid===myPid);
     const host = $('members'); host.innerHTML='';

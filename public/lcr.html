@@ -26,6 +26,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   :root{ --font:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif; }
   body{ background:var(--bg); color:var(--ink); font-family:var(--font); -webkit-tap-highlight-color:transparent; overflow-x:hidden; min-height:100vh; }
   .app{ max-width:560px; margin:0 auto; padding:14px 14px 40px; }
+  /* ==== lcr 2단 (게임 왼쪽 · 로그+채팅 오른쪽) ==== */
+  .lcr-side{ display:flex; flex-direction:column; gap:10px; }
+  @media (min-width:781px){
+    body.ingame .app{ max-width:900px; transition:max-width .2s }
+    .lcr-grid{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
+    .lcr-side{ position:sticky; top:8px; }
+  }
   .topbar{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
   .title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; }
   .title .dot{ width:9px;height:9px;border-radius:50%;background:var(--brass); }
@@ -163,20 +170,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
     <!-- GAME -->
     <div id="game" style="display:none">
-      <div class="players" id="players"></div>
-      <div class="pot"><div class="potn" id="potN">0</div><div class="potl">가운데 팟 🎯</div></div>
-      <div class="dicerow" id="dicerow"></div>
-      <div class="rolllog" id="rolllog"></div>
-      <button class="rollbtn" id="rollBtn">🎲 굴리기</button>
-      <div class="reactzone" id="reactzone" style="display:none">
-        <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
-        <div class="reactbar" id="reactbar"></div>
-      </div>
-      <div class="chatbox" id="chatBox" style="display:none">
-        <div class="chatlog" id="chatLog"></div>
-        <div class="chatrow">
-          <input id="chatInput" placeholder="메시지 입력…" maxlength="200" autocomplete="off">
-          <button id="chatSend">보내기</button>
+      <div class="lcr-grid">
+        <div class="lcr-main">
+          <div class="players" id="players"></div>
+          <div class="pot"><div class="potn" id="potN">0</div><div class="potl">가운데 팟 🎯</div></div>
+          <div class="dicerow" id="dicerow"></div>
+          <button class="rollbtn" id="rollBtn">🎲 굴리기</button>
+          <div class="reactzone" id="reactzone" style="display:none">
+            <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
+            <div class="reactbar" id="reactbar"></div>
+          </div>
+        </div>
+        <div class="lcr-side">
+          <div class="rolllog" id="rolllog"></div>
+          <div class="chatbox" id="chatBox" style="display:none">
+            <div class="chatlog" id="chatLog"></div>
+            <div class="chatrow">
+              <input id="chatInput" placeholder="메시지 입력…" maxlength="200" autocomplete="off">
+              <button id="chatSend">보내기</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -553,7 +566,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const av=[...AV].sort(()=>Math.random()-.5), nm=[...NM].sort(()=>Math.random()-.5);
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:av[i-1],ai:true});
     S=null; busy=false; resultShown=false; lastRollKey=null; duelOn=false;
-    $('setupOv').classList.remove('on'); $('game').style.display='block';
+    $('setupOv').classList.remove('on'); $('game').style.display='block'; document.body.classList.add('ingame');
     $('modePill').textContent='· AI 대전';
     engine=new LCRCore.LCREngine({ players, startChips:3, aiMs:1500, onState:()=>{ S=engine.serialize(MYPID); render(); } });
     engine.start();
@@ -601,7 +614,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(wasPlaying){ wasPlaying=false; showToast('🔄 다시 시작 준비! 호스트가 시작하면 출발'); }
       renderLobby();
     }
-    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; $('modePill').textContent='· 온라인'; S=m.state;
+    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; document.body.classList.add('ingame'); $('modePill').textContent='· 온라인'; S=m.state;
       if(S.phase!=='over'){ $('resultOv').classList.remove('on'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
       if(prevConn){ S.players.forEach(p=>{ if(!p.ai && p.pid!==MYPID && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) showToast((p.connected?'🔌 ':'⚠️ ')+p.name+(p.connected?' 재접속':' 연결 끊김')); }); }
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
@@ -617,7 +630,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function renderLobby(){
     if(!lobby)return;
-    $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none';
+    $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none';
     $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
@@ -660,7 +673,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }).join('');
   }
   function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
-  function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); }
+  function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('toHub').onclick=()=>location.href='./';
