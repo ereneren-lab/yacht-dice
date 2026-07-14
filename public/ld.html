@@ -826,6 +826,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const wasHost=amHost;
       amHost = cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
+      if(m.room.phase==='lobby' && $('game').style.display==='block'){ $('game').style.display='none'; document.body.classList.remove('ingame'); S=null; $('resultOv').classList.remove('on'); $('lobbyOv').classList.add('on'); showToast('🏁 판이 종료되어 로비로 돌아왔어요'); renderLobby(); return; }
       // 게임 진행 중(결과창 전) 들어온 lobby는 화면 전환 안 함
       if($('game').style.display==='block' && !$('resultOv').classList.contains('on')) return;
       $('resultOv').classList.remove('on'); renderLobby();

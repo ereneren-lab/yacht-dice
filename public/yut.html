@@ -1472,6 +1472,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
       lobby=m.room; const wasHost=amHost; amHost=cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
+      // 판 종료 → 로비 복귀 (서버가 room.phase를 'lobby'로 바꿔 보냄)
+      if(m.room.phase==='lobby' && $('game').style.display==='grid'){
+        $('game').style.display='none'; document.body.classList.remove('ingame');
+        S=null; missions=[]; resetRematchUI();
+        $('resultOv').classList.remove('on'); $('lobbyOv').classList.add('on');
+        showToast('🏁 판이 종료되어 로비로 돌아왔어요'); renderLobby(); return;
+      }
+      // 게임 진행 중 멤버 변동은 게임 화면 유지 (로비로 안 튐)
       if($('game').style.display==='grid' && S && S.phase!=='over') return;
       renderLobby();
     }
