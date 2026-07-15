@@ -933,7 +933,21 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   syncMute();
 
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){} }
+  function copyText(t, okMsg){
+    const done=()=>{ if(okMsg) showToast(okMsg); };
+    const fail=()=>showToast('복사 실패 — 링크를 길게 눌러 복사해줘');
+    function fallback(){
+      try{
+        const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        const ok=document.execCommand('copy'); ta.remove();
+        if(ok) done(); else fail();
+      }catch(e){ fail(); }
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      try{ navigator.clipboard.writeText(t).then(done, fallback); }catch(e){ fallback(); }
+    } else fallback();
+  }
 
   /* ===== 전적 + 도전과제 ===== */
   const ACH=[
@@ -1603,7 +1617,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트'; const code=($('joinCode').value||'').trim().toUpperCase(); if(!code){ $('onErr').textContent='방 코드를 입력해'; return; } online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ copyText(location.origin+location.pathname+'?room='+(roomCode||'')); showToast('초대 링크 복사됨'); };
+  $('lobbyCopy').onclick=()=>{ copyText(location.origin+location.pathname+'?room='+(roomCode||''), '🔗 초대 링크 복사됨'); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   $('toHub').onclick=()=>location.href='./';
@@ -1626,7 +1640,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     else if(S){ const w=S.players.find(p=>p.pid===S.winner); if(w)body='\n🥇 '+w.name; }
     const head = iWon ? `주사위 골목 · 윷놀이에서 우승!${st} 🎲` : `주사위 골목 · 윷놀이 한 판! 🎲`;
     const text = head + body;
-    const url=location.origin+location.pathname; if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 자랑해!'); } }
+    const url=location.origin+location.pathname; if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url, '📋 결과 복사됨 — 자랑해!'); } }
   $('shareBtn').onclick=shareResult;
 
   (function boot(){

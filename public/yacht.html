@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>요트 다이스</title>
+<title>요트 다이스 — 주사위 골목</title>
 <style>
   :root{ --bg:#15110d; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09); --ink:#f3ece0; --muted:#a89a86; --accent:#e0a23c; --accent-ink:#15110d; --gold:#e8a13a; --ai:#9b8cff; --danger:#e8696b; --ui:1; --font:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif; }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -15,8 +15,10 @@
   .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(1200px 600px at 50% -10%, #2a2142 0%, transparent 60%), #15111f}
   .app{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:12px}
 
-  .topbar{display:flex;align-items:center;justify-content:space-between;-webkit-app-region:drag}
-  .topbar button,.topbar input{-webkit-app-region:no-drag}
+  .topbar{display:flex;align-items:center;gap:8px;-webkit-app-region:drag}
+  .topbar button,.topbar input,.topbar a{-webkit-app-region:no-drag}
+  .topbar .spacer{flex:1}
+  .rules-link{ background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0;margin-bottom:12px;align-self:flex-start }
   .title{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
   .title .dot{width:11px;height:11px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
   .title small{font-size:12px;color:var(--muted);font-weight:600}
@@ -485,10 +487,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   <div id="root">
   <div class="bg"></div>
   <div class="app">
-    <div class="topbar"><div class="title"><a class="iconbtn" href="./" title="골목으로" id="hubLink" style="margin-right:8px;text-decoration:none">←</a><span class="dot"></span>요트 다이스 <small id="modeName"></small></div></div>
+    <div class="topbar">
+      <a class="iconbtn" href="./" title="골목으로" id="hubLink" aria-label="주사위 골목(홈)으로 나가기" style="text-decoration:none">←</a>
+      <div class="title"><span class="dot"></span>요트 다이스 <small id="modeName"></small></div>
+      <div class="spacer"></div>
+      <button class="iconbtn" id="lightBtn" title="다크/라이트 모드" aria-label="다크/라이트 모드 전환">☀️</button>
+      <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리 켜기/끄기">🔊</button>
+      <button class="iconbtn" id="skipBtn" title="AI로 진행(호스트)" aria-label="AI로 진행" style="display:none">⏭</button>
+      <button class="iconbtn" id="endBtn" title="판 종료 → 로비(호스트)" aria-label="판 종료" style="display:none">🏁</button>
+      <button class="iconbtn" id="leaveBtn" title="나가기" aria-label="나가기" style="display:none">✕</button>
+      <button class="iconbtn" id="helpBtn" title="규칙" aria-label="규칙">?</button>
+    </div>
 
     <!-- SETUP -->
     <div class="card" id="setup">
+      <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
@@ -520,7 +533,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
             <button class="btn ghost" id="showJoin">방 참가</button>
           </div>
           <div id="joinBox" style="display:none;margin-top:14px">
-            <input class="txt" id="joinCode" maxlength="5" placeholder="방 코드 (예: 4F2K)" style="text-transform:uppercase;letter-spacing:.1em">
+            <input class="txt" id="joinCode" maxlength="6" placeholder="방 코드" style="text-transform:uppercase;letter-spacing:.1em">
             <button class="btn" id="joinRoom" style="margin-top:10px">참가하기</button>
           </div>
           <div class="neterr" id="netErr"></div>
@@ -563,14 +576,6 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <div class="pane turnbar">
             <div class="rolls"><span>남은 굴림</span><span class="pips" id="rollPips"></span></div>
             <div class="rolls prog"><span id="progressCap">이번 차례</span><b id="progressLbl">0/12</b></div>
-            <div class="tbctrls">
-              <button class="iconbtn" id="helpBtn" title="게임 방법" aria-label="게임 방법">📖</button>
-              <button class="iconbtn" id="skipBtn" title="AI로 진행(호스트)" aria-label="AI로 진행" style="display:none">⏭</button>
-              <button class="iconbtn" id="endBtn" title="판 종료 → 로비(호스트)" aria-label="판 종료" style="display:none">🏁</button>
-              <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
-      <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리">🔊</button>
-              <button class="iconbtn" id="leaveBtn" title="나가기" aria-label="나가기">✕</button>
-            </div>
           </div>
           <div class="timerrow"><div class="timerbar"><i id="timerFill"></i></div><b class="timersec" id="timerSec" style="display:none">45초</b></div>
           <div class="pane dicepane">
@@ -1275,12 +1280,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(rule.lowBonus&&rule.lowBonus.pts>0)h+=`<div class="helprow"><b>콤보 보너스</b><span>포카인드·풀하우스·스몰·라지 스트레이트 4종 모두 득점 시 → +${rule.lowBonus.pts}</span></div>`;
     $('helpBody').innerHTML=h; $('helpOv').classList.add('show');
   }
-  $('helpBtn').onclick=openHelp; $('helpClose').onclick=()=>$('helpOv').classList.remove('show');
+  $('helpBtn').onclick=openHelp; $('setupRules').onclick=openHelp; $('helpClose').onclick=()=>$('helpOv').classList.remove('show');
 
   // ---------- snapshot entry ----------
   function onState(s){ const fills=computeFills(s); S=s; if(s.phase==='play')sawPlay=true;
     if(isOnline()&&s.players){ if(prevConn){ s.players.forEach(p=>{ if(!p.ai && p.pid!==myPid && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) toast((p.connected?'🔌 ':'⚠️ ')+(p.name||'상대')+(p.connected?' 재접속':' 연결 끊김')); }); } prevConn={}; s.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; }); }
-    if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; buildReactbar(); }
+    if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; $('leaveBtn').style.display='flex'; buildReactbar(); }
     if(s.phase==='play'){ $('overlay').classList.remove('show'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f; }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
     const mt=isMyTurn(); if(isOnline()){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
@@ -1378,7 +1383,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           prevMembers.forEach(p=>{ if(p.pid!==myPid && !cur.some(x=>x.pid===p.pid)) toast('👋 '+p.name+' 나감'); });
         }
         prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
-        if($('game').style.display==='block'){ $('game').style.display='none'; $('setup').style.display='block'; $('overlay').classList.remove('show'); S=null; prevSnap=null; recorded=false; sawPlay=false; gameShown=false; lastMyTurn=false; stopBlink(); toast('판이 종료되어 로비로 돌아왔어요'); }
+        if($('game').style.display==='block'){ $('game').style.display='none'; $('setup').style.display='block'; $('overlay').classList.remove('show'); $('leaveBtn').style.display='none'; S=null; prevSnap=null; recorded=false; sawPlay=false; gameShown=false; lastMyTurn=false; stopBlink(); toast('판이 종료되어 로비로 돌아왔어요'); }
         enterLobby();
       }
     }
@@ -1465,9 +1470,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ========== boot ==========
   const THEMES=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346']];
-  let theme=(function(){try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';}})();
+  // 엑셀은 요트 전용 테마 — 공유 키(alley_theme)엔 저장하지 않고 요트 전용 키로만 기억한다.
+  // (공유 키에 'excel'이 새면 다른 게임/허브가 폴백돼 테마칩 하이라이트가 사라진다.)
+  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';}})();
   function applyTheme(t){ theme=t; document.documentElement.dataset.theme=t;
-    try{ localStorage.setItem('alley_theme',t); if(t!=='hanji'&&t!=='excel') localStorage.setItem('alley_theme_dark',t); }catch(e){}
+    try{
+      if(t==='excel'){
+        localStorage.setItem('yacht_theme_excel','1');
+        // 공유 키엔 직전 비-excel 테마를 안전값으로 유지 (없거나 오염됐으면 라이트)
+        var safe=localStorage.getItem('alley_theme'); if(!safe||safe==='excel') safe='hanji';
+        localStorage.setItem('alley_theme',safe);
+      } else {
+        localStorage.removeItem('yacht_theme_excel');
+        localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t);
+      }
+    }catch(e){}
     const box=$('themeChips'); if(box)[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.t===t));
     if(window.__alleySyncLight) window.__alleySyncLight(); }
   window.__alleySetTheme=applyTheme;
@@ -1488,7 +1505,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   var rows=document.getElementById('excelRows');
   if(rows && !rows.children.length){ for(var r=1;r<=32;r++){ var s=document.createElement('span'); s.textContent=r; rows.appendChild(s); } }
   var origTitle=document.title;
-  window.__unmask=function(){ document.documentElement.dataset.theme="espresso"; try{localStorage.setItem("alley_theme","espresso");}catch(e){} var lb=document.getElementById("lightBtn"); if(lb)lb.textContent="☀️"; try{updTitle();}catch(e){} };
+  window.__unmask=function(){ document.documentElement.dataset.theme="espresso"; try{localStorage.setItem("alley_theme","espresso");localStorage.removeItem("yacht_theme_excel");}catch(e){} var lb=document.getElementById("lightBtn"); if(lb){lb.style.display="";lb.textContent="☀️";} try{updTitle();}catch(e){} };
   var origFav=null;
   function updTitle(){ var ex=document.documentElement.dataset.theme==='excel'; document.title=ex?'통합 문서1 - Excel':origTitle;
     try{ var l=document.querySelector('link[rel="icon"]'); if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l);} if(origFav===null)origFav=l.getAttribute('href')||'';

@@ -467,7 +467,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   syncMute();
 
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){} }
+  function copyText(t, okMsg){
+    const done=()=>{ if(okMsg) showToast(okMsg); };
+    const fail=()=>showToast('복사 실패 — 링크를 길게 눌러 복사해줘');
+    function fallback(){
+      try{
+        const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        const ok=document.execCommand('copy'); ta.remove();
+        if(ok) done(); else fail();
+      }catch(e){ fail(); }
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      try{ navigator.clipboard.writeText(t).then(done, fallback); }catch(e){ fallback(); }
+    } else fallback();
+  }
 
   /* ===== 전적 + 도전과제 ===== */
   const ACH_LCR=[
@@ -797,7 +811,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트'; const code=($('joinCode').value||'').trim().toUpperCase(); if(!code){ $('onErr').textContent='방 코드를 입력해'; return; } online=true; connect(()=>wsSend({t:'join',code,name})); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ copyText(location.origin+location.pathname+'?room='+(roomCode||'')); showToast('초대 링크 복사됨'); };
+  $('lobbyCopy').onclick=()=>{ copyText(location.origin+location.pathname+'?room='+(roomCode||''), '🔗 초대 링크 복사됨'); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   function renderRematch(d){
@@ -829,7 +843,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function shareResult(){
     const text=buildShareText(); const url=location.origin+location.pathname;
     if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
-    else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 붙여넣기 해서 자랑해!'); }
+    else { copyText(text+'\n'+url, '📋 결과 복사됨 — 붙여넣기 해서 자랑해!'); }
   }
   $('shareBtn').onclick=shareResult;
   $('setupRules').onclick=()=>$('helpOv').classList.add('on');
