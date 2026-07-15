@@ -117,6 +117,24 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .side.you .die.mult{box-shadow:0 0 0 2px var(--you),0 0 14px rgba(232,161,58,.5),inset 0 0 0 1px rgba(0,0,0,.07)}
   .die.boom{animation:boom .42s ease forwards}
   @keyframes boom{0%{transform:scale(1)}30%{transform:scale(1.18) rotate(8deg);filter:brightness(1.6)}100%{transform:scale(0) rotate(40deg);opacity:0}}
+  /* 점수 폭증 연출 */
+  .colscore.scorepop{animation:scorepop .5s cubic-bezier(.3,1.5,.5,1)}
+  .colscore.scorepop.big{animation:scorepopbig .6s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes scorepop{0%{transform:translateX(-50%) scale(1)}35%{transform:translateX(-50%) scale(1.6);color:var(--brass)}100%{transform:translateX(-50%) scale(1)}}
+  @keyframes scorepopbig{0%{transform:translateX(-50%) scale(1)}30%{transform:translateX(-50%) scale(2.1);color:var(--brass);text-shadow:0 0 12px color-mix(in srgb,var(--brass) 75%,transparent)}100%{transform:translateX(-50%) scale(1)}}
+  .scoregain{position:fixed;font-family:var(--font);font-weight:800;font-size:15px;color:var(--brass);pointer-events:none;z-index:125;transform:translateX(-50%);animation:scorefly 1.1s ease-out forwards;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .scoregain.opp{color:var(--opp)} .scoregain.you{color:var(--you)}
+  .scoregain.big{font-size:24px}
+  @keyframes scorefly{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.6)}20%{opacity:1;transform:translateX(-50%) translateY(-6px) scale(1.15)}70%{opacity:1;transform:translateX(-50%) translateY(-34px) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-60px) scale(1)}}
+  .nameplate .tot.totgain{animation:totgain .45s ease}
+  .nameplate .tot.totpop{animation:totpopdn .3s ease}
+  @keyframes totgain{0%{transform:scale(1)}40%{transform:scale(1.4);color:var(--brass)}100%{transform:scale(1)}}
+  @keyframes totpopdn{0%{transform:scale(1)}40%{transform:scale(.82);opacity:.6}100%{transform:scale(1)}}
+  /* 상대 줄 파괴 쾌감 */
+  .floatemo.txt.smash{border-color:var(--danger);font-size:15.5px}
+  .floatemo.txt.smash b{color:var(--danger)}
+  .floatemo.txt.smash.combo{font-size:18px;border-color:var(--brass)}
+  .floatemo.txt.smash.combo b{color:var(--brass)}
 
   .tray{margin:18px auto 0; max-width:340px; display:flex; flex-direction:column; align-items:center; gap:12px}
   .rollzone{display:flex;align-items:center;justify-content:center;gap:14px;min-height:74px}
@@ -697,6 +715,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let S=null, prevBoards=null, lastSeq=0, busy=false, tumbling=false;
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null;
+  let scoreCache=[[0,0,0],[0,0,0]], scorePrimed=false;   // colscore 폭증 연출용 직전값 캐시
+  const REDUCE = () => { try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
 
   const online = () => mode==='online';
   const bottomSeat = () => online() ? mySeat : 0;
@@ -923,7 +943,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     markDropNewest(mover, col);
     let any=false;
     if(mv.destroyed>0){ any = boomDestroyed(opp, col, val); try{SFX.boom();}catch(e){}
-      if(!online() && mover!==bottomSeat() && Math.random()<0.4) setTimeout(()=>floatReaction('__ai__', KB_SMASH[Math.random()*KB_SMASH.length|0]), 260);
+      if(mover===bottomSeat()) smashCelebrate(mv.destroyed, col, opp, val);   // 내가 상대를 부순다!
+      else if(!online() && Math.random()<0.4) setTimeout(()=>floatReaction('__ai__', KB_SMASH[Math.random()*KB_SMASH.length|0]), 260);
     }
     setTimeout(done, any?440:230);
   }
@@ -998,6 +1019,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function boardElOf(seat){ return seat===bottomSeat() ? $('boardYou') : $('boardOpp'); }
 
   function render(s, boards){
+    if(!scorePrimed){ for(let st=0;st<2;st++)for(let c=0;c<3;c++) scoreCache[st][c]=colScore(boards[st][c]); scorePrimed=true; }
     $('endBtn').style.display = (online() && amHostFlag && !isOver(s)) ? 'flex' : 'none';
     const bottom=bottomSeat(), top=1-bottom;
     renderSide('you', bottom, s, boards);
@@ -1022,7 +1044,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function fillPlate(pos, p, total){
     $('av'+pos).textContent = p.avatar || (pos==='You'?'😎':'🐺');
     $('nm'+pos).innerHTML = esc(p.name||(pos==='You'?'나':'상대')) + (p.connected===false?'<span class="off-badge">연결 끊김</span>':'');
-    $('tot'+pos).textContent = total;
+    const te=$('tot'+pos), prev=parseInt(te.textContent,10);
+    if(scorePrimed && !isNaN(prev) && prev!==total) animateTotal(te, prev, total);
+    else te.textContent=total;
   }
 
   function renderSide(pos, seat, s, boards){
@@ -1042,8 +1066,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(v!=null){ const die=document.createElement('div'); die.className='die'+(cnt[v]>1?' mult':''); die.innerHTML=pipHTML(v); slot.appendChild(die); }
         colEl.appendChild(slot);
       });
-      const sc=document.createElement('div'); sc.className='colscore'; sc.textContent=colScore(col)||''; colEl.appendChild(sc);
+      const newScore=colScore(col);
+      const sc=document.createElement('div'); sc.className='colscore'; sc.textContent=newScore||''; colEl.appendChild(sc);
       host.appendChild(colEl);
+      // 이전 값과 비교해 증가한 열에만 폭증 연출 (변화 없으면 오발 없음)
+      const old=scoreCache[seat][c];
+      if(scorePrimed && newScore>old) scoreFx(colEl, sc, newScore-old, pos);
+      scoreCache[seat][c]=newScore;
     }
   }
 
@@ -1096,6 +1125,43 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     let any=false;
     colEl.querySelectorAll('.slot').forEach((sl,ri)=>{ const d=sl.querySelector('.die'); if(d && cells[ri]===val){ d.classList.add('boom'); any=true; } });
     return any;
+  }
+  // 내가 상대 줄을 부술 때 쾌감 연출 (AI가 나를 부술 때의 대칭)
+  function smashCelebrate(destroyed, col, opp, val){
+    if(REDUCE()) return;
+    let pts=0; try{ const b=prevBoards[opp][col]; pts=colScore(b)-colScore(b.filter(x=>x!==val)); }catch(e){}
+    const colEl = boardElOf(opp).children[col];
+    const r=(colEl||$('sideOpp')).getBoundingClientRect(), cx=r.left+r.width/2;
+    const combo = destroyed>=2;
+    const el=document.createElement('div'); el.className='floatemo txt smash'+(combo?' combo':'');
+    el.innerHTML=(combo?('💥×'+destroyed+' '):'💥 ')+'부순다! <b>-'+pts+'</b>';
+    el.style.left=cx+'px'; el.style.top=(r.top-2)+'px';
+    document.body.appendChild(el); setTimeout(()=>el.remove(),2900);
+    try{ SFX.pop(); }catch(e){}
+    if(combo) showCombo(destroyed, cx, r.top-30);   // 여러 개면 콤보 배지
+  }
+  // colscore 증가 시 숫자 pop + 색 플래시 + "+N" floating
+  function scoreFx(colEl, sc, gain, pos){
+    if(REDUCE()) return;
+    const strong = pos==='you';                 // 내 쪽을 더 화려하게
+    const big = gain >= (strong?6:9);
+    sc.classList.add('scorepop'); if(big) sc.classList.add('big');
+    const r=colEl.getBoundingClientRect();
+    const el=document.createElement('div'); el.className='scoregain '+pos+((big||strong)?' big':'');
+    el.textContent='+'+gain;
+    el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top+r.height/2)+'px';
+    document.body.appendChild(el); setTimeout(()=>el.remove(),1100);
+    if(big){ try{ SFX.pop(); }catch(e){} }       // 큰 폭증에만 사운드(매 배치 삑삑 방지)
+  }
+  // 총점 롤링 카운트업(증가) / 카운트다운(파괴로 감소)
+  function animateTotal(el, from, to){
+    const up = to>from;
+    if(REDUCE()){ el.textContent=to; return; }
+    el.classList.remove('totgain','totpop'); void el.offsetWidth;
+    el.classList.add(up?'totgain':'totpop');
+    const tok=(el._tt=(el._tt||0)+1), dur=up?420:300, t0=performance.now(), d=to-from;
+    (function step(t){ if(el._tt!==tok) return; const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+      el.textContent=Math.round(from+d*e); if(k<1) requestAnimationFrame(step); else el.textContent=to; })(t0);
   }
 
   // ---------- dispatch ----------

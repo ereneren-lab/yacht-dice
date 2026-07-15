@@ -241,6 +241,7 @@
   .bd{display:flex;gap:9px;justify-content:center;font-size:11px;color:var(--muted);margin-top:4px}
   .bd b{color:var(--ink)}
   .newbest{display:inline-block;background:var(--gold);color:#3a2a00;font-weight:800;font-size:12px;padding:3px 10px;border-radius:999px;margin-top:6px}
+  .lose{display:inline-block;background:var(--panel2);color:var(--muted);font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;margin-top:6px}
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:35}
 
   /* felt tray */
@@ -1285,12 +1286,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(s.phase==='play'){ $('overlay').classList.remove('show'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f; }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
     const mt=isMyTurn(); if(isOnline()){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
-    if(s.phase==='over'){ stopBlink(); if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false; showResult(s,beat); SFX.win(); confetti(); } }
+    if(s.phase==='over'){ stopBlink(); if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false;
+      // 승자 게이트: 온라인은 내 pid가 공동 1등 포함 최고점인지, 로컬 핫시트는 사람 플레이어가 1등인지 판정
+      const wpids=(s.winners&&s.winners.pids)||[]; const iWon = isOnline() ? wpids.includes(myPid) : localPids.some(pid=>wpids.includes(pid));
+      showResult(s,beat,iWon); if(iWon){ SFX.win(); confetti(); } } }   // 이겼을 때(공동승 포함)만 축포·승리음, 졌을 땐 차분히
     else recorded=false;
   }
-  function showResult(s,beat){ const w=s.winners, ranked=[...s.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
+  function showResult(s,beat,won){ const w=s.winners, ranked=[...s.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
     $('resTitle').textContent=w.names.length>1?'공동 우승!':`${w.names[0]} 우승!`;
-    $('resSub').innerHTML=`${w.top}점 · ${s.modeName}`+(beat?'<br><span class="newbest">🎉 최고점 갱신!</span>':'');
+    $('resSub').innerHTML=`${w.top}점 · ${s.modeName}`+(beat?'<br><span class="newbest">🎉 최고점 갱신!</span>':'')+(won===false?'<br><span class="lose">아깝다! 다음 판 설욕 🔥</span>':'');
     const re=$('ranks'); re.innerHTML=''; let pos=0,prev=null;
     ranked.forEach((r,idx)=>{ if(r.total!==prev){pos=idx+1;prev=r.total;} const md=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':pos;
       const low=r.total-r.upperSum-(r.bonusGot?s.bonus.pts:0)-(r.lowBonusGot&&s.lowBonus?s.lowBonus.pts:0);

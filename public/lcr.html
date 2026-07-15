@@ -118,6 +118,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @keyframes chipFly{ 0%{opacity:0;transform:translateY(6px) scale(.7)} 20%{opacity:1;transform:translateY(-2px) scale(1.1)} 75%{opacity:1;transform:translateY(-14px) scale(1)} 100%{opacity:0;transform:translateY(-26px) scale(1)} }
   .pot.potgot{ animation:potFlash .6s ease }
   @keyframes potFlash{ 0%{background:color-mix(in srgb,var(--brass) 34%,var(--panel2));transform:scale(1.08)} 100%{background:var(--panel2);transform:scale(1)} }
+  /* 우승 팟 싹쓸이 연출 (over 진입 프레임 1회) */
+  .sweepchip{ position:fixed; z-index:140; font-size:20px; transform:translate(-50%,-50%); transition:transform .62s cubic-bezier(.4,.1,.2,1), opacity .62s ease; pointer-events:none; will-change:transform,opacity; filter:drop-shadow(0 0 6px var(--brass)) }
+  .pcard.potwin{ border-color:var(--brass); animation:potWinGlow 1.1s ease-out }
+  @keyframes potWinGlow{ 0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 22%,transparent)} 40%{box-shadow:0 0 0 9px color-mix(in srgb,var(--brass) 55%,transparent),0 0 36px color-mix(in srgb,var(--brass) 60%,transparent)} 100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--brass) 40%,transparent),0 0 22px color-mix(in srgb,var(--brass) 42%,transparent)} }
+  .pcard.potwin .chipn{ animation:chipPopBig .95s cubic-bezier(.2,1.6,.4,1) }
+  @keyframes chipPopBig{ 0%{transform:scale(1)} 30%{transform:scale(2);color:var(--brass)} 100%{transform:scale(1)} }
+  .goldflash{ position:fixed; inset:0; z-index:135; pointer-events:none; background:radial-gradient(circle at 50% 45%, color-mix(in srgb,var(--brass) 55%,transparent), transparent 68%); animation:goldFlashAnim .75s ease-out forwards }
+  @keyframes goldFlashAnim{ 0%{opacity:0} 22%{opacity:1} 100%{opacity:0} }
+  @media (prefers-reduced-motion:reduce){ .sweepchip,.goldflash{ display:none } .pcard.potwin{ animation:none } .pcard.potwin .chipn{ animation:none } }
   @media (max-width:520px){
     .pcard{ padding:9px 2px 9px }
     .pcard .pav{ font-size:20px } .pcard .pnm{ font-size:10px } .pcard .chipn{ font-size:20px }
@@ -539,14 +548,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ===== 렌더 ===== */
   const FCH={L:'L',R:'R',C:'C','.':'•'};
   const FCLS={L:'fL',R:'fR',C:'fC','.':'fdot'};
-  let resultShown=false, lastRollKey=null;
+  let resultShown=false, lastRollKey=null, sweepShown=false;
   function mySeat(){ return S?S.players.findIndex(p=>p.pid===MYPID):-1; }
   function render(){
     if(!S)return;
-    if(S.phase!=='over') resultShown=false;
+    if(S.phase!=='over'){ resultShown=false; sweepShown=false; }   // 새 판 진입 시 결과창·팟스윕 재무장
     $('endBtn').style.display = (online && amHost && S.phase==='roll') ? 'flex' : 'none';
     const ms=mySeat();
-    const aliveN=S.players.filter(p=>p.alive).length;
+    const aliveN=S.players.filter(p=>p.alive).length;   // 실제 alive(칩>0) 인원
+    // 결투 구간: 3인 이상으로 시작한 판에서 지금 딱 둘만 살아있고 진행 중일 때
+    const inDuel = S.players.length>2 && aliveN===2 && S.phase==='roll';
     // 새 굴림인지 판정 (연출/SFX는 새 굴림에만)
     const lr=S.lastRoll;
     const key = lr && lr.dice.length ? (S.rollSeq!=null ? 'r'+S.rollSeq : S.turn+'_'+lr.seat+'_'+lr.dice.join('')) : null;
@@ -562,8 +573,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     // 플레이어 카드 — 한 줄(좌석 순서 = 화면 순서)
     const wrap=$('players'); wrap.innerHTML='';
     S.players.forEach(p=>{
-      // 처음부터 2인인 판은 '결투'가 아니다 (3인 이상이었다가 둘만 남은 경우만)
-      const duel = S.players.length>2 && aliveN===2 && p.alive && S.phase==='roll';
+      // 붉은 결투 펄스: 결투 구간에 살아있는 두 카드에만 (회복되면 자동 꺼짐)
+      const duel = inDuel && p.alive;
       const d=document.createElement('div');
       const isGiver = p.seat===gave && gaveN>0, isGetter = got[p.seat]>0;
       d.className='pcard'+(S.turn===p.seat&&S.phase==='roll'?' turn':'')+(!p.alive?' out':'')+(duel?' duel':'')
@@ -586,13 +597,44 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(fresh){ lastRollKey=key; try{SFX.roll();}catch(e){} pushHist(lr); }
     } else { dr.innerHTML=''; $('rolllog').textContent=''; }
     updateRollBtn();
-    // 결투 연출: 3인 이상 판에서 둘만 남았을 때, 판당 1회만
-    if(S.players.length>2 && aliveN===2 && S.phase==='roll' && !duelOn){
-      duelOn=true; try{SFX.duel();}catch(e){} showToast('⚔️ 마지막 결투! 단 둘 남았다');
+    // 결투 연출: 결투 구간(둘만 살아있음)에 진입할 때마다 재점화. 3+로 회복되면 해제.
+    if(inDuel && !duelOn){
+      duelOn=true; try{SFX.duel();}catch(e){} showToast('⚔️ 둘만 남았다!');
+    } else if(!inDuel && duelOn){
+      duelOn=false;   // 부활로 회복 → 다시 둘이 되면 재점화 가능
     }
     buildReactbar();
-    if(S.phase==='over') setTimeout(showResult, 600);
+    // 우승 순간: 팟 싹쓸이 연출 후 결과창 (over 진입 프레임 1회)
+    if(S.phase==='over' && !sweepShown){ sweepShown=true; playPotSweep(); }
   }
+  // 우승 팟 싹쓸이 연출 — 팟 박스 → 승자 카드로 칩이 날아가고, 승자 글로우 + (큰 팟이면) 골드 플래시
+  function playPotSweep(){
+    const pot = S.maxPot||0;   // 팟은 판 내내 단조 증가(C만 +) → maxPot = 싹쓸이된 액수
+    const iWon = S.winner===MYPID;
+    const RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches);
+    try{ iWon?SFX.win():SFX.lose(); }catch(e){}   // 승리 SFX를 스윕 타이밍에 동기화
+    const card = document.querySelector('.pcard[data-pid="'+S.winner+'"]');
+    const potBox = $('potBox');
+    if(card){ card.classList.add('got','potwin'); }
+    if(potBox){ potBox.classList.remove('potgot'); void potBox.offsetWidth; potBox.classList.add('potgot'); }
+    if(!RM && pot>=6) goldFlash();
+    if(!RM && card && potBox && pot>0) flyChips(potBox, card, Math.min(pot,8));
+    // 절정(스윕) → 결과창 순서가 자연스럽게. 과하지 않게.
+    setTimeout(showResult, RM ? 300 : 1050);
+  }
+  function flyChips(fromEl, toEl, n){
+    const a=fromEl.getBoundingClientRect(), b=toEl.getBoundingClientRect();
+    const sx=a.left+a.width/2, sy=a.top+a.height/2, ex=b.left+b.width/2, ey=b.top+b.height/2;
+    for(let i=0;i<n;i++){
+      const el=document.createElement('div'); el.className='sweepchip'; el.textContent='🪙';
+      el.style.left=sx+'px'; el.style.top=sy+'px'; el.style.transform='translate(-50%,-50%)';
+      document.body.appendChild(el); void el.offsetWidth;
+      const jx=Math.random()*40-20, jy=Math.random()*20-10, delay=i*70;
+      setTimeout(()=>{ el.style.transform='translate(-50%,-50%) translate('+(ex-sx+jx)+'px,'+(ey-sy+jy)+'px) scale(.7)'; el.style.opacity='0'; }, delay);
+      setTimeout(()=>el.remove(), delay+720);
+    }
+  }
+  function goldFlash(){ const el=document.createElement('div'); el.className='goldflash'; document.body.appendChild(el); setTimeout(()=>el.remove(),780); }
   // 굴리기 버튼만 갱신 (카드 재생성 없이 → 진행 중인 칩 이동 연출을 끊지 않는다)
   function updateRollBtn(){
     if(!S)return;
@@ -639,7 +681,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('resSub').innerHTML = w ? `팟까지 전부 쓸어담아 <b style="color:var(--brass)">${w.chips}칩</b> 독식 🎉` : '';
     $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
     if(!spectator){ Stats.record(iWon, S.maxPot||0); }
-    try{ iWon?SFX.win():SFX.lose(); }catch(e){}
+    // 승리/패배 SFX는 playPotSweep(스윕 타이밍)에서 이미 재생됨
     $('resultOv').classList.add('on');
   }
 
