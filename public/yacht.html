@@ -327,7 +327,7 @@
   .excel-tip{font-size:11.5px;color:var(--muted);line-height:1.55;margin:-4px 0 14px;padding:8px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:8px}
   .excel-tip b{color:var(--ink);font-weight:700}
   .excel-tip .k{display:inline-block;min-width:15px;text-align:center;padding:0 5px;background:var(--panel);border:1px solid var(--line);border-radius:4px;font-family:ui-monospace,Menlo,monospace;color:var(--ink);font-weight:700}
-  html[data-theme="excel"] .excel-tip{display:none !important}  /* 위장 중엔 안내도 숨겨 커버 유지 */
+  html[data-theme="excel"] .excel-tip, html[data-theme="photoshop"] .excel-tip{display:none !important}  /* 위장(엑셀·포토샵) 중엔 안내도 숨겨 커버 유지 */
 
   /* themes */
   html[data-theme="sesame"]{ --bg:#121212; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --accent:#c9bcd8; --accent-ink:#121212; --gold:#e8e2d4; --ai:#b8a0e0; --danger:#e88a8a; }
@@ -487,6 +487,156 @@ html[data-theme="excel"] #confetti{ display:none !important }
 html[data-theme="excel"] #overlay .card{ background:#fff !important;border:1px solid #b0b0b0 !important;border-radius:2px !important;box-shadow:0 4px 20px rgba(0,0,0,.25) !important }
 html[data-theme="excel"] #overlay .card *{ text-shadow:none !important;color:#1a1a1a !important }
 html[data-theme="excel"] #overlay .medal, html[data-theme="excel"] #overlay .newbest{ filter:grayscale(1) opacity(.6) }
+
+/* ============================================================
+   포토샵 위장 테마 (Adobe Photoshop 다크 UI 흉내)
+   엑셀 테마와 대칭 구조: 팔레트 변수 → 크롬 표시 → 게임 티 제거 → 콘텐츠 다크 리스타일
+   ============================================================ */
+html[data-theme="photoshop"]{ --bg:#1e1e1e; --bg2:#262626; --panel:#323232; --panel2:#3a3a3a; --line:#232323; --ink:#d4d4d4; --muted:#8a8a8a; --brass:#31a8ff; --brass-d:#2b8fd8; --you:#31a8ff; --opp:#e0a23c; --die:#3a3a3a; --die2:#2c2c2c; --pip:#d4d4d4; --win:#31a8ff; --danger:#e0574a; --brass-ink:#ffffff; --accent:#31a8ff; --accent-ink:#ffffff; --gold:#31a8ff; --ai:#9b8cff; --font:"Segoe UI","맑은 고딕","Malgun Gothic",sans-serif; }
+#psChrome, #psTools, #psPanels, #psStatus{ display:none }
+html[data-theme="photoshop"] #psChrome{ display:block;position:fixed;top:0;left:0;right:0;z-index:200;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif }
+html[data-theme="photoshop"] #psTools{ display:flex;flex-direction:column;position:fixed;left:0;top:92px;bottom:26px;width:46px;z-index:150;background:#292929;border-right:1px solid #171717;padding-top:4px }
+html[data-theme="photoshop"] #psPanels{ display:flex;flex-direction:column;gap:8px;position:fixed;right:0;top:92px;bottom:26px;width:222px;z-index:150;background:#262626;border-left:1px solid #171717;padding:8px;overflow:hidden }
+html[data-theme="photoshop"] #psStatus{ display:flex;align-items:center;gap:16px;position:fixed;bottom:0;left:0;right:0;z-index:200;background:#1b1b1b;color:#9a9a9a;font-size:11px;padding:4px 12px;border-top:1px solid #0f0f0f;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif }
+html[data-theme="photoshop"] .app{ padding-top:96px;padding-bottom:34px;padding-left:58px;padding-right:234px }
+html[data-theme="photoshop"] .opacityctl{ display:none }
+/* 상단 메뉴바 */
+.ps-menubar{ background:#1e1e1e;color:#c8c8c8;font-size:12px;height:30px;display:flex;align-items:center;gap:15px;padding:0 12px;border-bottom:1px solid #101010 }
+.ps-menubar .ps-logo{ background:#001e36;color:#31a8ff;font-weight:800;font-size:12px;padding:3px 6px;border-radius:3px;letter-spacing:.3px }
+.ps-menubar span{ cursor:default;white-space:nowrap }
+.ps-menubar .ps-mfile{ cursor:pointer }
+.ps-menubar .ps-winbtns{ margin-left:auto;color:#8a8a8a;letter-spacing:4px;font-size:11px }
+/* 옵션바 */
+.ps-optbar{ background:#333333;color:#bcbcbc;font-size:11.5px;height:34px;display:flex;align-items:center;gap:13px;padding:0 12px;border-bottom:1px solid #202020;overflow:hidden;white-space:nowrap }
+.ps-optbar .ps-tool{ font-size:15px;color:#d4d4d4 }
+.ps-optbar .ps-field{ background:#252525;border:1px solid #1a1a1a;border-radius:3px;padding:1px 8px;color:#d4d4d4;font-weight:600 }
+.ps-optbar .ps-sep{ width:1px;height:18px;background:#242424;display:inline-block }
+/* 문서 탭 */
+.ps-doctab{ background:#2b2b2b;height:28px;display:flex;align-items:flex-end;padding:0 6px;border-bottom:1px solid #171717 }
+.ps-doctab .ps-tab{ background:#3a3a3a;color:#c0c0c0;font-size:11.5px;padding:5px 14px;border-radius:3px 3px 0 0;border:1px solid #171717;border-bottom:none }
+.ps-doctab .ps-tab.on{ background:#262626;color:#e2e2e2 }
+.ps-doctab .ps-tab .ps-x{ color:#888;margin-left:8px }
+/* 좌측 세로 툴바 */
+.ps-tool-i{ height:38px;display:flex;align-items:center;justify-content:center;color:#c8c8c8;cursor:default;border-left:2px solid transparent }
+.ps-tool-i.on{ background:#3d3d3d;border-left-color:#31a8ff }
+.ps-tool-i svg{ width:18px;height:18px;stroke:#cccccc;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round }
+.ps-tool-i.on svg{ stroke:#ffffff }
+.ps-tool-sep{ height:1px;background:#1a1a1a;margin:4px 9px }
+/* 우측 패널 스택 */
+.ps-panel{ background:#333333;border:1px solid #1c1c1c;border-radius:3px;overflow:hidden;flex:none }
+.ps-panel .ps-phead{ background:#2b2b2b;color:#cfcfcf;font-size:11px;padding:5px 9px;border-bottom:1px solid #1c1c1c;display:flex;justify-content:space-between;align-items:center }
+.ps-panel .ps-phead .ps-tabs2 b{ color:#e6e6e6;font-weight:600;margin-right:10px }
+.ps-panel .ps-phead .ps-tabs2 span{ color:#8a8a8a;margin-right:10px }
+.ps-swatches{ display:flex;flex-wrap:wrap;gap:3px;padding:8px }
+.ps-swatches i{ width:15px;height:15px;border-radius:2px;display:block;border:1px solid rgba(0,0,0,.3) }
+.ps-fgbg{ display:flex;padding:8px 9px;gap:0;position:relative;height:34px }
+.ps-fgbg i{ width:22px;height:22px;border:1px solid #111;border-radius:2px;display:block }
+.ps-fgbg .ps-fg{ background:#d8d8d8;z-index:2 }
+.ps-fgbg .ps-bg{ background:#1a1a1a;margin-left:-8px;margin-top:8px }
+.ps-layers{ display:flex;flex-direction:column;min-height:0 }
+.ps-layers .ps-lopac{ padding:6px 9px;font-size:11px;color:#b0b0b0;display:flex;align-items:center;gap:8px;border-bottom:1px solid #2a2a2a }
+.ps-layers .ps-slider{ flex:1;height:4px;background:#1c1c1c;border-radius:2px;position:relative }
+.ps-layers .ps-slider::after{ content:'';position:absolute;right:0;top:-3px;width:11px;height:11px;border-radius:50%;background:#c8c8c8 }
+.ps-layers .ps-llist{ overflow:hidden;flex:1 }
+.ps-layers .ps-layer{ display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #2a2a2a;font-size:11.5px;color:#cfcfcf }
+.ps-layers .ps-layer.sel{ background:#3a4b57 }
+.ps-layers .ps-eye{ color:#c8c8c8;font-size:11px;width:12px;text-align:center }
+.ps-layers .ps-thumb{ width:28px;height:22px;border:1px solid #1c1c1c;background:#555;flex:none }
+.ps-layers .ps-lop{ margin-left:auto;color:#8a8a8a;font-size:10px }
+/* 하단 상태바 */
+html[data-theme="photoshop"] #psStatus .ps-zoom{ background:#252525;border:1px solid #1a1a1a;border-radius:2px;padding:1px 7px;color:#c8c8c8 }
+/* === 게임 티 제거 === */
+html[data-theme="photoshop"] .topbar{ display:none !important }
+html[data-theme="photoshop"] .hint{ display:none !important }
+html[data-theme="photoshop"] .sheettop{ display:none !important }
+html[data-theme="photoshop"] .reacttoggle{ display:none !important }
+html[data-theme="photoshop"] *{ text-shadow:none !important }
+/* === 캔버스(투명 체커보드) 배경 === */
+html[data-theme="photoshop"] body{ background-color:#2a2a2a; background-image:linear-gradient(45deg,#232323 25%,transparent 25%,transparent 75%,#232323 75%),linear-gradient(45deg,#232323 25%,transparent 25%,transparent 75%,#232323 75%); background-size:22px 22px; background-position:0 0,11px 11px; background-attachment:fixed; }
+html[data-theme="photoshop"] .bg{ background:transparent !important }
+/* === 카드/셋업 = 다크 플랫 패널 === */
+html[data-theme="photoshop"] .card{ background:#323232 !important;border:1px solid #232323 !important;border-radius:3px !important;box-shadow:none !important;color:#d4d4d4 }
+html[data-theme="photoshop"] #setup{ background:#323232 !important;border:1px solid #232323 !important;box-shadow:none !important;border-radius:3px !important }
+html[data-theme="photoshop"] #game .card{ background:transparent !important;border:none !important;box-shadow:none !important;padding:0 !important;max-width:none }
+html[data-theme="photoshop"] .gamewrap{ gap:12px !important;align-items:flex-start }
+/* === 점수판 = 정보/히스토리 패널 (다크 플랫, 각진 모서리) === */
+html[data-theme="photoshop"] #sheet{ border-collapse:collapse;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif;font-size:12px !important }
+html[data-theme="photoshop"] #sheet td, html[data-theme="photoshop"] #sheet th{ border:1px solid #232323 !important;border-radius:0 !important;color:#d4d4d4 !important;background:#2c2c2c !important;padding:4px 8px !important }
+html[data-theme="photoshop"] #sheet thead th{ background:#3a3a3a !important;color:#d4d4d4 !important;font-weight:600;text-align:center !important }
+html[data-theme="photoshop"] #sheet .catcol{ background:#303030 !important;color:#c0c0c0 !important;font-weight:400;text-align:left }
+html[data-theme="photoshop"] #sheet td:not(.catcol){ text-align:right !important;padding-right:9px !important;font-variant-numeric:tabular-nums }
+html[data-theme="photoshop"] #sheet .total td, html[data-theme="photoshop"] #sheet .total .catcol{ background:#383838 !important;color:#ffffff !important;font-weight:700;border-top:2px solid #454545 !important }
+html[data-theme="photoshop"] #sheet .bonus .catcol, html[data-theme="photoshop"] #sheet .bonus td{ background:#303030 !important;color:#c0c0c0 !important }
+html[data-theme="photoshop"] #sheet .col-current{ background:#243b4a !important }
+html[data-theme="photoshop"] #sheet thead th.col-current{ background:#31a8ff !important;color:#001e36 !important }
+html[data-theme="photoshop"] #sheet thead th.col-current .hnm{ color:#001e36 !important }
+html[data-theme="photoshop"] #sheet td.preview{ color:#7f7f7f !important;font-style:italic !important;font-weight:400 !important }
+html[data-theme="photoshop"] #sheet td.preview.zero{ color:#5f5f5f !important }
+html[data-theme="photoshop"] #sheet td.preview:hover{ box-shadow:inset 0 0 0 2px #31a8ff !important;background:#243b4a !important;color:#dfefff !important;font-style:normal !important;font-weight:700 !important }
+html[data-theme="photoshop"] #sheet td.val{ color:#eaeaea !important;font-weight:700 !important;font-style:normal !important }
+html[data-theme="photoshop"] #sheet .qh{ display:none !important }
+html[data-theme="photoshop"] #sheet .rew, html[data-theme="photoshop"] #sheet .rewhint, html[data-theme="photoshop"] #sheet .crown, html[data-theme="photoshop"] #sheet .gap{ display:none !important }
+html[data-theme="photoshop"] .hav .av, html[data-theme="photoshop"] .hav img{ display:none !important }
+html[data-theme="photoshop"] .hav{ justify-content:center }
+html[data-theme="photoshop"] .hav .hnm{ font-weight:600;color:#d4d4d4 }
+/* === 인게임 게임 단어 위장: 카테고리→레이어 N / 열제목→채널 N / 보너스→그룹 / 합계→배경 === */
+html[data-theme="photoshop"] #sheet tbody{ counter-reset:pslayer }
+html[data-theme="photoshop"] #sheet .catcol[data-xl]{ font-size:0 !important;counter-increment:pslayer }
+html[data-theme="photoshop"] #sheet .catcol[data-xl]::before{ content:"레이어 " counter(pslayer);font-size:12px;font-weight:400;font-family:'Segoe UI','맑은 고딕',sans-serif;color:#c0c0c0 }
+html[data-theme="photoshop"] #sheet .bonus .catcol{ font-size:0 !important }
+html[data-theme="photoshop"] #sheet .bonus .catcol::before{ content:'그룹';font-size:12px;color:#c0c0c0 }
+html[data-theme="photoshop"] #sheet .total .catcol{ font-size:0 !important }
+html[data-theme="photoshop"] #sheet .total .catcol::before{ content:'배경';font-size:12px;font-weight:700;color:#ffffff }
+html[data-theme="photoshop"] #sheet thead tr{ counter-reset:pschan }
+html[data-theme="photoshop"] #sheet thead th .hnm{ font-size:0 !important }
+html[data-theme="photoshop"] #sheet thead th .hnm::before{ counter-increment:pschan;content:"채널 " counter(pschan);font-size:11px;font-weight:600 }
+html[data-theme="photoshop"] #sheet thead th.col-current .hnm::before{ color:#001e36 }
+/* 남은 굴림/이번 차례 라벨 → 중립 문구 */
+html[data-theme="photoshop"] .rolls > span:first-child{ font-size:0 !important }
+html[data-theme="photoshop"] .rolls > span:first-child::after{ content:"실행 단계";font-size:11px;color:#9a9a9a }
+html[data-theme="photoshop"] .rolls.prog > span:first-child{ font-size:0 !important }
+html[data-theme="photoshop"] .rolls.prog > span:first-child::after{ content:"진행률";font-size:11px;color:#9a9a9a }
+/* 빈 킵 영역 안내문(주사위 단어 제거) */
+html[data-theme="photoshop"] .keptrow:empty::before{ content:'선택 영역 없음' !important;color:#6a6a6a !important }
+/* 채팅 = 노트 패널 헤더 */
+html[data-theme="photoshop"] .chatbox::before{ content:'🗒 노트';display:block;background:#2b2b2b;padding:4px 10px;font-size:11px;color:#cfcfcf;border-bottom:1px solid #232323;font-weight:600 }
+/* === 주사위 = 다크 톤 견본(swatch) === */
+html[data-theme="photoshop"] .tray{ background:#2c2c2c !important;border:1px solid #232323 !important;box-shadow:none !important;border-radius:3px !important }
+html[data-theme="photoshop"] .keptzone{ border-bottom:1px solid #232323 !important }
+html[data-theme="photoshop"] .keptzone .lbl2{ color:#8a8a8a !important }
+html[data-theme="photoshop"] .d2{ width:38px !important;height:38px !important;background:#3a3a3a !important;box-shadow:inset 0 0 0 1px #232323 !important;border-radius:3px !important }
+html[data-theme="photoshop"] .d2 .p{ background:#c8c8c8 !important }
+html[data-theme="photoshop"] .d2 .c, html[data-theme="photoshop"] .d2 .pin{ display:none !important }
+html[data-theme="photoshop"] .d2::after{ content:attr(data-value);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#d4d4d4;font-family:'Segoe UI','맑은 고딕',sans-serif }
+html[data-theme="photoshop"] .d2.blank::after{ content:'' }
+html[data-theme="photoshop"] .d2.held{ box-shadow:inset 0 0 0 2px #31a8ff !important;transform:none !important }
+html[data-theme="photoshop"] .keptrow .d2{ width:30px !important;height:30px !important }
+html[data-theme="photoshop"] .keptrow .d2::after{ font-size:13px !important }
+/* === 버튼/배너/칩 = 다크 플랫 === */
+html[data-theme="photoshop"] .btn{ background:#3a3a3a !important;color:#d4d4d4 !important;border:1px solid #232323 !important;border-radius:3px !important;box-shadow:none !important;font-weight:600 }
+html[data-theme="photoshop"] .btn.rollbtn, html[data-theme="photoshop"] .rollbtn{ background:#31a8ff !important;color:#001e36 !important;border:1px solid #2b8fd8 !important;box-shadow:none !important }
+html[data-theme="photoshop"] .card, html[data-theme="photoshop"] .btn, html[data-theme="photoshop"] .tray, html[data-theme="photoshop"] .turnbanner, html[data-theme="photoshop"] .chips button, html[data-theme="photoshop"] .tabs button, html[data-theme="photoshop"] input.txt, html[data-theme="photoshop"] .d2, html[data-theme="photoshop"] .iconbtn{ border-radius:3px !important }
+html[data-theme="photoshop"] .chips button, html[data-theme="photoshop"] .tabs button{ background:#2c2c2c !important;color:#c8c8c8 !important;border:1px solid #232323 !important;box-shadow:none !important }
+html[data-theme="photoshop"] .chips button.on, html[data-theme="photoshop"] .tabs button.on, html[data-theme="photoshop"] .opt.on{ background:#31a8ff !important;color:#001e36 !important;border-color:#2b8fd8 !important }
+html[data-theme="photoshop"] input.txt{ background:#252525 !important;color:#d4d4d4 !important;border:1px solid #1a1a1a !important }
+html[data-theme="photoshop"] .turnbanner{ background:#2c2c2c !important;color:#d4d4d4 !important;border:1px solid #232323 !important;border-left:3px solid #555 !important;border-radius:0 !important;box-shadow:none !important;font-size:12px !important;padding:8px 11px !important;text-align:left !important }
+html[data-theme="photoshop"] .turnbanner.me{ background:#243b4a !important;color:#dfefff !important;border-left:3px solid #31a8ff !important }
+html[data-theme="photoshop"] .turnbanner *{ color:inherit !important }
+html[data-theme="photoshop"] .turnbanner .av, html[data-theme="photoshop"] .turnbanner img{ display:none !important }
+html[data-theme="photoshop"] .rolls, html[data-theme="photoshop"] .rolls span, html[data-theme="photoshop"] .rolls b{ color:#9a9a9a !important }
+html[data-theme="photoshop"] .card .iconbtn{ background:#2c2c2c !important;border:1px solid #232323 !important;color:#b0b0b0 !important }
+/* === 채팅 = 히스토리(메모) 패널 === */
+html[data-theme="photoshop"] .chatbox{ margin-top:10px;border:1px solid #232323;background:#2c2c2c;border-radius:3px }
+html[data-theme="photoshop"] .chatlog{ background:#2c2c2c !important;border:none !important;border-radius:0 !important }
+html[data-theme="photoshop"] .chatrow input{ background:#252525 !important;border:1px solid #1a1a1a !important;color:#d4d4d4 !important;border-radius:3px !important }
+html[data-theme="photoshop"] .chatrow button{ background:#3a3a3a !important;color:#d4d4d4 !important;border:1px solid #232323 !important;border-radius:3px !important }
+/* === 우승 순간에도 축포·화려함 대신 차분한 다크 패널 === */
+html[data-theme="photoshop"] #confetti{ display:none !important }
+html[data-theme="photoshop"] .overlay{ background:rgba(15,15,15,.86) !important }
+html[data-theme="photoshop"] #overlay .result{ background:#2b2b2b !important;border:1px solid #171717 !important;border-radius:4px !important;box-shadow:0 12px 40px rgba(0,0,0,.6) !important }
+html[data-theme="photoshop"] #overlay .result *{ text-shadow:none !important }
+html[data-theme="photoshop"] #overlay .medal, html[data-theme="photoshop"] #overlay .newbest{ filter:grayscale(1) opacity(.7) }
+
 html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
 html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme="hanji"] .tabs button.on, html[data-theme="hanji"] .tchip.on, html[data-theme="hanji"] .chips button.on{ color:#fff8ec !important; }
   .tcdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
@@ -521,6 +671,49 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div class="xl-statusbar"><span>준비</span><span class="xl-stats">평균: 3.46　개수: 13　합계: 45</span><span class="xl-zoom">🔍 ─　＋　100%</span></div>
   </div>
   <div id="excelRows" aria-hidden="true"></div>
+
+  <!-- 포토샵 위장 크롬 (엑셀 크롬과 대칭) -->
+  <div id="psChrome" aria-hidden="true">
+    <div class="ps-menubar">
+      <span class="ps-logo">Ps</span>
+      <span class="ps-mfile" onclick="window.__unmask&&window.__unmask()" style="cursor:pointer" title="파일 — 클릭 또는 ` / Esc 키로 즉시 전환">파일</span>
+      <span>편집</span><span>이미지</span><span>레이어</span><span>문자</span><span>선택</span><span>필터</span><span>3D</span><span>보기</span><span>창</span><span>도움말</span>
+      <span class="ps-winbtns">─ ▢ ✕</span>
+    </div>
+    <div class="ps-optbar">
+      <span class="ps-tool">🖌</span>
+      <span>브러시</span><span class="ps-sep"></span>
+      <span>크기 <b class="ps-field">30</b> px</span>
+      <span>모드 <b class="ps-field">표준</b></span>
+      <span>불투명도 <b class="ps-field">100%</b></span>
+      <span>흐름 <b class="ps-field">100%</b></span>
+    </div>
+    <div class="ps-doctab"><span class="ps-tab on">제목 없음-1 @ 100%(RGB/8)<span class="ps-x">✕</span></span></div>
+  </div>
+  <div id="psTools" aria-hidden="true"></div>
+  <div id="psPanels" aria-hidden="true">
+    <div class="ps-panel">
+      <div class="ps-phead"><span class="ps-tabs2"><b>색상</b><span>견본</span></span><span>≡</span></div>
+      <div class="ps-fgbg"><i class="ps-bg"></i><i class="ps-fg"></i></div>
+      <div class="ps-swatches">
+        <i style="background:#000"></i><i style="background:#fff"></i><i style="background:#ff2f2f"></i><i style="background:#ff8f2f"></i><i style="background:#ffd42f"></i><i style="background:#8fd42f"></i><i style="background:#2fd47a"></i><i style="background:#2fbfd4"></i><i style="background:#31a8ff"></i><i style="background:#2f5fd4"></i><i style="background:#7a2fd4"></i><i style="background:#d42fbf"></i><i style="background:#7a7a7a"></i><i style="background:#3a3a3a"></i>
+      </div>
+    </div>
+    <div class="ps-panel ps-layers">
+      <div class="ps-phead"><span class="ps-tabs2"><b>레이어</b><span>채널</span><span>패스</span></span><span>≡</span></div>
+      <div class="ps-lopac"><span>불투명도</span><span class="ps-slider"></span><b style="color:#c8c8c8">100%</b></div>
+      <div class="ps-llist">
+        <div class="ps-layer sel"><span class="ps-eye">👁</span><span class="ps-thumb" style="background:linear-gradient(135deg,#4a6070,#2c3a44)"></span><span>레이어 1</span><span class="ps-lop">100%</span></div>
+        <div class="ps-layer"><span class="ps-eye">👁</span><span class="ps-thumb" style="background:linear-gradient(135deg,#6a5a3a,#3a3020)"></span><span>텍스트 복사</span><span class="ps-lop">80%</span></div>
+        <div class="ps-layer"><span class="ps-eye">👁</span><span class="ps-thumb" style="background:linear-gradient(135deg,#555,#333)"></span><span>배경</span><span class="ps-lop">🔒</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="psStatus" aria-hidden="true">
+    <span class="ps-zoom">100%</span>
+    <span class="ps-docinfo">문서:2.25M/5.5M</span>
+  </div>
+
   <div class="opacityctl">
     <span>🪟</span>
     <input type="range" id="opacity" min="10" max="100" value="100">
@@ -550,7 +743,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
-      <div class="excel-tip">🕵️ <b>엑셀</b> 테마 = 몰래 모드(스프레드시트 위장). 켜면 <span class="k">`</span> 키로 즉시 껐다 켜고, <span class="k">Esc</span>로 숨기고, <b>파일</b> 탭으로 나옵니다.</div>
+      <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켜면 <span class="k">`</span> 키로 즉시 껐다 켜고, <span class="k">Esc</span>로 숨기고, <b>파일</b> 탭/메뉴로 나옵니다.</div>
       <div class="tabs">
         <button id="tabLocal" class="on">로컬 / AI</button>
         <button id="tabOnline">온라인</button>
@@ -991,8 +1184,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ---------- prefs + stats ----------
   let soundOn=(function(){try{return localStorage.getItem('alley_sound')!=='0';}catch(e){return true;}})();
-  // 엑셀 위장 중엔 소리를 완전히 죽인다(회사에서 딸깍·팡파레로 들통 방지)
-  const audible=()=>soundOn && document.documentElement.dataset.theme!=='excel';
+  // 위장 테마(엑셀·포토샵) 공용 판정 — 여러 스크립트 블록에서 쓰도록 window에도 노출
+  const DISGUISE=['excel','photoshop'];
+  const isDisguise=()=>DISGUISE.includes(document.documentElement.dataset.theme);
+  window.__isDisguise=isDisguise;
+  // 위장 중엔 소리를 완전히 죽인다(회사에서 딸깍·팡파레로 들통 방지)
+  const audible=()=>soundOn && !isDisguise();
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null;
   const ACH_YT=[
     {id:'win1',icon:'🎲',name:'첫 승리',desc:'1승 달성',ck:d=>d.wins>=1},
@@ -1078,7 +1275,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const items=S.dice.map((d,i)=>({d,i}));
     items.filter(o=>!o.d.held).forEach(o=>{ diceEl.appendChild(makeDie(o.d,o.i,animating.has(o.i))); });
     items.filter(o=>o.d.held).sort((a,b)=>(a.d.value-b.d.value)||(a.i-b.i)).forEach(o=>{ keptEl.appendChild(makeDie(o.d,o.i,animating.has(o.i))); heldNow.add(o.i); });
-    const lbl=$('keptLbl'); if(lbl)lbl.textContent=(document.documentElement.dataset.theme==='excel'?'선택 ':'킵 ')+heldNow.size+'/5';
+    const lbl=$('keptLbl'); if(lbl){const _th=document.documentElement.dataset.theme; lbl.textContent=(_th==='excel'?'선택 ':_th==='photoshop'?'고정 ':'킵 ')+heldNow.size+'/5';}
     if(!animLock){ document.querySelectorAll('#dice2d .d2,#keptrow .d2').forEach(el=>{ const o=old[el.dataset.i];
       if(o){ const n=el.getBoundingClientRect(); const dx=o.left-n.left, dy=o.top-n.top;
         if(Math.abs(dx)>1||Math.abs(dy)>1){ el.style.transition='none'; el.style.transform=`translate(${dx}px,${dy}px)`; el.getBoundingClientRect(); el.classList.add('flip'); el.style.transition=''; el.style.transform=''; } }
@@ -1095,14 +1292,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function renderTurn(){ if(!S)return; const p=curPlayer(); if(!p)return; const spec=spectating();
     $('specBar').style.display=spec?'flex':'none';
     const bn=$('turnBanner'); if(bn){ const mine=isMyTurn(); bn.style.display='flex'; bn.className='turnbanner '+(mine?'me':'other');
-      bn.innerHTML=avHTML(p,{cur:true,off:!p.connected})+`<span class="nm">${esc(p.name)}</span>`+(p.ai?'<span class="aitag">AI '+esc(p.personaLabel||'')+'</span>':'')+(mine?(document.documentElement.dataset.theme==='excel'?'<span>— 편집 중</span>':'<span>— 내 차례!</span>'):(document.documentElement.dataset.theme==='excel'?'<span style="color:var(--muted);font-weight:600">대기</span>':'<span style="color:var(--muted);font-weight:600">차례</span>'))+(!p.connected?' <span class="aitag" style="background:var(--danger);color:#fff">끊김·AI진행</span>':''); }
+      const _th=document.documentElement.dataset.theme, _xl=_th==='excel', _ps=_th==='photoshop';
+      const _nm=_ps?('레이어 '+((p.seat!=null?p.seat:0)+1)):esc(p.name);   // 포토샵: 이름(AI 2 등)을 레이어명으로 위장
+      const _tag=_ps?'':(p.ai?'<span class="aitag">AI '+esc(p.personaLabel||'')+'</span>':'');
+      const _mineLbl=(_xl||_ps)?'<span>— 편집 중</span>':'<span>— 내 차례!</span>';
+      const _otLbl=_xl?'<span style="color:var(--muted);font-weight:600">대기</span>':_ps?'<span style="color:var(--muted);font-weight:600">잠금</span>':'<span style="color:var(--muted);font-weight:600">차례</span>';
+      bn.innerHTML=avHTML(p,{cur:true,off:!p.connected})+`<span class="nm">${_nm}</span>`+_tag+(mine?_mineLbl:_otLbl)+(!p.connected?' <span class="aitag" style="background:var(--danger);color:#fff">끊김·AI진행</span>':''); }
     const rp=$('rollPips'); rp.innerHTML=''; for(let i=0;i<3;i++){const d=document.createElement('i');if(i<S.rollsLeft)d.classList.add('live');rp.appendChild(d);}
     const pl=$('progressLbl'); if(pl){ const mineP=S.players.find(x=>x.pid===myPid); const meP=mineP||S.players[S.current];
       const filled=meP?S.cats.filter(c=>meP.scores[c.id]!==null).length:0; pl.textContent=filled+'/'+S.cats.length;
       const cap=$('progressCap'); if(cap)cap.textContent=mineP?'내 기록':'이번 차례'; }   // 로컬/관전은 현재 차례 기준임을 명시
     const me=canAct(), rb=$('rollBtn'); rb.disabled=!me||S.rollsLeft<=0; rb.style.display=spec?'none':'block';
-    const xlT=document.documentElement.dataset.theme==='excel';
-    rb.textContent=p.ai?(xlT?'계산 중…':'AI가 굴리는 중…'):(!S.rolled?(xlT?'계산 (F9)':'굴리기'):(S.rollsLeft>0?(xlT?`재계산 (${S.rollsLeft})`:`다시 굴리기 (${S.rollsLeft})`):(xlT?'완료':'굴림 끝')));
+    const _rth=document.documentElement.dataset.theme, xlT=_rth==='excel', psT=_rth==='photoshop';
+    rb.textContent = p.ai ? (xlT?'계산 중…':psT?'처리 중…':'AI가 굴리는 중…')
+      : !S.rolled ? (xlT?'계산 (F9)':psT?'적용':'굴리기')
+      : S.rollsLeft>0 ? (xlT?`재계산 (${S.rollsLeft})`:psT?`재적용 (${S.rollsLeft})`:`다시 굴리기 (${S.rollsLeft})`)
+      : (xlT?'완료':psT?'완료':'굴림 끝');
     const sk=$('skipBtn'); if(sk){ const show=isOnline()&&amHost()&&S.phase==='play'&&p.pid!==myPid; sk.style.display=show?'flex':'none'; }
     const eb=$('endBtn'); if(eb){ eb.style.display=(isOnline()&&amHost()&&(S.phase==='play'||S.phase==='over'))?'flex':'none'; }  // 판 종료 후에도 로비 복귀 가능
     const h=$('hint');
@@ -1245,7 +1450,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       }
       $('chatBox').style.display='block'; setupChat();
     }
-    else { const xl=document.documentElement.dataset.theme==='excel'; $('reactzone').style.display='none'; if(xl){ $('chatBox').style.display='block'; setupChat(); } else $('chatBox').style.display='none'; }
+    else { const dis=isDisguise(); $('reactzone').style.display='none'; if(dis){ $('chatBox').style.display='block'; setupChat(); } else $('chatBox').style.display='none'; }
   }
   function setupReactToggle(){
     const tog=$('reactToggle'), bar=$('reactbar');
@@ -1350,7 +1555,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(s.phase==='over'){ stopBlink(); if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false;
       // 승자 게이트: 온라인은 내 pid가 공동 1등 포함 최고점인지, 로컬 핫시트는 사람 플레이어가 1등인지 판정
       const wpids=(s.winners&&s.winners.pids)||[]; const iWon = isOnline() ? wpids.includes(myPid) : localPids.some(pid=>wpids.includes(pid));
-      showResult(s,beat,iWon); if(iWon){ SFX.win(); if(document.documentElement.dataset.theme!=='excel') confetti(); } } }   // 이겼을 때(공동승 포함)만 축포·승리음, 졌을 땐 차분히. 엑셀 위장 중엔 축포 없음
+      showResult(s,beat,iWon); if(iWon){ SFX.win(); if(!isDisguise()) confetti(); } } }   // 이겼을 때(공동승 포함)만 축포·승리음, 졌을 땐 차분히. 위장(엑셀·포토샵) 중엔 축포 없음
     else recorded=false;
   }
   function showResult(s,beat,won){ const w=s.winners, ranked=[...s.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
@@ -1539,19 +1744,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   // ========== boot ==========
-  const THEMES=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346']];
-  // 엑셀은 요트 전용 테마 — 공유 키(alley_theme)엔 저장하지 않고 요트 전용 키로만 기억한다.
-  // (공유 키에 'excel'이 새면 다른 게임/허브가 폴백돼 테마칩 하이라이트가 사라진다.)
-  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';}})();
+  const THEMES=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346'],['photoshop','포토샵','#31a8ff']];
+  // 엑셀·포토샵은 요트 전용 위장 테마 — 공유 키(alley_theme)엔 저장하지 않고 요트 전용 키로만 기억한다.
+  // (공유 키에 'excel'/'photoshop'이 새면 다른 게임/허브가 폴백돼 테마칩 하이라이트가 사라진다.)
+  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; if(localStorage.getItem('yacht_theme_photoshop')==='1') return 'photoshop'; var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';}})();
   function applyTheme(t){ theme=t; document.documentElement.dataset.theme=t;
     try{
-      if(t==='excel'){
-        localStorage.setItem('yacht_theme_excel','1');
-        // 공유 키엔 직전 비-excel 테마를 안전값으로 유지 (없거나 오염됐으면 라이트)
-        var safe=localStorage.getItem('alley_theme'); if(!safe||safe==='excel') safe='hanji';
+      if(DISGUISE.includes(t)){
+        // 현재 위장 종류만 플래그 켜고 다른 위장 플래그는 끈다 + 보스키가 쓸 마지막 위장 저장
+        DISGUISE.forEach(function(d){ if(d===t) localStorage.setItem('yacht_theme_'+d,'1'); else localStorage.removeItem('yacht_theme_'+d); });
+        localStorage.setItem('yacht_disguise',t);
+        // 공유 키엔 직전 비-위장 테마를 안전값으로 유지 (없거나 오염됐으면 라이트)
+        var safe=localStorage.getItem('alley_theme'); if(!safe||DISGUISE.includes(safe)) safe='hanji';
         localStorage.setItem('alley_theme',safe);
       } else {
-        localStorage.removeItem('yacht_theme_excel');
+        DISGUISE.forEach(function(d){ localStorage.removeItem('yacht_theme_'+d); });
         localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t);
       }
     }catch(e){}
@@ -1559,12 +1766,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(window.__alleySyncLight) window.__alleySyncLight(); }
   window.__alleySetTheme=applyTheme;
   applyTheme(theme);
-  // 엑셀(위장 모드) 단축키 안내 — 처음 켤 때 1회, 엑셀 초록 톤으로 블렌딩
-  function excelHint(){ try{ if(localStorage.getItem('yacht_excel_hint')==='1') return; localStorage.setItem('yacht_excel_hint','1'); }catch(e){}
-    var d=document.createElement('div'); d.textContent='🕵️ 위장 모드 — ` 키로 즉시 껐다 켜기 · Esc로 숨기기 · "파일" 탭으로 나가기';
-    d.style.cssText='position:fixed;left:50%;top:64px;transform:translateX(-50%);background:#217346;color:#fff;padding:10px 16px;border-radius:6px;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:12.5px;font-weight:600;font-family:"Segoe UI","맑은 고딕","Malgun Gothic",sans-serif;max-width:92vw;text-align:center';
+  // 위장 모드(엑셀·포토샵) 단축키 안내 — 처음 켤 때 종류별 1회, 해당 앱 톤으로 블렌딩
+  function disguiseHint(kind){ var key='yacht_hint_'+kind; try{ if(localStorage.getItem(key)==='1') return; localStorage.setItem(key,'1'); }catch(e){}
+    var isPs=kind==='photoshop';
+    var col=isPs?'#001e36':'#217346';
+    var exit=isPs?'"파일" 메뉴':'"파일" 탭';
+    var appnm=isPs?'포토샵':'엑셀';
+    var d=document.createElement('div'); d.textContent='🕵️ 위장 모드('+appnm+') — ` 키로 즉시 껐다 켜기 · Esc로 숨기기 · '+exit+'으로 나가기';
+    d.style.cssText='position:fixed;left:50%;top:64px;transform:translateX(-50%);background:'+col+';color:#fff;padding:10px 16px;border-radius:6px;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:12.5px;font-weight:600;font-family:"Segoe UI","맑은 고딕","Malgun Gothic",sans-serif;max-width:92vw;text-align:center';
     document.body.appendChild(d); setTimeout(function(){d.remove();},4500); }
-  (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>{applyTheme(id); if(id==='excel')excelHint();};box.appendChild(b);}); })();
+  (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>{applyTheme(id); if(DISGUISE.includes(id))disguiseHint(id);};box.appendChild(b);}); })();
   renderStats(); renderAch();
   (function(){ const room=LS.get('yd_room'),pid=LS.get('yd_pid');
     if(room&&pid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; connect(()=>wsSend({t:'rejoin',code:room,pid})); return; }
@@ -1579,12 +1790,41 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   if(cols && !cols.children.length){ cols.innerHTML='<span class="xl-corner"></span>'; for(var i=0;i<16;i++){ var s=document.createElement('span'); s.textContent=String.fromCharCode(65+i); cols.appendChild(s); } }
   var rows=document.getElementById('excelRows');
   if(rows && !rows.children.length){ for(var r=1;r<=32;r++){ var s=document.createElement('span'); s.textContent=r; rows.appendChild(s); } }
+  // 포토샵 좌측 세로 툴바 — 단색 SVG 아이콘 열 (엑셀 열문자/행번호 생성과 대칭)
+  var ptools=document.getElementById('psTools');
+  if(ptools && !ptools.children.length){
+    var TOOLS=[
+      ['이동','<path d="M10 2v16M2 10h16M10 2l-2.4 2.4M10 2l2.4 2.4M10 18l-2.4-2.4M10 18l2.4-2.4M2 10l2.4-2.4M2 10l2.4 2.4M18 10l-2.4-2.4M18 10l-2.4 2.4"/>'],
+      ['선택 윤곽','<rect x="3" y="4.5" width="14" height="11" stroke-dasharray="2.4 2"/>'],
+      ['올가미','<path d="M4 11c0-4 12-5 12 0 0 3-6 4-6 1M9 14l-1.5 3"/>'],
+      ['자르기','<path d="M6 2.5v11.5h11.5M14 17.5V6H2.5"/>',1],
+      ['스포이드','<path d="M12.5 3.5l4 4-7.5 7.5-4 .8.8-4z"/><path d="M11.5 4.5l4 4"/>'],
+      ['브러시','<path d="M13.5 3.5c2 2 1.5 3.5-3 6.5l-2.5-2.5c4-4 5.5-4 5.5-4z M8 8.5L4 15.5l6.5-3.5z"/>',1],
+      ['지우개','<path d="M3.5 12.5l7-7 5 5-4 4H6z M9.5 8.5l4 4"/>'],
+      ['그레이디언트','<rect x="3" y="4.5" width="14" height="11"/><path d="M4 14l12-8" opacity=".6"/>'],
+      ['페인트 통','<path d="M4 9l6-6 5 5-6 6z M15 9l1.5 1.5c1 1 1 2.5-.5 2.5s-1.5-1.5-.5-2.5"/>'],
+      ['문자','<path d="M4 4h12M10 4v13"/>'],
+      ['펜','<path d="M5 16l1.5-4.5 6.5-6.5 3 3-6.5 6.5z M6.5 11.5l3 3"/>'],
+      ['사각형','<rect x="4" y="5.5" width="12" height="9"/>'],
+      ['손','<path d="M6.5 11V6.2a1.1 1.1 0 012.2 0v3.3m0 0V4.6a1.1 1.1 0 012.2 0v4.9m0 0V5.6a1.1 1.1 0 012.2 0v6c0 3-2 5-5 5-2.5 0-3.8-1.5-4.8-3.4l-1-1.9a1.1 1.1 0 011.8-1.1z"/>'],
+      ['돋보기','<circle cx="8.5" cy="8.5" r="5"/><path d="M12.2 12.2L17 17"/>']
+    ];
+    TOOLS.forEach(function(t,i){ var d=document.createElement('div'); d.className='ps-tool-i'+(i===5?' on':''); d.title=t[0];
+      d.innerHTML='<svg viewBox="0 0 20 20"'+(t[2]?' fill="currentColor" stroke="none"':'')+'>'+t[1]+'</svg>';
+      ptools.appendChild(d);
+      if(i===3||i===6||i===9||i===11){ var sep=document.createElement('div'); sep.className='ps-tool-sep'; ptools.appendChild(sep); }
+    });
+  }
   var origTitle=document.title;
-  window.__unmask=function(){ document.documentElement.dataset.theme="espresso"; try{localStorage.setItem("alley_theme","espresso");localStorage.removeItem("yacht_theme_excel");}catch(e){} var lb=document.getElementById("lightBtn"); if(lb){lb.style.display="";lb.textContent="☀️";} try{updTitle();}catch(e){} };
+  // 위장(엑셀·포토샵) 두 가지 모두에서 원래 화면으로 원복
+  window.__unmask=function(){ document.documentElement.dataset.theme="espresso"; try{localStorage.setItem("alley_theme","espresso");localStorage.removeItem("yacht_theme_excel");localStorage.removeItem("yacht_theme_photoshop");}catch(e){} var lb=document.getElementById("lightBtn"); if(lb){lb.style.display="";lb.textContent="☀️";} try{updTitle();}catch(e){} };
   var origFav=null;
-  function updTitle(){ var ex=document.documentElement.dataset.theme==='excel'; document.title=ex?'통합 문서1 - Excel':origTitle;
+  var PS_FAV='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect width=\'32\' height=\'32\' rx=\'4\' fill=\'#001e36\'/><text x=\'16\' y=\'22\' font-size=\'14\' font-family=\'Arial\' font-weight=\'bold\' fill=\'#31a8ff\' text-anchor=\'middle\'>Ps</text></svg>');
+  var XL_FAV='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect width=\'32\' height=\'32\' rx=\'4\' fill=\'#217346\'/><text x=\'16\' y=\'23\' font-size=\'20\' font-family=\'Arial\' font-weight=\'bold\' fill=\'white\' text-anchor=\'middle\'>X</text></svg>');
+  function updTitle(){ var th=document.documentElement.dataset.theme; var ex=th==='excel', ps=th==='photoshop';
+    document.title = ex?'통합 문서1 - Excel' : ps?'제목 없음-1 @ 100%(RGB/8) - Adobe Photoshop' : origTitle;
     try{ var l=document.querySelector('link[rel="icon"]'); if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l);} if(origFav===null)origFav=l.getAttribute('href')||'';
-      l.setAttribute('href', ex?'data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect width=\'32\' height=\'32\' rx=\'4\' fill=\'#217346\'/><text x=\'16\' y=\'23\' font-size=\'20\' font-family=\'Arial\' font-weight=\'bold\' fill=\'white\' text-anchor=\'middle\'>X</text></svg>'):origFav);
+      l.setAttribute('href', ex?XL_FAV : ps?PS_FAV : origFav);
     }catch(e){}
   }
   try{ new MutationObserver(updTitle).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']}); }catch(e){}
@@ -1609,19 +1849,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   try{ new MutationObserver(sync).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']}); }catch(e){}
 })();</script>
 <script>(function(){
-  /* 보스키: 어디서든 즉시 엑셀 위장 ↔ 원래 화면 전환.
+  /* 보스키: 어디서든 즉시 위장 ↔ 원래 화면 전환. 마지막으로 고른 위장(엑셀/포토샵)을 사용.
      `(백틱) = 토글 · Esc = 즉시 숨김(마스크). 입력창에 타이핑 중이면 무시. */
+  function lastDisguise(){ try{ var d=localStorage.getItem('yacht_disguise')||'excel'; return /^(excel|photoshop)$/.test(d)?d:'excel'; }catch(e){ return 'excel'; } }
   document.addEventListener('keydown', function(e){
     var tag=(e.target && e.target.tagName)||'';
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
-    var isEx=document.documentElement.dataset.theme==='excel';
+    var isDis=/^(excel|photoshop)$/.test(document.documentElement.dataset.theme||'');
     if(e.key==='`' || e.key==='~'){
       e.preventDefault();
-      if(isEx){ window.__unmask && window.__unmask(); }
-      else if(window.__alleySetTheme){ window.__alleySetTheme('excel'); }
-    } else if(e.key==='Escape' && !isEx){
+      if(isDis){ window.__unmask && window.__unmask(); }
+      else if(window.__alleySetTheme){ window.__alleySetTheme(lastDisguise()); }
+    } else if(e.key==='Escape' && !isDis){
       /* Esc는 '숨기기' 전용 — 실수로 위장을 벗기지 않도록 마스크만 */
-      if(window.__alleySetTheme) window.__alleySetTheme('excel');
+      if(window.__alleySetTheme) window.__alleySetTheme(lastDisguise());
     }
   });
 })();</script>
