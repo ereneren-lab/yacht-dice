@@ -35,6 +35,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     body.ingame .wrap{ max-width:900px; transition:max-width .2s }
     .ld-grid{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
     .ld-side{ position:sticky; top:8px; }
+    /* 오프라인(AI/로컬)은 사이드(반응·채팅)가 비어 우측 260px가 통째로 빈다 → 단일 컬럼 + 좁은 폭으로 중앙 정렬 */
+    body:not(.ld-online).ingame .wrap{ max-width:640px; }
+    body:not(.ld-online) .ld-grid{ grid-template-columns:minmax(0,1fr); }
+    body:not(.ld-online) .ld-side{ display:none; }
   }
 
   .topbar{display:flex; align-items:center; gap:12px; margin:4px 2px 14px}
@@ -230,7 +234,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .result{text-align:center;padding:6px 0}
   .result .crown{font-size:46px}
   .result h3{font-family:var(--font);font-size:25px;font-weight:800;margin:6px 0 8px}
-  .result .rsub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .result .rsub{color:var(--muted);font-size:14px;margin-bottom:12px}
+  .resgrowth{display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 auto 14px}
+  .resgrowth b{color:var(--brass);font-weight:800}
+  .resgrowth .rg-sep{color:var(--line)}
+  .resrank{display:flex;flex-direction:column;gap:6px;margin:0 auto 16px;max-width:280px;text-align:left}
+  .resrank .rr{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+  .resrank .rr.me{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 12%,var(--panel2))}
+  .resrank .rr.first{border-color:var(--win)}
+  .resrank .rr-rank{font-family:var(--font);font-weight:800;font-size:15px;width:26px;flex:none;text-align:center}
+  .resrank .rr-av{width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--brass) 14%,transparent);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  .resrank .rr-nm{font-weight:700;font-size:13.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .resrank .rr-tag{font-size:10.5px;font-weight:800;color:var(--muted);flex:none}
   .rematch-msg{font-size:15px;font-weight:800;color:var(--brass);margin-bottom:10px;text-align:center}
   .rematch-voters{display:flex;flex-direction:column;gap:5px;margin:0 auto 12px;max-width:240px}
   .rmvoter{font-size:13px;color:var(--ink);text-align:left;padding:6px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:8px}
@@ -439,6 +454,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="crown" id="resCrown">🏆</div>
       <h3 id="resTitle">승리!</h3>
       <div class="rsub" id="resSub"></div>
+      <div class="resgrowth" id="resGrowth"></div>
+      <div class="resrank" id="resRank"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="toLobbyBtn" style="margin-top:10px;display:none">🏛 로비로</button>
@@ -718,6 +735,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let localDiff='normal';
   let lastComboEmoji=null, comboN=0, lastComboT=0;
   let prevMembers=null, prevConn=null;
+  let elimOrder=[], elimSeen={};   // 탈락 순서 기록(최종 순위용) — pid만 담아 숨김정보와 무관
 
   // rules
   let rulesSeen=false; try{ rulesSeen=localStorage.getItem('ld_rules')==='1'; }catch(e){}
@@ -1019,6 +1037,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('endBtn').style.display = (online && amHost) ? 'flex' : 'none';   // 판 종료(over) 후에도 로비 복귀 경로 유지
     if(S.phase==='reveal'||S.phase==='over') freshRound=true;
     if(S.phase!=='over') resultShown=false;
+    document.body.classList.toggle('ld-online', !!online);   // 오프라인은 사이드(반응·채팅)가 비어 단일 컬럼로
+    // 탈락 순서 기록(최종 순위) — 살아있는 인원이 기록보다 많아지면 새 게임 → 리셋
+    const aliveCount=S.players.filter(p=>p.alive).length;
+    if(S.players.length - elimOrder.length < aliveCount){ elimOrder=[]; elimSeen={}; }
+    S.players.forEach(p=>{ if(!p.alive && !elimSeen[p.pid]){ elimSeen[p.pid]=true; elimOrder.push(p.pid); } });
     const ms=mySeat();
     renderOpps(); renderCenter();
     if(ms<0){   // 관전자 (게임 중 입장 — 엔진 플레이어 아님)
@@ -1113,7 +1136,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(!myTurn){ host.innerHTML=''; return; }
     // 새 라운드(또는 내 차례 첫 진입)면 내 패 기반으로 추천값 세팅
     if(freshRound){
-      let f=bestFace(); if(S.bid && f<S.bid.face) f=S.bid.face;
+      // 베팅이 있으면 도전 판단이 쉽도록 그 눈을 기본 선택(내 최다 face 대신) → faceHint가 바로 "그 눈 내 보유"를 보여줌
+      let f = S.bid ? S.bid.face : bestFace();
       bidFace=f; bidQty=recQtyForFace(bidFace); freshRound=false;
     } else {
       if(bidFace<2)bidFace=2; if(bidFace>6)bidFace=6;
@@ -1137,7 +1161,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       row.innerHTML=`<button class="btn danger" id="dudoBtn">거짓말!</button><span class="qh" data-c="dudo">?</span>`+(S.spotOn?`<button class="btn violet" id="calzaBtn">정확히</button><span class="qh" data-c="calza">?</span>`:'');
       host.appendChild(row);
       row.querySelectorAll('.qh').forEach(q=>q.onclick=(e)=>{ e.stopPropagation(); showInfo(q.dataset.c); });
-      const m=document.createElement('div'); m.className='mini'; m.textContent='앞 사람 베팅이 뻥 같으면 거짓말!'; host.appendChild(m);
+      // 도전 판단 보조: 베팅한 눈을 내가 몇 개 들고 있는지 한 줄로(확률%는 심리전 균형상 제외)
+      const bf=S.bid.face, bc=myMatchCount(bf);
+      const hasWild=S.wild && ((S.players[mySeat()]||{}).dice||[]).includes(1);
+      const m=document.createElement('div'); m.className='mini'; m.style.marginTop='2px';
+      m.innerHTML=`베팅한 눈 ${GLY[bf]||bf} — 내 패에 <b style="color:var(--brass)">${bc}개</b>${hasWild?' <span style="color:var(--muted)">(와일드 1 포함)</span>':''} · 뻥 같으면 거짓말!`;
+      host.appendChild(m);
     }
 
     // wire
@@ -1214,6 +1243,33 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('toLobbyBtn').textContent = (online && amHost) ? '🏛 판 끝내고 로비로 (모두)' : '🏛 로비로';
     // ld_room/ld_pid는 유지 — 방에 남아있는 동안 새로고침해도 재접속돼야 한다
     if(!spectator) Stats.record(iWon);
+    // 성장 피드백(통산 전적·연승)
+    const rg=$('resGrowth');
+    if(rg){
+      if(spectator){ rg.style.display='none'; }
+      else {
+        const d=Stats.d;
+        const parts=[`이번 판 <b>${iWon?'승리':'패배'}</b>`, `통산 <b>${d.wins}승</b>/${d.games}판`];
+        if(d.streak>=2) parts.push(`<b>🔥${d.streak}연승</b>`);
+        else if(d.bestStreak>=2) parts.push(`<span style="color:var(--muted)">최고 ${d.bestStreak}연승</span>`);
+        rg.style.display='inline-flex';
+        rg.innerHTML=parts.join('<span class="rg-sep">·</span>');
+      }
+    }
+    // 최종 순위: 우승자 → 탈락 역순(마지막 탈락이 2위). 다인전(3명+)에서만 표시. 주사위 정보는 안 씀
+    const rr=$('resRank');
+    if(rr){
+      const order=[]; if(win) order.push(win);
+      for(let i=elimOrder.length-1;i>=0;i--){ if(elimOrder[i]!==win && order.indexOf(elimOrder[i])<0) order.push(elimOrder[i]); }
+      S.players.forEach(p=>{ if(order.indexOf(p.pid)<0) order.push(p.pid); });   // 누락 방지
+      if(S.players.length>=3 && order.length>=3){
+        rr.style.display='flex';
+        rr.innerHTML=order.map((pid,i)=>{ const p=S.players.find(x=>x.pid===pid)||{name:'?',avatar:'🎲'};
+          const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'위';
+          return `<div class="rr${i===0?' first':''}${pid===MYPID?' me':''}"><span class="rr-rank">${medal}</span><span class="rr-av">${p.avatar||'🎲'}</span><span class="rr-nm">${esc(p.name)}${pid===MYPID?' (나)':''}</span><span class="rr-tag">${i===0?'우승':'탈락'}</span></div>`;
+        }).join('');
+      } else rr.style.display='none';
+    }
     $('resultOv').classList.add('on');
   }
 

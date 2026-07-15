@@ -134,6 +134,13 @@
   .col-current{background:rgba(174,243,89,.05)}
   tr.bonus td,tr.bonus td.catcol{color:var(--gold)}
   tr.total td{font-size:15px;font-weight:800;color:var(--ink);border-top:1px solid var(--line);padding:9px 6px}
+  /* P4: 보너스 보상 병기 + 판세 신호 */
+  tr.bonus .rew{display:inline-block;font-size:10px;font-weight:800;color:var(--accent-ink);background:var(--gold);padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;line-height:1.5}
+  tr.bonus td.bnear{background:rgba(255,212,94,.16);box-shadow:inset 0 0 0 1px rgba(255,212,94,.45)}
+  tr.bonus .rewhint{font-size:10px;font-weight:800;margin-left:3px;animation:secpulse 1.2s infinite}
+  tr.total td.lead{color:var(--gold);background:rgba(255,212,94,.12)}
+  tr.total td.lead .crown{margin-right:2px;font-size:14px}
+  tr.total .gap{display:inline-block;font-size:10px;font-weight:700;color:var(--muted);margin-left:4px;vertical-align:middle}
 
   .overlay{position:fixed;inset:0;background:rgba(13,10,20,.86);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;z-index:30}
   .overlay.show{display:flex}
@@ -283,6 +290,18 @@
   button,.d2,.iconbtn{touch-action:manipulation}
   .turnbar{flex-wrap:wrap;gap:8px}
   .tbctrls{flex-wrap:wrap;justify-content:flex-end}
+  /* P4: 좁은 화면 왕복 스크롤 완화 — 트레이·던지기 영역을 납작하게 해 점수판 상단을 한 화면에 (base .tray 뒤에 와야 오버라이드됨) */
+  @media(max-width:480px){
+    .gamewrap{gap:9px}
+    .dicepane{padding:10px 12px 12px;gap:8px}
+    .tray{height:auto;max-width:300px;padding:10px 12px}
+    .keptzone{margin-bottom:6px;padding-bottom:6px}
+    .keptrow{height:44px}
+    .tray .dice2d{height:44px;gap:5px}
+    .d2{width:40px;height:40px;border-radius:9px;padding:6px}
+    .rollbtn{max-width:none}
+    .hint{min-height:0}
+  }
 
   /* AI speech bubble */
   .bubble{position:fixed;transform:translateX(-50%);background:#fff;color:#1a1a1a;font-size:12px;font-weight:700;padding:6px 10px;border-radius:12px;z-index:55;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.4);white-space:nowrap;animation:bub 1.8s ease-out forwards}
@@ -358,6 +377,10 @@ html[data-theme="excel"] #sheet .catcol[data-xl]::before{ content:attr(data-xl);
 html[data-theme="excel"] #sheet .bonus .catcol{ font-size:0 !important }
 html[data-theme="excel"] #sheet .bonus .catcol::before{ content:'소계';font-size:12px }
 html[data-theme="excel"] #sheet .qh{ display:none !important }
+/* P4 장식은 엑셀 격리 유지 위해 숨김/무력화 */
+html[data-theme="excel"] #sheet .rew, html[data-theme="excel"] #sheet .rewhint, html[data-theme="excel"] #sheet .crown, html[data-theme="excel"] #sheet .gap{ display:none !important }
+html[data-theme="excel"] #sheet .bonus td.bnear{ background:#fafafa !important;box-shadow:none !important }
+html[data-theme="excel"] #sheet .total td.lead{ background:#fff !important;color:#000 !important }
 /* 엑셀 채팅 = 메모/댓글 패널 */
 html[data-theme="excel"] .chatbox{ margin-top:10px;border:1px solid #d0d0d0;background:#fff;border-radius:2px }
 html[data-theme="excel"] .chatbox::before{ content:'💬 메모';display:block;background:#f2f2f2;padding:4px 10px;font-size:11px;color:#333;border-bottom:1px solid #d0d0d0;font-weight:600 }
@@ -988,7 +1011,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ---------- state ----------
   let MODE='local', S=null, myPid=null, localPids=[], eng=null, ws=null, lobby=null;
   let animating=new Set(), animLock=false, animTimer=null, recorded=false, reconnects=0, reconnecting=false, bootReconnect=false;
-  let prevSnap=null, gameShown=false, compact=window.innerWidth<560, lastMyTurn=false, titleTimer=null, sawPlay=false, lastReact=0;
+  let prevSnap=null, gameShown=false, compact=window.innerWidth<560, lastMyTurn=false, titleTimer=null, sawPlay=false, lastReact=0, prevRollsLeft=null;
   const isOnline=()=>MODE==='online';
   const curPlayer=()=>S&&S.players[S.current];
   const spectating=()=>isOnline()&&S&&!S.players.some(p=>p.pid===myPid);
@@ -1126,10 +1149,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     cols.forEach(pi=>{const p=S.players[pi]; const meC=isOnline()&&p.pid===myPid?'me-col':''; h+=`<th class="${pi===S.current?'col-current':''} ${meC}"><div class="hav">${avHTML(p,{sm:true,cur:pi===S.current,off:!p.connected})}<span class="hnm">${esc(p.name)}</span></div></th>`;});
     h+='</tr></thead><tbody>';
     S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
-    if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)${qIcon('bonus')}</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th}</td>`;}).join('')}</tr>`;
+    if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)<span class="rew">+${S.bonus.pts}</span>${qIcon('bonus')}</td>${cols.map(pi=>{const p=S.players[pi];const rem=S.bonus.th-p.upperSum;const near=!p.bonusGot&&rem>0&&rem<=6;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="${rem}점 더 모으면 +${S.bonus.pts}"`:''}>${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th+(near?`<span class="rewhint">→+${S.bonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
     S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
-    if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;return `<td class="${pi===S.current?'col-current':''}">${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length}</td>`;}).join('')}</tr>`;
-    h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];return `<td class="${pi===S.current?'col-current':''}">${p.total}</td>`;}).join('')}</tr></tbody>`;
+    if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)<span class="rew">+${S.lowBonus.pts}</span>${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;const near=!p.lowBonusGot&&(S.lowBonus.ids.length-n)===1;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="1종만 더 완성하면 +${S.lowBonus.pts}"`:''}>${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length+(near?`<span class="rewhint">→+${S.lowBonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
+    const _maxT=Math.max(0,...cols.map(pi=>S.players[pi].total)),_multi=cols.length>1,_prog=_maxT>0;   // 판세 신호: 선두 왕관 + 격차 배지
+    h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];const lead=_multi&&_prog&&p.total===_maxT;const gap=_maxT-p.total;let inner=String(p.total);if(lead)inner='<span class="crown">👑</span>'+inner;else if(_multi&&_prog&&gap>0)inner+=`<span class="gap">-${gap}</span>`;return `<td class="${(pi===S.current?'col-current ':'')+(lead?'lead':'')}">${inner}</td>`;}).join('')}</tr></tbody>`;
     $('sheet').innerHTML=h;
     try{ if(document.documentElement.dataset.theme==='excel' && S){ const cur=S.players[S.current];
       const st=document.querySelector('.xl-stats'); if(st && cur){ const vals=Object.values(cur.scores||{}).filter(v=>typeof v==='number' && v>0); const cnt=vals.length||1; const sum=cur.total||0; st.textContent='평균: '+(sum/cnt).toFixed(2)+'　개수: '+cnt+'　합계: '+sum; }
@@ -1288,6 +1312,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; $('leaveBtn').style.display='flex'; buildReactbar(); }
     if(s.phase==='play'){ $('overlay').classList.remove('show'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f; }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
+    // 모바일 왕복 완화: 마지막 굴림(굴림 소진)으로 이제 '골라야' 하는 순간 점수판을 위로 스무스 스크롤.
+    // 굴림 남았을 땐(홀드 재굴림 가능) 주사위를 시야에 유지하려 스크롤하지 않음.
+    if(S&&S.phase==='play'&&S.rolled&&S.rollsLeft===0&&isMyTurn()&&window.innerWidth<=480&&prevRollsLeft!==null&&prevRollsLeft>0){
+      try{ $('sheet').scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){}
+    }
+    prevRollsLeft=(S&&S.phase==='play')?S.rollsLeft:null;
     const mt=isMyTurn(); if(isOnline()){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
     if(s.phase==='over'){ stopBlink(); if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false;
       // 승자 게이트: 온라인은 내 pid가 공동 1등 포함 최고점인지, 로컬 핫시트는 사람 플레이어가 1등인지 판정

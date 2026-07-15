@@ -29,9 +29,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ==== lcr 2단 (게임 왼쪽 · 로그+채팅 오른쪽) ==== */
   .lcr-side{ display:flex; flex-direction:column; gap:10px; }
   @media (min-width:781px){
-    body.ingame .app{ max-width:900px; transition:max-width .2s }
-    .lcr-grid{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
-    .lcr-side{ position:sticky; top:8px; }
+    body.ingame .app{ max-width:920px; min-height:100vh; display:flex; flex-direction:column; transition:max-width .2s }
+    body.ingame .topbar{ flex:none }
+    body.ingame #game{ flex:1 1 auto; display:flex !important; align-items:center }   /* 세로 중앙 정렬 — 하단 공백 해소 */
+    .lcr-grid{ display:grid; grid-template-columns:1fr 280px; gap:22px; align-items:start; width:100% }
+    .lcr-side{ position:sticky; top:8px }
+    /* 파티 게임답게 요소를 키우고 굴림기록을 크게 — 썰렁함 완화 */
+    .ldie{ width:60px;height:60px;font-size:29px }
+    .pot{ max-width:220px;padding:13px }
+    .pot .potn{ font-size:34px }
+    .rolllog{ font-size:15px }
+    .loghist{ max-height:340px }
   }
   .topbar{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
   .title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; }
@@ -306,6 +314,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="resbig" id="resBig">🏆</div>
       <div class="restitle" id="resTitle"></div>
       <div class="ressub" id="resSub"></div>
+      <div class="ressub" id="resStats" style="margin-top:-10px;display:none"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
@@ -690,11 +699,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const w=S.players.find(p=>p.pid===S.winner);
     const iWon = S.winner===MYPID;
     const spectator = mySeat()<0;
+    const pot = S.maxPot||0;   // 승자가 싹쓸이한 팟 크기 (판 내내 단조 증가)
     $('resBig').textContent = iWon?'🏆':'🎲';
     $('resTitle').textContent = w ? `${esc(w.name)} 승리!` : '게임 종료';
-    $('resSub').innerHTML = w ? `팟까지 전부 쓸어담아 <b style="color:var(--brass)">${w.chips}칩</b> 독식 🎉` : '';
+    // 극적인 팟 기여분을 총 칩과 분리 표기 — "🎯 팟 N개 포함 총 M칩 독식"
+    if(w){
+      const potPart = pot>0 ? `🎯 팟 <b style="color:var(--brass)">${pot}개</b> 포함 ` : '';
+      $('resSub').innerHTML = `${potPart}총 <b style="color:var(--brass)">${w.chips}칩</b> 독식 🎉`;
+    } else $('resSub').innerHTML='';
     $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
     if(!spectator){ Stats.record(iWon, S.maxPot||0); }
+    // 방금 갱신된 통산 전적/연승을 결과창에 노출 (record 이후라 최신값)
+    const rs=$('resStats');
+    if(rs){
+      if(!spectator && Stats.d.games){
+        const d=Stats.d, wr=Math.round(d.wins/d.games*100);
+        const streak = (iWon && d.streak>=2) ? ` · <b style="color:var(--brass)">🔥${d.streak}연승</b>` : '';
+        rs.innerHTML = `통산 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b>${streak}`;
+        rs.style.display='block';
+      } else rs.style.display='none';
+    }
     // 승리/패배 SFX는 playPotSweep(스윕 타이밍)에서 이미 재생됨
     $('resultOv').classList.add('on');
   }
@@ -837,7 +861,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const w=S?S.players.find(p=>p.pid===S.winner):null;
     const iWon=S&&S.winner===MYPID;
     const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
-    if(iWon) return `주사위 골목 · 좌중우(LCR)에서 팟까지 ${w?w.chips:''}칩 싹쓸이 승리!${st} 🔀`;
+    const pot=S?S.maxPot||0:0;
+    if(iWon){ const pp = pot>0?`팟 ${pot}개 포함 `:''; return `주사위 골목 · 좌중우(LCR)에서 ${pp}총 ${w?w.chips:''}칩 싹쓸이 승리!${st} 🔀`; }
     return `주사위 골목 · 좌중우(LCR) 한 판 붙었어. ${w?w.name+' 승리':''} 🔀`;
   }
   function shareResult(){

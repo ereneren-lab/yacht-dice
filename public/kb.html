@@ -52,6 +52,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     body.kbnet .arena>.side{ flex:1 1 0; min-width:0 }
     body.kbnet .arena>.tray{ flex:0 0 300px; margin:0 }
   }
+  /* P4 공간 활용: 넓고 높은 데스크톱에선 상단 여백 낭비를 줄이고(세로 중앙) 보드/주사위를 키운다.
+     margin:auto는 공간이 있으면 중앙 정렬, 넘치면 0으로 무너져 위에서부터 스크롤(클리핑 방지). */
+  @media (min-width:1200px) and (min-height:760px){
+    body.ingame .wrap{ margin-top:auto; margin-bottom:auto }
+    body.ingame.kblocal .wrap{ max-width:1180px }
+    body.kblocal .arena>.side{ max-width:404px }
+    body.kblocal .board{ max-width:376px }
+    body.kblocal .arena>.tray{ flex:0 0 320px }
+    body.kblocal .bigdie{ width:82px; height:82px; border-radius:16px; padding:11px }
+  }
 
   .kbtop{display:flex; align-items:center; gap:12px; margin:4px 2px 16px}
   .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
@@ -102,6 +112,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @keyframes placePulseO{0%,100%{box-shadow:inset 0 0 0 1.5px rgba(155,140,255,.4)}50%{box-shadow:inset 0 0 0 2px rgba(155,140,255,.85)}}
   .col.place:hover{background:rgba(232,161,58,.12)}
   .side.opp .col.place:hover{background:rgba(155,140,255,.12)}
+  /* P4 판단보조: 배치 후보 예측 배지 + 파괴 예정 상대 열 하이라이트 */
+  .placehint{position:absolute; left:50%; transform:translateX(-50%); z-index:6; pointer-events:none;
+    display:flex; align-items:center; gap:4px; white-space:nowrap;
+    background:rgba(0,0,0,.74); border:1px solid var(--line); border-radius:8px; padding:2px 6px;
+    font-family:var(--font); font-weight:800; font-size:12px; line-height:1.1; box-shadow:0 2px 8px rgba(0,0,0,.45)}
+  .side.you .placehint{top:5px} .side.opp .placehint{bottom:5px}
+  .placehint .g{color:var(--brass)} .placehint .d{color:var(--danger)}
+  .placehint.best{background:color-mix(in srgb,var(--brass) 26%,#000); border-color:var(--brass)}
+  .placehint.best .g{color:#ffe4ad}
+  .col.willbreak{box-shadow:inset 0 0 0 2px var(--danger)!important; background:rgba(232,105,107,.15)!important}
 
   .slot{aspect-ratio:1; border-radius:9px; background:rgba(255,255,255,.025); box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
     display:flex; align-items:center; justify-content:center}
@@ -147,6 +167,19 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @keyframes tumble{0%{transform:rotate(0) scale(.9)}25%{transform:rotate(120deg) scale(1.05)}50%{transform:rotate(220deg) scale(.95)}75%{transform:rotate(330deg) scale(1.04)}100%{transform:rotate(360deg) scale(1)}}
   .rolllabel{color:var(--muted);font-size:13px;text-align:center;min-height:18px}
   .rolllabel b{color:var(--ink)}
+  /* P4 정보설계: 중앙 총점 비교(VS/리드) 스트립 */
+  .kbvs{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:340px;
+    background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:7px 12px; margin-top:2px}
+  .kbvs .nmv{color:var(--muted); font-weight:700; font-size:12px; max-width:78px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .kbvs .sy{color:var(--you); font-family:var(--font); font-weight:800; font-size:20px}
+  .kbvs .so{color:var(--opp); font-family:var(--font); font-weight:800; font-size:20px}
+  .kbvs .cln{color:var(--muted); font-weight:800; font-size:15px}
+  .kbvs .lead{font-size:11.5px; font-weight:800; padding:2px 9px; border-radius:999px; margin-left:2px; white-space:nowrap}
+  .kbvs.youlead .lead{color:var(--you); background:color-mix(in srgb,var(--you) 16%,transparent)}
+  .kbvs.opplead .lead{color:var(--opp); background:color-mix(in srgb,var(--opp) 16%,transparent)}
+  .kbvs.tied .lead{color:var(--muted); background:var(--panel)}
+  .kbvs.youlead .sy{text-shadow:0 0 12px color-mix(in srgb,var(--you) 60%,transparent)}
+  .kbvs.opplead .so{text-shadow:0 0 12px color-mix(in srgb,var(--opp) 60%,transparent)}
   .scorehelp{display:inline-block;margin-top:8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:inherit}
   .scorehelp:hover{background:var(--brass);color:var(--bg)}
   .infopop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:120;padding:20px}
@@ -234,6 +267,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .result .sc .who{font-size:12.5px;font-weight:700;margin-bottom:4px}
   .result .sc .n{font-family:var(--font);font-weight:800;font-size:30px}
   .result .sc.you .n{color:var(--you)} .result .sc.opp .n{color:var(--opp)}
+  /* P4 결과피드백: 성장(승수·연승·기록·해금) 요약 */
+  .growthbox{display:flex; flex-direction:column; gap:8px; align-items:stretch; margin:-6px 0 16px}
+  .growth-line{font-size:14px; font-weight:800; color:var(--ink); background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:9px 12px; line-height:1.45}
+  .growth-line .hl{color:var(--brass)}
+  .growth-ach{display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:wrap;
+    background:color-mix(in srgb,var(--brass) 12%,transparent); border:1px solid var(--brass); border-radius:11px; padding:9px 12px; animation:achpop .5s ease}
+  .growth-ach .lbl{font-size:12px; font-weight:800; color:var(--brass)}
+  .growth-ach .ab{font-size:13px; font-weight:800; color:var(--ink); display:inline-flex; align-items:center; gap:3px}
+  @keyframes achpop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
 
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important} }
   @media(max-width:380px){ .board{gap:6px} .col{padding:5px;gap:5px} }
@@ -349,6 +391,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     </div>
 
     <div class="tray">
+      <div class="kbvs" id="kbVs" style="display:none"></div>
       <div class="rollzone" id="rollzone"></div>
       <div class="rolllabel" id="rolllabel"></div>
       <button class="scorehelp" id="kbInfoBtn">❓ 점수 · 파괴 규칙</button>
@@ -515,6 +558,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <div class="sc you"><div class="who" id="rYouName">나</div><div class="n" id="rYouScore">0</div></div>
         <div class="sc opp"><div class="who" id="rOppName">상대</div><div class="n" id="rOppScore">0</div></div>
       </div>
+      <div class="growthbox" id="resGrowth" style="display:none"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
@@ -725,6 +769,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null;
   let scoreCache=[[0,0,0],[0,0,0]], scorePrimed=false;   // colscore 폭증 연출용 직전값 캐시
+  let growthInfo=null;   // P4 결과창 성장 피드백용 (기록 직전/직후 델타 캡처)
   const REDUCE = () => { try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
 
   const online = () => mode==='online';
@@ -935,7 +980,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     S=s; prevBoards=clone(s.boards); lastSeq = s.lastMove?s.lastMove.seq:lastSeq; busy=false;
     render(s, s.boards);
     if(isOver(s)){
-      if(!recorded){ recorded=true; const b=bottomSeat(); const my=boardScore(s.boards[b]), op=boardScore(s.boards[1-b]); Stats.record(my>op, my); if(!online()) setTimeout(()=>aiTauntKb(my>op), 750); }
+      if(!recorded){ recorded=true; const b=bottomSeat(); const my=boardScore(s.boards[b]), op=boardScore(s.boards[1-b]);
+        const beforeAch=achUnlocked.slice(), beforeBest=Stats.d.best;   // P4: 기록 직전 스냅샷
+        Stats.record(my>op, my);
+        growthInfo={ won:my>op, tie:my===op, wins:Stats.d.wins, streak:Stats.d.streak, score:my,
+          newBest:(my>beforeBest && my>0),
+          newAch: ACH_KB.filter(a=>achUnlocked.includes(a.id) && !beforeAch.includes(a.id)) };
+        if(!online()) setTimeout(()=>aiTauntKb(my>op), 750); }
       try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){} setTimeout(()=>showResult(s), 600);
     } else { recorded=false; $('resultOv').classList.remove('on'); resetRematchUI(); }
   }
@@ -1033,6 +1084,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const bottom=bottomSeat(), top=1-bottom;
     renderSide('you', bottom, s, boards);
     renderSide('opp', top, s, boards);
+    renderPlaceHints(s, boards);   // P4: 배치 후보 예측 배지 + 파괴 하이라이트
+    updateVs(s, boards);           // P4: 중앙 총점 비교 스트립
     // nameplates
     fillPlate('You', s.players[bottom], boardScore(boards[bottom]));
     fillPlate('Opp', s.players[top], boardScore(boards[top]));
@@ -1083,6 +1136,51 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(scorePrimed && newScore>old) scoreFx(colEl, sc, newScore-old, pos);
       scoreCache[seat][c]=newScore;
     }
+  }
+
+  // P4 판단보조: 지금 놓을 수 있는 사람(내 차례·place 단계)에게만
+  //   각 후보 열의 예상 획득점(+N)·상대 파괴(💥×N) 배지와, 파괴될 상대 열 붉은 하이라이트.
+  //   renderSide가 매 렌더마다 보드 innerHTML을 새로 그리므로 배지/willbreak는 자동으로 초기화됨.
+  function renderPlaceHints(s, boards){
+    if(isOver(s) || busy || !s || s.phase!=='place' || s.die==null) return;
+    if(!canControl(s.turn, s)) return;
+    const seat=s.turn, opp=1-seat, val=s.die;
+    const myBoardEl=boardElOf(seat), oppBoardEl=boardElOf(opp);
+    // 최대 획득 열 판정용
+    const gains=[]; let maxGain=-1;
+    for(let c=0;c<3;c++){
+      if(boards[seat][c].length>=3){ gains.push(-1); continue; }
+      const g=colScore(boards[seat][c].concat(val))-colScore(boards[seat][c]);
+      gains.push(g); if(g>maxGain) maxGain=g;
+    }
+    for(let c=0;c<3;c++){
+      if(boards[seat][c].length>=3) continue;
+      const g=gains[c];
+      const oppCol=boards[opp][c];
+      const dCount=oppCol.filter(x=>x===val).length;
+      const colEl=myBoardEl.children[c]; if(!colEl) continue;
+      const h=document.createElement('div');
+      h.className='placehint'+((g===maxGain && maxGain>0)?' best':'');
+      let html='<span class="g">+'+g+'</span>';
+      if(dCount>0) html+='<span class="d">💥×'+dCount+'</span>';
+      h.innerHTML=html; colEl.appendChild(h);
+      if(dCount>0){ const oc=oppBoardEl.children[c]; if(oc) oc.classList.add('willbreak'); }
+    }
+  }
+
+  // P4 정보설계: 중앙 총점 비교. "나 19 : 6 AI (+13 리드)"
+  function updateVs(s, boards){
+    const el=$('kbVs'); if(!el || !s) return;
+    const bottom=bottomSeat(), top=1-bottom;
+    const my=boardScore(boards[bottom]), op=boardScore(boards[top]);
+    const myName=esc(s.players[bottom].name||'나'), opName=esc(s.players[top].name||'상대');
+    const d=my-op;
+    let cls='tied', lead='동점';
+    if(d>0){ cls='youlead'; lead='+'+d+' 리드'; }
+    else if(d<0){ cls='opplead'; lead='+'+(-d)+' 뒤짐'; }
+    el.className='kbvs '+cls;
+    el.innerHTML=`<span class="nmv">${myName}</span><span class="sy">${my}</span><span class="cln">:</span><span class="so">${op}</span><span class="nmv">${opName}</span><span class="lead">${lead}</span>`;
+    el.style.display='flex';
   }
 
   function renderTray(s){
@@ -1192,9 +1290,31 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(sb>st){ title=(mode==='2p'?s.players[bottom].name+' ':'')+'승리!'; crown='🏆'; sub=`${sb} : ${st}`; }
     else { title=(mode==='online'||mode==='2p')?s.players[top].name+' 승리':'패배…'; crown=(mode==='ai')?'😵':'🏆'; sub=`${sb} : ${st}`; }
     $('resTitle').textContent=title; $('resCrown').textContent=crown; $('resSub').textContent=sub;
+    renderGrowth();   // P4: 이번 판 성장(승수·연승·기록·해금) 요약
     try{ sb>=st?SFX.win():SFX.lose(); }catch(e){}
     $('againBtn').textContent = online() ? '로비로' : '다시 한 판';
     $('resultOv').classList.add('on');
+  }
+  // P4 결과피드백: Stats.record 직후 캡처한 growthInfo로 이번 판 성장 요약을 그린다.
+  function renderGrowth(){
+    const box=$('resGrowth'); if(!box) return;
+    const g=growthInfo;
+    if(!g){ box.style.display='none'; box.innerHTML=''; return; }
+    let line;
+    if(g.tie){ line=`무승부 · 통산 <span class="hl">${g.wins}승</span> · 아깝다!`; }
+    else if(g.won){
+      line=`이번 판 <span class="hl">승리</span>! 통산 <span class="hl">${g.wins}승</span>`;
+      if(g.streak>=2) line+=` · <span class="hl">🔥${g.streak}연승</span>`;
+    } else {
+      line=`아쉽게 패배 · 통산 <span class="hl">${g.wins}승</span> · 다음 판 설욕!`;
+    }
+    if(g.newBest) line+=`<br>내 점수 <span class="hl">${g.score}점</span> — 최고 기록 경신! 🏆`;
+    let html=`<div class="growth-line">${line}</div>`;
+    if(g.newAch && g.newAch.length){
+      html+=`<div class="growth-ach"><span class="lbl">🏅 새 도전과제</span>`
+        + g.newAch.map(a=>`<span class="ab">${a.icon} ${esc(a.name)}</span>`).join('') + `</div>`;
+    }
+    box.innerHTML=html; box.style.display='flex';
   }
 
   // ---------- sfx ----------
