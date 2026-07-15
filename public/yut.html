@@ -25,9 +25,6 @@
     --you:#e8a13a; --opp:#9b8cff; --die:#efe7d6; --die2:#ddd2bd; --pip:#241a12;
     --win:#7bd88f; --danger:#e8696b; --brass-ink:#241a12; --ui:1;
   }
-html[data-theme="mintchoco"]{ --bg:#0e1512; --bg2:#121b17; --panel:#182420; --panel2:#1f2e29; --line:rgba(255,255,255,.09); --ink:#eaf7f0; --muted:#88a89a; --brass:#5ee0a8; --brass-d:#2fae7a; --you:#5ee0a8; --opp:#c9a0ff; --die:#eef6f0; --die2:#d4e6dc; --pip:#14241c; --win:#6fe0a0; --danger:#ff6b7a; }
-html[data-theme="grapefruit"]{ --bg:#1a0e12; --bg2:#221218; --panel:#2c1820; --panel2:#371e28; --line:rgba(255,255,255,.10); --ink:#fbe9ec; --muted:#c08a96; --brass:#ff7a8a; --brass-d:#d44e62; --you:#ffb14e; --opp:#ff6f91; --die:#ffeef0; --die2:#f5d8de; --pip:#2c1820; --win:#88e0a0; --danger:#ff5470; }
-html[data-theme="bluelemon"]{ --bg:#0b1020; --bg2:#0f1628; --panel:#161f38; --panel2:#1d2845; --line:rgba(255,255,255,.10); --ink:#e8f0ff; --muted:#8497c0; --brass:#4fd6ff; --brass-d:#2a9fd4; --you:#ffe14d; --opp:#7fb4ff; --die:#eef4ff; --die2:#d4e0f5; --pip:#0f1628; --win:#5ee0a8; --danger:#ff5d8f; }
 html[data-theme="sesame"]{ --bg:#121212; --bg2:#181818; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --brass:#c9bcd8; --brass-d:#9a8ab0; --you:#e8e2d4; --opp:#b8a0e0; --die:#ebe7df; --die2:#d2cdc2; --pip:#1a1a1a; --win:#9ad0a8; --danger:#e88a8a; }
 html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#8a8a92; --brass:#b07d2a; --brass-d:#8a5f18; --you:#c2842a; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -1841,8 +1838,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
 <script>
 (function(){
-  const T=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
-  function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
+  const T=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
+  function g(){ try{var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';} }
   function syncLightBtn(){ var b=document.getElementById('lightBtn'); if(b) b.textContent=((document.documentElement.dataset.theme||g())==='hanji')?'🌙':'☀️'; }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=document.documentElement.dataset.theme||g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
   function s(t){ document.documentElement.dataset.theme=t;
@@ -1850,7 +1847,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     r(); syncLightBtn(); }
   /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자 등을 잃지 않는다 */
   window.toggleLight=function(){ var cur=document.documentElement.dataset.theme||g();
-    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; }catch(e){}
+    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
     s(cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji'); };
   var _lb=document.getElementById('lightBtn'); if(_lb) _lb.onclick=window.toggleLight;
   s(g());

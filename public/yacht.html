@@ -326,9 +326,6 @@
   .themerow .tlbl{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
 
   /* themes */
-  html[data-theme="mintchoco"]{ --bg:#0e1512; --panel:#182420; --panel2:#1f2e29; --line:rgba(255,255,255,.09); --ink:#eaf7f0; --muted:#88a89a; --accent:#5ee0a8; --accent-ink:#0e1512; --gold:#5ee0a8; --ai:#c9a0ff; --danger:#ff6b7a; }
-  html[data-theme="grapefruit"]{ --bg:#1a0e12; --panel:#2c1820; --panel2:#371e28; --line:rgba(255,255,255,.10); --ink:#fbe9ec; --muted:#c08a96; --accent:#ff7a8a; --accent-ink:#1a0e12; --gold:#ffb14e; --ai:#ff6f91; --danger:#ff5470; }
-  html[data-theme="bluelemon"]{ --bg:#0b1020; --panel:#161f38; --panel2:#1d2845; --line:rgba(255,255,255,.10); --ink:#e8f0ff; --muted:#8497c0; --accent:#4fd6ff; --accent-ink:#0b1020; --gold:#ffe14d; --ai:#7fb4ff; --danger:#ff5d8f; }
   html[data-theme="sesame"]{ --bg:#121212; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --accent:#c9bcd8; --accent-ink:#121212; --gold:#e8e2d4; --ai:#b8a0e0; --danger:#e88a8a; }
 html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#8a8a92; --brass:#b07d2a; --brass-d:#8a5f18; --you:#c2842a; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; --accent:#c8842a; --accent-ink:#ffffff; --gold:#c8842a; --ai:#7a5cc0; }
 html[data-theme="excel"]{ --bg:#e8e8e8; --bg2:#ffffff; --panel:#ffffff; --panel2:#f3f6f4; --line:#d4d4d4; --ink:#1a1a1a; --muted:#7a7a7a; --brass:#217346; --brass-d:#185c37; --you:#217346; --opp:#c43e1c; --die:#217346; --die2:#185c37; --pip:#ffffff; --win:#217346; --danger:#c43e1c; --brass-ink:#ffffff; --accent:#217346; --accent-ink:#ffffff; --gold:#217346; --ai:#c43e1c; --font:"Segoe UI","맑은 고딕","Malgun Gothic",Calibri,sans-serif; }
@@ -1530,10 +1527,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   // ========== boot ==========
-  const THEMES=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346']];
+  const THEMES=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346']];
   // 엑셀은 요트 전용 테마 — 공유 키(alley_theme)엔 저장하지 않고 요트 전용 키로만 기억한다.
   // (공유 키에 'excel'이 새면 다른 게임/허브가 폴백돼 테마칩 하이라이트가 사라진다.)
-  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';}})();
+  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';}})();
   function applyTheme(t){ theme=t; document.documentElement.dataset.theme=t;
     try{
       if(t==='excel'){
@@ -1584,7 +1581,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   window.__alleySyncLight=sync;
   lb.onclick=function(){
     var cur=document.documentElement.dataset.theme||'espresso'; if(cur==='excel') return;
-    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; }catch(e){}
+    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
     /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자 등을 잃지 않는다 */
     var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
     if(window.__alleySetTheme) window.__alleySetTheme(t);
