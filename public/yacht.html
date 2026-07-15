@@ -768,7 +768,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
-      <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켠 뒤 <span class="k">`</span> 나 <span class="k">Esc</span> 키로 즉시 껐다 켜고, <b>파일</b> 탭/메뉴로도 나옵니다.</div>
+      <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켠 뒤 <span class="k">`</span> 나 <span class="k">Esc</span>로 즉시 껐다 켜고, <span class="k">Shift+`</span>로 엑셀↔포토샵 전환, <b>파일</b> 탭/메뉴로도 나옵니다.</div>
       <div class="tabs">
         <button id="tabLocal" class="on">로컬 / AI</button>
         <button id="tabOnline">온라인</button>
@@ -1880,7 +1880,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   document.addEventListener('keydown', function(e){
     var tag=(e.target && e.target.tagName)||'';
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
-    if(e.key==='`' || e.key==='~' || e.key==='Escape'){
+    if(e.key==='~'){
+      /* Shift+`(=~) : 엑셀 ↔ 포토샵 위장 종류 전환 (현재 위장을 반대로) */
+      e.preventDefault();
+      var target=(document.documentElement.dataset.theme==='excel')?'photoshop':'excel';
+      if(window.__alleySetTheme) window.__alleySetTheme(target);
+    } else if(e.key==='`' || e.key==='Escape'){
+      /* `(백틱)·Esc : 위장 껐다 켜기 (마지막 고른 위장 사용) */
       e.preventDefault();
       var isDis=/^(excel|photoshop)$/.test(document.documentElement.dataset.theme||'');
       if(isDis){ window.__unmask && window.__unmask(); }
