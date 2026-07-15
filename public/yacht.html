@@ -768,7 +768,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
-      <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켜면 <span class="k">`</span> 키로 즉시 껐다 켜고, <span class="k">Esc</span>로 숨기고, <b>파일</b> 탭/메뉴로 나옵니다.</div>
+      <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켠 뒤 <span class="k">`</span> 나 <span class="k">Esc</span> 키로 즉시 껐다 켜고, <b>파일</b> 탭/메뉴로도 나옵니다.</div>
       <div class="tabs">
         <button id="tabLocal" class="on">로컬 / AI</button>
         <button id="tabOnline">온라인</button>
@@ -1797,7 +1797,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     var col=isPs?'#001e36':'#217346';
     var exit=isPs?'"파일" 메뉴':'"파일" 탭';
     var appnm=isPs?'포토샵':'엑셀';
-    var d=document.createElement('div'); d.textContent='🕵️ 위장 모드('+appnm+') — ` 키로 즉시 껐다 켜기 · Esc로 숨기기 · '+exit+'으로 나가기';
+    var d=document.createElement('div'); d.textContent='🕵️ 위장 모드('+appnm+') — ` 나 Esc 키로 즉시 껐다 켜기 · '+exit+'으로도 나가기';
     d.style.cssText='position:fixed;left:50%;top:64px;transform:translateX(-50%);background:'+col+';color:#fff;padding:10px 16px;border-radius:6px;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:12.5px;font-weight:600;font-family:"Segoe UI","맑은 고딕","Malgun Gothic",sans-serif;max-width:92vw;text-align:center';
     document.body.appendChild(d); setTimeout(function(){d.remove();},4500); }
   (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>{applyTheme(id); if(DISGUISE.includes(id))disguiseHint(id);};box.appendChild(b);}); })();
@@ -1875,19 +1875,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 })();</script>
 <script>(function(){
   /* 보스키: 어디서든 즉시 위장 ↔ 원래 화면 전환. 마지막으로 고른 위장(엑셀/포토샵)을 사용.
-     `(백틱) = 토글 · Esc = 즉시 숨김(마스크). 입력창에 타이핑 중이면 무시. */
+     `(백틱)·Esc 둘 다 토글 — 위장 중이면 원래 화면으로, 아니면 위장으로. 입력창 타이핑 중이면 무시. */
   function lastDisguise(){ try{ var d=localStorage.getItem('yacht_disguise')||'excel'; return /^(excel|photoshop)$/.test(d)?d:'excel'; }catch(e){ return 'excel'; } }
   document.addEventListener('keydown', function(e){
     var tag=(e.target && e.target.tagName)||'';
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
-    var isDis=/^(excel|photoshop)$/.test(document.documentElement.dataset.theme||'');
-    if(e.key==='`' || e.key==='~'){
+    if(e.key==='`' || e.key==='~' || e.key==='Escape'){
       e.preventDefault();
+      var isDis=/^(excel|photoshop)$/.test(document.documentElement.dataset.theme||'');
       if(isDis){ window.__unmask && window.__unmask(); }
       else if(window.__alleySetTheme){ window.__alleySetTheme(lastDisguise()); }
-    } else if(e.key==='Escape' && !isDis){
-      /* Esc는 '숨기기' 전용 — 실수로 위장을 벗기지 않도록 마스크만 */
-      if(window.__alleySetTheme) window.__alleySetTheme(lastDisguise());
     }
   });
 })();</script>
