@@ -21,8 +21,9 @@
   .title .dot{width:11px;height:11px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
   .title small{font-size:12px;color:var(--muted);font-weight:600}
 
-  .opacityctl{position:fixed;top:12px;right:12px;z-index:9999;display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag;
+  .opacityctl{position:fixed;top:12px;right:12px;z-index:9999;display:none;align-items:center;gap:10px;-webkit-app-region:no-drag;
     background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+  .opacityctl.on{display:flex}
   .opacityctl span{font-size:15px}
   .opacityctl input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:26px;background:transparent;cursor:pointer;margin:0}
   .opacityctl input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--panel2)}
@@ -1146,13 +1147,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ---------- pick confirm ----------
   function askPick(catId){ if(!canAct())return; const c=S.cats.find(x=>x.id===catId), pts=S.preview?S.preview[catId]:0;
-    if(pts===0){
-      $('cfTitle').textContent=`${c?c.label:''} 칸 — 0점 처리 ⚠️`;
-      $('cfSub').innerHTML=`이 칸을 <b style="color:var(--danger);font-size:22px">0점</b>으로 버릴까요?<br><span style="color:var(--muted);font-size:12px">한 번 기록하면 이 칸은 다시 쓸 수 없어요.</span>`;
-    } else {
-      $('cfTitle').textContent=`${c?c.label:''} 칸`;
-      $('cfSub').innerHTML=`<b style="color:var(--accent);font-size:22px">${pts}점</b> 으로 기록할까요?`;
-    }
+    // 양수 점수는 확인창 없이 즉시 기록 (한 판 12칸 리듬 유지). 0점 버리기(파괴적 선택)에만 확인창.
+    if(pts!==0){ sendAction({type:'pick',cat:catId}); return; }
+    $('cfTitle').textContent=`${c?c.label:''} 칸 — 0점 처리 ⚠️`;
+    $('cfSub').innerHTML=`이 칸을 <b style="color:var(--danger);font-size:22px">0점</b>으로 버릴까요?<br><span style="color:var(--muted);font-size:12px">한 번 기록하면 이 칸은 다시 쓸 수 없어요.</span>`;
     $('confirm').classList.add('show');
     $('cfOk').onclick=()=>{ $('confirm').classList.remove('show'); sendAction({type:'pick',cat:catId}); };
     $('cfCancel').onclick=()=>$('confirm').classList.remove('show');
@@ -1447,14 +1445,19 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   });
 
   // ========== transparency + electron ==========
-  const op=$('opacity');
-  function applyOpacity(pct){ const v=Math.max(.1,Math.min(1,pct/100));
-    if(window.electronAPI&&window.electronAPI.setOpacity){ window.electronAPI.setOpacity(v); document.documentElement.style.setProperty('--ui',1); }
-    else { document.documentElement.style.setProperty('--ui',v.toFixed(2)); }
-    LS.set('yd_op',Math.round(v*100)); }
-  if(op){ const saved=+LS.get('yd_op',100); op.value=saved; applyOpacity(saved);
-    op.addEventListener('input',e=>applyOpacity(+e.target.value)); }
-  if(window.electronAPI){ document.querySelectorAll('.wbtn').forEach(b=>b.style.display='flex');
+  // 브라우저/모바일에선 투명도 컨트롤을 아예 렌더하지 않는다 (턴 라벨을 덮고 게임 전체가 반투명해지던 함정).
+  // Electron 창일 때만 .on으로 노출 + 창 버튼(핀/최소화/닫기) 활성화.
+  if(!window.electronAPI){ document.documentElement.style.setProperty('--ui',1); }
+  else {
+    const ctl=document.querySelector('.opacityctl'); if(ctl)ctl.classList.add('on');
+    const op=$('opacity');
+    function applyOpacity(pct){ const v=Math.max(.1,Math.min(1,pct/100));
+      if(window.electronAPI.setOpacity){ window.electronAPI.setOpacity(v); document.documentElement.style.setProperty('--ui',1); }
+      else { document.documentElement.style.setProperty('--ui',v.toFixed(2)); }
+      LS.set('yd_op',Math.round(v*100)); }
+    if(op){ const saved=+LS.get('yd_op',100); op.value=saved; applyOpacity(saved);
+      op.addEventListener('input',e=>applyOpacity(+e.target.value)); }
+    document.querySelectorAll('.wbtn').forEach(b=>b.style.display='flex');
     const pin=$('winPin'); if(pin)pin.onclick=async()=>{const v=await window.electronAPI.pin();pin.classList.toggle('on',v);};
     const wm=$('winMin'); if(wm)wm.onclick=()=>window.electronAPI.minimize();
     const wc=$('winClose'); if(wc)wc.onclick=()=>window.electronAPI.close();
