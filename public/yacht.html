@@ -664,6 +664,100 @@ html[data-theme="photoshop"] #overlay .result{ background:#2b2b2b !important;bor
 html[data-theme="photoshop"] #overlay .result *{ text-shadow:none !important }
 html[data-theme="photoshop"] #overlay .medal, html[data-theme="photoshop"] #overlay .newbest{ filter:grayscale(1) opacity(.7) }
 
+/* ============================================================
+   설정 화면(#setup) 위장 — 위장(엑셀·포토샵) 중 게임 장식 숨김 + 컨트롤 relabel.
+   비위장 테마에선 아무 규칙도 안 걸리므로 원래대로 전부 노출. 기능은 그대로, 라벨만 앱스럽게.
+   ============================================================ */
+/* 1) 게임 장식 숨김 (양 위장 공통): 규칙링크·통계·도전과제·테마행·설명문단·아바타pill */
+html[data-theme="excel"] .rules-link, html[data-theme="photoshop"] .rules-link,
+html[data-theme="excel"] .statsbar, html[data-theme="photoshop"] .statsbar,
+html[data-theme="excel"] .achbar, html[data-theme="photoshop"] .achbar,
+html[data-theme="excel"] .themerow, html[data-theme="photoshop"] .themerow,
+html[data-theme="excel"] .modedesc, html[data-theme="photoshop"] .modedesc,
+html[data-theme="excel"] .names .pill, html[data-theme="photoshop"] .names .pill{ display:none !important }
+/* 2) 섹션 라벨 relabel */
+html[data-theme="excel"] .lbl[data-setlbl], html[data-theme="photoshop"] .lbl[data-setlbl]{ font-size:0 !important }
+html[data-theme="excel"] .lbl[data-setlbl]::before, html[data-theme="photoshop"] .lbl[data-setlbl]::before{ font-size:11px;letter-spacing:.06em;font-weight:600;color:var(--muted) }
+html[data-theme="excel"] .lbl[data-setlbl="mode"]::before{ content:"표시 형식" }
+html[data-theme="excel"] .lbl[data-setlbl="count"]::before{ content:"시트 수" }
+html[data-theme="excel"] .lbl[data-setlbl="names"]::before{ content:"항목 이름" }
+html[data-theme="excel"] .lbl[data-setlbl="diff"]::before{ content:"계산 옵션" }
+html[data-theme="excel"] .lbl[data-setlbl="myname"]::before{ content:"사용자 이름" }
+html[data-theme="excel"] .lbl[data-setlbl="members"]::before{ content:"공유 대상" }
+html[data-theme="excel"] .lbl[data-setlbl="roomcode"]::before{ content:"공유 링크" }
+html[data-theme="photoshop"] .lbl[data-setlbl="mode"]::before{ content:"색상 모드" }
+html[data-theme="photoshop"] .lbl[data-setlbl="count"]::before{ content:"아트보드" }
+html[data-theme="photoshop"] .lbl[data-setlbl="names"]::before{ content:"레이어 이름" }
+html[data-theme="photoshop"] .lbl[data-setlbl="diff"]::before{ content:"렌더 품질" }
+html[data-theme="photoshop"] .lbl[data-setlbl="myname"]::before{ content:"작성자" }
+html[data-theme="photoshop"] .lbl[data-setlbl="members"]::before{ content:"협업자" }
+html[data-theme="photoshop"] .lbl[data-setlbl="roomcode"]::before{ content:"공유 링크" }
+/* 3) 규칙 모드 칩 relabel */
+html[data-theme="excel"] #modesL button, html[data-theme="excel"] #modesO button,
+html[data-theme="photoshop"] #modesL button, html[data-theme="photoshop"] #modesO button{ font-size:0 !important }
+html[data-theme="excel"] #modesL button::before, html[data-theme="excel"] #modesO button::before,
+html[data-theme="photoshop"] #modesL button::before, html[data-theme="photoshop"] #modesO button::before{ font-size:14px;font-weight:700 }
+html[data-theme="excel"] #modesL button[data-id="yacht_kr"]::before, html[data-theme="excel"] #modesO button[data-id="yacht_kr"]::before{ content:"일반" }
+html[data-theme="excel"] #modesL button[data-id="yahtzee"]::before, html[data-theme="excel"] #modesO button[data-id="yahtzee"]::before{ content:"숫자" }
+html[data-theme="excel"] #modesL button[data-id="yacht_og"]::before, html[data-theme="excel"] #modesO button[data-id="yacht_og"]::before{ content:"통화" }
+html[data-theme="photoshop"] #modesL button[data-id="yacht_kr"]::before, html[data-theme="photoshop"] #modesO button[data-id="yacht_kr"]::before{ content:"RGB" }
+html[data-theme="photoshop"] #modesL button[data-id="yahtzee"]::before, html[data-theme="photoshop"] #modesO button[data-id="yahtzee"]::before{ content:"CMYK" }
+html[data-theme="photoshop"] #modesL button[data-id="yacht_og"]::before, html[data-theme="photoshop"] #modesO button[data-id="yacht_og"]::before{ content:"회색조" }
+/* 4) 난이도 칩 relabel */
+html[data-theme="excel"] #diffL button, html[data-theme="excel"] #diffO button,
+html[data-theme="photoshop"] #diffL button, html[data-theme="photoshop"] #diffO button{ font-size:0 !important }
+html[data-theme="excel"] #diffL button::before, html[data-theme="excel"] #diffO button::before,
+html[data-theme="photoshop"] #diffL button::before, html[data-theme="photoshop"] #diffO button::before{ font-size:14px;font-weight:700 }
+html[data-theme="excel"] #diffL button[data-id="easy"]::before, html[data-theme="excel"] #diffO button[data-id="easy"]::before{ content:"수동" }
+html[data-theme="excel"] #diffL button[data-id="normal"]::before, html[data-theme="excel"] #diffO button[data-id="normal"]::before{ content:"자동" }
+html[data-theme="excel"] #diffL button[data-id="hard"]::before, html[data-theme="excel"] #diffO button[data-id="hard"]::before{ content:"전체" }
+html[data-theme="photoshop"] #diffL button[data-id="easy"]::before, html[data-theme="photoshop"] #diffO button[data-id="easy"]::before{ content:"낮음" }
+html[data-theme="photoshop"] #diffL button[data-id="normal"]::before, html[data-theme="photoshop"] #diffO button[data-id="normal"]::before{ content:"표준" }
+html[data-theme="photoshop"] #diffL button[data-id="hard"]::before, html[data-theme="photoshop"] #diffO button[data-id="hard"]::before{ content:"높음" }
+/* 5) 탭 relabel (로컬/AI · 온라인) */
+html[data-theme="excel"] #tabLocal, html[data-theme="excel"] #tabOnline,
+html[data-theme="photoshop"] #tabLocal, html[data-theme="photoshop"] #tabOnline{ font-size:0 !important }
+html[data-theme="excel"] #tabLocal::before, html[data-theme="excel"] #tabOnline::before,
+html[data-theme="photoshop"] #tabLocal::before, html[data-theme="photoshop"] #tabOnline::before{ font-size:15px;font-weight:700 }
+html[data-theme="excel"] #tabLocal::before{ content:"개인용" }
+html[data-theme="excel"] #tabOnline::before{ content:"공유" }
+html[data-theme="photoshop"] #tabLocal::before{ content:"로컬" }
+html[data-theme="photoshop"] #tabOnline::before{ content:"클라우드" }
+/* 6) 사람/AI 세그 relabel */
+html[data-theme="excel"] .seg button, html[data-theme="photoshop"] .seg button{ font-size:0 !important }
+html[data-theme="excel"] .seg button::before, html[data-theme="photoshop"] .seg button::before{ font-size:12.5px;font-weight:700 }
+html[data-theme="excel"] .seg button:not(.ai)::before{ content:"값" }
+html[data-theme="excel"] .seg button.ai::before{ content:"자동" }
+html[data-theme="photoshop"] .seg button:not(.ai)::before{ content:"표준" }
+html[data-theme="photoshop"] .seg button.ai::before{ content:"자동" }
+/* 7) 토글 relabel (소리/빠르게) — .switch(42x24 고정)는 유지 */
+html[data-theme="excel"] #soundToggle, html[data-theme="excel"] #fastToggleL, html[data-theme="excel"] #fastToggleO,
+html[data-theme="photoshop"] #soundToggle, html[data-theme="photoshop"] #fastToggleL, html[data-theme="photoshop"] #fastToggleO{ font-size:0 !important }
+html[data-theme="excel"] #soundToggle::after, html[data-theme="excel"] #fastToggleL::after, html[data-theme="excel"] #fastToggleO::after,
+html[data-theme="photoshop"] #soundToggle::after, html[data-theme="photoshop"] #fastToggleL::after, html[data-theme="photoshop"] #fastToggleO::after{ font-size:14px;font-weight:600;color:var(--muted) }
+html[data-theme="excel"] #soundToggle::after{ content:"알림음" }
+html[data-theme="photoshop"] #soundToggle::after{ content:"효과음" }
+html[data-theme="excel"] #fastToggleL::after, html[data-theme="excel"] #fastToggleO::after{ content:"자동 계산" }
+html[data-theme="photoshop"] #fastToggleL::after, html[data-theme="photoshop"] #fastToggleO::after{ content:"빠른 미리보기" }
+/* 8) 시작 버튼 relabel */
+html[data-theme="excel"] #startLocal, html[data-theme="excel"] #startOnline,
+html[data-theme="photoshop"] #startLocal, html[data-theme="photoshop"] #startOnline{ font-size:0 !important }
+html[data-theme="excel"] #startLocal::before, html[data-theme="excel"] #startOnline::before,
+html[data-theme="photoshop"] #startLocal::before, html[data-theme="photoshop"] #startOnline::before{ font-size:15px;font-weight:700 }
+html[data-theme="excel"] #startLocal::before, html[data-theme="excel"] #startOnline::before{ content:"확인" }
+html[data-theme="photoshop"] #startLocal::before, html[data-theme="photoshop"] #startOnline::before{ content:"만들기" }
+/* 9) 온라인 보조 버튼 relabel (부분 커버) */
+html[data-theme="excel"] #createRoom, html[data-theme="photoshop"] #createRoom,
+html[data-theme="excel"] #showJoin, html[data-theme="photoshop"] #showJoin,
+html[data-theme="excel"] #addAiBtn, html[data-theme="photoshop"] #addAiBtn{ font-size:0 !important }
+html[data-theme="excel"] #createRoom::before, html[data-theme="photoshop"] #createRoom::before,
+html[data-theme="excel"] #showJoin::before, html[data-theme="photoshop"] #showJoin::before,
+html[data-theme="excel"] #addAiBtn::before, html[data-theme="photoshop"] #addAiBtn::before{ font-size:15px;font-weight:700 }
+html[data-theme="excel"] #createRoom::before, html[data-theme="photoshop"] #createRoom::before{ content:"새 문서" }
+html[data-theme="excel"] #showJoin::before, html[data-theme="photoshop"] #showJoin::before{ content:"열기" }
+html[data-theme="excel"] #addAiBtn::before{ content:"항목 추가" }
+html[data-theme="photoshop"] #addAiBtn::before{ content:"레이어 추가" }
+
 html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
 html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme="hanji"] .tabs button.on, html[data-theme="hanji"] .tchip.on, html[data-theme="hanji"] .chips button.on{ color:#fff8ec !important; }
   .tcdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
@@ -777,14 +871,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       </div>
 
       <div id="localCfg">
-        <div class="lbl">규칙 모드</div>
+        <div class="lbl" data-setlbl="mode">규칙 모드</div>
         <div class="chips" id="modesL"></div>
         <div class="modedesc" id="modedescL"></div>
-        <div class="lbl mt">플레이어 수</div>
+        <div class="lbl mt" data-setlbl="count">플레이어 수</div>
         <div class="chips" id="count"></div>
-        <div class="lbl mt">플레이어</div>
+        <div class="lbl mt" data-setlbl="names">플레이어</div>
         <div class="names" id="names"></div>
-        <div class="lbl mt">AI 난이도</div>
+        <div class="lbl mt" data-setlbl="diff">AI 난이도</div>
         <div class="chips" id="diffL"></div>
         <div class="optrow"><div class="toggle on" id="soundToggle"><div class="switch"></div>주사위 소리</div><div class="toggle" id="fastToggleL"><div class="switch"></div>AI 빠르게</div></div>
         <button class="btn" id="startLocal">게임 시작</button>
@@ -792,7 +886,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
       <div id="onlineCfg" style="display:none">
         <div id="onlineJoin">
-          <div class="lbl">내 이름</div>
+          <div class="lbl" data-setlbl="myname">내 이름</div>
           <input class="txt" id="onlineName" maxlength="10" placeholder="이름">
           <div class="row2">
             <button class="btn" id="createRoom">방 만들기</button>
@@ -806,25 +900,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <div class="modedesc" style="margin-top:14px">온라인은 같은 서버에 접속한 사람끼리 방 코드로 함께 합니다. 파일로 열면 안 되고, 배포된 주소에서 사용하세요.</div>
         </div>
         <div id="lobby" style="display:none">
-          <div class="lbl">방 코드 — 친구에게 공유</div>
+          <div class="lbl" data-setlbl="roomcode">방 코드 — 친구에게 공유</div>
           <div class="roomcode" id="lobbyCode">----</div>
           <div class="row" style="display:flex;gap:8px;margin-top:8px">
             <button class="btn ghost" id="copyCode" style="margin-top:0;flex:1;padding:10px">코드 복사</button>
             <button class="btn ghost" id="copyLink" style="margin-top:0;flex:1;padding:10px">초대 링크</button>
           </div>
-          <div class="lbl">내 이름</div>
+          <div class="lbl" data-setlbl="myname">내 이름</div>
           <div class="row" style="display:flex;gap:9px;align-items:center">
             <input class="txt" id="lobbyName" maxlength="10" placeholder="이름">
             <button class="btn ghost" id="renameBtn" style="margin-top:0;width:auto;padding:11px 16px">변경</button>
             <button class="btn ghost" id="avatarBtn" style="margin-top:0;width:auto;padding:11px 14px">캐릭터</button>
           </div>
-          <div class="lbl mt">규칙 모드 <span id="hostOnly" style="letter-spacing:0;color:var(--muted)"></span></div>
+          <div class="lbl mt" data-setlbl="mode">규칙 모드 <span id="hostOnly" style="letter-spacing:0;color:var(--muted)"></span></div>
           <div class="chips" id="modesO"></div>
           <div class="modedesc" id="modedescO"></div>
-          <div class="lbl mt">AI 난이도 <span id="diffHostOnly" style="letter-spacing:0;color:var(--muted)"></span></div>
+          <div class="lbl mt" data-setlbl="diff">AI 난이도 <span id="diffHostOnly" style="letter-spacing:0;color:var(--muted)"></span></div>
           <div class="chips" id="diffO"></div>
           <div class="optrow" style="margin-top:8px"><div class="toggle" id="fastToggleO"><div class="switch"></div>AI 빠르게</div></div>
-          <div class="lbl mt">참가자</div>
+          <div class="lbl mt" data-setlbl="members">참가자</div>
           <div class="members" id="members"></div>
           <button class="btn ghost" id="addAiBtn" style="margin-top:10px">AI 추가</button>
           <button class="btn" id="startOnline">게임 시작</button>
@@ -1630,14 +1724,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ========== LOCAL setup ==========
   let modeLocal='yacht_kr', diffLocal='normal', playerCount=2;
-  let nameVals=['플레이어 1','AI 2','AI 3','AI 4','AI 5','AI 6'], typeVals=['human','ai','ai','ai','ai','ai'], avatarVals=AVATARS.slice();
+  let typeVals=['human','ai','ai','ai','ai','ai'], avatarVals=AVATARS.slice();
+  // 위장 중엔 기본 플레이어 이름("플레이어 N"/"AI N")도 중립적으로("레이어 N") — 설정·엑셀 헤더에서 게임 티 제거
+  const _gameName=(i)=>typeVals[i]==='ai'?'AI '+(i+1):'플레이어 '+(i+1);
+  const defName=(i)=>{ var th=document.documentElement.dataset.theme; if(th==='photoshop')return '레이어 '+(i+1); if(th==='excel')return '항목 '+(i+1); return _gameName(i); };
+  const isDefaultName=(v,i)=>v==='플레이어 '+(i+1)||v==='AI '+(i+1)||v==='레이어 '+(i+1)||v==='항목 '+(i+1);
+  let nameVals=[0,1,2,3,4,5].map(i=>defName(i));
+  function normalizeNames(){ for(let i=0;i<nameVals.length;i++){ if(isDefaultName(nameVals[i],i)) nameVals[i]=defName(i); } }
   function modeChips(box,desc,get,set){ box.innerHTML=''; Object.keys(RULES).forEach(id=>{const b=document.createElement('button');b.textContent=RULES[id].name;b.dataset.id=id;if(id===get())b.classList.add('on');b.onclick=()=>{set(id);[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.id===id));if(desc)desc.textContent=RULES[id].desc;};box.appendChild(b);}); if(desc)desc.textContent=RULES[get()].desc; }
   function diffChips(box,get,set,enabled){ box.innerHTML=''; [['easy','쉬움'],['normal','보통'],['hard','어려움']].forEach(([id,label])=>{const b=document.createElement('button');b.textContent=label;b.dataset.id=id;if(id===get())b.classList.add('on');b.disabled=!enabled;b.onclick=()=>{if(!enabled)return;set(id);[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.id===id));};box.appendChild(b);}); }
   modeChips($('modesL'),$('modedescL'),()=>modeLocal,id=>modeLocal=id);
   diffChips($('diffL'),()=>diffLocal,id=>diffLocal=id,true);
   const countBox=$('count');
   for(let n=2;n<=6;n++){const b=document.createElement('button');b.textContent=n;b.dataset.n=n;if(n===playerCount)b.classList.add('on');b.onclick=()=>{playerCount=n;[...countBox.children].forEach(c=>c.classList.toggle('on',+c.dataset.n===n));renderNames();};countBox.appendChild(b);}
-  function renderNames(){const box=$('names');box.innerHTML='';for(let i=0;i<playerCount;i++){const row=document.createElement('div');row.className='row';const pill=document.createElement('span');pill.className='pill';pill.style.background=COLORS[i];pill.style.cursor='pointer';pill.title='캐릭터 선택';pill.textContent=avatarVals[i];pill.onclick=()=>openAvatarPicker(avatarVals[i],e=>{avatarVals[i]=e;pill.textContent=e;});const inp=document.createElement('input');inp.className='txt';inp.value=nameVals[i];inp.maxLength=10;inp.oninput=()=>nameVals[i]=inp.value;const seg=document.createElement('div');seg.className='seg';const bh=document.createElement('button');bh.textContent='사람';const ba=document.createElement('button');ba.textContent='AI';ba.classList.add('ai');const set=t=>{typeVals[i]=t;bh.classList.toggle('on',t==='human');ba.classList.toggle('on',t==='ai');if(t==='ai'&&/^플레이어/.test(inp.value)){inp.value='AI '+(i+1);nameVals[i]=inp.value;}if(t==='human'&&/^AI/.test(inp.value)){inp.value='플레이어 '+(i+1);nameVals[i]=inp.value;}};bh.onclick=()=>set('human');ba.onclick=()=>set('ai');seg.append(bh,ba);row.append(pill,inp,seg);box.appendChild(row);bh.classList.toggle('on',typeVals[i]==='human');ba.classList.toggle('on',typeVals[i]==='ai');}}
+  function renderNames(){const box=$('names');box.innerHTML='';for(let i=0;i<playerCount;i++){const row=document.createElement('div');row.className='row';const pill=document.createElement('span');pill.className='pill';pill.style.background=COLORS[i];pill.style.cursor='pointer';pill.title='캐릭터 선택';pill.textContent=avatarVals[i];pill.onclick=()=>openAvatarPicker(avatarVals[i],e=>{avatarVals[i]=e;pill.textContent=e;});const inp=document.createElement('input');inp.className='txt';inp.value=nameVals[i];inp.maxLength=10;inp.oninput=()=>nameVals[i]=inp.value;const seg=document.createElement('div');seg.className='seg';const bh=document.createElement('button');bh.textContent='사람';const ba=document.createElement('button');ba.textContent='AI';ba.classList.add('ai');const set=t=>{typeVals[i]=t;bh.classList.toggle('on',t==='human');ba.classList.toggle('on',t==='ai');if(isDefaultName(inp.value,i)){inp.value=defName(i);nameVals[i]=inp.value;}};bh.onclick=()=>set('human');ba.onclick=()=>set('ai');seg.append(bh,ba);row.append(pill,inp,seg);box.appendChild(row);bh.classList.toggle('on',typeVals[i]==='human');ba.classList.toggle('on',typeVals[i]==='ai');}}
   renderNames();
   const soundToggle=$('soundToggle'); soundToggle.classList.toggle('on',soundOn);
   soundToggle.onclick=()=>{soundOn=!soundOn;try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){}soundToggle.classList.toggle('on',soundOn);syncMute();};
@@ -1784,7 +1884,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       }
     }catch(e){}
     const box=$('themeChips'); if(box)[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.t===t));
-    if(window.__alleySyncLight) window.__alleySyncLight(); }
+    if(window.__alleySyncLight) window.__alleySyncLight();
+    // 위장 진입/이탈 시 설정 화면 플레이어 기본 이름을 그 테마에 맞게 갱신
+    try{ if(typeof normalizeNames==='function'){ normalizeNames(); if(typeof renderNames==='function') renderNames(); } }catch(e){} }
   window.__alleySetTheme=applyTheme;
   applyTheme(theme);
   // 위장 모드(엑셀·포토샵) 단축키 안내 — 처음 켤 때 종류별 1회, 해당 앱 톤으로 블렌딩
