@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>요트 다이스 — 주사위 골목</title>
+<meta name="description" content="요트 다이스 — 주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yacht.html">
+<meta property="og:title" content="요트 다이스 — 주사위 골목">
+<meta property="og:description" content="주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
+<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
+<meta name="twitter:card" content="summary">
 <style>
   :root{ --bg:#15110d; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09); --ink:#f3ece0; --muted:#a89a86; --accent:#e0a23c; --accent-ink:#15110d; --gold:#e8a13a; --ai:#9b8cff; --danger:#e8696b; --ui:1; --font:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif; }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -475,6 +482,13 @@ html[data-theme="excel"] .board{ border:1px solid #d4d4d4 }
 html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
 html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme="hanji"] .tabs button.on, html[data-theme="hanji"] .tchip.on, html[data-theme="hanji"] .chips button.on{ color:#fff8ec !important; }
   .tcdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+  /* 콜드스타트 안내 배너 (Render 무료 티어 슬립 대응) */
+  .coldstart{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);color:var(--ink);padding:9px 16px;border-radius:12px;font-size:13px;font-weight:700;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.42);max-width:90vw;text-align:center}
+  .coldstart.fail{border-color:var(--danger);color:var(--danger)}
+
+  /* 접근성: 모션 최소화 선호 시 전환·애니메이션 억제 */
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important} }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -1396,8 +1410,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ========== ONLINE ==========
   const wsUrl=()=>(location.protocol==='https:'?'wss':'ws')+'://'+location.host;
   function wsSend(o){ if(ws&&ws.readyState===1)ws.send(JSON.stringify(o)); }
+  // 콜드스타트 안내: ws 오픈이 2.5초 내 안 되면 "서버 깨우는 중", 60초 넘게 실패하면 "연결 실패"
+  function coldStart(sock){
+    let opened=false;
+    const box=()=>{ let e=document.getElementById('coldstart'); if(!e){ e=document.createElement('div'); e.id='coldstart'; e.className='coldstart'; document.body.appendChild(e); } return e; };
+    const gone=()=>{ const e=document.getElementById('coldstart'); if(e)e.remove(); };
+    const waking=()=>{ if(!opened){ const e=box(); e.className='coldstart'; e.textContent='⏳ 서버를 깨우는 중… 최대 1분'; } };
+    const failed=()=>{ if(!opened){ const e=box(); e.className='coldstart fail'; e.textContent='연결 실패 — 다시 시도'; } };
+    const t1=setTimeout(waking,2500), t2=setTimeout(failed,60000);
+    sock.addEventListener('open',()=>{ opened=true; clearTimeout(t1); clearTimeout(t2); gone(); });
+    sock.addEventListener('close',()=>{ clearTimeout(t1); failed(); });
+  }
   function connect(then){ if(location.protocol==='file:'){$('netErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소(또는 npm start)에서 접속하세요.';return;}
     try{ws=new WebSocket(wsUrl());}catch(e){$('netErr').textContent='서버에 연결할 수 없어요.';return;}
+    coldStart(ws);
     ws.onopen=()=>{ if(then)then(); };
     ws.onerror=()=>{ if(!reconnecting)$('netErr').textContent='서버 연결 오류. 배포된 주소인지, 서버가 켜져 있는지 확인하세요.'; };
     ws.onclose=()=>{ if(S&&S.phase==='play')$('hint').textContent='서버 연결이 끊겼어요. 재접속 시도 중…'; if(reconnects<6){reconnects++;setTimeout(tryReconnect,1500);} };

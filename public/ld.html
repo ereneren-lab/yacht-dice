@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>라이어 다이스 — 주사위 골목</title>
+<meta name="description" content="라이어 다이스 — 허풍과 심리전으로 상대를 속이는 주사위 블러핑 게임. 링크 하나로 친구와 온라인 대결.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/ld.html">
+<meta property="og:title" content="라이어 다이스 — 주사위 골목">
+<meta property="og:description" content="허풍과 심리전으로 상대를 속이는 주사위 블러핑 게임. 링크 하나로 친구와 온라인 대결.">
+<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
+<meta name="twitter:card" content="summary">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -121,6 +128,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @keyframes combopop{0%{opacity:0;transform:translateX(-50%) scale(.4)}25%{opacity:1;transform:translateX(-50%) scale(1.35)}60%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(1.1) translateY(-22px)}}
   .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--brass);color:var(--ink);padding:9px 16px;border-radius:12px;font-size:13px;font-weight:700;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.42);animation:toastin 2.6s ease forwards;white-space:nowrap}
   @keyframes toastin{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}12%{opacity:1;transform:translateX(-50%) translateY(0)}85%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-12px)}}
+  /* 콜드스타트 안내 배너 (Render 무료 티어 슬립 대응) */
+  .coldstart{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--brass);color:var(--ink);padding:9px 16px;border-radius:12px;font-size:13px;font-weight:700;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.42);max-width:90vw;text-align:center}
+  .coldstart.fail{border-color:var(--danger);color:var(--danger)}
   /* 전적 */
   .statsbar{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;margin:4px 0 12px;font-size:12.5px;color:var(--muted)}
   .statsbar b{color:var(--brass);font-weight:800}
@@ -849,10 +859,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const wsUrl=()=>(location.protocol==='https:'?'wss':'ws')+'://'+location.host;
   function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
   function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+  // 콜드스타트 안내: ws 오픈이 2.5초 내 안 되면 "서버 깨우는 중", 60초 넘게 실패하면 "연결 실패"
+  function coldStart(sock){
+    let opened=false;
+    const box=()=>{ let e=document.getElementById('coldstart'); if(!e){ e=document.createElement('div'); e.id='coldstart'; e.className='coldstart'; document.body.appendChild(e); } return e; };
+    const gone=()=>{ const e=document.getElementById('coldstart'); if(e)e.remove(); };
+    const waking=()=>{ if(!opened){ const e=box(); e.className='coldstart'; e.textContent='⏳ 서버를 깨우는 중… 최대 1분'; } };
+    const failed=()=>{ if(!opened){ const e=box(); e.className='coldstart fail'; e.textContent='연결 실패 — 다시 시도'; } };
+    const t1=setTimeout(waking,2500), t2=setTimeout(failed,60000);
+    sock.addEventListener('open',()=>{ opened=true; clearTimeout(t1); clearTimeout(t2); gone(); });
+    sock.addEventListener('close',()=>{ clearTimeout(t1); failed(); });
+  }
   function connect(then){
     teardownNet();
     if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
     try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버에 연결할 수 없어요.'; return; }
+    coldStart(ws);
     ws.onopen=()=>{ then&&then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
     ws.onclose=()=>{};

@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>윷놀이 — 주사위 골목</title>
+<meta name="description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로 즐기세요.">
+<meta property="og:title" content="윷놀이 — 주사위 골목">
+<meta property="og:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로.">
+<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
+<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yut.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="윷놀이 — 주사위 골목">
+<meta name="twitter:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이.">
+<meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -74,6 +84,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .field{ width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-family:inherit;margin-bottom:8px }
   .rules-link{ background:none;border:none;color:var(--brass);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0;margin-bottom:6px }
   .err{ color:var(--danger);font-size:12px;margin-top:6px;min-height:14px }
+  .wakemsg{ color:var(--brass);font-size:12.5px;font-weight:700;margin-top:6px;min-height:0;display:none }
+  .wakemsg.on{ display:block }
+  .wakemsg .wakeretry{ margin-top:6px;border:1.5px solid var(--brass);background:var(--panel2);color:var(--brass);font-weight:800;font-size:12.5px;padding:6px 14px;border-radius:9px;cursor:pointer;font-family:inherit }
   .themerow{ display:flex;align-items:center;gap:8px;margin:10px 0 }
   .tlbl{ font-size:12px;color:var(--muted);font-weight:700 }
   .themechips{ display:flex;gap:6px;flex-wrap:wrap }
@@ -361,6 +374,26 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .rmvoter{ font-size:13px;color:var(--ink);text-align:left;padding:6px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:8px }
   .rematch-btns{ display:flex;gap:8px }
   .rematch-wait{ font-size:12.5px;color:var(--muted);text-align:center;margin-top:8px }
+  /* ==== 순위 확정 미니 알림 ==== */
+  .rankconfirm{ position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:210;display:flex;align-items:center;gap:9px;padding:9px 12px 9px 16px;background:var(--panel);border:1.5px solid var(--brass);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:opacity .2s,transform .2s;max-width:92vw }
+  .rankconfirm.on{ opacity:1;transform:translateX(-50%) translateY(0) }
+  .rankconfirm .rc-txt{ font-size:14px;font-weight:800;color:var(--brass);white-space:nowrap }
+  .rankconfirm .rc-skip{ border:none;background:var(--brass);color:var(--brass-ink);font-weight:800;font-size:12.5px;padding:6px 12px;border-radius:9px;cursor:pointer;font-family:inherit;white-space:nowrap }
+  .rankconfirm .rc-x{ border:none;background:var(--panel2);color:var(--muted);font-weight:800;font-size:12px;width:26px;height:26px;border-radius:8px;cursor:pointer;font-family:inherit;flex:none }
+  /* ==== 키보드 포커스 표시 (focus-visible) ==== */
+  :focus-visible{ outline:3px solid var(--brass); outline-offset:2px; border-radius:8px }
+  .pchipm:focus-visible{ outline:3px solid var(--brass); outline-offset:3px }
+  .pcpiece:focus-visible{ outline:none } /* SVG는 ring 강조로 대체 */
+  .pcpiece:focus-visible .ring{ stroke:var(--brass); stroke-width:4.5 }
+  .tp.movable:focus-visible{ outline:3px solid var(--brass); outline-offset:2px }
+  /* ==== 모션 최소화 선호 ==== */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important }
+    .stick.tossing, .thrower.throwing img, #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:none !important }
+    #pieceLayer .pcpiece.mv .ring{ animation:none !important }
+    .bigbtn.ready{ animation:none !important }
+    #pieceLayer .pcpiece, #pieceLayer .pcpiece.pitfall{ transition:none !important }
+  }
 </style>
 </head>
 <body>
@@ -470,6 +503,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <button class="opt on" data-ad="normal">🙂 보통</button>
           <button class="opt" data-ad="hard">😈 고수</button>
         </div>
+        <div class="lbl">AI 속도</div>
+        <div class="opts" id="optAiSpeed">
+          <button class="opt on" data-af="0">🐢 보통</button>
+          <button class="opt" data-af="1">⚡ 빠름</button>
+        </div>
         <button class="btn" id="startBtn" style="margin-top:14px">시작</button>
       </div>
       <div id="onlineBox" style="display:none">
@@ -499,6 +537,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <button class="btn ghost" id="joinBtn" style="width:auto;padding:12px 18px">참가</button>
         </div>
         <div class="err" id="onErr"></div>
+        <div class="wakemsg" id="wakeMsg" role="status" aria-live="polite"></div>
       </div>
     </div>
   </div>
@@ -696,6 +735,17 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       }
       this.phase = 'over'; this.timedOut = true; this._emit();
     }
+    // 남은 AI를 즉시 진행도 순으로 순위 확정하고 종료(개인전 "빠르게 마무리")
+    finishNow() {
+      if (this._dead || this.phase === 'over' || this.teamMode) return;
+      this._clear();
+      const prog = p => { let s = 0; for (const pc of p.pieces) { if (pc.done) s += 100; else if (pc.out) s += 1; } return s; };
+      const rem = this.players.filter(p => !this.rankings.includes(p.pid));
+      rem.sort((a, b) => prog(b) - prog(a));
+      rem.forEach(p => { if (!this.rankings.includes(p.pid)) this.rankings.push(p.pid); });
+      this.winner = this.rankings[0];
+      this.phase = 'over'; this._emit();
+    }
 
     // 던지기
     doThrow(pid, power) {
@@ -853,7 +903,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (this._dead || this.phase === 'over') return;
       const p = this.players[this.turn];
       const auto = p && (p.ai || !p.connected);
-      const ms = this.aiFast ? 120 : this.aiMs;
+      const ms = this.aiFast ? 130 : this.aiMs;
       if (this.phase === 'throw' && auto) {
         const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
         this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
@@ -926,7 +976,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   const CORNERS=[0,5,10,15,22];
 
   let engine=null, S=null, MYPID='me', online=false, ws=null, roomCode=null, lobby=null, amHost=false;
-  let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal' };
+  let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false };
   const TEAM_COL=['#4a90d9','#e0683c']; const TEAM_NAME=['🔵 청팀','🔴 홍팀'];
   try{ const sc=localStorage.getItem('yut_char'); if(sc && ['pig','dog','sheep','cow','horse'].includes(sc)) cfg.character=sc; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
@@ -936,15 +986,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     function tone(f,t,d,g,type){ const c=ac(); const o=c.createOscillator(),v=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(v);v.connect(c.destination); o.start(t); o.stop(t+d); }
     const buzz=(p)=>{ try{navigator.vibrate&&navigator.vibrate(p);}catch(e){} };
     return {
-      toss(){ if(!soundOn)return; const c=ac(),t=c.currentTime; for(let k=0;k<5;k++)tone(500+Math.random()*900,t+k*0.05,.09,.09,'triangle'); buzz(18); },
+      /* 진동(buzz)은 음소거해도 유지 — soundOn 가드 밖에서 먼저 호출 */
+      toss(){ buzz(18); if(!soundOn)return; const c=ac(),t=c.currentTime; for(let k=0;k<5;k++)tone(500+Math.random()*900,t+k*0.05,.09,.09,'triangle'); },
       move(){ if(!soundOn)return; const c=ac(),t=c.currentTime; tone(660,t,.1,.1,'square'); },
-      capture(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [880,440].forEach((f,i)=>tone(f,t+i*.08,.15,.13,'sawtooth')); buzz([25,30,45]); },
-      win(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.1,.3,.14,'triangle')); buzz([60,50,70,50,140]); },
-      lose(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [392,330,262].forEach((f,i)=>tone(f,t+i*.13,.32,.13,'sine')); buzz([70,60]); },
+      capture(){ buzz([25,30,45]); if(!soundOn)return; const c=ac(),t=c.currentTime; [880,440].forEach((f,i)=>tone(f,t+i*.08,.15,.13,'sawtooth')); },
+      win(){ buzz([60,50,70,50,140]); if(!soundOn)return; const c=ac(),t=c.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.1,.3,.14,'triangle')); },
+      lose(){ buzz([70,60]); if(!soundOn)return; const c=ac(),t=c.currentTime; [392,330,262].forEach((f,i)=>tone(f,t+i*.13,.32,.13,'sine')); },
       pop(){ if(!soundOn)return; const c=ac(),t=c.currentTime; const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(820,t); o.frequency.exponentialRampToValueAtTime(430,t+.07); g.gain.setValueAtTime(.1,t); g.gain.exponentialRampToValueAtTime(.0001,t+.09); o.connect(g);g.connect(c.destination); o.start(t); o.stop(t+.1); },
-      yut(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [784,1047,1319].forEach((f,i)=>tone(f,t+i*.07,.15,.12,'triangle')); buzz([30,20,50]); },
-      finish(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [523,784,1047].forEach((f,i)=>tone(f,t+i*.09,.2,.13,'triangle')); buzz([40,40,90]); },
-      backdo(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [420,300].forEach((f,i)=>tone(f,t+i*.1,.17,.1,'sine')); buzz([15,50,15]); },
+      yut(){ buzz([30,20,50]); if(!soundOn)return; const c=ac(),t=c.currentTime; [784,1047,1319].forEach((f,i)=>tone(f,t+i*.07,.15,.12,'triangle')); },
+      finish(){ buzz([40,40,90]); if(!soundOn)return; const c=ac(),t=c.currentTime; [523,784,1047].forEach((f,i)=>tone(f,t+i*.09,.2,.13,'triangle')); },
+      backdo(){ buzz([15,50,15]); if(!soundOn)return; const c=ac(),t=c.currentTime; [420,300].forEach((f,i)=>tone(f,t+i*.1,.17,.1,'sine')); },
     };
   })();
   function syncMute(){ const b=$('muteBtn'); if(b)b.textContent=soundOn?'🔊':'🔇'; }
@@ -1236,7 +1287,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         const ring=g.querySelector('.ring'); ring.setAttribute('stroke',mv?'#ffffff':pieceColor(o.pi)); ring.setAttribute('stroke-width',mv?3.5:2.5);
         ring.setAttribute('stroke-dasharray',(S.teamMode&&S.players[o.pi]&&S.players[o.pi].team===1)?'4 2.5':'none'); // 홍팀 점선(색맹 구분)
         g.classList.toggle('mv',!!mv);
-        g.onclick=mv?()=>onPieceClick(o.pc.id, o.pi):null;
+        if(mv){ g.onclick=()=>onPieceClick(o.pc.id, o.pi); g.setAttribute('tabindex','0'); g.setAttribute('role','button'); g.setAttribute('aria-label','말 이동'); g.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); onPieceClick(o.pc.id, o.pi); } }; }
+        else { g.onclick=null; g.onkeydown=null; g.removeAttribute('tabindex'); g.removeAttribute('role'); g.removeAttribute('aria-label'); }
       });
     });
     [...layer.children].forEach(c=>{ if(!seen[c.id] && c.id!==animatingId && !pitAnimatingIds.has(c.id)) c.remove(); });
@@ -1297,7 +1349,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // pending
     const _pend=S.pending||[]; if(selStep!=null && selStep>=_pend.length) selStep=null;
     $('pendingRow').innerHTML=_pend.map((st,i)=>{ const steps=st>0?st+'칸':'뒤로'; const pickable=canAct()&&_pend.length>1; return `<span class="pchipm${i===selStep?' sel':''}${pickable?' pick':''}" data-pi="${i}"><b class="pcm-nm">${YUT_NAME[st]}</b><span class="pcm-st">${steps}</span></span>`; }).join('');
-    if(canAct() && _pend.length>1) $('pendingRow').querySelectorAll('.pchipm').forEach(c=>{ c.onclick=()=>{ const pi=+c.dataset.pi; selStep=(selStep===pi)?null:pi; render(); }; });
+    if(canAct() && _pend.length>1) $('pendingRow').querySelectorAll('.pchipm').forEach(c=>{ const act=()=>{ const pi=+c.dataset.pi; selStep=(selStep===pi)?null:pi; render(); }; c.onclick=act; c.setAttribute('tabindex','0'); c.setAttribute('role','button'); c.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
     // 던지기 버튼 / 턴 정보
     const ms=mySeat();
     const btn=$('throwBtn'); const ti=$('turnInfo');
@@ -1336,7 +1388,29 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(S.pitFall && S.pitFall.seq!==pitSeen){ pitSeen=S.pitFall.seq; const who=S.players[S.pitFall.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); try{SFX.capture&&SFX.capture();}catch(e){} animatePitFall(S.pitFall); }
     if(S.phase!=='over') prevCaptured=S.captured;
     buildReactbar();
+    checkRankConfirm();
     if(S.phase==='over') setTimeout(showResult, 500);
+  }
+  /* 3인+ 개인전에서 내 순위가 확정되면(rankings에 내 pid) 미니 알림 + 빠르게 마무리 옵션 */
+  let rankConfirmShown=false;
+  function clearRankConfirm(){ const el=$('rankConfirm'); if(el)el.remove(); }
+  function checkRankConfirm(){
+    if(rankConfirmShown || !S || S.teamMode || S.phase==='over') return;
+    if(!S.players || S.players.length<3) return;
+    if(!S.rankings || S.rankings.indexOf(MYPID)<0) return;
+    rankConfirmShown=true;
+    const rank=S.rankings.indexOf(MYPID)+1;
+    let el=$('rankConfirm');
+    if(!el){ el=document.createElement('div'); el.id='rankConfirm'; el.className='rankconfirm'; document.body.appendChild(el); }
+    el.innerHTML='';
+    const t=document.createElement('span'); t.className='rc-txt'; t.textContent='🎉 '+rank+'등 확정!'; el.appendChild(t);
+    if(!online && engine){ // 로컬만 남은 AI 즉시 종료 가능
+      const b=document.createElement('button'); b.className='rc-skip'; b.textContent='⏩ 빠르게 마무리';
+      b.onclick=()=>{ clearRankConfirm(); try{engine.finishNow();}catch(e){} };
+      el.appendChild(b);
+    }
+    const x=document.createElement('button'); x.className='rc-x'; x.textContent='✕'; x.setAttribute('aria-label','닫기'); x.onclick=clearRankConfirm; el.appendChild(x);
+    void el.offsetWidth; el.classList.add('on');
   }
   function renderThrower(){
     const el=$('thrower'); if(!el)return;
@@ -1387,7 +1461,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       row.innerHTML=`<span class="tray-name"><span class="dotc" style="background:${PCOL[pi]}"></span>${esc(p.name)}${p.pid===MYPID?'(나)':''}</span><span class="tray-slots">${slots}</span>${tag}`;
       el.appendChild(row);
     });
-    el.querySelectorAll('.tp.movable').forEach(t=>{ t.onclick=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); });
+    el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
   }
   function onPieceClick(pieceId, ownerSeat){
     if(ownerSeat==null) ownerSeat=mySeat();
@@ -1484,6 +1558,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('throwBtn').addEventListener('touchstart',e=>{ e.preventDefault(); startGauge(); },{passive:false});
   window.addEventListener('mouseup',endGauge);
   window.addEventListener('touchend',endGauge);
+  /* 키보드로 던지기: Space/Enter 길게=파워게이지 후 릴리스, 짧게=적당 파워(0.5) */
+  $('throwBtn').addEventListener('keydown',e=>{
+    if(e.repeat) return;
+    if(e.key===' '||e.key==='Enter'||e.key==='Spacebar'){ e.preventDefault(); startGauge(); }
+  });
+  $('throwBtn').addEventListener('keyup',e=>{
+    if(e.key===' '||e.key==='Enter'||e.key==='Spacebar'){
+      e.preventDefault();
+      if(!gauging) return;
+      if(performance.now()-gaugeStart < 160) gaugeVal=0.5; // 짧게 누르면 적당 파워
+      endGauge();
+    }
+  });
 
   /* ===== 결과 ===== */
   let resultShown=false, roundKey=null;
@@ -1491,10 +1578,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function resetRoundState(){
     resultShown=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null;
     moveSeqSeen=0; animatingId=null; skipSeen=0; pitSeen=0; selStep=null;
+    rankConfirmShown=false; clearRankConfirm();
     initMissions();
   }
   function showResult(){
     if(resultShown)return; resultShown=true;
+    clearRankConfirm();
     if(gameTimerInt){clearInterval(gameTimerInt);gameTimerInt=null;} if(gameTimer){clearTimeout(gameTimer);gameTimer=null;} { const th=$("timerHud"); if(th)th.style.display="none"; }
     const w=S.players.find(p=>p.pid===S.winner); const spectator=mySeat()<0;
     const rl=$('rankList');
@@ -1567,7 +1656,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
-    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, limitMs:(cfg.timer||0)*60000, aiMs:900, onState:()=>{ S=engine.serialize(); render(); } });
+    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
   }
@@ -1575,15 +1664,31 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* ===== 온라인 ===== */
   function wsUrl(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
   function wsSend(o){ if(ws&&ws.readyState===1)ws.send(JSON.stringify(o)); }
-  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+  function teardownNet(){ try{clearWake&&clearWake();}catch(e){} if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
   let reconnects=0, reconnecting=false, bootReconnect=false;
   function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
   function tryReconnect(){ const room=lsGet('yut_room'), pid=lsGet('yut_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
+  let wakeTimers=[];
+  function clearWake(){ wakeTimers.forEach(t=>clearTimeout(t)); wakeTimers=[]; const w=$('wakeMsg'); if(w){ w.className='wakemsg'; w.textContent=''; } }
+  function showWake(msg){ const w=$('wakeMsg'); if(!w)return; w.className='wakemsg on'; w.textContent=msg; }
+  function showWakeRetry(then){
+    const w=$('wakeMsg'); if(!w)return;
+    w.className='wakemsg on'; w.textContent='연결 실패 — 서버가 아직 깨어나지 않았어요. ';
+    const b=document.createElement('button'); b.className='wakeretry'; b.textContent='🔄 다시 시도';
+    b.onclick=()=>{ clearWake(); connect(then); };
+    w.appendChild(document.createElement('br')); w.appendChild(b);
+  }
   function connect(then){
     if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인이 안 돼요. 배포 주소에서 접속하세요.'; return; }
     teardownNet();
     try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버 연결 실패'; return; }
-    ws.onopen=()=>{ if(then)then(); };
+    /* 콜드스타트 안내: Render가 잠들어 있으면 첫 연결이 30~60초 걸린다.
+       ~2.5초 내 안 열리면 논블로킹 안내, ~60초 넘게 실패하면 재시도 안내. */
+    clearWake();
+    const wakeT=setTimeout(()=>{ if(!ws||ws.readyState!==1) showWake('⏳ 서버를 깨우는 중… 최대 1분'); },2500);
+    const failT=setTimeout(()=>{ if(!ws||ws.readyState!==1) showWakeRetry(then); },60000);
+    wakeTimers=[wakeT,failT];
+    ws.onopen=()=>{ clearWake(); if(then)then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
     ws.onerror=()=>{ $('onErr').textContent='서버 연결 오류'; };
     ws.onclose=()=>{ if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); } } };
@@ -1670,6 +1775,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('optMarkers').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMarkers').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.markers=+o.dataset.m; refreshGoal('optGoal',cfg.markers,'goal'); });
   $('optTimer')&&$('optTimer').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optTimer').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.timer=+o.dataset.tm; });
   $('optAiDiff')&&$('optAiDiff').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optAiDiff').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.aiDiff=o.dataset.ad; });
+  $('optAiSpeed')&&$('optAiSpeed').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optAiSpeed').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.aiFast=o.dataset.af==='1'; });
   $('optMarkersOn').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMarkersOn').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.onMarkers=+o.dataset.m; refreshGoal('optGoalOn',cfg.onMarkers,'onGoal'); });
   $('optTimerOn')&&$('optTimerOn').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optTimerOn').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.onTimer=+o.dataset.tm; });
   function refreshGoal(elId, markers, key){

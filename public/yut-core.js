@@ -116,6 +116,17 @@
       }
       this.phase = 'over'; this.timedOut = true; this._emit();
     }
+    // 남은 AI를 즉시 진행도 순으로 순위 확정하고 종료(개인전 "빠르게 마무리")
+    finishNow() {
+      if (this._dead || this.phase === 'over' || this.teamMode) return;
+      this._clear();
+      const prog = p => { let s = 0; for (const pc of p.pieces) { if (pc.done) s += 100; else if (pc.out) s += 1; } return s; };
+      const rem = this.players.filter(p => !this.rankings.includes(p.pid));
+      rem.sort((a, b) => prog(b) - prog(a));
+      rem.forEach(p => { if (!this.rankings.includes(p.pid)) this.rankings.push(p.pid); });
+      this.winner = this.rankings[0];
+      this.phase = 'over'; this._emit();
+    }
 
     // 던지기
     doThrow(pid, power) {
@@ -274,7 +285,7 @@
       if (this._dead || this.phase === 'over') return;
       const p = this.players[this.turn];
       const auto = p && (p.ai || !p.connected);
-      const ms = this.aiFast ? 120 : this.aiMs;
+      const ms = this.aiFast ? 130 : this.aiMs;
       if (this.phase === 'throw' && auto) {
         const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
         this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
