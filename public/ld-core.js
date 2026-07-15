@@ -178,18 +178,26 @@
       result.snapshot = this.players.map(p=>({ pid:p.pid, seat:p.seat, name:p.name, dice:p.dice.slice() }));
       // 주사위는 아직 그대로 — reveal에 공개되는 주사위 수가 actual과 정확히 일치
       this._emit();
-      this._timer=setTimeout(()=>{ if(this._dead)return;
-        this._loseDie(result.loserSeat);            // 이제 잃음 (다음 라운드에 컵 줄어듦으로 반영)
-        const aliveNow=this.players.filter(p=>p.alive);
-        if(aliveNow.length<=1){
-          result.winner = aliveNow.length?aliveNow[0].pid:null;
-          this.phase='over'; this._emit(); return;
-        }
-        let starter=result.loserSeat;
-        if(!this.players[starter].alive) starter=this._nextAlive(starter);
-        this._newRound(starter);
-      }, this.REVEAL_MS);
+      this._timer=setTimeout(()=>this._advanceRound(), this.REVEAL_MS);
     }
+    // reveal 종료 → 패자 주사위 차감 후 다음 라운드(또는 게임 종료). 타이머 만료·수동 스킵 공용.
+    _advanceRound(){
+      if(this._dead) return;
+      if(this._timer){ clearTimeout(this._timer); this._timer=null; }
+      if(this.phase!=='reveal') return;   // 이미 진행됨 — 중복 스킵 방지
+      const result=this.lastResult;
+      this._loseDie(result.loserSeat);            // 이제 잃음 (다음 라운드에 컵 줄어듦으로 반영)
+      const aliveNow=this.players.filter(p=>p.alive);
+      if(aliveNow.length<=1){
+        result.winner = aliveNow.length?aliveNow[0].pid:null;
+        this.phase='over'; this._emit(); return;
+      }
+      let starter=result.loserSeat;
+      if(!this.players[starter].alive) starter=this._nextAlive(starter);
+      this._newRound(starter);
+    }
+    // 로컬 reveal 남은 시간 스킵 — 주사위는 이미 전부 공개돼 있음
+    skipReveal(){ if(this.phase==='reveal') this._advanceRound(); }
 
     _resolveDudo(challenger){
       const actual=this._countFace(this.bid.face);

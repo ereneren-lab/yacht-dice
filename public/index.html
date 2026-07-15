@@ -64,6 +64,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .pill{font-size:11px; color:var(--muted); background:rgba(255,255,255,.05); border:1px solid var(--line); padding:4px 9px; border-radius:8px}
   .foot{color:var(--muted); font-size:11.5px; text-align:center; margin-top:28px; line-height:1.6}
 
+  /* PWA 설치 안내 배너 — beforeinstallprompt 잡았을 때만, 1회 (닫으면 다시 안 뜸) */
+  .installbar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9998;display:none;
+    align-items:center;gap:11px;width:max-content;max-width:min(92vw,430px);padding:10px 12px 10px 15px;
+    border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--panel) 92%,transparent);
+    backdrop-filter:blur(8px);box-shadow:0 12px 34px rgba(0,0,0,.42)}
+  .installbar.show{display:flex}
+  .installbar .iemoji{font-size:22px;flex:none}
+  .installbar .itxt{font-size:12.5px;color:var(--ink);line-height:1.35}
+  .installbar .itxt b{font-weight:700}
+  .installbar .itxt span{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+  .installbar .iadd{flex:none;background:linear-gradient(150deg,var(--brass),var(--brass-d));color:var(--brass-ink,#15110d);
+    border:none;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .installbar .ix{flex:none;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;font-family:inherit}
+  .installbar .ix:hover{color:var(--ink)}
+
   /* 투명 위젯 컨트롤 (Electron 앱 전용) */
   .opacityctl{position:fixed;top:10px;right:12px;z-index:9999;display:none;align-items:center;gap:9px;-webkit-app-region:no-drag;background:rgba(20,16,12,.62);backdrop-filter:blur(7px);padding:6px 11px;border-radius:13px;border:1px solid var(--line)}
   .opacityctl span{font-size:14px}
@@ -84,6 +99,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .tchip i{width:9px;height:9px;border-radius:50%;margin-right:6px}
   .tchip:hover{color:var(--ink)}
   .tchip.on{background:var(--brass);color:var(--bg);border-color:transparent}
+  /* 라이트/다크 토글 — 칩 줄 끝에 자연스럽게 편입 (게임 아이콘버튼과 톤 통일) */
+  .lighttoggle{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;line-height:1;
+    border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;
+    cursor:pointer;font-size:14px;font-family:inherit;transition:.12s}
+  .lighttoggle:hover{border-color:color-mix(in srgb,var(--brass) 45%,transparent);color:var(--ink)}
 
   /* 접근성: 모션 최소화 선호 시 전환·애니메이션 억제 */
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important} }
@@ -106,11 +126,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     <h1>주사위 골목<span class="en">Dice Alley</span></h1>
   </div>
   <p class="lede">뒷골목 주사위 도박장에 온 걸 환영해. 한 판 고르고 들어와.</p>
-  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" title="다크/라이트 모드" style="margin-left:auto;background:none;border:1px solid var(--line);border-radius:9px;color:var(--ink);width:34px;height:34px;cursor:pointer;font-size:15px">☀️</button></div>
+  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
 
   <div class="cards">
     <a class="gcard" href="kb.html">
-      <span class="tag play">플레이</span>
       <div class="gtop">
         <div class="ic">🦴</div>
         <div><h2>너클본즈</h2><div class="sub">3×3 격자에 주사위를 쌓아 곱점을 노리고, 상대의 같은 칸은 부순다.</div></div>
@@ -119,7 +138,6 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
 
     <a class="gcard" href="yacht.html">
-      <span class="tag play">플레이</span>
       <div class="gtop">
         <div class="ic" style="font-size:23px;letter-spacing:-3px">🎲🎲</div>
         <div><h2>요트 다이스</h2><div class="sub">상단 보너스·콤보·온라인 멀티까지. 친구들과 방 잡고 점수 대결.</div></div>
@@ -128,7 +146,6 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
 
     <a class="gcard" href="ld.html">
-      <span class="tag play">플레이</span>
       <div class="gtop">
         <div class="ic">🤥</div>
         <div><h2>라이어 다이스</h2><div class="sub">컵 속 주사위를 숨기고 뻥카를 친다. 1은 만능, 거짓말을 잡아라.</div></div>
@@ -137,7 +154,6 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
 
     <a class="gcard" href="lcr.html">
-      <span class="tag play">플레이</span>
       <div class="gtop">
         <div class="ic">🔀</div>
         <div><h2>LCR (좌·중·우)</h2><div class="sub">칩을 옆으로 넘기는 순수 운빨 파티 게임. 마지막 한 명이 팟까지 싹쓸이.</div></div>
@@ -145,7 +161,6 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       <div class="meta"><span class="pill">3~6인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">운빨</span></div>
     </a>
     <a class="gcard" href="yut.html">
-      <span class="tag play">플레이</span>
       <div class="gtop">
         <div class="ic">🐎</div>
         <div><h2>윷놀이</h2><div class="sub">도·개·걸·윷·모! 지름길로 질러가고 상대 말을 잡으며 내 말을 모두 완주시켜라. 정통 규칙.</div></div>
@@ -155,6 +170,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   </div>
 
   <p class="foot">주사위 골목 · 다섯 가지 주사위 게임이 모였다 🎲</p>
+</div>
+<div class="installbar" id="installBar">
+  <span class="iemoji">🎲</span>
+  <div class="itxt"><b>홈 화면에 추가</b><span>앱처럼 전체화면으로 바로 열기</span></div>
+  <button class="iadd" id="installAdd">설치</button>
+  <button class="ix" id="installX" title="닫기">✕</button>
 </div>
 <script>
   (function(){ var r=new URLSearchParams(location.search).get('room'); if(r){ location.replace('yacht.html?room='+encodeURIComponent(r)); } })();
@@ -175,7 +196,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 (function(){
   var T=[['espresso','에스프레소','#e0a23c'],['mintchoco','민트초코','#5ee0a8'],['grapefruit','자몽','#ff7a8a'],['bluelemon','블루레몬','#4fd6ff'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
   function g(){ try{return localStorage.getItem('alley_theme')||'espresso';}catch(e){return 'espresso';} }
-  function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
+  function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); var lb=document.getElementById('lightBtn'); /* ☀️ 노드는 innerHTML 초기화 전에 참조 확보 (칩 클러스터 끝에 재편입, 삭제 방지) */ h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); if(lb) h.appendChild(lb); }
   function s(t){ document.documentElement.dataset.theme=t;
     try{ localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t); }catch(e){}
     r(); if(window.__alleySyncLight) window.__alleySyncLight(); }
@@ -184,6 +205,29 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 })();
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
+<script>(function(){
+  // PWA 설치 배너: beforeinstallprompt를 가로채 가벼운 1회 안내만 노출
+  var bar=document.getElementById('installBar'); if(!bar) return;
+  var deferred=null, KEY='alley_pwa_dismissed';
+  function dismissed(){ try{return localStorage.getItem(KEY)==='1';}catch(e){return false;} }
+  function remember(){ try{localStorage.setItem(KEY,'1');}catch(e){} }
+  function hide(){ bar.classList.remove('show'); }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferred=e;
+    if(dismissed()) return;              // 이미 닫았으면 다시 띄우지 않음(1회)
+    bar.classList.add('show');
+  });
+  var add=document.getElementById('installAdd');
+  if(add) add.onclick=function(){
+    hide(); remember();
+    if(!deferred){ return; }
+    deferred.prompt();
+    Promise.resolve(deferred.userChoice).finally(function(){ deferred=null; });
+  };
+  var x=document.getElementById('installX');
+  if(x) x.onclick=function(){ hide(); remember(); };
+  window.addEventListener('appinstalled', function(){ hide(); remember(); });
+})();</script>
 <script>(function(){
   var lb=document.getElementById('lightBtn'); if(!lb)return;
   function sync(){ lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️'; }

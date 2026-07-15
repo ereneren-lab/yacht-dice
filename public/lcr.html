@@ -108,8 +108,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .seatring{ display:flex;align-items:stretch;justify-content:center;gap:5px;margin:6px 0 4px }
   .players{ display:flex;flex-wrap:nowrap;gap:5px;justify-content:center;flex:1;min-width:0 }
   .wrapmark{ display:flex;align-items:center;justify-content:center;flex:none;width:16px;font-size:13px;color:var(--muted);opacity:.75 }
-  .seathint{ text-align:center;font-size:10.5px;color:var(--muted);font-weight:700;margin:0 0 12px;letter-spacing:.01em }
+  .seathint{ text-align:center;font-size:10.5px;color:var(--muted);font-weight:700;margin:0 0 12px;letter-spacing:.01em;cursor:pointer }
   .seathint b{ color:var(--brass);font-weight:800 }
+  .seathint .sh-mini{ display:none;opacity:.7 }
+  .seathint.folded{ margin:0 0 8px }
+  .seathint.folded .sh-full{ display:none }
+  .seathint.folded .sh-mini{ display:inline }
   .pcard{ flex:1 1 0;min-width:0;max-width:150px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:11px 4px 10px;text-align:center;transition:border-color .2s,box-shadow .2s,opacity .2s;position:relative }
   .pcard.turn{ border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 22%,transparent) }
   /* 칩 0 = 탈락이 아니라 "대기/부활 가능" — 완전 회색 대신 점선 + 힌트로 구분 */
@@ -127,6 +131,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .pcard .me-tag{ position:absolute;top:5px;right:6px;font-size:9px;font-weight:800;color:var(--brass) }
   .pcard .turnflag{ position:absolute;top:5px;left:6px;font-size:9px;font-weight:800;color:var(--brass);opacity:0 }
   .pcard.turn .turnflag{ opacity:1 }
+  /* 5·6인 좁은 카드: "차례" 글자를 화살표로 접고 배지를 코너로 밀어 아바타와 겹치지 않게 */
+  .players.crowd .pcard .turnflag{ font-size:0;top:4px;left:4px }
+  .players.crowd .pcard .turnflag::before{ content:'▸';font-size:11px;color:var(--brass) }
+  .players.crowd .pcard .me-tag{ font-size:8px;top:4px;right:4px }
+  .players.crowd .pcard .pav{ margin-top:4px }
   .pcard .seatno{ position:absolute;bottom:4px;left:6px;font-size:8.5px;font-weight:800;color:var(--muted);opacity:.7 }
   /* 칩 이동 연출 */
   .pcard.gave{ animation:cardGave .6s ease }
@@ -158,6 +167,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .pcard.gave .chipn,.pcard.got .chipn{ animation:none }
     .pcard.duel{ animation:none }
     .pot.potgot{ animation:none }
+    .pot.blaze{ animation:none }
+    .pot.hot,.pot.blaze{ transform:none }
     .chipfly{ animation-duration:.01ms }
     .floatemo,.floatemo.txt{ animation-duration:.9s }
     .combobadge{ animation-duration:.5s }
@@ -168,9 +179,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .pcard .chipl{ font-size:8.5px } .pcard .seatno{ display:none }
     .players{ gap:4px }
   }
-  .pot{ text-align:center;background:var(--panel2);border:1.5px dashed var(--brass);border-radius:14px;padding:10px;margin:0 auto 14px;max-width:180px }
-  .pot .potn{ font-size:28px;font-weight:900;color:var(--brass);line-height:1 }
+  .pot{ text-align:center;background:var(--panel2);border:1.5px dashed var(--brass);border-radius:14px;padding:10px;margin:0 auto 14px;max-width:180px;transition:transform .25s,box-shadow .25s,border-color .25s }
+  .pot .potn{ font-size:28px;font-weight:900;color:var(--brass);line-height:1;transition:font-size .2s,color .2s }
   .pot .potl{ font-size:10.5px;color:var(--muted);font-weight:700;margin-top:2px }
+  /* 잭팟 빌드업 — 팟 액수 구간별 압박(폰트·글로우·맥동) */
+  .pot.warm{ border-color:var(--brass);box-shadow:0 0 14px color-mix(in srgb,var(--brass) 30%,transparent) }
+  .pot.warm .potn{ font-size:33px }
+  .pot.hot{ border-style:solid;border-color:var(--brass);box-shadow:0 0 22px color-mix(in srgb,var(--brass) 46%,transparent);transform:scale(1.04) }
+  .pot.hot .potn{ font-size:37px }
+  .pot.blaze{ border-style:solid;border-color:var(--danger);animation:potBlaze 1s ease-in-out infinite }
+  .pot.blaze .potn{ font-size:42px;color:var(--danger) }
+  .pot.blaze .potl{ color:var(--danger) }
+  @keyframes potBlaze{ 0%,100%{ box-shadow:0 0 16px color-mix(in srgb,var(--danger) 42%,transparent);transform:scale(1.03) } 50%{ box-shadow:0 0 34px color-mix(in srgb,var(--danger) 72%,transparent);transform:scale(1.09) } }
   .dicerow{ display:flex;gap:10px;justify-content:center;margin:14px 0 8px;min-height:58px;align-items:center }
   .ldie{ width:54px;height:54px;border-radius:12px;background:var(--die);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:var(--pip);border:2px solid var(--brass-d);box-shadow:0 3px 0 var(--brass-d);animation:dpop .3s ease }
   @keyframes dpop{ 0%{transform:scale(.4) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1} }
@@ -189,6 +209,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .rollbtn{ display:block;width:100%;padding:16px;border-radius:14px;border:none;background:var(--brass);color:var(--bg);font-weight:900;font-size:16px;cursor:pointer;font-family:inherit }
   .rollbtn:hover{ background:var(--brass-d) }
   .rollbtn:disabled{ opacity:.45;cursor:default;background:var(--panel2);color:var(--muted) }
+  /* 자동 굴리기 토글 — 순수 운빨이라 수동 클릭이 지루할 때 */
+  .autoroll{ display:flex;align-items:center;justify-content:center;gap:7px;margin:9px 0 2px;font-size:12.5px;color:var(--muted);font-weight:700;cursor:pointer;user-select:none }
+  .autoroll input{ width:18px;height:18px;accent-color:var(--brass);cursor:pointer }
   .tutdots{ display:flex;gap:6px;justify-content:center;margin-top:6px }
   .tutdots i{ width:7px;height:7px;border-radius:50%;background:var(--line);transition:.2s;display:block }
   .tutdots i.on{ background:var(--brass);width:18px;border-radius:4px }
@@ -204,7 +227,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .reacttoggle.open{ background:var(--brass);color:var(--bg);border-color:transparent }
   .reactbar{ display:none;position:absolute;bottom:46px;left:50%;transform:translateX(-50%);width:min(340px,92vw);max-height:min(50vh,260px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:60;gap:6px;justify-content:center;flex-wrap:wrap }
   .reactbar.open{ display:flex }
-  .reactbar button{ width:38px;height:38px;border-radius:10px;border:none;background:var(--panel2);font-size:19px;cursor:pointer }
+  /* 데스크톱: 게임이 세로 중앙정렬(P4)이라 위쪽이 판. 반응바를 아래로 펼쳐 카드·주사위를 안 가리게 */
+  @media (min-width:781px){ .reactbar{ top:54px;bottom:auto } }
+  .reactbar button{ width:44px;height:44px;border-radius:10px;border:none;background:var(--panel2);font-size:20px;cursor:pointer }
   .reactbar button:hover{ transform:translateY(-2px);background:var(--panel) }
   .reactbar button.phrase{ width:auto;padding:0 11px;font-size:13px;font-weight:800;color:var(--ink) }
   .reactbar button.phrase:hover{ background:var(--brass);color:var(--bg) }
@@ -261,11 +286,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
             <div class="players" id="players"></div>
             <div class="wrapmark" title="양 끝은 서로 이웃 (원형)">↪</div>
           </div>
-          <div class="seathint">← <b>L</b> 은 왼쪽 이웃 · <b>R</b> 은 오른쪽 이웃 → · 양 끝(↩↪)은 서로 이웃이야 (원형)</div>
+          <div class="seathint" id="seathint" title="탭하면 접기/펼치기"><span class="sh-full">← <b>L</b> 은 왼쪽 이웃 · <b>R</b> 은 오른쪽 이웃 → · 양 끝(↩↪)은 서로 이웃이야 (원형)</span><span class="sh-mini">ⓘ 좌·우 규칙</span></div>
           <div class="pot" id="potBox"><div class="potn" id="potN">0</div><div class="potl">가운데 팟 🎯</div></div>
           <div class="dicerow" id="dicerow"></div>
           <div class="rolllog" id="rolllog"></div>
           <button class="rollbtn" id="rollBtn">🎲 굴리기</button>
+          <label class="autoroll" id="autoWrap"><input type="checkbox" id="autoChk"> ⚡ 자동 굴리기</label>
           <div class="reactzone" id="reactzone" style="display:none">
             <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
             <div class="reactbar" id="reactbar"></div>
@@ -490,10 +516,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const $=id=>document.getElementById(id);
   const AV=['🦊','🐼','🐯','🦁','🐸','🐵','🐨','🐻','🐰','🐶'];
   const NM=['여우','판다','호랑이','사자','개구리','원숭이','코알라','곰','토끼','강아지'];
+  // 온라인 봇은 서버가 "AI 1" 같은 삭막한 이름을 준다. 아바타(동물 이모지) 기준으로 동물명을 붙여 로컬처럼 친근하게.
+  const AI_ANIMAL={'🦊':'여우','🐸':'개구리','🐼':'판다','🦁':'사자','🐰':'토끼','🐵':'원숭이','🐯':'호랑이','🐨':'코알라','🐻':'곰','🐶':'강아지'};
+  function dispName(p){ if(p&&p.ai&&/^AI\s*\d*$/i.test(String(p.name||'').trim())){ return AI_ANIMAL[p.avatar]||p.name; } return p?p.name:''; }
   let engine=null, S=null, MYPID='me', online=false, ws=null, roomCode=null, lobby=null, amHost=false, busy=false;
   let cfg={ n:4, speed:'normal' };
   try{ const sp=localStorage.getItem('lcr_speed'); if(sp==='fast'||sp==='normal') cfg.speed=sp; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
+  let autoRoll=false; try{ autoRoll=localStorage.getItem('lcr_auto')==='1'; }catch(e){}
+  let autoTimer=null;
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null, duelOn=false, wasPlaying=false;
 
   /* ===== SFX ===== */
@@ -629,7 +660,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ===== 렌더 ===== */
   const FCH={L:'L',R:'R',C:'C','.':'•'};
   const FCLS={L:'fL',R:'fR',C:'fC','.':'fdot'};
-  let resultShown=false, lastRollKey=null, sweepShown=false;
+  let resultShown=false, lastRollKey=null, sweepShown=false, potMilestone=6;
   function mySeat(){ return S?S.players.findIndex(p=>p.pid===MYPID):-1; }
   function render(){
     if(!S)return;
@@ -643,7 +674,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const lr=S.lastRoll;
     const key = lr && lr.dice.length ? (S.rollSeq!=null ? 'r'+S.rollSeq : S.turn+'_'+lr.seat+'_'+lr.dice.join('')) : null;
     const fresh = !!key && key!==lastRollKey;
-    if(!lr) { lastRollKey=null; duelOn=false; const lh=$('loghist'); if(lh)lh.innerHTML=''; }   // 새 판 시작 → duel 토스트 재무장 + 기록 비우기
+    if(!lr) { lastRollKey=null; duelOn=false; potMilestone=6; const lh=$('loghist'); if(lh)lh.innerHTML=''; }   // 새 판 시작 → duel 토스트·팟기록 재무장 + 기록 비우기
     // 이번 굴림에서 칩을 준 사람 / 받은 사람
     const gave = fresh && lr ? lr.seat : -1;
     const got = {};   // seat -> 받은 칩 수
@@ -653,6 +684,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
     // 플레이어 카드 — 한 줄(좌석 순서 = 화면 순서)
     const wrap=$('players'); wrap.innerHTML='';
+    wrap.classList.toggle('crowd', S.players.length>=5);   // 5·6인은 배지 컴팩트 모드
     const revived=[];   // 이번 굴림에서 0→1로 부활한 사람
     S.players.forEach(p=>{
       // 붉은 결투 펄스: 결투 구간에 살아있는 두 카드에만 (회복되면 자동 꺼짐)
@@ -664,7 +696,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       d.className='pcard'+(S.turn===p.seat&&S.phase==='roll'?' turn':'')+(!p.alive?' out':'')+(duel?' duel':'')
         +(isGetter?' got':'')+(isGiver&&!isGetter?' gave':'');
       d.dataset.pid=p.pid;
-      d.innerHTML=`<span class="turnflag">차례</span>${p.pid===MYPID?'<span class="me-tag">나</span>':''}<span class="seatno">#${p.seat+1}</span><div class="pav">${p.avatar||'🎲'}</div><div class="pnm">${esc(p.name)}${p.ai?' 🤖':''}</div><div class="chipn">${p.chips}</div><div class="chipl">칩</div>${!p.alive?'<span class="revivehint">부활 가능</span>':''}`;
+      d.innerHTML=`<span class="turnflag">차례</span>${p.pid===MYPID?'<span class="me-tag">나</span>':''}<span class="seatno">#${p.seat+1}</span><div class="pav">${p.avatar||'🎲'}</div><div class="pnm">${esc(dispName(p))}${p.ai?' 🤖':''}</div><div class="chipn">${p.chips}</div><div class="chipl">칩</div>${!p.alive?'<span class="revivehint">부활 가능</span>':''}`;
       // 떠오르는 +N / −N 배지
       if(isGetter) d.insertAdjacentHTML('beforeend',`<span class="chipfly get">+${got[p.seat]}</span>`);
       else if(isGiver) d.insertAdjacentHTML('beforeend',`<span class="chipfly give">−${gaveN}</span>`);
@@ -674,7 +706,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(revived.length) showToast('🔥 부활! '+revived.join(', '));
     $('potN').textContent=S.pot;
     const pb=$('potBox');
-    if(pb){ pb.classList.remove('potgot'); if(potGain>0){ void pb.offsetWidth; pb.classList.add('potgot'); } }
+    if(pb){
+      pb.classList.remove('potgot','warm','hot','blaze');
+      const pv=S.pot;
+      if(pv>=6) pb.classList.add('blaze'); else if(pv>=5) pb.classList.add('hot'); else if(pv>=3) pb.classList.add('warm');
+      if(potGain>0){ void pb.offsetWidth; pb.classList.add('potgot'); }
+    }
+    // 신기록 팟 마이크로 연출 — 팟이 6칩부터 3칩 단위로 커질 때마다 잭팟 압박 알림
+    if(fresh && potGain>0 && S.pot>=potMilestone){ showToast('🔥 신기록 팟! '+S.pot+'칩'); potMilestone=S.pot+3; }
     // 주사위 + 롤 로그
     const dr=$('dicerow');
     if(lr && lr.dice.length){
@@ -691,6 +730,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     buildReactbar();
     if(fresh && !online) localFlavor(lr, got, potGain);   // 로컬 AI 한마디
+    scheduleAuto();   // 자동 굴리기: 내 차례면 예약, 아니면 해제
     // 우승 순간: 팟 싹쓸이 연출 후 결과창 (over 진입 프레임 1회)
     if(S.phase==='over' && !sweepShown){ sweepShown=true; playPotSweep(); }
   }
@@ -733,7 +773,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function rollText(lr){
     if(!lr||!lr.dice.length) return '';
-    const who=`<span class="rl-who">${esc(lr.name)}</span>`;
+    const who=`<span class="rl-who">${esc(dispName(S.players[lr.seat])||lr.name)}</span>`;
     if(!lr.moves.length) return `${who} <span class="rl-none">— 전부 유지 (•) 😌</span>`;
     const parts=lr.moves.map(m=>{
       if(m.f==='C') return '<span class="rl-pot">🎯 팟에 1칩</span>';
@@ -744,7 +784,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function histText(lr){
     if(!lr||!lr.dice.length) return '';
-    const who=esc(lr.name);
+    const who=esc(dispName(S.players[lr.seat])||lr.name);
     if(!lr.moves.length) return `${who} — 유지 •`;
     const parts=lr.moves.map(m=> m.f==='C' ? '팟' : esc((S.players[m.to]||{}).name||''));
     return `${who} → ${parts.join(', ')}`;
@@ -760,12 +800,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ===== 결과 ===== */
   function showResult(){
     if(resultShown)return; resultShown=true;
+    markHintSeen();   // 첫 판 완주 → 다음 판부터 좌석 힌트는 접힌 채 시작
     const w=S.players.find(p=>p.pid===S.winner);
     const iWon = S.winner===MYPID;
     const spectator = mySeat()<0;
     const pot = S.maxPot||0;   // 승자가 싹쓸이한 팟 크기 (판 내내 단조 증가)
     $('resBig').textContent = iWon?'🏆':'🎲';
-    $('resTitle').textContent = w ? `${esc(w.name)} 승리!` : '게임 종료';
+    $('resTitle').textContent = w ? `${esc(dispName(w))} 승리!` : '게임 종료';
     // 극적인 팟 기여분을 총 칩과 분리 표기 — "🎯 팟 N개 포함 총 M칩 독식"
     if(w){
       const potPart = pot>0 ? `🎯 팟 <b style="color:var(--brass)">${pot}개</b> 포함 ` : '';
@@ -797,6 +838,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:av[i-1],ai:true});
     S=null; busy=false; resultShown=false; lastRollKey=null; duelOn=false;
     $('setupOv').classList.remove('on'); $('game').style.display='block'; document.body.classList.add('ingame');
+    applySeathint();
     $('modePill').textContent='· AI 대전';
     const aiMs = cfg.speed==='fast' ? 550 : 1500;   // 빠름: 6인도 라운드가 짧게
     engine=new LCRCore.LCREngine({ players, startChips:3, aiMs, onState:()=>{ S=engine.serialize(MYPID); render(); } });
@@ -810,6 +852,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     setTimeout(()=>{ busy=false; if(S)updateRollBtn(); }, 260);
   }
   $('rollBtn').onclick=doRoll;
+  // 자동 굴리기: 내 차례가 오면 잠깐 뒤 스스로 굴린다 (로컬·온라인 공통, 순수 운빨이라 편의 기능)
+  function clearAuto(){ if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; } }
+  function scheduleAuto(){
+    clearAuto();
+    if(!autoRoll || !S || S.phase!=='roll') return;
+    const ms=mySeat();
+    if(ms<0 || S.turn!==ms || busy) return;
+    autoTimer=setTimeout(()=>{ autoTimer=null; if(autoRoll && S && S.phase==='roll' && mySeat()===S.turn && !busy) doRoll(); }, cfg.speed==='fast' ? 300 : 650);
+  }
+  (function(){ const chk=$('autoChk'); if(!chk)return; chk.checked=autoRoll;
+    chk.onchange=()=>{ autoRoll=chk.checked; try{localStorage.setItem('lcr_auto',autoRoll?'1':'0');}catch(e){} if(autoRoll) scheduleAuto(); else clearAuto(); };
+  })();
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
 
   /* ===== 온라인 ===== */
@@ -859,7 +913,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(wasPlaying){ wasPlaying=false; showToast('🔄 다시 시작 준비! 호스트가 시작하면 출발'); }
       renderLobby();
     }
-    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; document.body.classList.add('ingame'); $('modePill').textContent='· 온라인'; S=m.state;
+    else if(m.t==='state'){ online=true; const wasHidden=$('game').style.display!=='block'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='block'; if(wasHidden)applySeathint(); document.body.classList.add('ingame'); $('modePill').textContent='· 온라인'; S=m.state;
       if(S.phase!=='over'){ $('resultOv').classList.remove('on'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
       if(prevConn){ S.players.forEach(p=>{ if(!p.ai && p.pid!==MYPID && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) showToast((p.connected?'🔌 ':'⚠️ ')+p.name+(p.connected?' 재접속':' 연결 끊김')); }); }
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
@@ -891,7 +945,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member';
-      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(mem.name)}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(dispName(mem))}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
@@ -946,7 +1000,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
     const pot=S?S.maxPot||0:0;
     if(iWon){ const pp = pot>0?`팟 ${pot}개 포함 `:''; return `주사위 골목 · 좌중우(LCR)에서 ${pp}총 ${w?w.chips:''}칩 싹쓸이 승리!${st} 🔀`; }
-    return `주사위 골목 · 좌중우(LCR) 한 판 붙었어. ${w?w.name+' 승리':''} 🔀`;
+    return `주사위 골목 · 좌중우(LCR) 한 판 붙었어. ${w?dispName(w)+' 승리':''} 🔀`;
   }
   function shareResult(){
     const text=buildShareText(); const url=location.origin+location.pathname;
@@ -982,6 +1036,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); startLocal(); } };
   $('tutPrev').onclick=()=>{ if(tutStep>0){ tutStep--; renderTut(); } };
   $('tutSkip').onclick=()=>$('tutOv').classList.remove('on');
+
+  /* ===== 좌석 힌트 접기 — 첫 판만 펼치고 이후 판부터 접어둠(탭하면 다시 펼침) ===== */
+  let hintSeen=false; try{ hintSeen=localStorage.getItem('lcr_hint_seen')==='1'; }catch(e){}
+  function applySeathint(){ const el=$('seathint'); if(el) el.classList.toggle('folded', hintSeen); }
+  function markHintSeen(){ if(!hintSeen){ hintSeen=true; try{localStorage.setItem('lcr_hint_seen','1');}catch(e){} } }
+  (function(){ const el=$('seathint'); if(el) el.onclick=()=>el.classList.toggle('folded'); })();
 
   /* 부트: ?room= 자동 참가 */
   (function boot(){

@@ -136,7 +136,8 @@
   td.empty{color:transparent}
   td.preview{color:var(--accent);font-weight:700;cursor:pointer;background:rgba(174,243,89,.08)}
   td.preview:hover{background:rgba(174,243,89,.18)}
-  td.preview.zero{color:var(--muted)}
+  td.preview.zero{color:var(--muted);font-weight:400;background:none}
+  td.preview.zero:hover{background:rgba(255,255,255,.05)}
   td.lock{cursor:default}
   .col-current{background:rgba(174,243,89,.05)}
   tr.bonus td,tr.bonus td.catcol{color:var(--gold)}
@@ -250,7 +251,7 @@
   .combobadge{position:fixed;font-size:30px;font-weight:900;color:var(--accent);pointer-events:none;z-index:55;transform:translateX(-50%);animation:combopop .9s ease-out forwards;text-shadow:0 2px 8px rgba(0,0,0,.55)}
   @keyframes combopop{0%{opacity:0;transform:translateX(-50%) scale(.4)}25%{opacity:1;transform:translateX(-50%) scale(1.35)}60%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(1.1) translateY(-22px)}}
   /* help + breakdown */
-  .helpwrap{max-height:58vh;overflow-y:auto;text-align:left;margin-bottom:6px}
+  .helpwrap{max-height:72vh;overflow-y:auto;text-align:left;margin-bottom:6px}
   .helprow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
   .helprow b{color:var(--ink);font-weight:700;white-space:nowrap}
   .helprow span{color:var(--muted);text-align:right}
@@ -276,6 +277,7 @@
   .d2.justheld{animation:heldpop .45s}
   @keyframes heldpop{0%{box-shadow:0 0 0 3px var(--gold),0 0 0 0 rgba(255,212,94,.75)}45%{box-shadow:0 0 0 3px var(--gold),0 0 24px 7px rgba(255,212,94,.75)}100%{box-shadow:0 0 0 3px var(--gold),0 0 16px rgba(255,212,94,.55)}}
   .d2 .pin{position:absolute;top:-7px;right:-7px;font-size:10px;background:var(--gold);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.45);z-index:2}
+  .d2 .idx{position:absolute;bottom:-5px;left:-4px;font-size:9px;font-weight:800;background:var(--panel2);color:var(--muted);border-radius:5px;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 2px;box-shadow:0 1px 3px rgba(0,0,0,.4);z-index:2;opacity:.88;font-variant-numeric:tabular-nums}
   .tray .dice2d{position:relative;display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:nowrap;height:58px}
   .d2{will-change:transform}
   /* sheet compact toggle */
@@ -321,7 +323,7 @@
   @keyframes bigflash{0%{opacity:0;transform:scale(.6)}15%{opacity:1;transform:scale(1.12)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
   /* theme row */
   .themerow{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-  .themerow .tlbl{font-size:12px;color:var(--muted);font-weight:700}
+  .themerow .tlbl{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
 
   /* themes */
   html[data-theme="mintchoco"]{ --bg:#0e1512; --panel:#182420; --panel2:#1f2e29; --line:rgba(255,255,255,.09); --ink:#eaf7f0; --muted:#88a89a; --accent:#5ee0a8; --accent-ink:#0e1512; --gold:#5ee0a8; --ai:#c9a0ff; --danger:#ff6b7a; }
@@ -1055,6 +1057,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const on=(d.value&&!anim)?PIPS[d.value]:[];
     for(let k=0;k<9;k++){const c=document.createElement('span');c.className='c';if(on.indexOf(k)>=0){const p=document.createElement('span');p.className='p';c.appendChild(p);}el.appendChild(c);}
     if(d.held){ const pin=document.createElement('span'); pin.className='pin'; pin.textContent='🔒'; el.appendChild(pin); }
+    const bdg=document.createElement('span'); bdg.className='idx'; bdg.textContent=i+1; el.appendChild(bdg);  // 숫자키(1~5)와 맞물리는 고정 인덱스 배지
     const act=canAct()&&S.rolled&&S.rollsLeft>0&&!anim;
     if(act)el.onclick=()=>{ tactile(); sendAction({type:'hold',i}); }; else el.classList.add('lock');
     return el;
@@ -1105,7 +1108,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function cell(p,pi,catId){ const v=p.scores[catId], cur=pi===S.current?'col-current':'';
     if(v!==null)return `<td class="val ${cur}" data-p="${pi}" data-c="${catId}">${v}</td>`;
     if(pi===S.current&&S.rolled&&S.preview){ const prev=S.preview[catId], click=canAct();
-      return `<td class="preview ${cur} ${prev===0?'zero':''} ${click?'':'lock'}" ${click?`data-cat="${catId}"`:''}>${prev}</td>`; }
+      return `<td class="preview ${cur} ${prev===0?'zero':''} ${click?'':'lock'}" ${click?`data-cat="${catId}"`:''}>${prev===0?'–':prev}</td>`; }
     return `<td class="empty ${cur}">·</td>`;
   }
   // ---------- 항목 설명 ----------
@@ -1157,6 +1160,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   const XL_SHORT={ aces:'1s',twos:'2s',threes:'3s',fours:'4s',fives:'5s',sixes:'6s',choice:'CH',chance:'CN',threeKind:'3K',fourKind:'4K',fullHouse:'FH',twoPair:'2P',sStraight:'SS',lStraight:'LS',yacht:'YT' };
   function renderSheet(){ if(!S)return;
+    const cb=$('compactBtn'); if(cb)cb.style.display=(S.players.length>2)?'':'none';   // 간략히/전체는 3인 이상에서만 의미가 있음(2인은 필터가 무효)
     let cols=S.players.map((p,pi)=>pi);
     if(compact && S.players.length>2){ cols=cols.filter(pi=>pi===S.current||(isOnline()&&S.players[pi].pid===myPid)); if(!cols.length)cols=[S.current]; }
     let h='<thead><tr><th class="catcol"></th>';
@@ -1201,8 +1205,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ---------- timer ----------
   let warnKey=null;
-  setInterval(()=>{ const fill=$('timerFill'), sec=$('timerSec'); if(!fill||!S||S.phase!=='play'){ if(sec)sec.style.display='none'; return; }
+  setInterval(()=>{ const fill=$('timerFill'), sec=$('timerSec'), row=fill&&fill.closest('.timerrow'); if(!fill||!S||S.phase!=='play'){ if(sec)sec.style.display='none'; return; }
     const limited = S.turnMs>0;                       // 로컬은 turnMs=0 → 시간 제한 없음
+    if(row)row.style.display=limited?'flex':'none';    // 무제한(로컬)에선 회색 자리만 차지하던 타이머 바 자체를 숨김
     if(!limited || S.deadline<=0){
       fill.style.width='100%'; fill.style.background=limited?'var(--ai)':'var(--line)';
       if(sec)sec.style.display='none'; warnKey=null; return;

@@ -99,6 +99,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .revbar i{display:block;height:100%;background:var(--brass);width:100%;transform-origin:left;animation:revcount linear forwards}
   @keyframes revcount{from{transform:scaleX(1)}to{transform:scaleX(0)}}
   .revnext{font-size:11px;color:var(--muted);margin-top:7px}
+  .reveal.skippable{cursor:pointer}
+  .revskip{color:var(--brass);font-weight:800;white-space:nowrap}
   /* 이모지 반응 (온라인) */
   .reactzone{position:relative;margin-top:12px;text-align:center}
   .reacttoggle{padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
@@ -388,6 +390,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       </div>
     </div>
     <div class="toggle on" id="spotToggle"><span class="tnm">정확히(스팟온) 허용</span><span class="tsw"></span></div>
+    <div class="mini" style="text-align:left;margin-top:5px">개수가 <b>딱 맞다</b>고 부르는 고위험 콜 — 맞으면 판을 뒤집고, 틀리면 내가 잃어요.</div>
     <div id="onlineBox" style="display:none">
       <div class="opt-label">내 이름</div>
       <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
@@ -449,6 +452,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div class="lobbycode" id="lobbyCode">····</div>
     <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
     <div class="toggle on" id="lobbySpot" style="margin-top:12px"><span class="tnm">정확히(스팟온) 허용</span><span class="tsw"></span></div>
+    <div class="mini" style="text-align:left;margin-top:5px">개수가 <b>딱 맞다</b>고 부르는 고위험 콜 — 호스트만 켜고 끌 수 있어요.</div>
     <div class="members" id="members"></div>
     <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
     <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
@@ -667,18 +671,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       result.snapshot = this.players.map(p=>({ pid:p.pid, seat:p.seat, name:p.name, dice:p.dice.slice() }));
       // 주사위는 아직 그대로 — reveal에 공개되는 주사위 수가 actual과 정확히 일치
       this._emit();
-      this._timer=setTimeout(()=>{ if(this._dead)return;
-        this._loseDie(result.loserSeat);            // 이제 잃음 (다음 라운드에 컵 줄어듦으로 반영)
-        const aliveNow=this.players.filter(p=>p.alive);
-        if(aliveNow.length<=1){
-          result.winner = aliveNow.length?aliveNow[0].pid:null;
-          this.phase='over'; this._emit(); return;
-        }
-        let starter=result.loserSeat;
-        if(!this.players[starter].alive) starter=this._nextAlive(starter);
-        this._newRound(starter);
-      }, this.REVEAL_MS);
+      this._timer=setTimeout(()=>this._advanceRound(), this.REVEAL_MS);
     }
+    // reveal 종료 → 패자 주사위 차감 후 다음 라운드(또는 게임 종료). 타이머 만료·수동 스킵 공용.
+    _advanceRound(){
+      if(this._dead) return;
+      if(this._timer){ clearTimeout(this._timer); this._timer=null; }
+      if(this.phase!=='reveal') return;   // 이미 진행됨 — 중복 스킵 방지
+      const result=this.lastResult;
+      this._loseDie(result.loserSeat);            // 이제 잃음 (다음 라운드에 컵 줄어듦으로 반영)
+      const aliveNow=this.players.filter(p=>p.alive);
+      if(aliveNow.length<=1){
+        result.winner = aliveNow.length?aliveNow[0].pid:null;
+        this.phase='over'; this._emit(); return;
+      }
+      let starter=result.loserSeat;
+      if(!this.players[starter].alive) starter=this._nextAlive(starter);
+      this._newRound(starter);
+    }
+    // 로컬 reveal 남은 시간 스킵 — 주사위는 이미 전부 공개돼 있음
+    skipReveal(){ if(this.phase==='reveal') this._advanceRound(); }
 
     _resolveDudo(challenger){
       const actual=this._countFace(this.bid.face);
@@ -986,15 +998,19 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.~]/.test(emoji);
     const el=document.createElement('div'); el.className='floatemo'+(isText?' txt':''); el.textContent=emoji;
-    if(isText){ el.style.left=cx+'px'; el.style.top=(r.top-8)+'px'; }
-    else { const dx=Math.random()*70-35; el.style.left=(cx-20+dx)+'px'; el.style.top=(r.top-10+Math.random()*8)+'px'; }
+    // 상대 카드(상단)에서 위로 뜨면 topbar(타이틀)를 덮으므로: 상대 것은 카드 하단에서 시작하고, 위쪽은 topbar 아래로 clamp. 내(meBox) 것은 화면 하단이라 기존대로.
+    const tb=document.querySelector('.topbar');
+    const topFloor=(tb?tb.getBoundingClientRect().bottom:56)+40;
+    const baseTop = pid===MYPID ? r.top : r.bottom;
+    if(isText){ el.style.left=cx+'px'; el.style.top=Math.max(topFloor, baseTop-8)+'px'; }
+    else { const dx=Math.random()*70-35; el.style.left=(cx-20+dx)+'px'; el.style.top=Math.max(topFloor, baseTop-10+Math.random()*8)+'px'; }
     document.body.appendChild(el); setTimeout(()=>el.remove(),2900);
     try{ SFX.pop(); }catch(e){}
     // 콤보 (같은 이모지 연타)
     const now=Date.now();
     if(!isText && emoji===lastComboEmoji && now-lastComboT<1300) comboN++; else comboN=1;
     lastComboEmoji=emoji; lastComboT=now;
-    if(!isText && comboN>=3) showCombo(comboN, cx, r.top-30);
+    if(!isText && comboN>=3) showCombo(comboN, cx, Math.max(topFloor, baseTop-30));
   }
   function showCombo(n,x,y){ const el=document.createElement('div'); el.className='combobadge'; el.textContent='×'+n; el.style.left=x+'px'; el.style.top=y+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),900); }
   // 로컬 AI 깐죽 (난이도별 성격)
@@ -1123,6 +1139,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('meAv').textContent=me.avatar||'😎'; $('meNm').textContent=me.name;
     $('meBox').classList.toggle('turn', S.turn===mySeat()&&S.phase==='bid');
     const host=$('mydice'); host.innerHTML='';
+    // reveal/over 중엔 상단 공개 tally의 "나" 행에 내 주사위가 이미 나오므로 하단 중복 렌더 생략
+    if(S.phase==='reveal'||S.phase==='over') return;
     (me.dice||[]).forEach(v=>{ const w=document.createElement('div'); w.className='d'; w.innerHTML=`<div class="mdie${S.wild&&v===1?' wild':''}">${pip(v)}</div>`; host.appendChild(w); });
     if(!me.alive){ host.innerHTML='<div class="mini" style="padding:12px">탈락했어 — 관전 중</div>'; }
   }
@@ -1191,9 +1209,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       host.appendChild(m);
     }
 
-    // wire
-    $('qminus').onclick=()=>{ const mn=minQtyForFace(bidFace); if(bidQty>mn){ bidQty--; refreshBuild(); } };
-    $('qplus').onclick=()=>{ if(bidQty<S.totalDice){ bidQty++; refreshBuild(); } };
+    // wire — 스테퍼는 클릭 1회 + 롱프레스 반복(가속). 총 주사위가 많아도 빠르게 조정
+    bindHold($('qminus'), ()=>{ const mn=minQtyForFace(bidFace); if(bidQty>mn){ bidQty--; refreshBuild(); return true; } return false; });
+    bindHold($('qplus'),  ()=>{ if(bidQty<S.totalDice){ bidQty++; refreshBuild(); return true; } return false; });
     build.querySelectorAll('.facebtn').forEach(b=>b.onclick=()=>{ bidFace=+b.dataset.f; bidQty=Math.max(bidQty,minQtyForFace(bidFace)); refreshBuild(); });
     bidBtn.onclick=()=>{ if(!legalBid(bidQty,bidFace))return; act({type:'bid',qty:bidQty,face:bidFace}); };
     if($('dudoBtn')) $('dudoBtn').onclick=()=>act({type:'dudo'});
@@ -1207,6 +1225,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if($('qminus')) $('qminus').disabled = bidQty<=minQtyForFace(bidFace);
     if($('qplus')) $('qplus').disabled = bidQty>=S.totalDice;
     if($('bidBtn')) $('bidBtn').disabled = !legalBid(bidQty,bidFace);
+  }
+
+  // 롱프레스 반복 바인딩: step()이 한 번 조정하고 계속 조정 가능하면 true, 경계면 false
+  function bindHold(btn, step){
+    if(!btn) return;
+    let t=null, held=false;
+    const clear=()=>{ held=false; if(t){ clearTimeout(t); t=null; } };
+    const repeat=(delay)=>{ t=setTimeout(()=>{ if(!held) return; if(step()) repeat(Math.max(45, delay-14)); else clear(); }, delay); };
+    btn.addEventListener('pointerdown', e=>{ if(btn.disabled) return; e.preventDefault(); held=true; if(step()) repeat(360); else clear(); });
+    ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev, clear));
+    // 키보드(Enter/Space) 접근성 — 1회 조정
+    btn.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); step(); } });
   }
 
   function act(a){ if(busy)return; busy=true; setTimeout(()=>{busy=false;},120);
@@ -1232,11 +1262,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(r.type==='dudo') verdict = r.bidTrue ? `베팅 성공! 실제 ${r.actual}개 — 도전한 ${esc(loser.name)} 주사위 잃음` : `거짓 발각! 실제 ${r.actual}개 — ${esc(loser.name)} 주사위 잃음`;
     else verdict = r.exact ? `정확히 적중! ${r.actual}개 — ${esc(loser.name)} 주사위 잃음` : `빗나감! 실제 ${r.actual}개 — ${esc(loser.name)} 주사위 잃음`;
     const good = r.loserSeat!==mySeat();
+    // 로컬(엔진 보유) reveal에서만 남은 시간 스킵 가능 — 온라인은 서버가 타이머를 쥐고 있어 불가
+    const canSkip = S.phase==='reveal' && !online && !!engine;
     const tail = S.phase==='over'
       ? `<div class="revnext">잠시 후 결과…</div>`
-      : `<div class="revbar"><i style="animation-duration:${S.revealMs||4200}ms"></i></div><div class="revnext">${esc(loser.name)}가 주사위를 잃고 다음 라운드…</div>`;
-    box.innerHTML=`<div class="reveal"><h4>${r.type==='dudo'?'거짓말! 도전':'정확히! 콜'} — ${r.bid.qty}개의 ${face} 선언</h4>
+      : `<div class="revbar"><i style="animation-duration:${S.revealMs||4200}ms"></i></div><div class="revnext">${esc(loser.name)}가 주사위를 잃고 다음 라운드…${canSkip?' <b class="revskip">· 탭해서 계속 ▶</b>':''}</div>`;
+    box.innerHTML=`<div class="reveal${canSkip?' skippable':''}"><h4>${r.type==='dudo'?'거짓말! 도전':'정확히! 콜'} — ${r.bid.qty}개의 ${GLY[face]||face} 선언</h4>
       ${rows}<div class="verdict ${good?'good':'bad'}">${verdict}</div>${tail}</div>`;
+    if(canSkip){ const rv=box.querySelector('.reveal'); if(rv) rv.onclick=()=>{ if(engine) engine.skipReveal(); }; }
     if(S.phase==='reveal'){ const key=r.bid.qty+'_'+r.bid.face+'_'+r.actual+'_'+r.loserSeat; if(key!==lastRevealKey){ lastRevealKey=key; try{ good?SFX.good():SFX.bad(); }catch(e){} if(!online && !ffActive) setTimeout(()=>aiTaunt(r), 600); } }
   }
 
