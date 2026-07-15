@@ -579,14 +579,39 @@ html[data-theme="photoshop"] #sheet .rew, html[data-theme="photoshop"] #sheet .r
 html[data-theme="photoshop"] .hav .av, html[data-theme="photoshop"] .hav img{ display:none !important }
 html[data-theme="photoshop"] .hav{ justify-content:center }
 html[data-theme="photoshop"] .hav .hnm{ font-weight:600;color:#d4d4d4 }
-/* === 인게임 게임 단어 위장: 카테고리→레이어 N / 열제목→채널 N / 보너스→그룹 / 합계→배경 === */
+/* === 인게임 게임 단어 위장: 카테고리→레이어 N / 열제목→채널 N / 보너스→그룹 / 합계→배경 ===
+   각 행 앞에 '레이어 썸네일'(작은 단색 회색 박스+식별 기호)을 붙여, 위장을 유지하면서도
+   플레이어가 어떤 족보 칸인지 한눈에 구분하게 한다. 기호는 \FE0E로 텍스트(단색) 표시 강제. */
 html[data-theme="photoshop"] #sheet tbody{ counter-reset:pslayer }
+/* 공통 썸네일 박스 (::before) + 레이어명(::after) */
 html[data-theme="photoshop"] #sheet .catcol[data-xl]{ font-size:0 !important;counter-increment:pslayer }
-html[data-theme="photoshop"] #sheet .catcol[data-xl]::before{ content:"레이어 " counter(pslayer);font-size:12px;font-weight:400;font-family:'Segoe UI','맑은 고딕',sans-serif;color:#c0c0c0 }
+html[data-theme="photoshop"] #sheet .catcol[data-xl]::before{ content:"";display:inline-block;width:22px;height:16px;line-height:15px;text-align:center;background:#242424;border:1px solid #4d4d4d;border-radius:2px;margin-right:8px;font-size:11px;font-weight:600;color:#d4d4d4;vertical-align:middle;font-family:'Segoe UI','맑은 고딕',sans-serif;overflow:hidden }
+html[data-theme="photoshop"] #sheet .catcol[data-xl]::after{ content:"레이어 " counter(pslayer);font-size:12px;font-weight:400;font-family:'Segoe UI','맑은 고딕',sans-serif;color:#c0c0c0;vertical-align:middle }
+/* 상단부(1끗~6끗) = 주사위 눈 썸네일(단색 유니코드 주사위) */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="1s"]::before{ content:"\2680\FE0E";font-size:13px }
+html[data-theme="photoshop"] #sheet .catcol[data-xl="2s"]::before{ content:"\2681\FE0E";font-size:13px }
+html[data-theme="photoshop"] #sheet .catcol[data-xl="3s"]::before{ content:"\2682\FE0E";font-size:13px }
+html[data-theme="photoshop"] #sheet .catcol[data-xl="4s"]::before{ content:"\2683\FE0E";font-size:13px }
+html[data-theme="photoshop"] #sheet .catcol[data-xl="5s"]::before{ content:"\2684\FE0E";font-size:13px }
+html[data-theme="photoshop"] #sheet .catcol[data-xl="6s"]::before{ content:"\2685\FE0E";font-size:13px }
+/* 하단부 = 서로 구분되는 기호 썸네일 */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="CH"]::before{ content:"\03A3" }          /* 초이스=전체합 → Σ */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="CN"]::before{ content:"\223F\FE0E" }      /* 찬스 → ∿ */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="3K"]::before{ content:"3\00D7" }           /* 쓰리카드 → 3× */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="4K"]::before{ content:"4\00D7" }           /* 포카드 → 4× */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="FH"]::before{ content:"\2302\FE0E" }       /* 풀하우스 → ⌂ */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="2P"]::before{ content:"\2016" }            /* 투페어 → ‖ */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="SS"]::before{ content:"\25B7\FE0E" }       /* 스몰 스트레이트 → ▷(외곽) */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="LS"]::before{ content:"\25B6\FE0E" }       /* 라지 스트레이트 → ▶(채움) */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="YT"]::before{ content:"\2605\FE0E";color:#31a8ff }  /* 요트 → ★(파랑 강조) */
+html[data-theme="photoshop"] #sheet .catcol[data-xl="\C57C\CC0C"]::before{ content:"\2605\FE0E";color:#31a8ff }  /* 야찌(야찌 규칙) → ★ */
+/* 보너스(그룹)·합계(배경) 행도 썸네일로 정렬 통일 */
 html[data-theme="photoshop"] #sheet .bonus .catcol{ font-size:0 !important }
-html[data-theme="photoshop"] #sheet .bonus .catcol::before{ content:'그룹';font-size:12px;color:#c0c0c0 }
+html[data-theme="photoshop"] #sheet .bonus .catcol::before{ content:"\229E\FE0E";display:inline-block;width:22px;height:16px;line-height:15px;text-align:center;background:#242424;border:1px solid #4d4d4d;border-radius:2px;margin-right:8px;font-size:11px;color:#cfcfcf;vertical-align:middle }
+html[data-theme="photoshop"] #sheet .bonus .catcol::after{ content:'그룹';font-size:12px;color:#c0c0c0;vertical-align:middle }
 html[data-theme="photoshop"] #sheet .total .catcol{ font-size:0 !important }
-html[data-theme="photoshop"] #sheet .total .catcol::before{ content:'배경';font-size:12px;font-weight:700;color:#ffffff }
+html[data-theme="photoshop"] #sheet .total .catcol::before{ content:"\25A6\FE0E";display:inline-block;width:22px;height:16px;line-height:15px;text-align:center;background:#242424;border:1px solid #5a5a5a;border-radius:2px;margin-right:8px;font-size:11px;color:#e6e6e6;vertical-align:middle }
+html[data-theme="photoshop"] #sheet .total .catcol::after{ content:'배경';font-size:12px;font-weight:700;color:#ffffff;vertical-align:middle }
 html[data-theme="photoshop"] #sheet thead tr{ counter-reset:pschan }
 html[data-theme="photoshop"] #sheet thead th .hnm{ font-size:0 !important }
 html[data-theme="photoshop"] #sheet thead th .hnm::before{ counter-increment:pschan;content:"채널 " counter(pschan);font-size:11px;font-weight:600 }
