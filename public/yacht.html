@@ -535,8 +535,10 @@ html[data-theme="photoshop"] .opacityctl{ display:none }
 .ps-fgbg .ps-bg{ background:#1a1a1a;margin-left:-8px;margin-top:8px }
 .ps-layers{ display:flex;flex-direction:column;min-height:0 }
 .ps-layers .ps-lopac{ padding:6px 9px;font-size:11px;color:#b0b0b0;display:flex;align-items:center;gap:8px;border-bottom:1px solid #2a2a2a }
-.ps-layers .ps-slider{ flex:1;height:4px;background:#1c1c1c;border-radius:2px;position:relative }
-.ps-layers .ps-slider::after{ content:'';position:absolute;right:0;top:-3px;width:11px;height:11px;border-radius:50%;background:#c8c8c8 }
+.ps-layers .ps-slider{ flex:1;height:4px;background:#1c1c1c;border-radius:2px;position:relative;cursor:pointer;outline:none;touch-action:none }
+.ps-layers .ps-slider .ps-sfill{ position:absolute;left:0;top:0;height:100%;width:100%;background:#5a5a5a;border-radius:2px;pointer-events:none }
+.ps-layers .ps-slider .ps-sthumb{ position:absolute;top:-4px;left:100%;width:11px;height:11px;border-radius:50%;background:#c8c8c8;transform:translateX(-50%);pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.5) }
+.ps-layers .ps-slider:focus-visible .ps-sthumb{ box-shadow:0 0 0 2px #31a8ff }
 .ps-layers .ps-llist{ overflow:hidden;flex:1 }
 .ps-layers .ps-layer{ display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #2a2a2a;font-size:11.5px;color:#cfcfcf }
 .ps-layers .ps-layer.sel{ background:#3a4b57 }
@@ -693,7 +695,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   </div>
   <div id="excelStatus" aria-hidden="true">
     <div class="xl-sheets"><span class="on">Sheet1</span><span>Sheet2</span><span>Sheet3</span><span class="xl-add">＋</span></div>
-    <div class="xl-statusbar"><span>준비</span><span class="xl-stats">평균: 3.46　개수: 13　합계: 45</span><span class="xl-zoom">🔍 ─　＋　100%</span></div>
+    <div class="xl-statusbar"><span>준비</span><span class="xl-stats">평균: 3.46　개수: 13　합계: 45</span><span class="xl-zoom">🔍 <b class="xlz-dn" title="축소" style="cursor:pointer">─</b>　<b class="xlz-up" title="확대" style="cursor:pointer">＋</b>　<span class="xlz-pct">100%</span></span></div>
   </div>
   <div id="excelRows" aria-hidden="true"></div>
 
@@ -710,7 +712,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <span>브러시</span><span class="ps-sep"></span>
       <span>크기 <b class="ps-field">30</b> px</span>
       <span>모드 <b class="ps-field">표준</b></span>
-      <span>불투명도 <b class="ps-field">100%</b></span>
+      <span>불투명도 <b class="ps-field" id="psOptOpac">100%</b></span>
       <span>흐름 <b class="ps-field">100%</b></span>
     </div>
     <div class="ps-doctab"><span class="ps-tab on">제목 없음-1 @ 100%(RGB/8)<span class="ps-x">✕</span></span></div>
@@ -726,7 +728,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     </div>
     <div class="ps-panel ps-layers">
       <div class="ps-phead"><span class="ps-tabs2"><b>레이어</b><span>채널</span><span>패스</span></span><span>≡</span></div>
-      <div class="ps-lopac"><span>불투명도</span><span class="ps-slider"></span><b style="color:#c8c8c8">100%</b></div>
+      <div class="ps-lopac"><span>불투명도</span><span class="ps-slider" id="psSlider" role="slider" aria-label="불투명도" tabindex="0"><i class="ps-sfill"></i><i class="ps-sthumb"></i></span><b class="ps-opct" style="color:#c8c8c8">100%</b></div>
       <div class="ps-llist">
         <div class="ps-layer sel"><span class="ps-eye">👁</span><span class="ps-thumb" style="background:linear-gradient(135deg,#4a6070,#2c3a44)"></span><span>레이어 1</span><span class="ps-lop">100%</span></div>
         <div class="ps-layer"><span class="ps-eye">👁</span><span class="ps-thumb" style="background:linear-gradient(135deg,#6a5a3a,#3a3020)"></span><span>텍스트 복사</span><span class="ps-lop">80%</span></div>
@@ -1752,16 +1754,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ========== transparency + electron ==========
   // 브라우저/모바일에선 투명도 컨트롤을 아예 렌더하지 않는다 (턴 라벨을 덮고 게임 전체가 반투명해지던 함정).
   // Electron 창일 때만 .on으로 노출 + 창 버튼(핀/최소화/닫기) 활성화.
+  // 창 투명도(#opacity 슬라이더·위장 UI·저장복원)는 아래 별도 매니저(__setWinOpacity)에서 일괄 처리한다.
   if(!window.electronAPI){ document.documentElement.style.setProperty('--ui',1); }
   else {
     const ctl=document.querySelector('.opacityctl'); if(ctl)ctl.classList.add('on');
-    const op=$('opacity');
-    function applyOpacity(pct){ const v=Math.max(.1,Math.min(1,pct/100));
-      if(window.electronAPI.setOpacity){ window.electronAPI.setOpacity(v); document.documentElement.style.setProperty('--ui',1); }
-      else { document.documentElement.style.setProperty('--ui',v.toFixed(2)); }
-      LS.set('yd_op',Math.round(v*100)); }
-    if(op){ const saved=+LS.get('yd_op',100); op.value=saved; applyOpacity(saved);
-      op.addEventListener('input',e=>applyOpacity(+e.target.value)); }
     document.querySelectorAll('.wbtn').forEach(b=>b.style.display='flex');
     const pin=$('winPin'); if(pin)pin.onclick=async()=>{const v=await window.electronAPI.pin();pin.classList.toggle('on',v);};
     const wm=$('winMin'); if(wm)wm.onclick=()=>window.electronAPI.minimize();
@@ -1893,6 +1889,57 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       else if(window.__alleySetTheme){ window.__alleySetTheme(lastDisguise()); }
     }
   });
+})();</script>
+<script>(function(){
+  /* ===== 창 투명도 매니저 (위장 UI 공용) =====
+     - 위장 UI에 원래 있는 컨트롤(포토샵 레이어 불투명도 슬라이더 / 엑셀 줌 ─·＋)을 진짜 창 투명도에 연결.
+     - Electron이면 window.electronAPI.setOpacity(v) (v=0.2~1)로 실제 창 반투명. 브라우저는 %표시만.
+     - 값은 localStorage 'yacht_opacity'에 저장, 재로드/위장 진입 시 복원. 엑셀·포토샵이 값을 공유.
+     - 떠 있는 .opacityctl(#opacity)은 위장을 깨니 계속 숨김 유지(그러나 값은 동기화, 데스크톱 하한 10%). */
+  var DIS_MIN=20, HARD_MIN=10, MAX=100;
+  function clamp(p,floor){ floor=floor||DIS_MIN; p=Math.round(p); return p<floor?floor:p>MAX?MAX:p; }
+  function frac(p){ var f=(p-DIS_MIN)/(MAX-DIS_MIN); return f<0?0:f>1?1:f; }  // 슬라이더 기하 0..1
+  function load(){ try{ var v=localStorage.getItem('yacht_opacity'); if(v==null) v=localStorage.getItem('yd_op'); v=+v; if(!isFinite(v)||!v) return 100; return clamp(v,HARD_MIN); }catch(e){ return 100; } }
+  var pct=load();
+  function syncUI(){
+    var txt=pct+'%';
+    var slider=document.getElementById('psSlider');
+    if(slider){ var f=slider.querySelector('.ps-sfill'), t=slider.querySelector('.ps-sthumb'); var g=(frac(pct)*100).toFixed(1)+'%'; if(f)f.style.width=g; if(t)t.style.left=g; slider.setAttribute('aria-valuenow',pct); }
+    var lo=document.querySelector('.ps-lopac .ps-opct'); if(lo)lo.textContent=txt;
+    var optb=document.getElementById('psOptOpac'); if(optb)optb.textContent=txt;
+    var xz=document.querySelector('.xl-zoom .xlz-pct'); if(xz)xz.textContent=txt;
+    var op=document.getElementById('opacity'); if(op && +op.value!==pct) op.value=pct;
+  }
+  function apply(p, save, floor){
+    pct=clamp(p,floor);
+    try{ if(window.electronAPI && window.electronAPI.setOpacity){ window.electronAPI.setOpacity(pct/100); document.documentElement.style.setProperty('--ui',1); } }catch(e){}
+    if(save!==false){ try{ localStorage.setItem('yacht_opacity',pct); localStorage.setItem('yd_op',pct); }catch(e){} }
+    syncUI();
+  }
+  window.__setWinOpacity=function(p){ apply(p); };
+  window.__winOpacityPct=function(){ return pct; };
+
+  // 포토샵 레이어 불투명도 슬라이더: 클릭/드래그(20~100%)
+  var slider=document.getElementById('psSlider');
+  if(slider){
+    var dragging=false;
+    function fromX(clientX){ var r=slider.getBoundingClientRect(); var fr=r.width?(clientX-r.left)/r.width:0; fr=fr<0?0:fr>1?1:fr; apply(DIS_MIN+fr*(MAX-DIS_MIN)); }
+    slider.addEventListener('pointerdown',function(e){ dragging=true; try{slider.setPointerCapture(e.pointerId);}catch(_){ } fromX(e.clientX); e.preventDefault(); });
+    slider.addEventListener('pointermove',function(e){ if(dragging) fromX(e.clientX); });
+    slider.addEventListener('pointerup',function(){ dragging=false; });
+    slider.addEventListener('pointercancel',function(){ dragging=false; });
+    slider.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ apply(pct-5); e.preventDefault(); } else if(e.key==='ArrowRight'||e.key==='ArrowUp'){ apply(pct+5); e.preventDefault(); } });
+  }
+  // 엑셀 상태바 줌 ─ / ＋ (실제로는 창 투명도, 20~100%)
+  var dn=document.querySelector('.xl-zoom .xlz-dn'), up=document.querySelector('.xl-zoom .xlz-up');
+  if(dn)dn.addEventListener('click',function(){ apply(pct-10); });
+  if(up)up.addEventListener('click',function(){ apply(pct+10); });
+  // 떠 있는 슬라이더(#opacity): 비위장/Electron에서 그대로 동작(하한 10%) + 값 동기화
+  var op=document.getElementById('opacity');
+  if(op){ op.addEventListener('input',function(e){ apply(+e.target.value, true, HARD_MIN); }); }
+
+  // 부팅: 저장값 복원 (Electron이면 실제 창에 적용, 브라우저는 표시만) — 재저장은 안 함
+  apply(pct, false, HARD_MIN);
 })();</script>
 </body>
 </html>
