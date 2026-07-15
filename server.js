@@ -246,7 +246,11 @@ wss.on('connection', (ws) => {
       if (ws.meta.pid === hostPid(room) && room.engine) room.engine.skipNow();
 
     } else if (m.t === 'endGame') {
-      if (ws.meta.pid === hostPid(room)) {
+      // 호스트는 언제든 판을 끝내 로비로. 그 외 참가자는 '이미 끝난 판'일 때만 허용
+      // (진행 중인 게임을 게스트가 중단시키는 건 막고, 승부가 난 뒤 로비 복귀는 누구나 가능).
+      const isHost = ws.meta.pid === hostPid(room);
+      const gameOver = !room.engine || room.engine.phase === 'over';
+      if (isHost || gameOver) {
         if (room.engine) { room.engine.destroy(); room.engine = null; }
         room.phase = 'lobby';
         sendLobby(room);

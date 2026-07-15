@@ -53,6 +53,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .btn.ghost{ background:var(--panel2);color:var(--ink);border:1px solid var(--line) }
   .btn:disabled{ opacity:.45;cursor:default }
   .ov{ position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:18px;z-index:100 }
+  /* 골목(홈) 링크는 첫 화면 오버레이 위로 띄워 항상 나갈 수 있게 */
+  .hubx{ position:relative; z-index:150 }
   .ov.on{ display:flex }
   .sheet{ background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto }
   .sheet h3{ font-size:19px;margin-bottom:8px }
@@ -170,7 +172,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .ctrlbar{ display:contents }
   /* 좁은 폭(폰 세로): 1단 세로 + 조작부 하단 고정 */
   @media (max-width:480px){
-    body.ingame .app{ max-width:560px; padding-bottom:calc(104px + env(safe-area-inset-bottom,0px)); }
+    body.ingame .app{ max-width:560px; padding-bottom:calc(var(--ctrlbar-h,112px) + 16px + env(safe-area-inset-bottom,0px)); }
     #game{ grid-template-columns:1fr; gap:6px; }
     .game-center{ order:1; }
     .game-right{ order:2; position:static; }
@@ -352,7 +354,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   </div>
   <div class="app">
     <div class="topbar">
-      <a class="iconbtn" href="./" title="골목으로" aria-label="주사위 골목(홈)으로 나가기">←</a>
+      <a class="iconbtn hubx" href="./" title="골목으로" aria-label="주사위 골목(홈)으로 나가기">←</a>
       <div class="title"><span class="dot"></span>윷놀이 <span id="modePill" style="font-size:11px;color:var(--muted);font-weight:600"></span></div>
       <div class="spacer"></div>
       <span id="timerHud" style="display:none" role="timer" aria-label="남은 시간"></span>
@@ -1605,6 +1607,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   $('toHub').onclick=()=>location.href='./';
+  /* 하단 고정 조작바(모바일)의 실제 높이를 재서 .app 하단 패딩에 반영 — 4~6인 트레이가 바에 안 가리게 */
+  (function(){ var bar=$('ctrlBar'); if(!bar) return;
+    function upd(){ if(getComputedStyle(bar).position==='fixed') document.documentElement.style.setProperty('--ctrlbar-h', Math.ceil(bar.getBoundingClientRect().height)+'px'); }
+    if(window.ResizeObserver) new ResizeObserver(upd).observe(bar);
+    window.addEventListener('resize',upd); window.addEventListener('orientationchange',upd); upd();
+  })();
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
   $('leaveBtn').onclick=()=>{ if(confirm('게임에서 나갈까요? (다시 들어오려면 방 코드가 필요해요)')) rematchLeave(); };
   $('setupRules').onclick=()=>$('helpOv').classList.add('on');

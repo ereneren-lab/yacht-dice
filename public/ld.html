@@ -196,6 +196,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   /* overlays */
   .ov{position:fixed;inset:0;background:rgba(8,6,4,.74);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  /* 골목(홈) 링크는 첫 화면 오버레이 위로 띄워 항상 나갈 수 있게 */
+  .hubx{position:relative;z-index:150}
   .ov.on{display:flex;animation:fade .2s ease}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .sheet{width:100%;max-width:380px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:22px;padding:24px 22px}
@@ -286,7 +288,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 </div>
 <div class="wrap">
   <div class="topbar">
-    <a class="iconbtn" href="./" title="골목으로">←</a>
+    <a class="iconbtn hubx" href="./" title="골목으로">←</a>
     <h2>라이어 다이스</h2>
     <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
       <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기">🔊</button>
@@ -768,14 +770,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('spotToggle').onclick=()=>{ cfg.spotOn=!cfg.spotOn; $('spotToggle').classList.toggle('on',cfg.spotOn); };
   $('startBtn').onclick=()=>{ $('setupOv').classList.remove('on'); start(); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); $('againBtn').disabled=true; showToast('🔄 재경기를 제안했어요 — 응답을 기다리는 중'); } else { $('resultOv').classList.remove('on'); start(); } };
-  // 로비로: 호스트는 서버에 판 종료 요청(모두 로비), 게스트는 방에 남은 채 로비 화면에서 대기
+  // 로비로: 판이 끝난 뒤엔 누구나 방 전체를 로비로 되돌릴 수 있다(서버가 종료 상태에서 허용).
+  // 서버가 lobby를 브로드캐스트하면 각 클라의 lobby 핸들러가 게임 화면을 정리하고 로비로 전환한다.
   $('toLobbyBtn').onclick=()=>{
     if(!online) return;
-    if(amHost){ wsSend({t:'endGame'}); return; }
-    $('resultOv').classList.remove('on'); resetRematchUI();
-    $('game').style.display='none'; document.body.classList.remove('ingame');
-    if(lobby) renderLobby(); else $('lobbyOv').classList.add('on');
-    showToast('🏛 방에 남아 대기 중 — 호스트가 새 판을 시작하면 이어져요');
+    wsSend({t:'endGame'});
   };
   function renderRematch(d){
     $('resultOv').classList.add('on');

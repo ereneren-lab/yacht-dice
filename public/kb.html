@@ -145,6 +145,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .btn.ghost{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
 
   .ov{position:fixed;inset:0;background:rgba(8,6,4,.74);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  /* 골목(홈) 링크는 첫 화면 오버레이 위로 띄워 항상 나갈 수 있게 */
+  .hubx{position:relative;z-index:150}
   .ov.on{display:flex;animation:fade .2s ease}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .sheet{width:100%;max-width:380px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
@@ -297,7 +299,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 </div>
 <div class="wrap">
   <div class="kbtop">
-    <a class="iconbtn" href="./" title="골목으로">←</a>
+    <a class="iconbtn hubx" href="./" title="골목으로">←</a>
     <h2>너클본즈</h2>
     <span class="mode-pill" id="kbMode" style="display:none"></span>
     <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>

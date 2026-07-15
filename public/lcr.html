@@ -44,6 +44,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .btn.ghost{ background:var(--panel2);color:var(--ink);border:1px solid var(--line) }
   .btn:disabled{ opacity:.4;cursor:default }
   .ov{ position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:18px;z-index:100 }
+  /* 골목(홈) 링크는 첫 화면 오버레이 위로 띄워 항상 나갈 수 있게 */
+  .hubx{ position:relative; z-index:150 }
   .ov.on{ display:flex }
   .sheet{ background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto }
   .sheet h3{ font-size:19px;margin-bottom:8px }
@@ -194,7 +196,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 <body>
   <div class="app">
     <div class="topbar">
-      <a class="iconbtn" href="./" title="골목으로">←</a>
+      <a class="iconbtn hubx" href="./" title="골목으로">←</a>
       <div class="title"><span class="dot"></span>좌·중·우 <span id="modePill" style="font-size:11px;color:var(--muted);font-weight:600"></span></div>
       <div class="spacer"></div>
       <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
