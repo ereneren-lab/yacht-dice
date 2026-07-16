@@ -74,7 +74,7 @@
       this.goal = (opt.goal && opt.goal <= nm) ? opt.goal : nm;  // 승리 목표(완주시킬 말 수)
       this.players = (opt.players || []).map((p, i) => ({
         pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null,
-        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (p.team != null ? p.team : (i % 2)) : i), catches: 0, connected: p.connected !== false,
+        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (p.team != null ? p.team : (i % 2)) : i), catches: 0, connected: p.connected !== false, items: [],
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
@@ -84,6 +84,11 @@
       if (this.teamMode) {
         this.players.forEach(p => { if (this.teamHolder[p.team] == null) this.teamHolder[p.team] = p.seat; });
         this.players.forEach(p => { if (p.seat !== this.teamHolder[p.team]) p.pieces = []; });
+      }
+      if (opt.itemBattle) {   // 각 편(팀전이면 대표)에게 시작 아이템 2장
+        const pool = ['shield', 'rethrow', 'push']; const _rng = opt.rng || Math.random;   // this.rng는 아직 미설정
+        const sides = this.teamMode ? Object.keys(this.teamHolder).map(k => this.teamHolder[k]) : this.players.map((_, i) => i);
+        sides.forEach(si => { const it = []; for (let k = 0; k < 2; k++) it.push(pool[Math.floor(_rng() * pool.length)]); this.players[si].items = it; });
       }
       this.turn = 0;
       this.phase = 'throw';        // 'throw' | 'move' | 'over'
@@ -99,6 +104,24 @@
       // 구렁텅이: 매판 랜덤으로 순수 outer 칸(지름길·합류칸 제외) 하나에 함정
       { const pitCand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]; this.pitNode = pitCand[Math.floor(this.rng() * pitCand.length)]; }
       this.pitSeq = 0; this.pitFall = null;  // 구렁텅이 연출용
+      // 오늘의 규칙: 매 판 랜덤 변형(null=평범). 팀전 포함.
+      this.dailyOn = opt.dailyRule !== false;
+      this.dailyRule = null;
+      if (this.dailyOn) { const rr = [null, null, 'catchfest', 'bigbackdo', 'goldrain', 'speed']; this.dailyRule = rr[Math.floor(this.rng() * rr.length)]; }
+      // 이벤트 칸: 늪 외 랜덤 outer 칸에 특수 효과(부스터/보너스/후퇴/황금). 황금비 규칙이면 더 많이.
+      this.eventOn = opt.eventTiles !== false;
+      this.eventTiles = {};  // node → 'boost'|'bonus'|'back'|'gold'
+      if (this.eventOn) {
+        const cand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14].filter(n => n !== this.pitNode);
+        for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(this.rng() * (k + 1)); const t = cand[k]; cand[k] = cand[j]; cand[j] = t; }
+        const types = (this.dailyRule === 'goldrain') ? ['gold', 'gold', 'boost', 'bonus', 'gold'] : ['boost', 'bonus', 'back', 'gold'];
+        const nT = (this.dailyRule === 'goldrain') ? 5 : 3;
+        for (let k = 0; k < nT && k < cand.length; k++) this.eventTiles[cand[k]] = types[k % types.length];
+      }
+      this.eventSeq = 0; this.eventFx = null;  // 이벤트 발동 연출용
+      // 아이템전: 각 편이 아이템 카드(방어막🛡/재던지기🔄/밀치기👊)로 시작, 황금 칸으로 추가 획득.
+      this.itemBattle = !!opt.itemBattle;
+      this.shieldSide = null; this.itemSeq = 0; this.itemFx = null;
       this.limitMs = opt.limitMs || 0; this.gameStartTime = null; this.timedOut = false;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
@@ -115,7 +138,7 @@
 
     start() { if (this._dead) return; this.pending = []; this.gameStartTime = Date.now();
       if (this.decideOrder) { this._orderStart(); }
-      else { this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; }
+      else { this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this._applyDailyStart(); }
       this._emit(); this._maybeAI(); }
 
     // ===== 선 뽑기(순서 결정) — 스택 기반 동점 재대결 =====
@@ -162,6 +185,7 @@
       this.orderResult = this.players.map(p => p.pid);     // 발표용 순서(pid)
       this.orderStack = null; this.orderRound = {};
       this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = [];
+      this._applyDailyStart();
     }
     timeUp() {
       if (this._dead || this.phase === 'over') return;
@@ -211,8 +235,60 @@
       this._emit(); this._maybeAI();
     }
 
+    // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 재발동/추가 잡기 없이 1회성.
+    _applyEventTile(node, group, owner) {
+      const type = this.eventTiles[node];
+      this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length };
+      if (type === 'bonus') { this.throwsLeft++; }                              // 한 번 더
+      else if (type === 'gold') { this.throwsLeft++;                            // 황금: 한 번 더 + 아이템전이면 아이템 획득
+        if (this.itemBattle) { const p = this.players[owner]; if (!p.items) p.items = []; if (p.items.length < 5) p.items.push(['shield', 'rethrow', 'push'][Math.floor(this.rng() * 3)]); } }
+      else if (type === 'boost') { this._shiftGroup(group, 3); }                // 앞으로 3칸 부스터
+      else if (type === 'back') { this._shiftGroup(group, -2); }                // 뒤로 2칸
+    }
+    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 이동(이벤트/구렁텅이 재발동 없음)
+      const lead = group[0]; if (!lead || lead.done || !lead.out) return;
+      const r = step(lead.node, lead.route, lead.out, delta, null);
+      if (r.noMove) return;
+      if (r.done) { group.forEach(g => { g.done = true; g.out = false; }); }
+      else { group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; }); }
+    }
+    // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
+    _applyDailyStart() {
+      if (this.dailyRule !== 'speed') return;
+      const sides = this.teamMode ? Object.keys(this.teamHolder).map(k => this.teamHolder[k]) : this.players.map((_, i) => i);
+      sides.forEach(si => { const p = this.players[si]; if (p && p.pieces[0]) { p.pieces[0].out = true; p.pieces[0].node = 3; p.pieces[0].route = 'outer'; } });
+    }
     // 말 소유자: 팀전이면 팀 대표(공유 말), 아니면 자기 자신
     _pieceOwner(seat) { return this.teamMode ? this.teamHolder[this.players[seat].team] : seat; }
+    _sameSide(a, b) { return this._pieceOwner(a) === this._pieceOwner(b); }
+    // 아이템 사용: 내 차례에만. shield=방어막(다음 내 차례까지 안 잡힘), rethrow=한 번 더 던지기, push=상대 말 하나 처음으로
+    useItem(pid, data) {
+      if (this._dead || this.phase === 'over' || this.phase === 'order') return;
+      const seat = this.players.findIndex(p => p.pid === pid);
+      if (seat < 0 || seat !== this.turn) return;
+      const owner = this._pieceOwner(seat);
+      const pl = this.players[owner];
+      const item = data && data.item;
+      const idx = (pl.items || []).indexOf(item);
+      if (idx < 0) return;
+      if (item === 'push') {
+        const ts = data.targetSeat;
+        if (ts == null || this._sameSide(seat, ts)) return;   // 같은 편은 밀치기 금지
+        const to = this.players[this._pieceOwner(ts)];
+        const opc = to && to.pieces.find(p => p.id === data.targetPieceId && p.out && !p.done);
+        if (!opc) return;
+        opc.out = false; opc.node = 0; opc.route = 'outer';
+        this.itemSeq++; this.itemFx = { seq: this.itemSeq, kind: 'push', seat: owner, targetSeat: this._pieceOwner(ts) };
+      } else if (item === 'shield') {
+        this.shieldSide = owner;
+        this.itemSeq++; this.itemFx = { seq: this.itemSeq, kind: 'shield', seat: owner };
+      } else if (item === 'rethrow') {
+        this.throwsLeft++; if (this.phase === 'move') this.phase = 'throw';
+        this.itemSeq++; this.itemFx = { seq: this.itemSeq, kind: 'rethrow', seat: owner };
+      } else return;
+      pl.items.splice(idx, 1);
+      this._emit(); this._maybeAI();
+    }
     _anyMovable(seat) {
       const pl = this.players[this._pieceOwner(seat)];
       for (const s of this.pending) {
@@ -232,7 +308,8 @@
       if (seat !== this.turn) return;
       if (pendingIndex == null) pendingIndex = 0;
       if (pendingIndex < 0 || pendingIndex >= this.pending.length) return;
-      const steps = this.pending[pendingIndex];
+      let steps = this.pending[pendingIndex];
+      if (this.dailyRule === 'bigbackdo' && steps === -1) steps = 2;   // 오늘의 규칙: 대박 빽도(빽도가 2칸 전진)
       // 소유자: 팀전이면 팀 공유 말(대표), 아니면 자기 말
       const owner = this._pieceOwner(seat);
       const pl = this.players[owner];
@@ -264,6 +341,7 @@
         for (const op of this.players) {
           if (op.seat === seat) continue;
           if (this.teamMode && op.team === pl.team) continue; // 같은 팀은 안 잡음
+          if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
           for (const opc of op.pieces) {
             if (!opc.done && opc.out && opc.node === r.node) {
               opc.out = false; opc.node = 0; opc.route = 'outer';
@@ -271,13 +349,15 @@
             }
           }
         }
-        if (caught) { pl.catches += caughtN; this.throwsLeft++; this.captured = { seat, node: r.node }; } // 잡으면 한 번 더
+        if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node: r.node, count: caughtN }; } // 잡으면 한 번 더(잡기축제=두 번), count=멀티잡기
 
         // 구렁텅이: 순수 outer 함정 칸에 멈추면 그 말(업은 말 포함) 처음으로
         if (r.route === 'outer' && r.node === this.pitNode) {
           group.forEach(g => { g.out = false; g.node = 0; g.route = 'outer'; });
           this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
         }
+        // 이벤트 칸: 부스터(+3)/보너스(한 번 더)/후퇴(-2)/황금(한 번 더+보상)
+        else if (r.route === 'outer' && this.eventTiles[r.node]) { this._applyEventTile(r.node, group, owner); }
       }
 
       // 승리 판정
@@ -305,6 +385,7 @@
       let n = this.turn;
       for (let k = 1; k <= this.N; k++) { const s = (this.turn + k) % this.N; if (!this.rankings.includes(this.players[s].pid)) { n = s; break; } }
       this.turn = n;
+      if (this.shieldSide != null && this._pieceOwner(n) === this.shieldSide) this.shieldSide = null;  // 방어막: 내 차례 돌아오면 만료
       this._emit();
       this._maybeAI();
     }
@@ -401,6 +482,7 @@
       if (!a) return;
       if (a.type === 'throw') this.doThrow(pid, a.power);
       else if (a.type === 'move') this.doMove(pid, a.pieceId, a.pendingIndex, a.dir, a.carry, a.ownerSeat);
+      else if (a.type === 'useItem') this.useItem(pid, a);
     }
     serialize() {
       return {
@@ -410,6 +492,9 @@
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
+        eventTiles: Object.assign({}, this.eventTiles), dailyRule: this.dailyRule,
+        eventFx: this.eventFx ? { ...this.eventFx } : null,
+        itemBattle: this.itemBattle, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         decideOrder: this.decideOrder,
@@ -422,7 +507,7 @@
         } : null,
         orderResult: this.orderResult || null,
         players: this.players.map((p, i) => ({
-          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0, items: (p.items||[]).slice(),
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
           doneCount: p.pieces.filter(pc => pc.done).length
         }))

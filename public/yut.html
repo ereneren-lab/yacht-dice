@@ -347,6 +347,46 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .tray-tag{ font-size:9px;color:var(--muted);font-weight:700;margin-left:2px }
   .tray-mem{ font-size:9px;font-weight:600;color:var(--muted);margin-top:1px;letter-spacing:.2px }
   .tray-us{ font-size:9px;color:var(--brass);margin-left:4px;font-weight:900 }
+  /* ===== 아이템전 ===== */
+  .itembar{ display:none;flex-direction:column;gap:6px;margin:8px 0 2px;padding:8px 10px;border-radius:13px;background:var(--panel);border:1.5px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 3px rgba(0,0,0,.2) }
+  .itembar.on{ display:flex }
+  .itembar.usable{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 20%,transparent) }
+  .ib-head{ display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:var(--muted) }
+  .ib-head .ib-us{ color:var(--brass) }
+  .ib-cards{ display:flex;gap:6px;flex-wrap:wrap }
+  .ib-card{ flex:1 1 auto;min-width:78px;display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:11px;border:2px solid var(--line);background:var(--panel2);color:var(--ink);font-family:inherit;cursor:default;transition:.12s;text-align:left }
+  .ib-card .ib-ico{ font-size:19px;line-height:1;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)) }
+  .ib-card .ib-body{ display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0 }
+  .ib-card .ib-nm{ font-size:12px;font-weight:900 }
+  .ib-card .ib-desc{ font-size:9px;font-weight:600;color:var(--muted) }
+  .ib-card .ib-cnt{ font-size:12.5px;font-weight:900;color:var(--brass);flex:none }
+  .ib-card.usable{ cursor:pointer;border-color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,var(--panel2)) }
+  .ib-card.usable:hover{ transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.24);filter:brightness(1.05) }
+  .ib-card.usable:active{ transform:scale(.96) }
+  .ib-card.dim{ opacity:.5 }
+  .ib-card.armed{ border-color:#ff7a8a;background:color-mix(in srgb,#ff7a8a 22%,var(--panel2));animation:ibarm 1s ease-in-out infinite }
+  @keyframes ibarm{ 0%,100%{box-shadow:0 0 0 0 rgba(255,122,138,.5)} 50%{box-shadow:0 0 0 5px rgba(255,122,138,0)} }
+  .ib-others{ display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-weight:700;color:var(--muted);align-items:center }
+  .ib-oth{ display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;background:var(--panel2);border:1px solid var(--line) }
+  .ib-oth.shield{ border-color:#4fd6ff;color:#7fd8f5 }
+  .ib-hint{ font-size:11px;font-weight:800;color:#ff8a98;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap }
+  .ib-cancel{ font-family:inherit;font-size:10px;font-weight:800;padding:3px 9px;border-radius:8px;border:1.5px solid #ff8a98;background:transparent;color:#ff8a98;cursor:pointer }
+  /* 밀치기 타겟 */
+  #pieceLayer .pcpiece.pushtarget{ cursor:pointer;pointer-events:auto !important }
+  #pieceLayer .pcpiece.pushtarget .ring{ stroke:#ff7a8a !important;stroke-width:3.6 !important;animation:pushpulse .9s ease-in-out infinite }
+  @keyframes pushpulse{ 0%,100%{stroke-opacity:1} 50%{stroke-opacity:.32} }
+  #pieceLayer .pcpiece.pushdim{ opacity:.4 }
+  .tp.pushtarget{ cursor:pointer;opacity:1 !important;border-color:#ff7a8a !important;box-shadow:0 0 0 2px rgba(255,122,138,.5);animation:tppush 1s ease-in-out infinite }
+  @keyframes tppush{ 0%,100%{box-shadow:0 0 0 2px rgba(255,122,138,.35)} 50%{box-shadow:0 0 0 4px rgba(255,122,138,.6)} }
+  /* 방어막 표시 */
+  .pc-shield{ font-size:12px;filter:drop-shadow(0 0 3px #4fd6ff) }
+  #pieceLayer .pcpiece .pcshield{ pointer-events:none }
+  /* 아이템 발동 배너 (역전 밴드 키프레임 재사용) */
+  #yutItemFx{ position:fixed; inset:0; z-index:9058; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; visibility:hidden; overflow:hidden; }
+  #yutItemFx.on{ opacity:1; visibility:visible; }
+  #yutItemFx .if-band{ width:100%; padding:20px 0; text-align:center; background:linear-gradient(90deg,transparent 0%,rgba(30,22,12,.82) 22%,rgba(30,22,12,.82) 78%,transparent 100%); transform-origin:center; animation:rvBand .95s ease-out forwards; }
+  #yutItemFx .if-ico{ font-size:clamp(30px,7vw,56px); filter:drop-shadow(0 0 12px var(--if-col,#ffd451)); }
+  #yutItemFx .if-txt{ display:inline-block; margin-left:10px; font-weight:900; letter-spacing:1px; font-size:clamp(26px,6.2vw,54px); color:#fff6e0; -webkit-text-stroke:4px #2a1810; paint-order:stroke fill; animation:rvTxt .95s cubic-bezier(.2,1.4,.4,1) forwards; }
   /* 이모지 팝업 + 채팅 (공통) */
   .reactzone{ position:relative;margin-top:12px;text-align:center }
   .reacttoggle{ padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit }
@@ -440,6 +480,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     #yutFx .yf-word, #yutFx .yf-sub, #yutFx .yf-dim, #yutFx .yf-rays,
     #yutReversal .rv-band, #yutReversal .rv-txt{ animation:none !important; opacity:1 !important; }
     #yutCombo.on{ animation:none !important; opacity:1 !important; }
+    #yutMultiCatch .mc-band, #yutMultiCatch .mc-txt{ animation:none !important; opacity:1 !important; }
+    #yutItemFx .if-band, #yutItemFx .if-txt{ animation:none !important; opacity:1 !important; }
+    #dailyBanner .dr-band{ animation:none !important; }
+    .evtfx.on{ animation:none !important; opacity:1 !important; transform:translate(-50%,-50%) scale(1) !important; }
   }
 
   /* ===================== JUICE: 극적 순간 연출 ===================== */
@@ -493,6 +537,39 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #yutReversal .rv-txt{ display:inline-block; font-weight:900; letter-spacing:2px; font-size:clamp(34px,8vw,72px); background:linear-gradient(178deg,#fff6d8,#f2ce68 50%,#e0a23c); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; -webkit-text-stroke:4px #3a2410; paint-order:stroke fill; animation:rvTxt .95s cubic-bezier(.2,1.4,.4,1) forwards; }
   @keyframes rvBand{ 0%{opacity:0;transform:scaleX(.35)} 20%{opacity:1;transform:scaleX(1)} 78%{opacity:1} 100%{opacity:0} }
   @keyframes rvTxt{ 0%{opacity:0;transform:translateX(-44px) skewX(-9deg)} 26%{opacity:1;transform:translateX(0) skewX(0)} 78%{opacity:1} 100%{opacity:0;transform:translateX(32px)} }
+  /* 멀티 잡기 배너 (역전 밴드 키프레임 재사용) */
+  #yutMultiCatch{ position:fixed; inset:0; z-index:9055; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; visibility:hidden; overflow:hidden; }
+  #yutMultiCatch.on{ opacity:1; visibility:visible; }
+  #yutMultiCatch .mc-band{ width:100%; padding:20px 0; text-align:center; background:linear-gradient(90deg, rgba(120,20,20,0) 0%, rgba(150,26,26,.8) 22%, rgba(150,26,26,.8) 78%, rgba(120,20,20,0) 100%); transform-origin:center; animation:rvBand .95s ease-out forwards; }
+  #yutMultiCatch .mc-txt{ display:inline-block; font-weight:900; letter-spacing:1px; font-size:clamp(30px,7.5vw,64px); background:linear-gradient(178deg,#fff0d8,#ffb14a 50%,#ff5470); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; -webkit-text-stroke:4px #3a1010; paint-order:stroke fill; animation:rvTxt .95s cubic-bezier(.2,1.4,.4,1) forwards; }
+  /* 이벤트 칸 발동 연출(팝 텍스트 + 반짝이) */
+  .evtfx{ position:fixed; z-index:9080; pointer-events:none; transform:translate(-50%,-50%) scale(.5); opacity:0; font-weight:900; letter-spacing:1px; white-space:nowrap;
+    font-size:clamp(20px,4.6vw,34px); color:#fff; -webkit-text-stroke:3px #2a1a08; paint-order:stroke fill; text-shadow:0 0 12px var(--ev-col,#ffd451); will-change:transform,opacity; }
+  .evtfx.on{ animation:evtPop 1.2s cubic-bezier(.15,1.3,.4,1) forwards; }
+  .evtfx.reduced, .evtfx.reduced.on{ animation:none !important; opacity:1; transform:translate(-50%,-50%) scale(1); }
+  @keyframes evtPop{ 0%{opacity:0;transform:translate(-50%,-50%) scale(.4)} 22%{opacity:1;transform:translate(-50%,-50%) scale(1.15)} 40%{transform:translate(-50%,-50%) scale(1)} 72%{opacity:1;transform:translate(-50%,-92%) scale(1)} 100%{opacity:0;transform:translate(-50%,-142%) scale(.95)} }
+  .evtspark{ position:fixed; z-index:9079; pointer-events:none; transform:translate(-50%,-50%); font-size:15px; opacity:0; will-change:transform,opacity; }
+  .evtspark.on{ animation:evtSpark .8s ease-out forwards; }
+  @keyframes evtSpark{ 0%{opacity:0;transform:translate(-50%,-50%) scale(.3)} 25%{opacity:1} 100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1)} }
+  /* 오늘의 규칙 — 판 시작 배너 */
+  #dailyBanner{ position:fixed; left:0; right:0; top:16%; z-index:9060; pointer-events:none; display:flex; justify-content:center; padding:0 16px; opacity:0; visibility:hidden; }
+  #dailyBanner.on{ opacity:1; visibility:visible; }
+  #dailyBanner .dr-band{ display:flex; align-items:center; gap:14px; padding:14px 24px; border-radius:18px; max-width:92vw;
+    background:linear-gradient(135deg, rgba(40,26,12,.94), rgba(24,15,6,.94)); border:2.5px solid var(--dr-col,#ffd451);
+    box-shadow:0 10px 34px rgba(0,0,0,.5), 0 0 22px color-mix(in srgb, var(--dr-col,#ffd451) 45%, transparent);
+    animation:drBand .5s cubic-bezier(.16,1.1,.3,1); }
+  #dailyBanner .dr-ico{ font-size:clamp(30px,7vw,46px); flex:none; filter:drop-shadow(0 0 10px var(--dr-col,#ffd451)); }
+  #dailyBanner .dr-body{ display:flex; flex-direction:column; line-height:1.18; text-align:left; }
+  #dailyBanner .dr-h{ font-size:11px; font-weight:800; letter-spacing:2px; color:var(--dr-col,#ffd451); }
+  #dailyBanner .dr-t{ font-size:clamp(18px,4.4vw,26px); font-weight:900; color:#fff6e0; }
+  #dailyBanner .dr-d{ font-size:clamp(12px,2.9vw,15px); font-weight:700; color:#e7d4ac; }
+  @keyframes drBand{ 0%{opacity:0;transform:translateY(-22px) scale(.9)} 60%{opacity:1;transform:translateY(0) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
+  /* 오늘의 규칙 — 상단 상시 뱃지 */
+  .dailybadge{ display:none; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:800; line-height:1.4;
+    background:color-mix(in srgb, var(--dr-col,#ffd451) 18%, var(--panel)); border:1.5px solid var(--dr-col,#ffd451);
+    color:var(--ink); white-space:nowrap; max-width:150px; overflow:hidden; }
+  .dailybadge .db-ico{ font-size:13px; flex:none; }
+  .dailybadge .db-nm{ overflow:hidden; text-overflow:ellipsis; }
   /* 승리 연출 강화 */
   .resbig.win{ font-size:clamp(56px,15vw,90px); animation:resWinJump 1.1s cubic-bezier(.2,1.3,.4,1) both; }
   @keyframes resWinJump{ 0%{opacity:0;transform:translateY(-40px) scale(.4) rotate(-12deg)} 40%{opacity:1;transform:translateY(0) scale(1.18) rotate(4deg)} 58%{transform:translateY(-14px) scale(1.05) rotate(-3deg)} 74%{transform:translateY(0) scale(1.08)} 100%{transform:translateY(0) scale(1)} }
@@ -608,6 +685,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   </div>
   <div id="vsIntro" aria-hidden="true"></div>
   <div id="orderReveal" aria-hidden="true"></div>
+  <div id="dailyBanner" aria-hidden="true"></div>
+  <div id="yutMultiCatch" aria-hidden="true"></div>
+  <div id="yutItemFx" aria-hidden="true"></div>
   <div class="reconnfail" id="reconnFail">
     <span class="rf-txt">🔌 재접속 실패 — 새로고침하거나 방 코드로 다시 들어와줘</span>
     <button class="rf-btn" id="reconnRetry">🔄 다시 시도</button>
@@ -617,6 +697,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <a class="iconbtn hubx" href="./" title="골목으로" aria-label="주사위 골목(홈)으로 나가기">←</a>
       <div class="title"><span class="dot"></span>윷놀이 <span id="modePill" style="font-size:11px;color:var(--muted);font-weight:600"></span></div>
       <div class="spacer"></div>
+      <span id="dailyBadge" class="dailybadge" title="오늘의 규칙" aria-label="오늘의 규칙"></span>
       <span id="timerHud" style="display:none" role="timer" aria-label="남은 시간"></span>
       <button class="iconbtn" id="lightBtn" title="다크/라이트 모드" aria-label="다크/라이트 모드 전환">☀️</button>
       <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리 켜기/끄기">🔊</button>
@@ -651,6 +732,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         <div class="turninfo" id="turnInfo" role="status" aria-live="polite"></div>
         <div class="turntimer" id="turnTimer" style="display:none" aria-hidden="true"><div class="ttfill" id="ttFill"></div></div>
         <div class="tray" id="pieceTray"></div>
+        <div class="itembar" id="itemBar"></div>
         <div class="throwarea">
           <div class="thrower" id="thrower"></div>
           <div class="yutsticks" id="yutsticks"></div>
@@ -723,6 +805,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
           <span class="osw-tog" aria-hidden="true"></span>
         </button>
+        <button type="button" class="orderswitch" id="itemSwitchLocal" role="switch" aria-checked="false">
+          <span class="osw-txt">🃏 아이템전 (방어막·재던지기·밀치기)<small>각 편이 아이템 카드로 시작 · 황금 칸에서 추가 획득</small></span>
+          <span class="osw-tog" aria-hidden="true"></span>
+        </button>
         <button class="btn" id="startBtn" style="margin-top:14px">시작</button>
       </div>
       <div id="onlineBox" style="display:none">
@@ -748,6 +834,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         </div>
         <button type="button" class="orderswitch" id="orderSwitchOn" role="switch" aria-checked="true">
           <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
+          <span class="osw-tog" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="orderswitch" id="itemSwitchOn" role="switch" aria-checked="false">
+          <span class="osw-txt">🃏 아이템전 (방어막·재던지기·밀치기)<small>각 편이 아이템 카드로 시작 · 황금 칸에서 추가 획득</small></span>
           <span class="osw-tog" aria-hidden="true"></span>
         </button>
         <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
@@ -923,7 +1013,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.goal = (opt.goal && opt.goal <= nm) ? opt.goal : nm;  // 승리 목표(완주시킬 말 수)
       this.players = (opt.players || []).map((p, i) => ({
         pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null,
-        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (p.team != null ? p.team : (i % 2)) : i), catches: 0, connected: p.connected !== false,
+        ai: !!p.ai, aiDiff: p.aiDiff || 'normal', seat: i, team: (!!opt.teamMode ? (p.team != null ? p.team : (i % 2)) : i), catches: 0, connected: p.connected !== false, items: [],
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
@@ -933,6 +1023,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (this.teamMode) {
         this.players.forEach(p => { if (this.teamHolder[p.team] == null) this.teamHolder[p.team] = p.seat; });
         this.players.forEach(p => { if (p.seat !== this.teamHolder[p.team]) p.pieces = []; });
+      }
+      if (opt.itemBattle) {   // 각 편(팀전이면 대표)에게 시작 아이템 2장
+        const pool = ['shield', 'rethrow', 'push']; const _rng = opt.rng || Math.random;   // this.rng는 아직 미설정
+        const sides = this.teamMode ? Object.keys(this.teamHolder).map(k => this.teamHolder[k]) : this.players.map((_, i) => i);
+        sides.forEach(si => { const it = []; for (let k = 0; k < 2; k++) it.push(pool[Math.floor(_rng() * pool.length)]); this.players[si].items = it; });
       }
       this.turn = 0;
       this.phase = 'throw';        // 'throw' | 'move' | 'over'
@@ -948,6 +1043,24 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       // 구렁텅이: 매판 랜덤으로 순수 outer 칸(지름길·합류칸 제외) 하나에 함정
       { const pitCand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]; this.pitNode = pitCand[Math.floor(this.rng() * pitCand.length)]; }
       this.pitSeq = 0; this.pitFall = null;  // 구렁텅이 연출용
+      // 오늘의 규칙: 매 판 랜덤 변형(null=평범). 팀전 포함.
+      this.dailyOn = opt.dailyRule !== false;
+      this.dailyRule = null;
+      if (this.dailyOn) { const rr = [null, null, 'catchfest', 'bigbackdo', 'goldrain', 'speed']; this.dailyRule = rr[Math.floor(this.rng() * rr.length)]; }
+      // 이벤트 칸: 늪 외 랜덤 outer 칸에 특수 효과(부스터/보너스/후퇴/황금). 황금비 규칙이면 더 많이.
+      this.eventOn = opt.eventTiles !== false;
+      this.eventTiles = {};  // node → 'boost'|'bonus'|'back'|'gold'
+      if (this.eventOn) {
+        const cand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14].filter(n => n !== this.pitNode);
+        for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(this.rng() * (k + 1)); const t = cand[k]; cand[k] = cand[j]; cand[j] = t; }
+        const types = (this.dailyRule === 'goldrain') ? ['gold', 'gold', 'boost', 'bonus', 'gold'] : ['boost', 'bonus', 'back', 'gold'];
+        const nT = (this.dailyRule === 'goldrain') ? 5 : 3;
+        for (let k = 0; k < nT && k < cand.length; k++) this.eventTiles[cand[k]] = types[k % types.length];
+      }
+      this.eventSeq = 0; this.eventFx = null;  // 이벤트 발동 연출용
+      // 아이템전: 각 편이 아이템 카드(방어막🛡/재던지기🔄/밀치기👊)로 시작, 황금 칸으로 추가 획득.
+      this.itemBattle = !!opt.itemBattle;
+      this.shieldSide = null; this.itemSeq = 0; this.itemFx = null;
       this.limitMs = opt.limitMs || 0; this.gameStartTime = null; this.timedOut = false;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
@@ -964,7 +1077,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
     start() { if (this._dead) return; this.pending = []; this.gameStartTime = Date.now();
       if (this.decideOrder) { this._orderStart(); }
-      else { this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; }
+      else { this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this._applyDailyStart(); }
       this._emit(); this._maybeAI(); }
 
     // ===== 선 뽑기(순서 결정) — 스택 기반 동점 재대결 =====
@@ -1011,6 +1124,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.orderResult = this.players.map(p => p.pid);     // 발표용 순서(pid)
       this.orderStack = null; this.orderRound = {};
       this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = [];
+      this._applyDailyStart();
     }
     timeUp() {
       if (this._dead || this.phase === 'over') return;
@@ -1060,8 +1174,60 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this._emit(); this._maybeAI();
     }
 
+    // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 재발동/추가 잡기 없이 1회성.
+    _applyEventTile(node, group, owner) {
+      const type = this.eventTiles[node];
+      this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length };
+      if (type === 'bonus') { this.throwsLeft++; }                              // 한 번 더
+      else if (type === 'gold') { this.throwsLeft++;                            // 황금: 한 번 더 + 아이템전이면 아이템 획득
+        if (this.itemBattle) { const p = this.players[owner]; if (!p.items) p.items = []; if (p.items.length < 5) p.items.push(['shield', 'rethrow', 'push'][Math.floor(this.rng() * 3)]); } }
+      else if (type === 'boost') { this._shiftGroup(group, 3); }                // 앞으로 3칸 부스터
+      else if (type === 'back') { this._shiftGroup(group, -2); }                // 뒤로 2칸
+    }
+    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 이동(이벤트/구렁텅이 재발동 없음)
+      const lead = group[0]; if (!lead || lead.done || !lead.out) return;
+      const r = step(lead.node, lead.route, lead.out, delta, null);
+      if (r.noMove) return;
+      if (r.done) { group.forEach(g => { g.done = true; g.out = false; }); }
+      else { group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; }); }
+    }
+    // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
+    _applyDailyStart() {
+      if (this.dailyRule !== 'speed') return;
+      const sides = this.teamMode ? Object.keys(this.teamHolder).map(k => this.teamHolder[k]) : this.players.map((_, i) => i);
+      sides.forEach(si => { const p = this.players[si]; if (p && p.pieces[0]) { p.pieces[0].out = true; p.pieces[0].node = 3; p.pieces[0].route = 'outer'; } });
+    }
     // 말 소유자: 팀전이면 팀 대표(공유 말), 아니면 자기 자신
     _pieceOwner(seat) { return this.teamMode ? this.teamHolder[this.players[seat].team] : seat; }
+    _sameSide(a, b) { return this._pieceOwner(a) === this._pieceOwner(b); }
+    // 아이템 사용: 내 차례에만. shield=방어막(다음 내 차례까지 안 잡힘), rethrow=한 번 더 던지기, push=상대 말 하나 처음으로
+    useItem(pid, data) {
+      if (this._dead || this.phase === 'over' || this.phase === 'order') return;
+      const seat = this.players.findIndex(p => p.pid === pid);
+      if (seat < 0 || seat !== this.turn) return;
+      const owner = this._pieceOwner(seat);
+      const pl = this.players[owner];
+      const item = data && data.item;
+      const idx = (pl.items || []).indexOf(item);
+      if (idx < 0) return;
+      if (item === 'push') {
+        const ts = data.targetSeat;
+        if (ts == null || this._sameSide(seat, ts)) return;   // 같은 편은 밀치기 금지
+        const to = this.players[this._pieceOwner(ts)];
+        const opc = to && to.pieces.find(p => p.id === data.targetPieceId && p.out && !p.done);
+        if (!opc) return;
+        opc.out = false; opc.node = 0; opc.route = 'outer';
+        this.itemSeq++; this.itemFx = { seq: this.itemSeq, kind: 'push', seat: owner, targetSeat: this._pieceOwner(ts) };
+      } else if (item === 'shield') {
+        this.shieldSide = owner;
+        this.itemSeq++; this.itemFx = { seq: this.itemSeq, kind: 'shield', seat: owner };
+      } else if (item === 'rethrow') {
+        this.throwsLeft++; if (this.phase === 'move') this.phase = 'throw';
+        this.itemSeq++; this.itemFx = { seq: this.itemSeq, kind: 'rethrow', seat: owner };
+      } else return;
+      pl.items.splice(idx, 1);
+      this._emit(); this._maybeAI();
+    }
     _anyMovable(seat) {
       const pl = this.players[this._pieceOwner(seat)];
       for (const s of this.pending) {
@@ -1081,7 +1247,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (seat !== this.turn) return;
       if (pendingIndex == null) pendingIndex = 0;
       if (pendingIndex < 0 || pendingIndex >= this.pending.length) return;
-      const steps = this.pending[pendingIndex];
+      let steps = this.pending[pendingIndex];
+      if (this.dailyRule === 'bigbackdo' && steps === -1) steps = 2;   // 오늘의 규칙: 대박 빽도(빽도가 2칸 전진)
       // 소유자: 팀전이면 팀 공유 말(대표), 아니면 자기 말
       const owner = this._pieceOwner(seat);
       const pl = this.players[owner];
@@ -1113,6 +1280,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         for (const op of this.players) {
           if (op.seat === seat) continue;
           if (this.teamMode && op.team === pl.team) continue; // 같은 팀은 안 잡음
+          if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
           for (const opc of op.pieces) {
             if (!opc.done && opc.out && opc.node === r.node) {
               opc.out = false; opc.node = 0; opc.route = 'outer';
@@ -1120,13 +1288,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
             }
           }
         }
-        if (caught) { pl.catches += caughtN; this.throwsLeft++; this.captured = { seat, node: r.node }; } // 잡으면 한 번 더
+        if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node: r.node, count: caughtN }; } // 잡으면 한 번 더(잡기축제=두 번), count=멀티잡기
 
         // 구렁텅이: 순수 outer 함정 칸에 멈추면 그 말(업은 말 포함) 처음으로
         if (r.route === 'outer' && r.node === this.pitNode) {
           group.forEach(g => { g.out = false; g.node = 0; g.route = 'outer'; });
           this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
         }
+        // 이벤트 칸: 부스터(+3)/보너스(한 번 더)/후퇴(-2)/황금(한 번 더+보상)
+        else if (r.route === 'outer' && this.eventTiles[r.node]) { this._applyEventTile(r.node, group, owner); }
       }
 
       // 승리 판정
@@ -1154,6 +1324,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       let n = this.turn;
       for (let k = 1; k <= this.N; k++) { const s = (this.turn + k) % this.N; if (!this.rankings.includes(this.players[s].pid)) { n = s; break; } }
       this.turn = n;
+      if (this.shieldSide != null && this._pieceOwner(n) === this.shieldSide) this.shieldSide = null;  // 방어막: 내 차례 돌아오면 만료
       this._emit();
       this._maybeAI();
     }
@@ -1250,6 +1421,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (!a) return;
       if (a.type === 'throw') this.doThrow(pid, a.power);
       else if (a.type === 'move') this.doMove(pid, a.pieceId, a.pendingIndex, a.dir, a.carry, a.ownerSeat);
+      else if (a.type === 'useItem') this.useItem(pid, a);
     }
     serialize() {
       return {
@@ -1259,6 +1431,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
+        eventTiles: Object.assign({}, this.eventTiles), dailyRule: this.dailyRule,
+        eventFx: this.eventFx ? { ...this.eventFx } : null,
+        itemBattle: this.itemBattle, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         decideOrder: this.decideOrder,
@@ -1271,7 +1446,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         } : null,
         orderResult: this.orderResult || null,
         players: this.players.map((p, i) => ({
-          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0, items: (p.items||[]).slice(),
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
           doneCount: p.pieces.filter(pc => pc.done).length
         }))
@@ -1312,8 +1487,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
   let engine=null, S=null, MYPID='me', online=false, ws=null, roomCode=null, lobby=null, amHost=false;
   let lastMyTurn=false; // 내 차례 알림: 직전 렌더의 내 차례 여부(에지 감지용)
-  let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false, decideOrder:true };
+  let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false, decideOrder:true, itemBattle:false };
   try{ cfg.decideOrder = localStorage.getItem('yut_order')!=='0'; }catch(e){}
+  try{ cfg.itemBattle = localStorage.getItem('yut_items')==='1'; }catch(e){}
   const TEAM_COL=['#4a90d9','#e0683c']; const TEAM_NAME=['🔵 청팀','🔴 홍팀'];
   try{ const sc=localStorage.getItem('yut_char'); if(sc && ['pig','dog','sheep','cow','horse'].includes(sc)) cfg.character=sc; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
@@ -1563,6 +1739,20 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
   /* ===== 렌더 ===== */
   const YUT_NAME={'-1':'빽도',1:'도',2:'개',3:'걸',4:'윷',5:'모'};
+  // 이벤트 칸(늪과 별개): 보드 표시 + 발동 연출 공용 데이터
+  const EVT_ICON={boost:'⚡',bonus:'🎁',back:'💨',gold:'⭐'};
+  const EVT_LABEL={boost:'부스터',bonus:'보너스',back:'후퇴',gold:'황금'};
+  const EVT_FILL={boost:'url(#evboost)',bonus:'url(#evbonus)',back:'url(#evback)',gold:'url(#evgold)'};
+  const EVT_STROKE={boost:'#2f7fc0',bonus:'#c9642e',back:'#6a7d90',gold:'#c98a10'};
+  const EVT_GLOW={boost:'#8fd4ff',bonus:'#ffc38f',back:'#c3d0dc',gold:'#ffe07a'};
+  const EVT_FX={ boost:{txt:'⚡ 부스터!',col:'#3d8fd0',glow:'#8fd4ff'}, bonus:{txt:'🎁 한 번 더!',col:'#e07a3c',glow:'#ffc38f'}, back:{txt:'💨 후퇴!',col:'#6a7d90',glow:'#c3d0dc'}, gold:{txt:'⭐ 황금!',col:'#e0a020',glow:'#ffe07a'} };
+  // 오늘의 규칙 데이터(배너 + 상시 뱃지 공용)
+  const DAILY_INFO={
+    catchfest:{icon:'🔥',name:'잡기 축제',desc:'잡으면 두 번 더!',color:'#ff6b3c'},
+    bigbackdo:{icon:'💥',name:'대박 빽도',desc:'빽도가 2칸 전진!',color:'#c9a0ff'},
+    goldrain:{icon:'🌟',name:'황금비',desc:'이벤트 칸이 풍성해요!',color:'#ffd451'},
+    speed:{icon:'⚡',name:'스피드전',desc:'시작부터 말 하나가 판 위에!',color:'#6ec6ff'}
+  };
   function mySeat(){ return S?S.players.findIndex(p=>p.pid===MYPID):-1; }
   function canAct(){ return !!S && mySeat()===S.turn && S.phase==='move'; }
   // 팀전: 어떤 seat이 다루는 "말 세트"의 소유(대표) seat. 팀 공유 말은 대표에게만 있다. 개인전이면 자기 자신.
@@ -1571,7 +1761,80 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function dispDone(pi){ const o=pieceOwnerSeat(pi); return (S&&S.players[o]&&S.players[o].doneCount)||0; }
   // 팀 목록(오름차순)
   function teamList(){ return [...new Set(S.players.map(p=>p.team))].sort((a,b)=>a-b); }
-  let capCount=0, prevCaptured=null, selStep=null, prevDone={}, moveSeqSeen=0, animatingId=null, skipSeen=0, pitSeen=0;
+  let capCount=0, prevCaptured=null, selStep=null, prevDone={}, moveSeqSeen=0, animatingId=null, skipSeen=0, pitSeen=0, eventFxSeen=0;
+
+  /* ===== 아이템전 클라 ===== */
+  const ITEM_INFO={ shield:{ico:'🛡',nm:'방어막',desc:'다음 내 차례까지 안 잡힘'}, rethrow:{ico:'🔄',nm:'재던지기',desc:'한 번 더 던지기'}, push:{ico:'👊',nm:'밀치기',desc:'상대 말 하나 처음으로'} };
+  const ITEM_ORDER=['shield','rethrow','push'];
+  const ITEM_FX={ shield:{ico:'🛡',txt:'방어막!',col:'#4fd6ff'}, rethrow:{ico:'🔄',txt:'한 번 더!',col:'#6fe0a0'}, push:{ico:'👊',txt:'밀치기!',col:'#ff7a8a'} };
+  let pushMode=false, itemFxSeen=0;
+  // 내가(핫시트면 현재 차례가) 아이템을 다루는 기준 seat. 온라인 관전(내가 없음)이면 현재 차례.
+  function ctrlSeat(){ if(!S)return -1; if(online){ const ms=mySeat(); return ms>=0?ms:S.turn; } return S.turn; }
+  // 그 seat이 지금 아이템을 쓸 수 있는가(내 차례 + 진행 중 + 로컬이면 사람 차례)
+  function itemsUsable(){ if(!S||S.phase==='over'||S.phase==='order')return false;
+    const cs=ctrlSeat(); if(cs!==S.turn)return false;
+    if(online){ if(mySeat()<0)return false; } else if(S.players[S.turn]&&S.players[S.turn].ai) return false;
+    return true; }
+  function itemsOf(seat){ const o=pieceOwnerSeat(seat); return (S&&S.players[o]&&S.players[o].items)||[]; }
+  function groupItems(arr){ const g={}; (arr||[]).forEach(it=>{ g[it]=(g[it]||0)+1; }); return g; }
+  function sameSideSeat(a,b){ return pieceOwnerSeat(a)===pieceOwnerSeat(b); }
+  function sendItem(a){ const act=Object.assign({type:'useItem'}, a);
+    if(online) wsSend({t:'action',a:act});
+    else if(engine) engine.action(S.players[S.turn].pid, act); }
+  function useItemBtn(item){ if(!itemsUsable())return;
+    if(item==='push'){ if(pushMode) exitPushMode(); else enterPushMode(); return; }
+    if(pushMode) exitPushMode();
+    sendItem({item}); }
+  function anyPushTarget(){ const cs=ctrlSeat(); return S.players.some((p,pi)=>!sameSideSeat(pi,cs)&&p.pieces.some(pc=>pc.out&&!pc.done)); }
+  function enterPushMode(){ if(!anyPushTarget()){ showToast('👊 밀칠 상대 말이 판 위에 없어'); return; } pushMode=true; renderItemBar(); renderPieces(); renderTray(); showToast('👊 밀칠 상대 말을 탭하세요 (판 위 말만)'); }
+  function exitPushMode(){ if(!pushMode)return; pushMode=false; renderItemBar(); renderPieces(); renderTray(); }
+  function doPush(targetPi, pieceId){
+    if(!itemsUsable()){ exitPushMode(); return; }
+    if(sameSideSeat(targetPi, ctrlSeat())){ showToast('같은 편 말은 밀 수 없어'); return; }
+    const targetSeat=pieceOwnerSeat(targetPi);
+    exitPushMode();
+    sendItem({item:'push', targetSeat, targetPieceId:pieceId});
+  }
+  // 밀치기 타겟 후보인가(상대 편 + 판 위)
+  function isPushTarget(seat, pc){ return pushMode && pc && pc.out && !pc.done && !sameSideSeat(seat, ctrlSeat()); }
+  function renderItemBar(){
+    const el=$('itemBar'); if(!el)return;
+    if(!S || !S.itemBattle || S.phase==='over'){ el.className='itembar'; el.innerHTML=''; pushMode=false; return; }
+    const cs=ctrlSeat(); const usable=itemsUsable();
+    const mine=itemsOf(cs); const mineG=groupItems(mine);
+    // 다른 편(내 편 제외) 아이템 개수 — 정보 표시
+    const seen={}; const others=[];
+    S.players.forEach((p,pi)=>{ const o=pieceOwnerSeat(pi); if(seen[o]||o===pieceOwnerSeat(cs))return; seen[o]=1;
+      const items=(S.players[o].items)||[]; const shielded=(S.shieldSide!=null&&S.shieldSide===o);
+      others.push({o,pi,n:items.length,shielded}); });
+    if(!mine.length && !others.some(x=>x.n>0)){ el.className='itembar'; el.innerHTML=''; pushMode=false; return; }
+    const meLbl = online ? (mySeat()>=0?'내 아이템':(S.players[S.turn]?esc(S.players[S.turn].name)+' 아이템':'아이템')) : (S.players[S.turn]?esc(S.players[S.turn].name)+' 아이템':'아이템');
+    let h=`<div class="ib-head">🃏 <span class="ib-us">${meLbl}</span>${usable?' · 탭해서 사용':' · 내 차례에 사용 가능'}</div>`;
+    if(mine.length){
+      h+='<div class="ib-cards">'+ITEM_ORDER.filter(k=>mineG[k]).map(k=>{ const inf=ITEM_INFO[k];
+        const armed=(pushMode&&k==='push'); const active=usable;
+        return `<button type="button" class="ib-card${active?' usable':' dim'}${armed?' armed':''}" data-item="${k}"${active?'':' disabled'}><span class="ib-ico">${inf.ico}</span><span class="ib-body"><span class="ib-nm">${inf.nm}</span><span class="ib-desc">${inf.desc}</span></span><span class="ib-cnt">×${mineG[k]}</span></button>`;
+      }).join('')+'</div>';
+    } else { h+='<div class="ib-others" style="color:var(--muted)">보유 아이템 없음 — 황금 칸(⭐)에서 획득</div>'; }
+    if(pushMode){ h+='<div class="ib-hint">👊 밀칠 상대 말을 탭하세요 <button type="button" class="ib-cancel" id="ibCancel">취소</button></div>'; }
+    if(others.length){ h+='<div class="ib-others">상대: '+others.map(x=>`<span class="ib-oth${x.shielded?' shield':''}">${S.teamMode?TEAM_NAME[S.players[x.o].team]:esc(S.players[x.o].name)} 🃏${x.n}${x.shielded?' 🛡':''}</span>`).join('')+'</div>'; }
+    el.className='itembar on'+(usable?' usable':'');
+    el.innerHTML=h;
+    if(usable){ el.querySelectorAll('.ib-card.usable').forEach(b=>{ b.onclick=()=>useItemBtn(b.dataset.item); }); }
+    const cx=$('ibCancel'); if(cx) cx.onclick=exitPushMode;
+  }
+  // itemFx.seq 변화 시 kind별 발동 배너
+  let _ifT=null;
+  function itemFxShow(fx){
+    const info=fx&&ITEM_FX[fx.kind]; if(!info)return; const reduced=FX_REDUCED();
+    const el=_fxEl('yutItemFx');
+    el.innerHTML=`<div class="if-band"><span class="if-ico">${info.ico}</span><span class="if-txt" style="--if-col:${info.col}">${info.txt}</span></div>`;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(_ifT); _ifT=setTimeout(()=>el.classList.remove('on'), reduced?800:1200);
+    try{ if(fx.kind==='rethrow'){ SFX.yut&&SFX.yut(); }
+      else if(fx.kind==='push'){ SFX.capture&&SFX.capture(); if(!reduced){ screenShake(); cameraPunch(); } }
+      else { SFX.ding&&SFX.ding(); } }catch(e){}
+  }
 
   function drawBoard(){
     const W=332, M=34;
@@ -1585,6 +1848,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <radialGradient id="bignodeg" cx="40%" cy="34%"><stop offset="0%" stop-color="#fff0c4"/><stop offset="52%" stop-color="#f2ce68"/><stop offset="100%" stop-color="#d9a838"/></radialGradient>
       <radialGradient id="startg" cx="40%" cy="34%"><stop offset="0%" stop-color="#ffe1e1"/><stop offset="55%" stop-color="#e88b6a"/><stop offset="100%" stop-color="#cf5f3c"/></radialGradient>
       <radialGradient id="pitg" cx="42%" cy="36%"><stop offset="0%" stop-color="#5a4030"/><stop offset="58%" stop-color="#3a2518"/><stop offset="100%" stop-color="#1c110a"/></radialGradient>
+      <radialGradient id="evboost" cx="40%" cy="34%"><stop offset="0%" stop-color="#eaf7ff"/><stop offset="55%" stop-color="#7cc6f5"/><stop offset="100%" stop-color="#3d8fd0"/></radialGradient>
+      <radialGradient id="evbonus" cx="40%" cy="34%"><stop offset="0%" stop-color="#fff0e6"/><stop offset="55%" stop-color="#ffb07a"/><stop offset="100%" stop-color="#e07a3c"/></radialGradient>
+      <radialGradient id="evback" cx="40%" cy="34%"><stop offset="0%" stop-color="#eef2f6"/><stop offset="55%" stop-color="#b9c6d4"/><stop offset="100%" stop-color="#7d8ea0"/></radialGradient>
+      <radialGradient id="evgold" cx="40%" cy="34%"><stop offset="0%" stop-color="#fff6d0"/><stop offset="52%" stop-color="#ffd451"/><stop offset="100%" stop-color="#e0a020"/></radialGradient>
       <filter id="nodesh" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1" stdDeviation="1.1" flood-color="rgba(90,55,20,.4)"/></filter>
       <filter id="boardsh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,.45)"/></filter>
       <filter id="pcsh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1.4" stdDeviation="1.4" flood-color="rgba(0,0,0,.5)"/></filter>
@@ -1612,9 +1879,18 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     NODE.forEach((_,i)=>{ const [cx,cy]=P(i); const big=CORNERS.includes(i); const isStart=i===0, isCenter=i===22;
       const r=big?16.5:9.5;
       const isPit=(S&&S.pitNode===i&&!isStart&&!isCenter);
-      const fill=isPit?'url(#pitg)':isStart?'url(#startg)':(isCenter||big)?'url(#bignodeg)':'url(#nodeg)';
-      const stroke=isPit?'#140c06':isStart?'#b04a2a':(isCenter||big)?'#c99a30':'#a8895f';
-      s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${isStart||big?2.2:1.6}" filter="url(#nodesh)"/>`;
+      const evt=(S&&S.eventTiles&&!isStart&&!isCenter&&!isPit)?S.eventTiles[i]:null;
+      const fill=isPit?'url(#pitg)':evt?EVT_FILL[evt]:isStart?'url(#startg)':(isCenter||big)?'url(#bignodeg)':'url(#nodeg)';
+      const stroke=isPit?'#140c06':evt?EVT_STROKE[evt]:isStart?'#b04a2a':(isCenter||big)?'#c99a30':'#a8895f';
+      if(evt){ const g=EVT_GLOW[evt]; // 은은한 이중 헤일로(늪과 시각적으로 구분되는 컬러 링)
+        s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r+5.5).toFixed(1)}" fill="none" stroke="${g}" stroke-width="1" opacity=".34"/>`;
+        s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r+3).toFixed(1)}" fill="none" stroke="${g}" stroke-width="2" opacity=".68"/>`; }
+      s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${isStart||big||evt?2.2:1.6}" filter="url(#nodesh)"/>`;
+      if(evt){
+        if(evt==='gold') s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r-3).toFixed(1)}" fill="none" stroke="#fff6d8" stroke-width="1.1" stroke-opacity=".8"/>`;
+        s+=`<text x="${cx.toFixed(1)}" y="${(cy-r-2).toFixed(1)}" font-size="13" text-anchor="middle">${EVT_ICON[evt]}</text>`;
+        s+=`<text x="${cx.toFixed(1)}" y="${(cy+3).toFixed(1)}" font-size="8" fill="#fff" text-anchor="middle" font-weight="900" stroke="#2a1608" stroke-width="0.5" paint-order="stroke">${EVT_LABEL[evt]}</text>`;
+      }
       if(isPit){ s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r-2.5).toFixed(1)}" fill="none" stroke="#9a7550" stroke-width="1.3" stroke-dasharray="2.5 2"/>`;
         s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r-5).toFixed(1)}" fill="none" stroke="#6b4a2e" stroke-width="1.1" stroke-dasharray="2 1.8"/>`;
         s+=`<text x="${cx.toFixed(1)}" y="${(cy-r-2).toFixed(1)}" font-size="13" text-anchor="middle">🕳️</text>`;
@@ -1753,6 +2029,69 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     _vsT.push(setTimeout(()=>ov.classList.remove('on'), life));
     _vsT.push(setTimeout(()=>{ if(!ov.classList.contains('on')) ov.innerHTML=''; }, life+340));
   }
+  // ★ 오늘의 규칙 — 상시 뱃지(상단) + 판 시작 배너
+  function updateDailyBadge(){
+    const b=$('dailyBadge'); if(!b) return;
+    const gvis=$('game') && $('game').style.display!=='none';
+    const info=(gvis&&S&&S.dailyRule)?DAILY_INFO[S.dailyRule]:null;
+    if(!info){ b.style.display='none'; b.innerHTML=''; return; }
+    b.style.display='inline-flex'; b.style.setProperty('--dr-col',info.color);
+    b.innerHTML=`<span class="db-ico">${info.icon}</span><span class="db-nm">${esc(info.name)}</span>`;
+    b.title='오늘의 규칙 · '+info.name+' — '+info.desc;
+  }
+  let _drT=[];
+  function dailyRuleBanner(){
+    const info=(S&&S.dailyRule)?DAILY_INFO[S.dailyRule]:null; if(!info) return;
+    const ov=$('dailyBanner'); if(!ov) return;
+    const reduced=FX_REDUCED();
+    ov.style.setProperty('--dr-col',info.color);
+    ov.innerHTML=`<div class="dr-band"><span class="dr-ico">${info.icon}</span><span class="dr-body"><span class="dr-h">오늘의 규칙</span><span class="dr-t">${esc(info.name)}</span><span class="dr-d">${esc(info.desc)}</span></span></div>`;
+    _drT.forEach(t=>clearTimeout(t)); _drT=[];
+    ov.classList.remove('on'); void ov.offsetWidth; ov.classList.add('on');
+    if(!reduced){ try{SFX.ding&&SFX.ding();}catch(e){} }
+    const life=reduced?1600:2800;
+    _drT.push(setTimeout(()=>ov.classList.remove('on'), life));
+    _drT.push(setTimeout(()=>{ if(!ov.classList.contains('on')) ov.innerHTML=''; }, life+340));
+  }
+  // 판 시작 시 호출: 뱃지 즉시 갱신 + VS 인트로/선뽑기와 겹치지 않게 배너는 살짝 뒤에
+  function scheduleDailyBanner(){
+    updateDailyBadge();
+    if(!S || !S.dailyRule) return;
+    _drT.forEach(t=>clearTimeout(t)); _drT=[];
+    _drT.push(setTimeout(()=>{ try{dailyRuleBanner();}catch(e){} }, FX_REDUCED()?250:1150));
+  }
+  // ★ 이벤트 칸 발동 연출 — eventFx.seq가 바뀔 때 해당 노드에서 팝
+  function eventFxBurst(fx){
+    const info=fx&&EVT_FX[fx.type]; if(!info) return;
+    const reduced=FX_REDUCED();
+    const pos=nodeScreenXY(fx.node);
+    const el=document.createElement('div'); el.className='evtfx'+(reduced?' reduced':'');
+    el.style.setProperty('--ev-col',info.col); el.textContent=info.txt;
+    if(pos){ el.style.left=pos[0]+'px'; el.style.top=(pos[1]-6)+'px'; }
+    else { el.style.left='50%'; el.style.top='42%'; }
+    document.body.appendChild(el); void el.offsetWidth; el.classList.add('on');
+    if(!reduced && pos){
+      for(let i=0;i<8;i++){ const sp=document.createElement('div'); sp.className='evtspark'; sp.textContent=fx.type==='gold'?'✦':'✧';
+        sp.style.left=pos[0]+'px'; sp.style.top=pos[1]+'px'; sp.style.color=info.glow;
+        const ang=(i/8)*Math.PI*2, d=24+Math.random()*30;
+        sp.style.setProperty('--dx',(Math.cos(ang)*d).toFixed(0)+'px'); sp.style.setProperty('--dy',(Math.sin(ang)*d).toFixed(0)+'px');
+        document.body.appendChild(sp); void sp.offsetWidth; sp.classList.add('on');
+        setTimeout(()=>{try{sp.remove();}catch(e){}},820); }
+    }
+    setTimeout(()=>{try{el.remove();}catch(e){}}, reduced?900:1250);
+    try{ if(fx.type==='gold'){ SFX.finish&&SFX.finish(); spawnCoins(fx.node); }
+         else if(fx.type==='back'){ SFX.backdo&&SFX.backdo(); }
+         else { SFX.pop&&SFX.pop(); } }catch(e){}
+  }
+  // ★ 멀티 잡기 배너 (2개 이상 동시 잡기 — 기존 잡기 연출 위에)
+  let _mcT=null;
+  function multiCatchBanner(n){
+    const el=_fxEl('yutMultiCatch'); const reduced=FX_REDUCED();
+    const label=n>=3 ? ('트리플 잡기! '+'💥'.repeat(3)) : ('더블 잡기! 💥💥');
+    el.innerHTML=`<div class="mc-band"><span class="mc-txt">${label}</span></div>`;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(_mcT); _mcT=setTimeout(()=>el.classList.remove('on'), reduced?800:1250);
+  }
   // 6. 승리 연출 강화 — 우승 아바타 점프 + 트로피 낙하
   function winCelebrate(){
     const rb=$('resBig'); if(rb){ rb.classList.remove('win'); void rb.offsetWidth; rb.classList.add('win'); }
@@ -1776,18 +2115,20 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       setTimeout(()=>{try{c.remove();}catch(e){}}, (dur+delay)*1000+300);
     }
   }
-  function captureEffect(nd){
-    const layer=$('pieceLayer'); if(!layer||nd==null)return; const [x,y]=nodeXY(nd);
+  function captureEffect(nd, count){
+    const layer=$('pieceLayer'); if(!layer||nd==null)return; const [x,y]=nodeXY(nd); const multi=(count||1)>=2;
     // JUICE: 화이트 플래시 + 화면 흔들림 + 카메라 줌 + 골드 코인
-    screenFlash(); screenShake(); cameraPunch(); spawnCoins(nd);
+    screenFlash(); screenShake(); cameraPunch(); spawnCoins(nd); if(multi){ spawnCoins(nd); screenShake(); } // 멀티 잡기 = 강화
     const ring=document.createElementNS(NS,'circle'); ring.setAttribute('cx',x.toFixed(1)); ring.setAttribute('cy',y.toFixed(1)); ring.setAttribute('r','9'); ring.setAttribute('fill','none'); ring.setAttribute('stroke','#ff5470'); ring.setAttribute('stroke-width','3'); ring.setAttribute('class','capring');
     layer.appendChild(ring);
-    const frags=[];
-    for(let i=0;i<7;i++){ const ang=(i/7)*Math.PI*2; const f=document.createElementNS(NS,'circle'); f.setAttribute('cx',x.toFixed(1)); f.setAttribute('cy',y.toFixed(1)); f.setAttribute('r','2.6'); f.setAttribute('fill', i%2?'#ffcc4d':'#ff7a8a'); f.setAttribute('class','capfrag'); layer.appendChild(f); frags.push({el:f,ang}); }
-    requestAnimationFrame(()=>{ frags.forEach(fr=>{ const d=15+Math.random()*9; fr.el.style.transition='transform .5s ease-out, opacity .5s'; fr.el.style.transform=`translate(${(Math.cos(fr.ang)*d).toFixed(1)}px,${(Math.sin(fr.ang)*d).toFixed(1)}px)`; fr.el.style.opacity='0'; }); });
-    const t=document.createElementNS(NS,'text'); t.setAttribute('x',x.toFixed(1)); t.setAttribute('y',(y+9).toFixed(1)); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','30'); t.setAttribute('class','capfx'); t.textContent='💥';
+    let ring2=null;
+    if(multi){ ring2=document.createElementNS(NS,'circle'); ring2.setAttribute('cx',x.toFixed(1)); ring2.setAttribute('cy',y.toFixed(1)); ring2.setAttribute('r','9'); ring2.setAttribute('fill','none'); ring2.setAttribute('stroke','#ffcc4d'); ring2.setAttribute('stroke-width','2.4'); ring2.setAttribute('class','capring'); ring2.style.animationDelay='.12s'; layer.appendChild(ring2); }
+    const frags=[]; const nF=multi?11:7;
+    for(let i=0;i<nF;i++){ const ang=(i/nF)*Math.PI*2; const f=document.createElementNS(NS,'circle'); f.setAttribute('cx',x.toFixed(1)); f.setAttribute('cy',y.toFixed(1)); f.setAttribute('r','2.6'); f.setAttribute('fill', i%2?'#ffcc4d':'#ff7a8a'); f.setAttribute('class','capfrag'); layer.appendChild(f); frags.push({el:f,ang}); }
+    requestAnimationFrame(()=>{ frags.forEach(fr=>{ const d=(multi?20:15)+Math.random()*9; fr.el.style.transition='transform .5s ease-out, opacity .5s'; fr.el.style.transform=`translate(${(Math.cos(fr.ang)*d).toFixed(1)}px,${(Math.sin(fr.ang)*d).toFixed(1)}px)`; fr.el.style.opacity='0'; }); });
+    const t=document.createElementNS(NS,'text'); t.setAttribute('x',x.toFixed(1)); t.setAttribute('y',(y+9).toFixed(1)); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size',multi?'38':'30'); t.setAttribute('class','capfx'); t.textContent=multi?'💥'.repeat(Math.min(count,3)):'💥';
     layer.appendChild(t);
-    setTimeout(()=>{ try{ring.remove();t.remove();frags.forEach(fr=>fr.el.remove());}catch(e){} },720);
+    setTimeout(()=>{ try{ring.remove();t.remove();if(ring2)ring2.remove();frags.forEach(fr=>fr.el.remove());}catch(e){} },720);
   }
   function animatePieceMove(mp){
     const id='pc-'+mp.seat+'-'+mp.pieceId;
@@ -1839,9 +2180,24 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         } else if(id!==animatingId && !pitAnimatingIds.has(id)){ g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`); }
         const ring=g.querySelector('.ring'); ring.setAttribute('stroke',mv?'#ffffff':pieceColor(o.pi)); ring.setAttribute('stroke-width',mv?3.5:2.5);
         ring.setAttribute('stroke-dasharray',(S.teamMode&&S.players[o.pi]&&S.players[o.pi].team===1)?'4 2.5':'none'); // 홍팀 점선(색맹 구분)
+        // 방어막 표시: 소유 편이 방어막 상태면 말 위 🛡
+        const shielded=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(o.pi)===S.shieldSide);
+        let sh=g.querySelector('.pcshield');
+        if(shielded){ if(!sh){ sh=document.createElementNS(NS,'text'); sh.setAttribute('class','pcshield'); sh.setAttribute('x','0'); sh.setAttribute('y','-15'); sh.setAttribute('text-anchor','middle'); sh.setAttribute('font-size','15'); sh.textContent='🛡'; g.appendChild(sh); } }
+        else if(sh){ sh.remove(); }
+        // 밀치기 타겟 모드: 상대 편 판 위 말만 선택 가능, 그 외 흐리게
+        const pt=isPushTarget(o.pi, o.pc);
+        g.classList.toggle('pushtarget', pt);
+        g.classList.toggle('pushdim', pushMode && !pt);
+        if(pushMode){
+          g.classList.remove('mv');
+          if(pt){ g.onclick=()=>doPush(o.pi, o.pc.id); g.setAttribute('tabindex','0'); g.setAttribute('role','button'); g.setAttribute('aria-label','이 말 밀치기'); g.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); doPush(o.pi, o.pc.id); } }; }
+          else { g.onclick=null; g.onkeydown=null; g.removeAttribute('tabindex'); g.removeAttribute('role'); g.removeAttribute('aria-label'); }
+        } else {
         g.classList.toggle('mv',!!mv);
         if(mv){ g.onclick=()=>onPieceClick(o.pc.id, o.pi); g.setAttribute('tabindex','0'); g.setAttribute('role','button'); g.setAttribute('aria-label','말 이동'); g.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); onPieceClick(o.pc.id, o.pi); } }; }
         else { g.onclick=null; g.onkeydown=null; g.removeAttribute('tabindex'); g.removeAttribute('role'); g.removeAttribute('aria-label'); }
+        }
       });
     });
     [...layer.children].forEach(c=>{ if(!seen[c.id] && c.id!==animatingId && !pitAnimatingIds.has(c.id)) c.remove(); });
@@ -1871,6 +2227,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   let prevLeadPid=null; // JUICE: 역전 배너용 — 직전 단독 선두
   function render(){
     if(!S)return;
+    if(pushMode && (!S.itemBattle || !itemsUsable())) pushMode=false;   // 밀치기 모드 유효성(내 차례·아이템전 아니면 해제)
     document.body.classList.add('ingame');
     $('game').classList.toggle('online', !!online);
     if(S.limitMs>0 && !gameTimerInt && S.phase!=='over' && $('game').style.display!=='none') startGameTimer();
@@ -1884,7 +2241,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const dc=dispDone(pi);
       const isLead=maxDone>0 && dc===maxDone && S.phase!=='over'; // 선두(공동 포함)
       const d=document.createElement('div'); d.className='pchip'+(S.turn===pi&&S.phase!=='over'?' turn':'')+(isLead?' lead':'')+(S.teamMode&&S.players[pi]?' tm'+S.players[pi].team:''); d.dataset.pid=p.pid;
-      const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; d.innerHTML=`<img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''} <span class="pdone">${isLead?'👑':''}${dc}/${goalN}</span>`;
+      const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; const shld=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(pi)===S.shieldSide)?' <span class="pc-shield" title="방어막 — 잡기 면역">🛡</span>':''; d.innerHTML=`<img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}${shld} <span class="pdone">${isLead?'👑':''}${dc}/${goalN}</span>`;
       strip.appendChild(d);
     });
     // JUICE: 역전 배너 — 단독 선두가 실제로 바뀌는 순간만 (팀전 제외)
@@ -1955,15 +2312,27 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // 잡기 연출
     if(S.captured && JSON.stringify(S.captured)!==JSON.stringify(prevCaptured)){
       prevCaptured=S.captured; try{SFX.capture();}catch(e){} try{BGM.duck();}catch(e){}
-      const who=S.players[S.captured.seat];
-      showToast('💥 '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
+      const who=S.players[S.captured.seat]; const cn=S.captured.count||1;
+      const catchWord=cn>=3?'💥💥💥 트리플 잡기!':cn>=2?'💥💥 더블 잡기!':'💥';
+      showToast(catchWord+' '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
       if(who) showSpeech(who.pid,'catch');
-      captureEffect(S.captured.node);
+      captureEffect(S.captured.node, cn);
+      if(cn>=2) multiCatchBanner(cn);
       const bd=$('board'); bd.classList.remove('shake'); void bd.offsetWidth; bd.classList.add('shake');
       if(S.captured.seat===ms){ capCount++; trackMission('catch'); }
     }
     if(S.lastSkip && S.lastSkip.seq!==skipSeen){ skipSeen=S.lastSkip.seq; const who=S.players[S.lastSkip.seat]; showToast(S.lastSkip.backdo ? '🚫 낙! 뒤로 갈 말이 없어 '+(who?esc(who.name):'')+' 턴 넘어감' : '🚫 '+(who?esc(who.name):'')+' 움직일 말이 없어 턴 넘어감'); }
     if(S.pitFall && S.pitFall.seq!==pitSeen){ pitSeen=S.pitFall.seq; const who=S.players[S.pitFall.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); try{SFX.capture&&SFX.capture();}catch(e){} animatePitFall(S.pitFall); }
+    // 이벤트 칸 발동 연출
+    if(S.eventFx && S.eventFx.seq!==eventFxSeen){ eventFxSeen=S.eventFx.seq; try{eventFxBurst(S.eventFx);}catch(e){} }
+    // 아이템전: 아이템 바 + 사용 연출
+    renderItemBar();
+    if(S.itemFx && S.itemFx.seq!==itemFxSeen){ itemFxSeen=S.itemFx.seq; try{itemFxShow(S.itemFx);}catch(e){}
+      const who=S.players[S.itemFx.seat]; const nm=who?esc(who.name):''; const kind=S.itemFx.kind;
+      if(kind==='push'){ const tw=S.players[S.itemFx.targetSeat]; showToast('👊 '+nm+'의 밀치기! '+(tw?esc(tw.name):'상대')+' 말이 처음으로'); }
+      else if(kind==='shield'){ showToast('🛡 '+nm+' 방어막! 다음 차례까지 안 잡힘'); }
+      else if(kind==='rethrow'){ showToast('🔄 '+nm+' 재던지기! 한 번 더'); } }
+    updateDailyBadge();   // 오늘의 규칙 상시 뱃지 동기화
     if(S.phase!=='over') prevCaptured=S.captured;
     buildReactbar();
     checkRankConfirm();
@@ -2109,7 +2478,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     done.forEach(()=>{ slots+=`<div class="tp done">★</div>`; });
     if(!slots) slots='<span class="tray-empty">—</span>';
     const tag = done.length ? `<span class="tray-tag">${done.length}/${S.goal||S.markers} 완주</span>` : '';
-    return `<span class="tray-name"><span class="dotc" style="background:${colorHex}"></span>${label}</span><span class="tray-slots">${slots}</span>${tag}`;
+    const shld=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(ownerSeat)===S.shieldSide)?' <span class="pc-shield" title="방어막 — 잡기 면역">🛡</span>':'';
+    return `<span class="tray-name"><span class="dotc" style="background:${colorHex}"></span>${label}${shld}</span><span class="tray-slots">${slots}</span>${tag}`;
   }
   function renderTray(){
     const el=$('pieceTray'); if(!el)return; el.innerHTML='';
@@ -2127,7 +2497,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         row.querySelector('.tray-name').style.alignItems='flex-start';
         el.appendChild(row);
       });
-      el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
+      if(!pushMode) el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
+      bindTrayPush(el);
       return;
     }
     S.players.forEach((p,pi)=>{
@@ -2136,7 +2507,18 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       row.innerHTML=trayRowInner(p.pieces, pi, pi, p, label, pieceColor(pi));
       el.appendChild(row);
     });
-    el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
+    if(!pushMode) el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
+    bindTrayPush(el);
+  }
+  // 밀치기 타겟 모드: 트레이의 상대 편 판 위 말(.tp.onboard)도 탭 가능하게
+  function bindTrayPush(el){
+    if(!pushMode)return;
+    el.querySelectorAll('.tp.onboard').forEach(t=>{ const pi=+t.dataset.pi, pid=+t.dataset.pid;
+      const owner=S.players[pieceOwnerSeat(pi)]; const pc=owner&&owner.pieces.find(p=>p.id===pid);
+      if(!pc||!pc.out||pc.done||sameSideSeat(pi,ctrlSeat()))return;
+      t.classList.add('pushtarget'); const act=()=>doPush(pi,pid);
+      t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.setAttribute('aria-label','이 말 밀치기'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } };
+    });
   }
   function onPieceClick(pieceId, ownerSeat){
     if(ownerSeat==null) ownerSeat=mySeat();
@@ -2301,7 +2683,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* 새 판(로컬/온라인 공통) 시작 시 판 단위 상태 전부 초기화 */
   function resetRoundState(){
     resultShown=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null;
-    moveSeqSeen=0; animatingId=null; skipSeen=0; pitSeen=0; selStep=null;
+    moveSeqSeen=0; animatingId=null; skipSeen=0; pitSeen=0; selStep=null; eventFxSeen=0;
     rankConfirmShown=false; clearRankConfirm();
     growthInfo=null; { const rg=$('resGrowth'); if(rg){ rg.style.display='none'; rg.innerHTML=''; } }
     initMissions();
@@ -2386,10 +2768,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
-    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
+    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
     try{vsIntro();}catch(e){}      // ★ VS 인트로
+    try{scheduleDailyBanner();}catch(e){}   // ★ 오늘의 규칙 뱃지+배너
     try{BGM.enter();}catch(e){}   // 시작 버튼 클릭(제스처) → BGM 재생
   }
 
@@ -2444,6 +2827,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if(m.room.phase==='lobby' && $('game').style.display==='grid'){
         try{BGM.leave();}catch(e){}
         $('game').style.display='none'; document.body.classList.remove('ingame');
+        { const db=$('dailyBadge'); if(db){ db.style.display='none'; db.innerHTML=''; } }
         S=null; roundKey=null; missions=[]; resetRematchUI();
         $('resultOv').classList.remove('on'); $('lobbyOv').classList.add('on');
         showToast('🏁 판이 종료되어 로비로 돌아왔어요'); renderLobby(); return;
@@ -2463,7 +2847,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
       if(S.phase!=='over'){ try{BGM.enter();}catch(e){} } else { try{BGM.leave();}catch(e){} }
       wasPlaying=true; render();
-      if(isNewRound && S.phase!=='over'){ try{vsIntro();}catch(e){} }   // ★ VS 인트로(새 판 진입 시)
+      if(isNewRound && S.phase!=='over'){ try{vsIntro();}catch(e){} try{scheduleDailyBanner();}catch(e){} }   // ★ VS 인트로 + 오늘의 규칙(새 판 진입 시)
     }
     else if(m.t==='error'){ reconnecting=false; bootReconnect=false;
       if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} }
@@ -2476,7 +2860,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
   function renderLobby(){
     if(!lobby)return; missions=[]; renderMissions();
-    $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
+    $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on'); try{updateDailyBadge();}catch(e){}
     $('lobbyCode').textContent=lobby.code;
     { const lr=$('lobbyRules'); if(lr){ const mk=lobby.markers||4; const gl=lobby.goal||mk;
         const parts=['말 '+mk+'개', (gl>=mk?'전부 완주':'먼저 '+gl+'개 완주'), lobby.teamMode?'팀전 2:2':'개인전'];
@@ -2533,7 +2917,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function resetRematchUI(){ stopRematchCountdown(); rematchDeadline=0; rematchProposerSeen=null;
     const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block';
     const wb=$('rematchWaitBtns'); if(wb)wb.style.display='none'; }
-  function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); }
+  function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); try{updateDailyBadge();}catch(e){} }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmCancel').onclick=()=>{ wsSend({t:'rematchCancel'}); };   // 제안자/방장이 재경기 제안 취소
@@ -2558,6 +2942,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function toggleOrder(){ cfg.decideOrder=!cfg.decideOrder; try{localStorage.setItem('yut_order', cfg.decideOrder?'1':'0');}catch(e){} syncOrderToggles(); }
   { const a=$('orderSwitchLocal'), b=$('orderSwitchOn'); if(a)a.onclick=toggleOrder; if(b)b.onclick=toggleOrder; }
   syncOrderToggles();
+  /* 아이템전 토글: cfg.itemBattle + localStorage yut_items. 기본 꺼짐(특수 모드). */
+  function syncItemToggles(){
+    ['itemSwitchLocal','itemSwitchOn'].forEach(id=>{ const el=$(id); if(!el)return;
+      el.classList.toggle('on', !!cfg.itemBattle); el.setAttribute('aria-checked', cfg.itemBattle?'true':'false'); });
+  }
+  function toggleItems(){ cfg.itemBattle=!cfg.itemBattle; try{localStorage.setItem('yut_items', cfg.itemBattle?'1':'0');}catch(e){} syncItemToggles(); }
+  { const a=$('itemSwitchLocal'), b=$('itemSwitchOn'); if(a)a.onclick=toggleItems; if(b)b.onclick=toggleItems; }
+  syncItemToggles();
   function pieceColor(pi){ return (S && S.teamMode && S.players[pi]) ? TEAM_COL[S.players[pi].team] : PCOL[pi]; }
   $('optMarkers').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMarkers').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.markers=+o.dataset.m; refreshGoal('optGoal',cfg.markers,'goal'); });
   $('optTimer')&&$('optTimer').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optTimer').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.timer=+o.dataset.tm; });
@@ -2572,7 +2964,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let g=2; g<=markers; g++){ const b=document.createElement('button'); b.type='button'; b.className='opt'+(g===cfg[key]?' on':''); b.dataset.g=g; b.textContent=g+(g===markers?'개(전부)':'개'); b.onclick=()=>{ cfg[key]=g; refreshGoal(elId,markers,key); }; el.appendChild(b); }
   }
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,avatar:cfg.character})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,avatar:cfg.character})); };
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
   (function(){ const jc=$('joinCode'); if(!jc)return;
     jc.addEventListener('input',()=>{ const v=jc.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(v!==jc.value) jc.value=v; });
