@@ -162,6 +162,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .turntimer.warn{color:var(--danger); animation:tblink .8s ease-in-out infinite}
   .turntimer.warn .tbar i{background:var(--danger)}
   @keyframes tblink{0%,100%{opacity:1}50%{opacity:.45}}
+  /* 상대 차례 진행 바 (opp 카드 하단) */
+  .opp .opptimer{height:5px;border-radius:4px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:8px;opacity:0;transition:opacity .2s}
+  .opp .opptimer.on{opacity:1}
+  .opp .opptimer i{display:block;height:100%;width:100%;border-radius:4px;background:var(--opp);transition:width .2s linear}
+  .opp .opptimer.warn i{background:var(--danger)}
+  @media (prefers-reduced-motion:reduce){ .opp .opptimer i,.turntimer .tbar i{transition:none} .turntimer.warn{animation:none} }
   .mydice{display:flex; gap:9px; justify-content:center; margin-bottom:14px; min-height:56px}
   .mydice .d{width:56px;height:56px}
   .mdie{width:100%;height:100%;border-radius:11px;background:linear-gradient(150deg,var(--die),var(--die2));display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;box-shadow:0 3px 0 rgba(0,0,0,.32), 0 1px 4px rgba(0,0,0,.3)}
@@ -327,8 +333,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div class="ld-grid">
       <div class="ld-main">
     <div class="opps" id="opps"></div>
-    <div class="center" id="center"></div>
-    <div id="revealBox"></div>
+    <div class="center" id="center" aria-live="polite"></div>
+    <div id="revealBox" aria-live="polite"></div>
     <div class="me" id="meBox">
       <div class="mehead">
         <div class="mav" id="meAv">😎</div>
@@ -867,7 +873,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ---------- online ----------
   const wsUrl=()=>(location.protocol==='https:'?'wss':'ws')+'://'+location.host;
   function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
-  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } try{stopTurnTimer();stopBlink();lastMyTurn=false;}catch(e){} }
   // 콜드스타트 안내: ws 오픈이 2.5초 내 안 되면 "서버 깨우는 중", 60초 넘게 실패하면 "연결 실패"
   function coldStart(sock){
     let opened=false;
@@ -904,7 +910,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const wasHost=amHost;
       amHost = cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
-      if(m.room.phase==='lobby' && $('game').style.display==='block'){ $('game').style.display='none'; document.body.classList.remove('ingame'); S=null; $('resultOv').classList.remove('on'); $('lobbyOv').classList.add('on'); showToast('🏁 판이 종료되어 로비로 돌아왔어요'); renderLobby(); return; }
+      if(m.room.phase==='lobby' && $('game').style.display==='block'){ stopTurnTimer(); stopBlink(); lastMyTurn=false; $('game').style.display='none'; document.body.classList.remove('ingame'); S=null; $('resultOv').classList.remove('on'); $('lobbyOv').classList.add('on'); showToast('🏁 판이 종료되어 로비로 돌아왔어요'); renderLobby(); return; }
       // 게임 진행 중(결과창 전) 들어온 lobby는 화면 전환 안 함
       if($('game').style.display==='block' && !$('resultOv').classList.contains('on')) return;
       $('resultOv').classList.remove('on'); renderLobby();
@@ -1031,26 +1037,47 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
   }
 
-  // ---------- 턴 제한시간 (온라인: 서버가 turnMs=45000) ----------
-  let turnDeadline=0, turnTotal=45000, turnWarned=false, turnTick=null, lastAutoSeq=0, seenState=false;
+  // ---------- 내 차례 알림 (온라인 전용) ----------
+  const BASE_TITLE=document.title;
+  let titleTimer=null, lastMyTurn=false;
+  function startBlink(){ if(titleTimer)return; let on=false; titleTimer=setInterval(()=>{ on=!on; document.title=on?'🎲 내 차례!':BASE_TITLE; },700); }
+  function stopBlink(){ if(titleTimer){ clearInterval(titleTimer); titleTimer=null; } document.title=BASE_TITLE; }
+  window.addEventListener('focus',stopBlink);
+  function notifyTurn(){ try{SFX.good();}catch(e){} try{ navigator.vibrate&&navigator.vibrate(180); }catch(e){} if(!document.hasFocus())startBlink(); }
+
+  // ---------- 턴 제한시간 (온라인: 서버가 turnMs=45000) — 내 차례/상대 차례 모두 시각화 ----------
+  let turnDeadline=0, turnTotal=45000, turnWarned=false, turnTick=null, lastAutoSeq=0, seenState=false, turnSeat=-1;
   function tickTurn(){
-    const el=$('turnTimer'); if(!el) return;
-    if(!turnDeadline){ el.classList.remove('on','warn'); return; }
+    if(!turnDeadline){ paintTurn(0,0,false); return; }
     const left=Math.max(0, turnDeadline-Date.now());
-    el.classList.add('on');
-    const num=el.querySelector('.tnum'); if(num) num.textContent=Math.ceil(left/1000)+'초';
-    const bar=el.querySelector('.tbar i'); if(bar) bar.style.width=Math.max(0,Math.min(100, left/(turnTotal||45000)*100))+'%';
-    const warn = left<=10000;
-    el.classList.toggle('warn', warn);
-    if(warn && !turnWarned){ turnWarned=true; showToast('⏰ 10초 남았어 — 넘기면 자동으로 베팅돼!'); try{SFX.pop();}catch(e){} }
+    const frac=Math.max(0,Math.min(1, left/(turnTotal||45000)));
+    paintTurn(left, frac, true);
+    if(left<=10000 && !turnWarned && turnSeat===mySeat()){ turnWarned=true; showToast('⏰ 10초 남았어 — 넘기면 자동으로 베팅돼!'); try{SFX.pop();}catch(e){} }
   }
-  function stopTurnTimer(){ turnDeadline=0; turnWarned=false; if(turnTick){ clearInterval(turnTick); turnTick=null; } const el=$('turnTimer'); if(el) el.classList.remove('on','warn'); }
+  // 진행 바를 현재 차례 위치에만 그린다: 내 차례면 me-head, 상대 차례면 그 상대 카드
+  function paintTurn(left, frac, on){
+    const mine = on && turnSeat===mySeat();
+    const warn = on && left<=5000;   // 5초 이하 붉게
+    const me=$('turnTimer');
+    if(me){
+      me.classList.toggle('on', mine);
+      me.classList.toggle('warn', mine&&warn);
+      if(mine){ const n=me.querySelector('.tnum'); if(n) n.textContent=Math.ceil(left/1000)+'초'; const b=me.querySelector('.tbar i'); if(b) b.style.width=(frac*100)+'%'; }
+    }
+    const showOpp = (on && !mine) ? document.querySelector('.opp.turn .opptimer') : null;
+    document.querySelectorAll('.opp .opptimer').forEach(t=>{
+      if(t===showOpp){ t.classList.add('on'); t.classList.toggle('warn', warn); const b=t.querySelector('i'); if(b) b.style.width=(frac*100)+'%'; }
+      else t.classList.remove('on','warn');
+    });
+  }
+  function stopTurnTimer(){ turnDeadline=0; turnWarned=false; turnSeat=-1; if(turnTick){ clearInterval(turnTick); turnTick=null; } paintTurn(0,0,false); }
   function syncTurnTimer(){
-    const ms=mySeat(), me = ms>=0 ? S.players[ms] : null;
-    const mine = !!me && me.alive && S.phase==='bid' && S.turn===ms;
-    if(mine && S.turnLeft>0){
+    const cur = (S.phase==='bid' && S.turn>=0) ? S.players[S.turn] : null;
+    const active = !!cur && cur.alive && S.turnLeft>0;   // turnLeft는 스냅샷 → 로컬 데드라인으로 부드럽게 카운트다운
+    if(active){
       const nd=Date.now()+S.turnLeft;
-      if(Math.abs(nd-turnDeadline)>800){ turnDeadline=nd; turnWarned=false; }   // 새 턴이면 리셋(같은 턴 재emit은 유지)
+      if(Math.abs(nd-turnDeadline)>800 || turnSeat!==S.turn){ turnDeadline=nd; turnWarned=false; }   // 새 턴이면 리셋(같은 턴 재emit은 유지)
+      turnSeat=S.turn;
       turnTotal=S.turnMs||45000;
       if(!turnTick) turnTick=setInterval(tickTurn,200);
       tickTurn();
@@ -1078,6 +1105,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(S.players.length - elimOrder.length < aliveCount){ elimOrder=[]; elimSeen={}; }
     S.players.forEach(p=>{ if(!p.alive && !elimSeen[p.pid]){ elimSeen[p.pid]=true; elimOrder.push(p.pid); } });
     const ms=mySeat();
+    // 내 차례 알림 (온라인 전용): 상대→나로 넘어온 순간 소리·진동, 백그라운드면 탭 제목 깜빡임
+    const mt = S.phase==='bid' && ms>=0 && S.turn===ms;
+    if(online){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
     renderOpps(); renderCenter();
     if(ms<0){   // 관전자 (게임 중 입장 — 엔진 플레이어 아님)
       $('mydice').innerHTML=''; $('meNm').textContent='관전 중'; $('meAv').textContent='👁';
@@ -1105,12 +1135,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       d.innerHTML=`<div class="ohead"><div class="oav">${p.avatar||'🐺'}</div>
         <div><div class="onm">${esc(p.name)}</div><div class="obadge">${p.alive?(p.diceCount+'개'):'탈락'}</div></div></div>
         <div class="cups">${cups||'<span style="font-size:11px;color:var(--danger)">탈락</span>'}</div>
-        <div class="speech${shout?' shout':''}" id="sp_${p.seat}">${speech}</div>`;
+        <div class="speech${shout?' shout':''}" id="sp_${p.seat}">${speech}</div>
+        <div class="opptimer"><i></i></div>`;
       host.appendChild(d);
     });
   }
 
-  function faceDie(v,cls){ return `<div class="${cls||'dieface'}">${pip(v)}</div>`; }
+  function faceDie(v,cls){ return `<div class="${cls||'dieface'}" role="img" aria-label="주사위 ${v}">${pip(v)}</div>`; }
 
   function renderCenter(){
     const c=$('center');
@@ -1138,7 +1169,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const host=$('mydice'); host.innerHTML='';
     // reveal/over 중엔 상단 공개 tally의 "나" 행에 내 주사위가 이미 나오므로 하단 중복 렌더 생략
     if(S.phase==='reveal'||S.phase==='over') return;
-    (me.dice||[]).forEach(v=>{ const w=document.createElement('div'); w.className='d'; w.innerHTML=`<div class="mdie${S.wild&&v===1?' wild':''}">${pip(v)}</div>`; host.appendChild(w); });
+    (me.dice||[]).forEach(v=>{ const w=document.createElement('div'); w.className='d'; w.innerHTML=`<div class="mdie${S.wild&&v===1?' wild':''}" role="img" aria-label="주사위 ${v}${S.wild&&v===1?' (와일드)':''}">${pip(v)}</div>`; host.appendChild(w); });
     if(!me.alive){ host.innerHTML='<div class="mini" style="padding:12px">탈락했어 — 관전 중</div>'; }
   }
 
@@ -1157,8 +1188,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     return Math.min(q, S.totalDice);
   }
 
+  // 재렌더로 controls.innerHTML을 갈아엎으면 포커스가 body로 리셋됨 → 직전 포커스를 기억했다가 복원(키보드/스크린리더 유지)
+  function captureFocus(host){
+    const ae=document.activeElement;
+    if(!ae || !host.contains(ae)) return null;
+    if(ae.id) return {id:ae.id};
+    if(ae.classList && ae.classList.contains('facebtn')) return {face:ae.dataset.f};
+    return null;
+  }
+  function restoreFocus(host, key){
+    if(!key) return;
+    let el=null;
+    if(key.id) el=document.getElementById(key.id);
+    else if(key.face!=null) el=host.querySelector('.facebtn[data-f="'+key.face+'"]');
+    if(el && host.contains(el)){ try{ el.focus(); }catch(e){} }
+  }
+
   function renderControls(){
-    const host=$('controls'); host.innerHTML='';
+    const host=$('controls');
+    const focusKey=captureFocus(host);   // 재렌더 전 포커스 기억
+    host.innerHTML='';
     const me=S.players[mySeat()];
     // 로컬에서 내가 탈락 → 남은 판 빠르게 보기
     if(!online && me && !me.alive && S.phase!=='over'){
@@ -1167,6 +1216,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       b.disabled = ffActive;
       b.onclick=()=>{ ffActive=true; if(engine){ engine.AI_MS=130; engine.REVEAL_MS=700; } b.textContent='⏩ 빨리감기 중…'; b.disabled=true; };
       host.appendChild(b);
+      restoreFocus(host, focusKey);
       return;
     }
     const myTurn = S.turn===mySeat() && S.phase==='bid' && me.alive && !busy;
@@ -1183,7 +1233,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
 
     const build=document.createElement('div'); build.className='bidbuild';
-    let faces=''; for(let f=2;f<=6;f++) faces+=`<button class="facebtn${f===bidFace?' on':''}" data-f="${f}">${pip(f)}</button>`;
+    let faces=''; for(let f=2;f<=6;f++) faces+=`<button class="facebtn${f===bidFace?' on':''}" data-f="${f}" aria-label="주사위 ${f} 선택" aria-pressed="${f===bidFace?'true':'false'}">${pip(f)}</button>`;
     build.innerHTML=`<div class="lab">베팅</div>
       <div class="qtyrow"><button class="stepbtn" id="qminus">−</button><div class="qtyval" id="qval">${bidQty}</div><span class="qtyx">개의</span><button class="stepbtn" id="qplus">+</button></div>
       <div class="faces">${faces}</div>
@@ -1214,10 +1264,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if($('dudoBtn')) $('dudoBtn').onclick=()=>act({type:'dudo'});
     if($('calzaBtn')) $('calzaBtn').onclick=()=>act({type:'calza'});
     refreshBuild();
+    restoreFocus(host, focusKey);   // 재렌더 후 같은 컨트롤로 포커스 복원
   }
   function refreshBuild(){
     if($('qval')) $('qval').textContent=bidQty;
-    document.querySelectorAll('.facebtn').forEach(b=>b.classList.toggle('on',+b.dataset.f===bidFace));
+    document.querySelectorAll('.facebtn').forEach(b=>{ const on=+b.dataset.f===bidFace; b.classList.toggle('on',on); b.setAttribute('aria-pressed', on?'true':'false'); });
     if($('faceHint')){ const c=myMatchCount(bidFace), rq=recQtyForFace(bidFace); $('faceHint').innerHTML=`내 패에 <b style="color:var(--brass)">${c}개</b>${S.wild&&(S.players[mySeat()].dice||[]).includes(1)?' <span style="color:var(--muted)">(와일드 1 포함)</span>':''} · <span style="color:var(--muted)">추천</span> <b style="color:var(--brass)">${rq}개</b>`; }
     if($('qminus')) $('qminus').disabled = bidQty<=minQtyForFace(bidFace);
     if($('qplus')) $('qplus').disabled = bidQty>=S.totalDice;
@@ -1239,6 +1290,27 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function act(a){ if(busy)return; busy=true; setTimeout(()=>{busy=false;},120);
     if(online) wsSend({t:'action',a}); else engine.action(MYPID,a); }
 
+  // ---------- 키보드 조작 (내 차례 · 베팅 단계) ----------
+  // 2~6 = 눈 선택 / +·- ·방향키 = 개수 / Enter = 베팅 / D·C = 거짓말!(도전). 입력 필드·오버레이 중엔 무시.
+  function kbMyTurn(){ return !!(S && S.phase==='bid' && mySeat()>=0 && S.turn===mySeat() && (S.players[mySeat()]||{}).alive && !busy); }
+  function kbSetFace(f){ bidFace=f; bidQty=Math.max(bidQty,minQtyForFace(bidFace)); if(bidQty>S.totalDice)bidQty=S.totalDice; refreshBuild(); }
+  function kbStep(dir){ if(dir>0){ if(bidQty<S.totalDice){ bidQty++; refreshBuild(); } } else { const mn=minQtyForFace(bidFace); if(bidQty>mn){ bidQty--; refreshBuild(); } } }
+  function kbBid(){ if($('bidBtn') && !$('bidBtn').disabled && legalBid(bidQty,bidFace)) act({type:'bid',qty:bidQty,face:bidFace}); }
+  document.addEventListener('keydown', e=>{
+    const t=e.target;
+    if(t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable)) return;   // 입력 필드 포커스 시 무시
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    if(e.isComposing || e.keyCode===229) return;   // IME 조합 중 무시
+    if(document.querySelector('.ov.on, .infopop.on')) return;   // 설정·규칙·결과 등 오버레이 떠 있으면 무시
+    if(!kbMyTurn()) return;
+    const k=e.key;
+    if(k>='2' && k<='6'){ e.preventDefault(); kbSetFace(+k); }
+    else if(k==='ArrowUp'||k==='ArrowRight'||k==='+'||k==='='){ e.preventDefault(); kbStep(1); }
+    else if(k==='ArrowDown'||k==='ArrowLeft'||k==='-'||k==='_'){ e.preventDefault(); kbStep(-1); }
+    else if(k==='Enter'){ if(t && t.tagName==='BUTTON') return; e.preventDefault(); kbBid(); }   // 버튼 포커스 시엔 그 버튼의 기본 동작에 양보
+    else if(e.code==='KeyD' || e.code==='KeyC'){ if($('dudoBtn')){ e.preventDefault(); act({type:'dudo'}); } }   // 레이아웃 무관(한/영)하게 물리 키로
+  });
+
   // ---------- reveal ----------
   function renderReveal(){
     const box=$('revealBox');
@@ -1250,7 +1322,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     let rows='';
     src.forEach(p=>{
       const dice=p.dice||[];
-      let cells=dice.map(v=>`<div class="sdie${(v===face||(wild&&v===1))?' hit':''}${wild&&v===1?' wild':''}">${pip(v)}</div>`).join('');
+      let cells=dice.map(v=>`<div class="sdie${(v===face||(wild&&v===1))?' hit':''}${wild&&v===1?' wild':''}" role="img" aria-label="주사위 ${v}${(v===face||(wild&&v===1))?' 일치':''}">${pip(v)}</div>`).join('');
       if(!dice.length) cells='<span style="font-size:11px;color:var(--muted)">탈락</span>';
       rows+=`<div class="rrow"><span class="rnm">${esc(p.name)}</span>${cells}</div>`;
     });

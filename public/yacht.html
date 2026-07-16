@@ -1437,8 +1437,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(!p.connected)h.textContent=`${p.name} 접속이 끊겨 AI가 대신 진행 중…`;
     else if(!isMyTurn())h.textContent=`${p.name}의 차례를 기다리는 중…`;
     else if(!S.rolled)h.textContent='주사위를 굴려 시작하세요. (Space=굴리기, 1~5=고정)';
-    else if(S.rollsLeft>0)h.textContent='주사위를 탭/숫자키로 고정하거나, 점수 칸을 선택하세요.';
-    else h.textContent='점수 칸을 선택하세요.';
+    else if(S.rollsLeft>0)h.textContent='주사위를 탭/숫자키로 고정하거나, 점수 칸을 선택하세요. (Enter=최고점 칸)';
+    else h.textContent='점수 칸을 선택하세요. (Enter=최고점 칸)';
   }
   function cell(p,pi,catId){ const v=p.scores[catId], cur=pi===S.current?'col-current':'';
     if(v!==null)return `<td class="val ${cur}" data-p="${pi}" data-c="${catId}">${v}</td>`;
@@ -1530,12 +1530,54 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ---------- pick confirm ----------
   function askPick(catId){ if(!canAct())return; const c=S.cats.find(x=>x.id===catId), pts=S.preview?S.preview[catId]:0;
     // 양수 점수는 확인창 없이 즉시 기록 (한 판 12칸 리듬 유지). 0점 버리기(파괴적 선택)에만 확인창.
-    if(pts!==0){ sendAction({type:'pick',cat:catId}); return; }
+    if(pts!==0){ doPick(catId); return; }
     $('cfTitle').textContent=`${c?c.label:''} 칸 — 0점 처리 ⚠️`;
     $('cfSub').innerHTML=`이 칸을 <b style="color:var(--danger);font-size:22px">0점</b>으로 버릴까요?<br><span style="color:var(--muted);font-size:12px">한 번 기록하면 이 칸은 다시 쓸 수 없어요.</span>`;
     $('confirm').classList.add('show');
-    $('cfOk').onclick=()=>{ $('confirm').classList.remove('show'); sendAction({type:'pick',cat:catId}); };
+    $('cfOk').onclick=()=>{ $('confirm').classList.remove('show'); doPick(catId); };
     $('cfCancel').onclick=()=>$('confirm').classList.remove('show');
+  }
+  // 점수 기록 라우팅: 온라인은 서버 권위 그대로, 로컬(오프라인)은 스냅샷 + 되돌리기 토스트.
+  function doPick(catId){ if(isOnline()){ sendAction({type:'pick',cat:catId}); return; } localPick(catId); }
+
+  // ---------- 로컬 점수칸 되돌리기 (오프라인 전용) ----------
+  // 엔진(game-core.js)엔 되돌리기 수단이 없다. 그래서 엔진 파일을 고치지 않고,
+  // 기록 직전 엔진의 '가변 상태'를 클라에서 스냅샷했다가 취소 시 그대로 복원한다(전체 롤백).
+  let undoToastEl=null, undoTimer=null, undoSnap=null;
+  function clearUndoToast(){ if(undoTimer){clearTimeout(undoTimer);undoTimer=null;} if(undoToastEl){undoToastEl.remove();undoToastEl=null;} }
+  function snapEng(){ return {
+      phase:eng.phase, current:eng.current, rollsLeft:eng.rollsLeft, rolled:eng.rolled, deadline:eng.deadline,
+      dice:eng.dice.map(d=>({value:d.value,held:d.held})),
+      scores:eng.players.map(p=>Object.assign({},p.scores)) }; }
+  function restoreEng(snap){ if(!eng)return;
+    if(eng._timer){ clearTimeout(eng._timer); eng._timer=null; }
+    eng._aiGen++;                                    // 예약·진행 중인 AI 자동진행을 세대 토큰으로 전부 무효화
+    eng.phase=snap.phase; eng.current=snap.current; eng.rollsLeft=snap.rollsLeft; eng.rolled=snap.rolled;
+    eng._busy=false; eng.deadline=snap.deadline;
+    eng.dice=snap.dice.map(d=>({value:d.value,held:d.held}));
+    eng.players.forEach((p,i)=>{ p.scores=Object.assign({},snap.scores[i]); });
+    $('overlay').classList.remove('show'); recorded=false;   // 혹시 떠 있던 결과창 정리
+    eng._emit();                                     // 스냅샷 상태로 다시 렌더
+    toast('↩ 되돌렸어요');
+  }
+  function showUndoToast(label){ clearUndoToast();
+    const d=document.createElement('div');
+    d.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--panel2);color:var(--ink);padding:8px 10px 8px 16px;border-radius:10px;z-index:70;box-shadow:0 6px 20px rgba(0,0,0,.45);font-weight:600;display:flex;align-items:center;gap:12px';
+    const sp=document.createElement('span'); sp.textContent=(label?label+' ':'')+'기록됨';
+    const btn=document.createElement('button'); btn.type='button'; btn.textContent='↩ 취소';
+    btn.style.cssText='background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:6px 13px;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px';
+    btn.onclick=()=>{ const s=undoSnap; clearUndoToast(); undoSnap=null; if(s)restoreEng(s); };
+    d.appendChild(sp); d.appendChild(btn); document.body.appendChild(d); undoToastEl=d;
+    undoTimer=setTimeout(()=>{ clearUndoToast(); undoSnap=null; }, 3600);
+  }
+  function localPick(catId){ if(!eng)return;
+    clearUndoToast(); undoSnap=null;
+    const snap=snapEng();
+    eng.action(eng.players[eng.current].pid,{type:'pick',cat:catId});
+    if(eng.phase!=='play')return;                    // 이 수로 판이 끝났으면 되돌리기 없음(전적·결과창과 얽히지 않게)
+    undoSnap=snap;
+    const label=(S&&S.cats?((S.cats.find(c=>c.id===catId)||{}).label):'')||'';
+    showUndoToast(label);
   }
 
   // ---------- timer ----------
@@ -1673,7 +1715,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     prevRollsLeft=(S&&S.phase==='play')?S.rollsLeft:null;
     const mt=isMyTurn(); if(isOnline()){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
-    if(s.phase==='over'){ stopBlink(); if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false;
+    if(s.phase==='over'){ stopBlink(); clearUndoToast(); undoSnap=null;   // 판이 끝나면 되돌리기 창을 닫는다(전적 기록 후 롤백 방지)
+      if(!recorded){recorded=true; const beat=sawPlay?Stats.record(s,isOnline()?[myPid]:localPids):false;
       // 승자 게이트: 온라인은 내 pid가 공동 1등 포함 최고점인지, 로컬 핫시트는 사람 플레이어가 1등인지 판정
       const wpids=(s.winners&&s.winners.pids)||[]; const iWon = isOnline() ? wpids.includes(myPid) : localPids.some(pid=>wpids.includes(pid));
       showResult(s,beat,iWon); if(iWon){ SFX.win(); if(!isDisguise()) confetti(); } } }   // 이겼을 때(공동승 포함)만 축포·승리음, 졌을 땐 차분히. 위장(엑셀·포토샵) 중엔 축포 없음
@@ -1696,7 +1739,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const lobbyBtn=$('lobbyBtn'); if(lobbyBtn)lobbyBtn.onclick=()=>{ if(isOnline()&&amHost())wsSend({t:'endGame'}); };
   $('replaySame').onclick=()=>{
     if(isOnline()){ wsSend({t:'rematchPropose'}); }        // 결과창 유지 → 투표 UI로 전환
-    else { $('overlay').classList.remove('show'); recorded=false; prevSnap=null; lastMyTurn=false; sawPlay=false; if(eng)eng.start(); }
+    else { clearUndoToast(); undoSnap=null; $('overlay').classList.remove('show'); recorded=false; prevSnap=null; lastMyTurn=false; sawPlay=false; if(eng)eng.start(); }
   };
   function renderRematch(d){
     $('overlay').classList.add('show');
@@ -1849,6 +1892,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   document.addEventListener('keydown',e=>{ if($('game').style.display!=='block')return; if(/INPUT|TEXTAREA/.test(e.target.tagName))return; if(!canAct())return;
     if(e.code==='Space'){ e.preventDefault(); if(S.rollsLeft>0){SFX.ensure();sendAction({type:'roll'});} }
     else if(/^(Digit|Numpad)[1-5]$/.test(e.code)){ const i=+e.code.slice(-1)-1; if(S.rolled&&S.rollsLeft>0)sendAction({type:'hold',i}); }
+    else if(e.code==='Enter'||e.code==='NumpadEnter'){ e.preventDefault();   // Enter = 미리보기 최고점 칸 확정
+      if($('confirm').classList.contains('show'))return;                      // 0점 확인창이 떠 있으면 무시
+      if(S.rolled&&S.preview){ let best=null,bv=-1; for(const cid in S.preview){ const v=S.preview[cid]; if(v>bv){bv=v;best=cid;} } if(best!=null)askPick(best); } }
   });
 
   // ========== transparency + electron ==========

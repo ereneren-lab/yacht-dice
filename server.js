@@ -19,6 +19,13 @@ const AVA = ['🦊','🐸','🐼','🦁','🐰','🐵'];
 // ---------- static ----------
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
+  // 방 코드 → 게임 조회 (허브의 "방 코드로 참가"가 올바른 게임으로 라우팅하도록)
+  if (p === '/api/room') {
+    const code = (new URLSearchParams(req.url.split('?')[1] || '').get('code') || '').toUpperCase();
+    const r = rooms.get(code);
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(r ? { ok:true, game:r.game, phase:r.phase } : { ok:false }));
+  }
   if (p === '/') p = '/index.html';
   const fp = path.join(PUBLIC, path.normalize(p));
   if (!fp.startsWith(PUBLIC)) { res.writeHead(403); return res.end('Forbidden'); }

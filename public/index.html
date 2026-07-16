@@ -102,6 +102,19 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     cursor:pointer;font-size:14px;font-family:inherit;transition:.12s}
   .lighttoggle:hover{border-color:color-mix(in srgb,var(--brass) 45%,transparent);color:var(--ink)}
 
+  /* 방 코드로 바로 참가 — 친구가 준 코드를 게임 선택 없이 입력 */
+  .joinbar{display:flex;align-items:center;gap:8px;margin:2px 0 20px;flex-wrap:wrap}
+  .joinbar .jlbl{font-size:12px;color:var(--muted);font-weight:600}
+  .joinbar input{flex:1;min-width:120px;max-width:200px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    border-radius:11px;padding:10px 13px;font-size:15px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+    font-family:inherit;text-align:center}
+  .joinbar input:focus{outline:none;border-color:var(--brass)}
+  .joinbar input::placeholder{letter-spacing:normal;font-weight:600;color:var(--muted)}
+  .joinbar .jbtn{flex:none;border:none;background:linear-gradient(150deg,var(--brass),var(--brass-d));color:var(--brass-ink,#15110d);
+    border-radius:11px;padding:10px 16px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+  .joinbar .jbtn:disabled{opacity:.5;cursor:default}
+  .joinbar .jmsg{flex-basis:100%;font-size:12px;color:var(--danger,#e88a8a);min-height:0}
+
   /* 접근성: 모션 최소화 선호 시 전환·애니메이션 억제 */
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important} }
 </style>
@@ -124,6 +137,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   </div>
   <p class="lede">뒷골목 주사위 도박장에 온 걸 환영해. 한 판 고르고 들어와.</p>
   <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
+  <div class="joinbar">
+    <span class="jlbl">🔑 방 코드로 참가</span>
+    <input id="joinCode" maxlength="4" placeholder="예: ABCD" autocomplete="off" autocapitalize="characters" inputmode="text" aria-label="방 코드">
+    <button id="joinGo" class="jbtn">참가</button>
+    <span class="jmsg" id="joinMsg" role="status"></span>
+  </div>
 
   <div class="cards">
     <a class="gcard" href="kb.html">
@@ -175,7 +194,28 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   <button class="ix" id="installX" title="닫기">✕</button>
 </div>
 <script>
-  (function(){ var r=new URLSearchParams(location.search).get('room'); if(r){ location.replace('yacht.html?room='+encodeURIComponent(r)); } })();
+  (function(){
+    var GAMES={kb:1,ld:1,lcr:1,yut:1,yacht:1};
+    // 방 코드 → 해당 게임 페이지로 라우팅. 서버에 코드를 물어 게임 종류를 알아낸다.
+    function routeTo(code, onFail){
+      code=(code||'').trim().toUpperCase();
+      if(!code){ if(onFail)onFail('방 코드를 입력해'); return; }
+      fetch('/api/room?code='+encodeURIComponent(code)).then(function(r){return r.json();}).then(function(d){
+        if(d&&d.ok&&GAMES[d.game]){ location.href=d.game+'.html?room='+encodeURIComponent(code); }
+        else if(onFail){ onFail('그런 방이 없어요. 코드를 확인해줘'); }
+      }).catch(function(){ if(onFail)onFail('연결 실패 — 잠시 후 다시 시도'); });
+    }
+    // 링크로 들어온 ?room=CODE 자동 라우팅 (실패 시 종전처럼 요트로 폴백)
+    var r=new URLSearchParams(location.search).get('room');
+    if(r){ routeTo(r, function(){ location.replace('yacht.html?room='+encodeURIComponent(r)); }); return; }
+    // 허브의 "방 코드로 참가" 입력
+    var inp=document.getElementById('joinCode'), btn=document.getElementById('joinGo'), msg=document.getElementById('joinMsg');
+    if(!inp||!btn)return;
+    inp.addEventListener('input',function(){ inp.value=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); if(msg)msg.textContent=''; });
+    function go(){ btn.disabled=true; if(msg)msg.textContent=''; routeTo(inp.value, function(m){ if(msg)msg.textContent=m; btn.disabled=false; inp.focus(); }); }
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter')go(); });
+  })();
 </script>
 <script>
 (function(){

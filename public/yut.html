@@ -603,6 +603,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         <button class="btn" id="dirSc">🛤️ 지름길</button>
         <button class="btn ghost" id="dirSt">➡️ 직진</button>
       </div>
+      <button class="btn ghost" id="dirCancel" style="margin-top:8px;width:100%;opacity:.85">↩ 취소</button>
     </div>
   </div>
 
@@ -614,6 +615,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         <button class="btn" id="stackAll">🎒 전부 업고</button>
         <button class="btn ghost" id="stackOne">👣 이 말만</button>
       </div>
+      <button class="btn ghost" id="stackCancel" style="margin-top:8px;width:100%;opacity:.85">↩ 취소</button>
     </div>
   </div>
 
@@ -977,6 +979,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   const CORNERS=[0,5,10,15,22];
 
   let engine=null, S=null, MYPID='me', online=false, ws=null, roomCode=null, lobby=null, amHost=false;
+  let lastMyTurn=false; // 내 차례 알림: 직전 렌더의 내 차례 여부(에지 감지용)
   let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false };
   const TEAM_COL=['#4a90d9','#e0683c']; const TEAM_NAME=['🔵 청팀','🔴 홍팀'];
   try{ const sc=localStorage.getItem('yut_char'); if(sc && ['pig','dog','sheep','cow','horse'].includes(sc)) cfg.character=sc; }catch(e){}
@@ -997,11 +1000,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       yut(){ buzz([30,20,50]); if(!soundOn)return; const c=ac(),t=c.currentTime; [784,1047,1319].forEach((f,i)=>tone(f,t+i*.07,.15,.12,'triangle')); },
       finish(){ buzz([40,40,90]); if(!soundOn)return; const c=ac(),t=c.currentTime; [523,784,1047].forEach((f,i)=>tone(f,t+i*.09,.2,.13,'triangle')); },
       backdo(){ buzz([15,50,15]); if(!soundOn)return; const c=ac(),t=c.currentTime; [420,300].forEach((f,i)=>tone(f,t+i*.1,.17,.1,'sine')); },
+      ding(){ if(!soundOn)return; const c=ac(),t=c.currentTime; [880,1175].forEach((f,i)=>tone(f,t+i*.11,.18,.12,'sine')); }, // 내 차례 알림음(짧은 삐-)
     };
   })();
   function syncMute(){ const b=$('muteBtn'); if(b)b.textContent=soundOn?'🔊':'🔇'; }
   $('muteBtn').onclick=()=>{ soundOn=!soundOn; try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){} syncMute(); };
   syncMute();
+
+  // 내 차례 알림: 백그라운드 탭이면 제목 깜빡임 + 알림음/진동 (온라인 전용)
+  const BASE_TITLE=document.title; let titleTimer=null;
+  function startBlink(){ if(titleTimer)return; let on=false; titleTimer=setInterval(()=>{ on=!on; document.title=on?'🎲 내 차례!':BASE_TITLE; },700); }
+  function stopBlink(){ if(titleTimer){ clearInterval(titleTimer); titleTimer=null; } document.title=BASE_TITLE; }
+  window.addEventListener('focus',stopBlink);
+  function notifyTurn(){ try{SFX.ding();}catch(e){} try{navigator.vibrate&&navigator.vibrate(180);}catch(e){} if(!document.hasFocus())startBlink(); }
 
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function copyText(t, okMsg){
@@ -1356,6 +1367,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(canAct() && _pend.length>1) $('pendingRow').querySelectorAll('.pchipm').forEach(c=>{ const act=()=>{ const pi=+c.dataset.pi; selStep=(selStep===pi)?null:pi; render(); }; c.onclick=act; c.setAttribute('tabindex','0'); c.setAttribute('role','button'); c.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
     // 던지기 버튼 / 턴 정보
     const ms=mySeat();
+    // 내 차례 알림: 온라인에서 내 차례로 막 바뀌면 알림, 아니면 깜빡임 정리
+    const mt=(ms===S.turn && S.phase!=='over'); if(online){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
     const btn=$('throwBtn'); const ti=$('turnInfo');
     btn.classList.remove('ready'); ti.classList.remove('myturn');
     const showGauge=(S.turn===ms && S.phase==='throw');
@@ -1493,10 +1506,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(needDir){ showDirChoice(pieceId,pi,true,ownerSeat); return; }
     doMoveAction(pieceId,pi,defDir,true,ownerSeat);
   }
+  // 선택 모달 닫기(취소 안전) — 두 모달 모두 확정 버튼 전까지 서버 전송/상태변경이 없으므로 그냥 닫기만 하면 원래 말 선택 화면으로 복귀됨
+  function closeStackChoice(){ $('stackChoice').classList.remove('on'); }
+  function closeDirChoice(){ $('dirChoice').classList.remove('on'); clearDirGhosts(); }
   function showStackChoice(pieceId,pi,needDir,defDir,count,ownerSeat){
     $('stackChoice').classList.add('on'); $('stackNum').textContent=count;
-    const go=(carry)=>{ $('stackChoice').classList.remove('on'); if(carry)trackMission('carry'); if(needDir) showDirChoice(pieceId,pi,carry,ownerSeat); else doMoveAction(pieceId,pi,defDir,carry,ownerSeat); };
+    const go=(carry)=>{ closeStackChoice(); if(carry)trackMission('carry'); if(needDir) showDirChoice(pieceId,pi,carry,ownerSeat); else doMoveAction(pieceId,pi,defDir,carry,ownerSeat); };
     $('stackAll').onclick=()=>go(true); $('stackOne').onclick=()=>go(false);
+    $('stackCancel').onclick=closeStackChoice; // 취소: 아무 것도 확정 안 하고 닫기
+    $('stackChoice').onclick=(e)=>{ if(e.target===$('stackChoice')) closeStackChoice(); }; // 배경 클릭으로도 취소
   }
   function showDirChoice(pieceId,pi,carry,ownerSeat){
     // 목적지 프리뷰: 지름길/직진 각각 어디로·완주까지 몇 칸인지 계산해 라벨+보드 고스트로 표시
@@ -1513,9 +1531,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('dirSt').classList.toggle('faster',stFast);
     drawDirGhosts(scR, stR);
     $('dirChoice').classList.add('on');
-    const close=()=>{ $('dirChoice').classList.remove('on'); clearDirGhosts(); };
+    const close=closeDirChoice;
     $('dirSc').onclick=()=>{ close(); doMoveAction(pieceId,pi,'shortcut',carry,ownerSeat); };
     $('dirSt').onclick=()=>{ close(); doMoveAction(pieceId,pi,null,carry,ownerSeat); };
+    $('dirCancel').onclick=close; // 취소: 아무 이동도 확정 안 하고 닫기(고스트 정리)
+    $('dirChoice').onclick=(e)=>{ if(e.target===$('dirChoice')) close(); }; // 배경 클릭으로도 취소
   }
   function distToFinish(node,route){ const seq=SEQ[route]; if(!seq)return null; const i=seq.indexOf(node); if(i<0)return null; return seq.length-i; }
   function destDist(r){ if(!r||!r.ok)return Infinity; if(r.done)return 0; const d=distToFinish(r.node,r.route); return d==null?Infinity:d; }
@@ -1581,6 +1601,35 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if(performance.now()-gaugeStart < 160) gaugeVal=0.5; // 짧게 누르면 적당 파워
       endGauge();
     }
+  });
+  // Esc로 선택 모달 취소(열려 있으면 아무 것도 확정 안 하고 닫기)
+  window.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'&&e.key!=='Esc') return;
+    if($('dirChoice').classList.contains('on')){ e.preventDefault(); closeDirChoice(); }
+    else if($('stackChoice').classList.contains('on')){ e.preventDefault(); closeStackChoice(); }
+  });
+  // 전역 키보드 던지기: 내 차례 던지기 상태에서 Space/Enter로 파워게이지 트리거(길게=게이지, 짧게=적당 파워)
+  function _kbThrowOK(){
+    if(!(S && S.phase==='throw' && mySeat()===S.turn)) return false; // 내 차례 던지기 상태만
+    if($('dirChoice').classList.contains('on')||$('stackChoice').classList.contains('on')) return false; // 모달 열림 무시
+    const a=document.activeElement, tn=a&&a.tagName;
+    if(tn==='INPUT'||tn==='TEXTAREA'||tn==='SELECT'||(a&&a.isContentEditable)) return false; // 입력창 포커스면 무시
+    if(a===$('throwBtn')) return false; // 버튼 자체 포커스면 버튼 핸들러가 처리(중복 방지)
+    return true;
+  }
+  window.addEventListener('keydown',e=>{
+    if(e.repeat) return;
+    if(!(e.key===' '||e.key==='Enter'||e.key==='Spacebar')) return;
+    if(!_kbThrowOK()) return;
+    e.preventDefault(); startGauge();
+  });
+  window.addEventListener('keyup',e=>{
+    if(!(e.key===' '||e.key==='Enter'||e.key==='Spacebar')) return;
+    if(document.activeElement===$('throwBtn')) return; // 버튼 핸들러가 처리
+    if(!gauging) return; // 전역 던지기로 시작한 게이지만 여기서 릴리스
+    e.preventDefault();
+    if(performance.now()-gaugeStart < 160) gaugeVal=0.5; // 짧게 누르면 적당 파워
+    endGauge();
   });
 
   /* ===== 결과 ===== */
