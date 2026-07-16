@@ -66,7 +66,8 @@ function hostPid(room){ const h = room.members.find(m=>!m.ai && m.connected) || 
 function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
-  return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room),
+  return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room), cap:capOf(room),
+    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips,
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
@@ -80,6 +81,9 @@ const CAP = { kb:2, ld:4, lcr:6, yut:6, yacht:8 };
 const SPECTATOR_SLACK = 8;
 const MAX_ROOMS = 500;
 function capOf(room){ return room.game==='yut' ? (room.teamMode?4:6) : (CAP[room.game]||8); }
+// 관전자 승격: 정원 여유가 있으면 관전자를 플레이어로 편입 ("다음 판부터 참여" 약속 이행)
+function promoteSpectators(room){ const seats = capOf(room); let active = room.members.filter(m=>!m.spectator).length;
+  for (const m of room.members){ if (m.spectator && active < seats){ m.spectator=false; active++; } } }
 function clearGameTimer(room){ if(room.gameTimer){ clearTimeout(room.gameTimer); room.gameTimer=null; } }
 // 방 파괴: 모든 타이머 해제 + 엔진 정리 후 rooms에서 제거
 function destroyRoom(room){ clearGameTimer(room); if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;} if(room.rematch&&room.rematch.timer){clearTimeout(room.rematch.timer);} if(room.engine){ try{room.engine.destroy();}catch(e){} } rooms.delete(room.code); }
@@ -99,6 +103,7 @@ function detachFromRoom(ws){
 function startEngine(room){
   if (room.rematch){ if(room.rematch.timer) clearTimeout(room.rematch.timer); room.rematch=null; }
   if (room.engine) room.engine.destroy();
+  promoteSpectators(room);
   room.members.forEach(m=>{ m.waiting=false; });
   room.phase = 'play';
   const players = room.members.filter(m=>!m.spectator).map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, aiDiff:room.difficulty, team:m.team }));
@@ -109,10 +114,10 @@ function startEngine(room){
   } else if (room.game === 'ld'){
     // 숨김정보: 멤버마다 자기 시점 상태를 따로 보냄
     const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
-    room.engine = new LDEngine({ aiFast:!!room.aiFast, players, spotOn:room.spotOn!==false, diceCount:5, wild:true, turnMs:45000, onState });
+    room.engine = new LDEngine({ aiFast:!!room.aiFast, players, spotOn:room.spotOn!==false, diceCount:([3,5].includes(room.diceCount)?room.diceCount:5), wild:room.wild!==false, turnMs:45000, onState });
   } else if (room.game === 'lcr'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
-    room.engine = new LCREngine({ aiFast:!!room.aiFast, players, startChips:3, turnMs:45000, aiMs:1400, onState });
+    room.engine = new LCREngine({ aiFast:!!room.aiFast, players, startChips:([3,4,5].includes(room.startChips)?room.startChips:3), turnMs:45000, aiMs:1400, onState });
   } else if (room.game === 'yut'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
     room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, limitMs:(room.timer||0)*60000, turnMs:60000, aiMs:1100, onState });
@@ -145,12 +150,14 @@ function resolveRematch(room){
   const r=room.rematch; if(!r) return;
   if(r.timer) clearTimeout(r.timer);
   const votes=r.votes;
-  const accepted = room.members.filter(m => m.ai || (votes[m.pid]==='accept' && m.connected));
+  // 끊긴 사람(재경기 창에 잠깐 이탈)은 좌석 보존 → 재접속 가능. 접속 상태로 명시 거절한 사람만 제외.
+  const accepted = room.members.filter(m => m.ai || !m.connected || votes[m.pid]==='accept');
   const removed  = room.members.filter(m => !m.ai && m.connected && votes[m.pid]!=='accept');
   room.rematch=null;
   removed.forEach(m=>{ send(m.ws, { t:'rematchKicked' }); });
   room.members = accepted;
   recolor(room);
+  promoteSpectators(room);   // 재경기 시작 전 관전자 승격
   const humanCount = room.members.filter(m=>!m.ai && m.connected).length;
   if(playableCount(room)>=minPlayers(room) && humanCount>=1){
     startEngine(room);            // 수락자끼리 새 게임
@@ -192,7 +199,7 @@ wss.on('connection', (ws) => {
       detachFromRoom(ws);   // 이전 방 정리(반복 생성 시 유령 방 누수 방지)
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
@@ -263,8 +270,9 @@ wss.on('connection', (ws) => {
       }
 
     } else if (m.t === 'start') {
+      if (ws.meta.pid===hostPid(room)) promoteSpectators(room);   // 시작 전 관전자 승격(정원 여유 시)
       if (ws.meta.pid===hostPid(room) && playableCount(room)>=minPlayers(room)){ startEngine(room); }
-      else if (ws.meta.pid===hostPid(room)){ send(ws, { t:'error', msg:`${minPlayers(room)}명부터 시작할 수 있어요` }); }
+      else if (ws.meta.pid===hostPid(room)){ sendLobby(room); send(ws, { t:'error', msg:`${minPlayers(room)}명부터 시작할 수 있어요` }); }
 
     } else if (m.t === 'rematchPropose') {
       // 누구나 제안 가능. 게임이 존재하고(로비가 아니고) 진행중 투표가 없을 때만
@@ -282,6 +290,15 @@ wss.on('connection', (ws) => {
         room.rematch.votes[ws.meta.pid] = (m.v==='accept') ? 'accept' : 'decline';
         broadcastRematch(room);
         checkRematchComplete(room);
+      }
+
+    } else if (m.t === 'rematchCancel') {
+      // 제안자 또는 방장이 재경기 제안을 취소 → 모두 로비/결과로 복귀
+      if (room && room.rematch && (ws.meta.pid===room.rematch.proposer || ws.meta.pid===hostPid(room))) {
+        if (room.rematch.timer) clearTimeout(room.rematch.timer);
+        room.rematch = null;
+        broadcast(room, { t:'rematchCancelled' });
+        sendLobby(room);
       }
 
     } else if (m.t === 'action') {

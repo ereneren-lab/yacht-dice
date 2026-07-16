@@ -247,6 +247,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .member .airm{margin-left:6px;border:none;background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger);width:24px;height:24px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:800;flex:none}
   .member.waiting{opacity:.55;border-style:dashed}
   .waiting-line{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+  .lobbyrules{margin:10px 0 2px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--muted);font-size:12.5px;text-align:center;line-height:1.5}
+  .lobbyrules b{color:var(--brass);font-weight:800}
+  /* 아바타 피커 */
+  .avgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .avgrid button{aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .avgrid button:hover{background:var(--panel)}
+  .avgrid button.on{border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 50%,transparent)}
+  .online-note{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.5}
+  .online-note b{color:var(--ink);font-weight:800}
 
   /* illustrated guide */
   .sheet.guide{max-height:84vh;overflow-y:auto}
@@ -484,6 +493,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       </div>
     </div>
     <div id="onlineBox" style="display:none">
+      <div class="online-note">온라인은 <b>단판제</b>로 진행돼요 · 3판 2선승은 로컬(AI·2인) 전용</div>
       <div class="opt-label">내 이름</div>
       <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
       <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
@@ -506,6 +516,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div style="text-align:center;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--muted);margin-top:6px">방 코드 · 친구에게 공유</div>
     <div class="lobbycode" id="lobbyCode" style="cursor:pointer" title="탭하면 방 코드 복사">····</div>
     <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
+    <div class="lobbyrules" id="lobbyRules" style="display:none"></div>
     <div class="members" id="members"></div>
     <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
     <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
@@ -592,6 +603,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="growthbox" id="resGrowth" style="display:none"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
+        <button class="btn ghost" id="toLobbyBtn" style="margin-top:10px;display:none">🏛 로비로</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="imgShareBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="iconbtn" style="width:100%;margin-top:10px;border-radius:14px;padding:14px" id="toHub2"><span style="font-weight:800">골목으로</span></button>
@@ -603,9 +615,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <button class="btn" id="rmAccept">✅ 수락</button>
           <button class="btn ghost" id="rmDecline">❌ 거절</button>
         </div>
-        <div id="rematchWait" class="rematch-wait" style="display:none">상대의 응답을 기다리는 중…</div>
+        <div id="rematchWait" class="rematch-wait" style="display:none">
+          <span id="rematchWaitText">상대의 응답을 기다리는 중…</span>
+          <button class="btn ghost" id="rmCancel" style="margin-top:10px;display:none">✖ 재경기 제안 취소</button>
+        </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- avatar picker -->
+<div class="ov" id="avOv">
+  <div class="sheet" style="max-width:360px">
+    <h3 style="font-family:var(--font);font-size:19px;font-weight:800;text-align:center;margin:2px 0 4px">캐릭터 선택</h3>
+    <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px">골목 전체에서 함께 쓰는 캐릭터예요</div>
+    <div id="avGrid" class="avgrid"></div>
+    <button class="btn ghost" id="avClose" style="margin-top:14px">닫기</button>
   </div>
 </div>
 
@@ -920,12 +945,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 저장된 매치 설정을 버튼에 반영
   document.querySelectorAll('#optMatch .opt').forEach(o=>o.classList.toggle('on',o.dataset.match===matchMode));
   $('startBtn').onclick = ()=>{ $('setupOv').classList.remove('on'); startMatch(); };
-  $('againBtn').onclick = ()=>{ if(online()){ wsSend({t:'rematchPropose'}); return; }
+  $('againBtn').onclick = ()=>{ if(online()){ wsSend({t:'rematchPropose'}); $('againBtn').disabled=true; showToast('🔄 재경기를 제안했어요 — 응답을 기다리는 중'); return; }
     $('resultOv').classList.remove('on');
     // 매치가 아직 안 끝났으면 승수 유지한 채 다음 판, 그 외엔 새 매치(승수 리셋)
     if(matchInfo && matchActive && !matchInfo.matchOver) startLocal();
     else startMatch();
   };
+  // 진짜 로비 복귀: 판이 끝난 뒤엔 누구나 방을 로비로 되돌릴 수 있다(서버가 종료 상태에서 허용).
+  $('toLobbyBtn').onclick = ()=>{ if(online()) wsSend({t:'endGame'}); };
+  // 재경기 대기 30초 카운트다운 (서버도 30초 후 무응답 처리)
+  let rematchTimer=null, rematchLeft=30;
+  function stopRematchCountdown(){ if(rematchTimer){ clearInterval(rematchTimer); rematchTimer=null; } }
+  function renderRematchWait(){ const t=$('rematchWaitText'); if(t) t.textContent=`상대의 응답을 기다리는 중… (${Math.max(0,rematchLeft)}초)`; }
+  function startRematchCountdown(){ stopRematchCountdown(); rematchLeft=30; renderRematchWait();
+    rematchTimer=setInterval(()=>{ rematchLeft--; renderRematchWait(); if(rematchLeft<=0) stopRematchCountdown(); },1000); }
   function renderRematch(d){
     $('resultOv').classList.add('on');
     $('resultBtns').style.display='none';
@@ -934,22 +967,38 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const mine=(d.voters.find(v=>v.pid===myPid)||{}).vote;
     $('rematchBtns').style.display = mine?'none':'flex';
     $('rematchWait').style.display = mine?'block':'none';
+    // 제안자 또는 방장만 취소 가능(서버 규칙과 일치)
+    const canCancel = (myPid===d.proposerPid) || amHostFlag;
+    $('rmCancel').style.display = (mine && canCancel) ? 'block' : 'none';
+    if(mine) startRematchCountdown(); else stopRematchCountdown();
     $('rematchVoters').innerHTML = d.voters.map(v=>{
       const ic=v.vote==='accept'?'✅':v.vote==='decline'?'❌':'⏳';
       return `<div class="rmvoter">${ic} ${esc(v.name)}${v.pid===myPid?' <b>(나)</b>':''}</div>`;
     }).join('');
   }
-  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
+  function resetRematchUI(){ stopRematchCountdown(); const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; const ab=$('againBtn'); if(ab)ab.disabled=false; }
+  $('rmCancel').onclick=()=>{ wsSend({t:'rematchCancel'}); stopRematchCountdown(); };
   function rematchLeave(){ try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} location.reload(); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
-  $('toHub2').onclick = ()=>{ location.href='./'; };
+  function clearSession(){ try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){} }
+  $('toHub2').onclick = ()=>{ clearSession(); location.href='./'; };
+  // 게임 중 좌상단 ← : 진행 중이면 이탈 확인. 나가면(또는 로비/결과 화면이면) 방 세션 정리.
+  (function(){ const back=document.querySelector('.hubx'); if(!back) return;
+    back.addEventListener('click', e=>{
+      const inGame = $('arena').style.display==='flex' && S && !isOver(S);
+      if(inGame && !confirm('게임에서 나갈까요?')){ e.preventDefault(); return; }
+      clearSession();
+    });
+  })();
   $('endBtn').onclick=()=>{ if(online() && amHostFlag && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
+  // 방을 유지 중이면 공유 URL에 ?room=CODE 딥링크를 붙여 친구가 바로 참가할 수 있게
+  function shareUrl(){ let u=location.origin+location.pathname; if(online() && roomCode){ u+='?room='+roomCode; } return u; }
   function shareResult(){
     if(!S)return; const b=bottomSeat(); const my=boardScore(S.boards[b]), op=boardScore(S.boards[1-b]);
     const won=my>op; const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
     const text = won ? `주사위 골목 · 너클본즈 ${my}:${op}으로 승리!${st} 🎲` : `주사위 골목 · 너클본즈 ${my}:${op} 한 판 붙었어 🎲`;
-    const url=location.origin+location.pathname;
+    const url=shareUrl();
     if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 자랑해!'); }
   }
@@ -1003,7 +1052,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         try{
           const file=new File([blob],'knucklebones.png',{type:'image/png'});
           if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-            navigator.share({files:[file], title:'주사위 골목 · 너클본즈'}).catch(()=>{});
+            const payload={files:[file], title:'주사위 골목 · 너클본즈'};
+            if(online() && roomCode) payload.url=shareUrl();   // 방 유지 중이면 딥링크 동봉
+            navigator.share(payload).catch(()=>{});
             return;
           }
         }catch(e){}
@@ -1065,6 +1116,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const wsUrl = () => (location.protocol==='https:'?'wss':'ws')+'://'+location.host;
   function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
   function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } stopBlink(); stopTimer(); lastMyTurn=false; }
+  // 자동 재접속 (yacht/yut 패턴): 세션(kb_room/kb_pid)이 있으면 1.5초 간격으로 최대 6회 재시도
+  let reconnects=0, reconnecting=false, bootReconnect=false;
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function tryReconnect(){ const room=lsGet('kb_room'), pid=lsGet('kb_pid');
+    if(room && pid && (!ws || ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
+  function showReconnectFail(){ let e=document.getElementById('coldstart');
+    if(!e){ e=document.createElement('div'); e.id='coldstart'; document.body.appendChild(e); }
+    e.className='coldstart fail'; e.textContent='🔌 재접속 실패 — 새로고침해 주세요'; }
 
   // 콜드스타트 안내: ws 오픈이 2.5초 내 안 되면 "서버 깨우는 중", 60초 넘게 실패하면 "연결 실패"
   function coldStart(sock){
@@ -1084,12 +1143,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     coldStart(ws);
     ws.onopen = ()=>{ setModePill(); then&&then(); };
     ws.onmessage = ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
-    ws.onclose = ()=>{ setModePill(); };
+    ws.onclose = ()=>{ setModePill(); reconnecting=false;
+      // 세션이 살아있으면(방 진행/로비/부팅 재접속) 1.5초 간격으로 최대 6회 자동 재접속
+      if(online() && (bootReconnect || (S && !isOver(S)) || lobby)){
+        if(reconnects<6){ reconnects++; if(S && !isOver(S)) showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); }
+        else showReconnectFail();
+      }
+    };
     ws.onerror = ()=>{ $('onErr').textContent='연결 오류'; };
   }
 
   function onNet(m){
-    if(m.t==='me'){ myPid=m.pid; roomCode=m.code; try{localStorage.setItem('kb_room',roomCode);localStorage.setItem('kb_pid',myPid);}catch(e){} }
+    if(m.t==='me'){ myPid=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false;
+      const cf=document.getElementById('coldstart'); if(cf)cf.remove();
+      try{localStorage.setItem('kb_room',roomCode);localStorage.setItem('kb_pid',myPid);}catch(e){} }
     else if(m.t==='lobby'){ const cur=m.room.members;
       const hadPrev = prevMembers!==null;
       if(prevMembers){
@@ -1114,12 +1181,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       $('lobbyOv').classList.remove('on'); setModePill(); showGame(); onState(s);
     }
     else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
+      reconnecting=false; reconnects=6; bootReconnect=false;   // 재접속 루프 중단(자리 없음 등)
+      const cf=document.getElementById('coldstart'); if(cf)cf.remove();
       try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} }
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==myPid) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }
     else if(m.t==='rematchKicked'){ showToast('재경기에서 빠졌어요'); rematchLeave(); }
-    else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
+    else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('🔄 재경기 제안이 취소됐어요'); }
   }
 
   // [중-1] 코드칸 정규화(대문자+영숫자만, 4자 컷) + [하-1] Enter → 참가
@@ -1130,6 +1199,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function saveName(v){ v=(v||'').trim(); if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
   // 골목 공용 아바타를 서버에 반영(참가 직후) — 저장된 값이 있을 때만
   function sendMyAvatar(){ try{ const a=localStorage.getItem('alley_avatar'); if(a) wsSend({t:'setAvatar',emoji:a}); }catch(e){} }
+  // ---- 아바타 피커 (골목 전체 공용 · localStorage alley_avatar) ----
+  const AV_EMOJIS=['😎','🦊','🐸','🐼','🦁','🐰','🐵','🐯','🐶','🐱','🐷','🐨','🐮','🦄','🐙','🐧','🐢','🦉','🐝','🦖','🐳','👻','🤖','👾'];
+  let _avOnPick=null;
+  function openAvatarPicker(cur, onPick){
+    _avOnPick=onPick; const grid=$('avGrid'); if(!grid)return; grid.innerHTML='';
+    AV_EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.textContent=e; if(e===cur)b.classList.add('on');
+      b.onclick=()=>{ $('avOv').classList.remove('on'); const cb=_avOnPick; _avOnPick=null; if(cb)cb(e); };
+      grid.appendChild(b); });
+    $('avOv').classList.add('on');
+  }
+  $('avClose').onclick=()=>{ $('avOv').classList.remove('on'); _avOnPick=null; };
+  $('avOv').addEventListener('click', e=>{ if(e.target.id==='avOv'){ $('avOv').classList.remove('on'); _avOnPick=null; } });
   $('createBtn').onclick = ()=>{ $('onErr').textContent=''; saveName($('onName').value); const name=($('onName').value||'').trim()||'호스트';
     mode='online'; connect(()=>{ wsSend({t:'create',game:'kb',name}); sendMyAvatar(); }); };
   $('joinBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
@@ -1141,6 +1222,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(!lobby) return;
     $('setupOv').classList.remove('on'); $('arena').style.display='none'; document.body.classList.remove('ingame'); $('rollWrap').style.display='none'; $('kbMode').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent = lobby.code;
+    // [8] 방 규칙 요약 한 줄 (AI 난이도 · 정원 · 단판제)
+    const lr=$('lobbyRules');
+    if(lr){ const dn={easy:'쉬움',normal:'보통',hard:'어려움'}[lobby.difficulty||'normal']||'보통';
+      lr.innerHTML=`📋 방 규칙 · 🤖 AI 난이도 <b>${dn}</b> · 단판제 · 최대 <b>${lobby.cap||2}</b>인`;
+      lr.style.display='block'; }
     amHostFlag = lobby.members.some(x=>x.host && x.pid===myPid);
     const host = $('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{
@@ -1155,6 +1241,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         ? `<span class="mnm" data-me="1" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="탭하면 이름 변경">${esc(mem.name)} ✏️</span>`
         : `<span class="mnm">${esc(mem.name)}</span>`;
       d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div>${nameHtml}${specBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHostFlag)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      // [9] 내 아바타 탭 → 이모지 피커 → alley_avatar 저장 + setAvatar 전송
+      if(isMe){ const av=d.querySelector('.mav'); if(av){ av.style.cursor='pointer'; av.title='탭해서 캐릭터 변경';
+        av.onclick=()=>openAvatarPicker(mem.avatar, e=>{ try{localStorage.setItem('alley_avatar',e);}catch(_){} myAvatar=e; wsSend({t:'setAvatar',emoji:e}); }); } }
       host.appendChild(d);
     });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
@@ -1218,7 +1307,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
             matchWinnerSeat: mo ? (seriesWins[0]>=MATCH_TARGET?0:1) : -1, tie:my===op };
         }
         if(!online()) setTimeout(()=>aiTauntKb(my>op), 750); }
-      try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){} setTimeout(()=>showResult(s), 600);
+      // 판이 끝나도 kb_room/kb_pid는 유지 — 재경기/로비 복귀 가능성 동안 새로고침 시 방 복귀되게.
+      // 실제 방 이탈(나가기·골목·← )에서만 세션을 지운다.
+      setTimeout(()=>showResult(s), 600);
     } else { recorded=false; $('resultOv').classList.remove('on'); resetRematchUI(); }
   }
 
@@ -1442,6 +1533,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function updateLabel(s){
     if(isOver(s)){ setLabel('게임 종료'); return; }
     const cur = s.players[s.turn];
+    // 현재 차례 플레이어가 접속이 끊겨 서버 AI가 대신 두는 중이면 그 사실을 알림
+    if(online() && cur && cur.connected===false && !cur.ai){ setLabel(`🤖 <b>${esc(cur.name)}</b> 접속 끊김 · AI가 대신 두는 중`); return; }
     const mine = canControl(s.turn, s);
     if(s.phase==='roll'){
       if(mine) setLabel(mode==='2p' ? `<b>${esc(cur.name)}</b> 차례 — 굴려` : '굴려서 주사위를 받아');
@@ -1575,8 +1668,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('resTitle').textContent=title; $('resCrown').textContent=crown; $('resSub').textContent=sub;
     renderGrowth();   // P4: 이번 판 성장(승수·연승·기록·해금) 요약
     try{ sb>=st?SFX.win():SFX.lose(); }catch(e){}
-    // 매치 진행 중이면 "다음 판", 매치 종료/단판이면 "다시 한 판"(새 매치)
-    $('againBtn').textContent = online() ? '로비로' : (mi && !mi.matchOver ? '다음 판 ▶' : (mi ? '새 매치 ▶' : '다시 한 판'));
+    // 라벨-동작 일치: 온라인 메인 버튼은 실제로 '재경기 제안'을 보내므로 그렇게 표기하고,
+    // 진짜 로비 복귀는 별도 버튼(toLobbyBtn)으로 분리한다. (ld 패턴)
+    $('againBtn').textContent = online() ? '🔄 다시 하기 (재경기 제안)' : (mi && !mi.matchOver ? '다음 판 ▶' : (mi ? '새 매치 ▶' : '다시 한 판'));
+    $('againBtn').disabled = false;
+    $('toLobbyBtn').style.display = online() ? 'block' : 'none';
+    $('toLobbyBtn').textContent = (online() && amHostFlag) ? '🏛 판 끝내고 로비로 (모두)' : '🏛 로비로';
     $('resultOv').classList.add('on');
   }
   // P4 결과피드백: Stats.record 직후 캡처한 growthInfo로 이번 판 성장 요약을 그린다.
@@ -1647,7 +1744,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     try{ savedName=(localStorage.getItem('alley_name')||'').trim(); }catch(e){}
     if(savedName) $('onName').value=savedName;
     if(savedRoom && savedPid && location.protocol!=='file:'){
-      mode='online';
+      mode='online'; bootReconnect=true;   // 첫 rejoin 연결이 끊겨도 자동 재시도
       connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid}));
       return;
     }

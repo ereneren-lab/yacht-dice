@@ -250,6 +250,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .result .crown{font-size:46px}
   .result h3{font-family:var(--font);font-size:25px;font-weight:800;margin:6px 0 8px}
   .result .rsub{color:var(--muted);font-size:14px;margin-bottom:12px}
+  .ldconfetti{position:absolute;top:-24px;width:9px;height:15px;border-radius:2px;pointer-events:none;z-index:6;will-change:transform}
+  @keyframes ldconffall{0%{opacity:1}to{transform:translateY(105vh) rotate(720deg);opacity:.25}}
   .avgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
   .avgrid button{aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
   .avgrid button:hover{background:var(--panel)}
@@ -287,6 +289,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .member .airm{margin-left:6px;border:none;background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger);width:24px;height:24px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:800;flex:none}
   .member.waiting{opacity:.55;border-style:dashed}
   .waiting-line{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+  .lobbyrules{display:flex;flex-wrap:wrap;gap:6px 9px;justify-content:center;align-items:center;margin:12px auto 2px;font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+  .lobbyrules b{color:var(--brass);font-weight:800}
+  .lobbyrules .lr-sep{color:var(--line)}
 
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important} }
 
@@ -325,7 +330,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 </div>
 <div class="wrap">
   <div class="topbar">
-    <a class="iconbtn hubx" href="./" title="골목으로">←</a>
+    <a class="iconbtn hubx" id="backHub" href="./" title="골목으로">←</a>
     <h2>라이어 다이스</h2>
     <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
       <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기">🔊</button>
@@ -461,6 +466,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <p>친구에게 코드나 링크를 보내. 2~4명 모이면 호스트가 시작!</p>
     <div class="lobbycode" id="lobbyCode">····</div>
     <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
+    <div class="lobbyrules" id="lobbyRules"></div>
     <div class="toggle on" id="lobbySpot" style="margin-top:12px"><span class="tnm">정확히(스팟온) 허용</span><span class="tsw"></span></div>
     <div class="mini" style="text-align:left;margin-top:5px">개수가 <b>딱 맞다</b>고 부르는 고위험 콜 — 호스트만 켜고 끌 수 있어요.</div>
     <div class="members" id="members"></div>
@@ -778,6 +784,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const OPP_NM = ['후안','로사','디에고','마야','카를로스','이사벨'];
   let MYPID = 'me';
   let online=false, ws=null, roomCode=null, lobby=null, amHost=false;
+  let reconnects=0, reconnecting=false, bootReconnect=false;   // onclose 자동 재접속용
+  function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+  function tryReconnect(){ const room=lsGet('ld_room'), pid=lsGet('ld_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
 
   let engine=null, S=null, cfg={n:3, diff:'normal', spotOn:true, dice:5, wild:true};
   try{ const d=+localStorage.getItem('ld_dice'); if(d===3||d===5) cfg.dice=d; }catch(e){}
@@ -787,6 +796,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let localDiff='normal';
   let lastComboEmoji=null, comboN=0, lastComboT=0;
   let prevMembers=null, prevConn=null;
+  let iProposedRematch=false, rematchCountTimer=null, rematchCountLeft=30;   // 재경기 대기 카운트다운/취소
   let elimOrder=[], elimSeen={};   // 탈락 순서 기록(최종 순위용) — pid만 담아 숨김정보와 무관
 
   // rules
@@ -848,7 +858,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   document.querySelectorAll('#optDice .opt').forEach(o=>o.classList.toggle('on',+o.dataset.dc===cfg.dice));
   $('wildToggle').classList.toggle('on',cfg.wild);
   $('startBtn').onclick=()=>{ $('setupOv').classList.remove('on'); start(); };
-  $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); $('againBtn').disabled=true; showToast('🔄 재경기를 제안했어요 — 응답을 기다리는 중'); } else { $('resultOv').classList.remove('on'); start(); } };
+  $('againBtn').onclick=()=>{ if(online){ iProposedRematch=true; wsSend({t:'rematchPropose'}); $('againBtn').disabled=true; showToast('🔄 재경기를 제안했어요 — 응답을 기다리는 중'); } else { $('resultOv').classList.remove('on'); start(); } };
   // 로비로: 판이 끝난 뒤엔 누구나 방 전체를 로비로 되돌릴 수 있다(서버가 종료 상태에서 허용).
   // 서버가 lobby를 브로드캐스트하면 각 클라의 lobby 핸들러가 게임 화면을 정리하고 로비로 전환한다.
   $('toLobbyBtn').onclick=()=>{
@@ -862,23 +872,47 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('rematchMsg').textContent = `🔄 ${d.proposer}님이 재경기를 제안했어요!`;
     const mine=(d.voters.find(v=>v.pid===MYPID)||{}).vote;
     $('rematchBtns').style.display = mine?'none':'flex';
-    $('rematchWait').style.display = mine?'block':'none';
+    if(mine) startRematchWait(); else { stopRematchCountdown(); $('rematchWait').style.display='none'; }
     $('rematchVoters').innerHTML = d.voters.map(v=>{
       const ic=v.vote==='accept'?'✅':v.vote==='decline'?'❌':'⏳';
       return `<div class="rmvoter">${ic} ${chatEsc(v.name)}${v.pid===MYPID?' <b>(나)</b>':''}</div>`;
     }).join('');
   }
-  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; const ab=$('againBtn'); if(ab)ab.disabled=false; }
+  function resetRematchUI(){ stopRematchCountdown(); iProposedRematch=false; const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; const ab=$('againBtn'); if(ab)ab.disabled=false; }
+  function stopRematchCountdown(){ if(rematchCountTimer){ clearInterval(rematchCountTimer); rematchCountTimer=null; } }
+  // 응답 대기: 30초 카운트다운 + (제안자/방장) 취소 버튼. 서버가 30초 뒤 자동 처리.
+  function startRematchWait(){
+    const w=$('rematchWait'); if(!w) return; w.style.display='block';
+    const canCancel = amHost || iProposedRematch;
+    if(!rematchCountTimer) rematchCountLeft=30;
+    const paint=()=>{
+      w.innerHTML=`다른 사람들의 응답을 기다리는 중… <b style="color:var(--brass)">${rematchCountLeft}초</b>`
+        + (canCancel?'<button class="btn ghost" id="rmCancel" style="margin-top:10px">✖ 재경기 취소</button>':'');
+      const cb=$('rmCancel'); if(cb) cb.onclick=()=>{ wsSend({t:'rematchCancel'}); stopRematchCountdown(); };
+    };
+    paint();
+    if(!rematchCountTimer){ rematchCountTimer=setInterval(()=>{ rematchCountLeft=Math.max(0,rematchCountLeft-1); paint(); if(rematchCountLeft<=0) stopRematchCountdown(); },1000); }
+  }
   function rematchLeave(){ try{teardownNet();}catch(e){} try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.reload(); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('toHub').onclick=()=>{ try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.href='./'; };   // 골목으로 나가면 방 복귀 정보도 정리
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
+  // ← (골목으로): 게임 진행 중이면 실수로 나가지 않도록 확인창
+  $('backHub').onclick=(e)=>{
+    const inGame = $('game').style.display==='block' && !$('resultOv').classList.contains('on');
+    if(inGame){
+      if(!confirm('게임을 나가고 골목으로 돌아갈까요?')){ e.preventDefault(); return; }
+      try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(_){}   // 확인 후 나가면 자동 재접속 안 되게 세션 정리
+    }
+  };
+  // 방 유지 중이면 딥링크(?room=CODE)로 — 친구가 링크를 열면 바로 같은 방에 참가
+  function shareUrl(){ let u=location.origin+location.pathname; if(online && roomCode) u+='?room='+roomCode; return u; }
   function shareResult(){
     if(!S)return; const iWon=S.winner===MYPID; const wp=S.players.find(p=>p.pid===S.winner);
     const st=(Stats.d.streak>=2)?` 🔥${Stats.d.streak}연승!`:'';
     const text = iWon ? `주사위 골목 · 라이어 다이스에서 최후의 1인 우승!${st} 🤥` : `주사위 골목 · 라이어 다이스 한 판 붙었어. ${wp?esc(wp.name)+' 우승':''} 🤥`;
-    const url=location.origin+location.pathname;
+    const url=shareUrl();
     if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 자랑해!'); }
   }
@@ -945,7 +979,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const d=new Date();
       const ds=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
       x.fillStyle=muted; x.font='600 30px '+FONT; x.fillText(ds, W/2, H-118);
-      x.fillStyle=brass; x.font='700 34px '+FONT; x.fillText('yacht-dice-jxva.onrender.com', W/2, H-72);
+      // 방 유지 중이면 딥링크 주소로 안내 (사진 보고 코드로 참가 가능)
+      const deep = (online && roomCode);
+      const foot = deep ? ('yacht-dice-jxva.onrender.com/ld.html?room='+roomCode) : 'yacht-dice-jxva.onrender.com';
+      x.fillStyle=brass; x.font='700 '+(deep?28:34)+'px '+FONT; x.fillText(foot, W/2, H-72);
       cv.toBlob(async(blob)=>{
         if(!blob) return;
         const file=new File([blob],'liar-dice-result.png',{type:'image/png'});
@@ -984,7 +1021,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 코드칸: 항상 노출 · 대문자+영숫자만 4자리로 정규화 · Enter로 바로 참가
   $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
   $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); $('joinBtn').onclick(); } });
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn,diceCount:cfg.dice,wild:cfg.wild})); };
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
 
   function start(){
@@ -1023,12 +1060,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     coldStart(ws);
     ws.onopen=()=>{ then&&then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
-    ws.onclose=()=>{};
+    ws.onclose=()=>{
+      // 세션이 살아있고 아직 판 진행 중/로비/부팅재접속이면 자동 재접속(≤6회). 소진 시 안내.
+      if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){
+        if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('🔌 서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); }
+        else showToast('🔌 재접속 실패 — 새로고침하거나 다시 접속해줘');
+      }
+    };
     ws.onerror=()=>{ $('onErr').textContent='연결 오류'; };
   }
   function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
   function onNet(m){
-    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){}
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){}
       const _av=loadAvatar(); if(_av) wsSend({t:'setAvatar',emoji:_av}); }   // 저장된 공유 아바타를 온라인 기본값으로 적용
     else if(m.t==='lobby'){
       const cur=m.room.members;
@@ -1067,6 +1110,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);
     $('lobbySpot').style.opacity = amHost?'1':'.55';
+    // 방 규칙 요약 (호스트가 방 만들 때 고른 값 — 서버 lobby 필드 사용)
+    const lr=$('lobbyRules');
+    if(lr){ const dc=[3,5].includes(lobby.diceCount)?lobby.diceCount:5, wOn=lobby.wild!==false, sOn=lobby.spotOn!==false;
+      lr.innerHTML=[`🎲 주사위 <b>${dc}개</b>`, `🃏 와일드 <b>${wOn?'ON':'OFF'}</b>`, `🎯 정확히콜 <b>${sOn?'ON':'OFF'}</b>`].join('<span class="lr-sep">·</span>'); }
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const isMe=mem.pid===MYPID; const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'')+(isMe?' me':'');
       d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}${isMe?' <span style="color:var(--brass);font-size:11px">✏️ 나</span>':''}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
@@ -1284,7 +1331,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       d.dataset.pid=p.pid;
       let cups=''; for(let i=0;i<p.diceCount;i++) cups+='<div class="cup"></div>';
       d.innerHTML=`<div class="ohead"><div class="oav">${p.avatar||'🐺'}</div>
-        <div><div class="onm">${esc(p.name)}</div><div class="obadge">${p.alive?(p.diceCount+'개'):'탈락'}</div></div></div>
+        <div><div class="onm">${esc(p.name)}</div><div class="obadge">${p.alive?(p.diceCount+'개'):'탈락'}${(online&&!p.ai&&p.connected===false)?' · 🤖 대행':''}</div></div></div>
         <div class="cups">${cups||'<span style="font-size:11px;color:var(--danger)">탈락</span>'}</div>
         <div class="speech${shout?' shout':''}" id="sp_${p.seat}">${speech}</div>
         <div class="opptimer"><i></i></div>`;
@@ -1310,6 +1357,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(S.phase==='over'){ st.textContent=''; return; }
     const cur=S.players[S.turn];
     if(S.turn===mySeat()) st.innerHTML = S.bid?'<b>내 차례</b> — 더 높게 부르거나 도전해':'<b>내 차례</b> — 첫 베팅을 해';
+    else if(online && cur && !cur.ai && cur.connected===false) st.innerHTML = `<b>${esc(cur.name)}</b> 🤖 접속 끊김 · AI가 대신 두는 중`;
     else st.innerHTML = `<b>${esc(cur.name)}</b> ${online?'차례…':'생각 중…'}`;
   }
 
@@ -1546,6 +1594,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       } else rr.style.display='none';
     }
     $('resultOv').classList.add('on');
+    if(!spectator && iWon) setTimeout(confettiBurst,150);
+  }
+  // 승리 축포 (reduced-motion이면 생략)
+  function confettiBurst(){
+    try{ if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; }catch(e){}
+    const box=$('resultOv'); if(!box) return;
+    const colors=['#e0a23c','#9b8cff','#7bd88f','#e8696b','#efe7d6','#f0c14b','#6fd0e0'];
+    for(let i=0;i<80;i++){ const c=document.createElement('div'); c.className='ldconfetti';
+      c.style.left=(Math.random()*100)+'%';
+      c.style.background=colors[i%colors.length];
+      const dur=1.8+Math.random()*1.6, delay=Math.random()*0.5;
+      c.style.animation=`ldconffall ${dur}s linear ${delay}s forwards`;
+      if(Math.random()<.5) c.style.borderRadius='50%';
+      box.appendChild(c);
+      setTimeout(()=>{try{c.remove();}catch(e){}}, (dur+delay)*1000+300);
+    }
   }
 
   // ---------- sfx ----------
@@ -1592,7 +1656,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     let sr=null,sp=null; try{sr=localStorage.getItem('ld_room');sp=localStorage.getItem('ld_pid');}catch(e){}
     const nm=loadName(); if(nm && $('onName')) $('onName').value=nm;   // 이름 프리필
     // 저장 세션 rejoin 우선
-    if(sr && sp && location.protocol!=='file:'){ online=true; connect(()=>wsSend({t:'rejoin',code:sr,pid:sp})); return; }
+    if(sr && sp && location.protocol!=='file:'){ online=true; bootReconnect=true; connect(()=>wsSend({t:'rejoin',code:sr,pid:sp})); return; }
     if(room && location.protocol!=='file:'){
       const code=room.toUpperCase();
       if(nm){ resetSetupMode(); online=true; saveName(nm); connect(()=>wsSend({t:'join',code,name:nm})); return; }

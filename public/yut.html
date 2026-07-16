@@ -293,6 +293,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .turninfo{ text-align:center;font-size:13.5px;color:var(--muted);min-height:22px;margin:10px 0 8px;font-weight:700;padding:9px 12px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);transition:.2s }
   .turninfo.myturn{ background:color-mix(in srgb,var(--brass) 15%,var(--panel));border-color:var(--brass);color:var(--ink) }
   .turninfo b{ color:var(--brass) }
+  /* ==== 턴 타이머(온라인 · turnDeadline>0일 때만) ==== */
+  .turntimer{ height:6px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:0 0 6px }
+  .turntimer .ttfill{ height:100%;width:100%;background:var(--brass);border-radius:999px;transition:width .2s linear }
+  .turntimer.urgent .ttfill{ background:var(--danger) }
+  .turntimer.urgent{ animation:tickpulse 1s infinite }
   .bigbtn{ display:block;width:100%;padding:16px;border-radius:14px;border:none;background:var(--brass);color:var(--bg);font-weight:900;font-size:17px;cursor:pointer;font-family:inherit;transition:.15s;user-select:none;-webkit-user-select:none;touch-action:none }
   .powergauge{ position:relative;width:90%;max-width:320px;height:24px;background:var(--panel2);border:1.5px solid var(--brass);border-radius:12px;margin:2px auto 4px;overflow:hidden;display:none;box-shadow:inset 0 1px 4px rgba(0,0,0,.25) }
   .powergauge.on{ display:block }
@@ -375,6 +380,21 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .rmvoter{ font-size:13px;color:var(--ink);text-align:left;padding:6px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:8px }
   .rematch-btns{ display:flex;gap:8px }
   .rematch-wait{ font-size:12.5px;color:var(--muted);text-align:center;margin-top:8px }
+  /* ==== 로비 방 규칙 요약 한 줄 ==== */
+  .lobby-rules{ text-align:center;font-size:12.5px;color:var(--muted);font-weight:700;margin:2px 0 10px;padding:6px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line) }
+  .lobby-rules:empty{ display:none }
+  /* ==== 재접속 최종 실패 배너 ==== */
+  .reconnfail{ position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:220;display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--panel);border:1.5px solid var(--danger);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.45);max-width:92vw;flex-wrap:wrap;justify-content:center }
+  .reconnfail .rf-txt{ font-size:13px;font-weight:800;color:var(--ink) }
+  .reconnfail .rf-btn{ border:1.5px solid var(--danger);background:var(--panel2);color:var(--danger);font-weight:800;font-size:12.5px;padding:6px 14px;border-radius:9px;cursor:pointer;font-family:inherit }
+  /* ==== 결과창 성장 피드백(연승·통산·도전과제 해금) ==== */
+  .growthbox{ display:flex;flex-direction:column;gap:8px;align-items:stretch;margin:-4px 0 14px }
+  .growth-line{ font-size:13.5px;font-weight:800;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;line-height:1.45;text-align:center }
+  .growth-line b{ color:var(--brass) }
+  .growth-ach{ display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;background:color-mix(in srgb,var(--brass) 12%,transparent);border:1px solid var(--brass);border-radius:11px;padding:9px 12px;animation:achpop .5s ease }
+  .growth-ach .lbl{ font-size:12px;font-weight:800;color:var(--brass) }
+  .growth-ach .ab{ font-size:13px;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;gap:3px }
+  @keyframes achpop{ 0%{transform:scale(.92);opacity:0} 60%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
   /* ==== 순위 확정 미니 알림 ==== */
   .rankconfirm{ position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:210;display:flex;align-items:center;gap:9px;padding:9px 12px 9px 16px;background:var(--panel);border:1.5px solid var(--brass);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:opacity .2s,transform .2s;max-width:92vw }
   .rankconfirm.on{ opacity:1;transform:translateX(-50%) translateY(0) }
@@ -404,6 +424,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     <button class="wbtn" id="winPin" title="항상 위에 고정">📌</button>
     <button class="wbtn" id="winMin" title="최소화">—</button>
     <button class="wbtn" id="winClose" title="닫기">✕</button>
+  </div>
+  <div class="reconnfail" id="reconnFail">
+    <span class="rf-txt">🔌 재접속 실패 — 새로고침하거나 방 코드로 다시 들어와줘</span>
+    <button class="rf-btn" id="reconnRetry">🔄 다시 시도</button>
   </div>
   <div class="app">
     <div class="topbar">
@@ -440,6 +464,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       </div>
       <div class="game-col game-right">
         <div class="turninfo" id="turnInfo" role="status" aria-live="polite"></div>
+        <div class="turntimer" id="turnTimer" style="display:none" aria-hidden="true"><div class="ttfill" id="ttFill"></div></div>
         <div class="tray" id="pieceTray"></div>
         <div class="throwarea">
           <div class="thrower" id="thrower"></div>
@@ -549,6 +574,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <h3>대기실</h3>
       <div class="codebox"><div class="waiting-line" style="margin:0">방 코드 · 친구에게 공유</div><div class="code" id="lobbyCode">----</div></div>
       <button class="btn ghost" id="lobbyCopy" style="margin-bottom:8px">🔗 초대 링크 복사</button>
+      <div class="lobby-rules" id="lobbyRules"></div>
       <div class="members" id="members"></div>
       <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
       <div class="waiting-line" id="lobbyWait">상대를 기다리는 중… (2~6인)</div>
@@ -563,6 +589,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <div class="resbig" id="resBig">🏆</div>
       <div class="restitle" id="resTitle"></div>
       <div class="ressub" id="resSub"></div>
+      <div class="growthbox" id="resGrowth" style="display:none"></div>
       <div class="rank-list" id="rankList"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
@@ -578,6 +605,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <button class="btn ghost" id="rmDecline">❌ 거절</button>
         </div>
         <div id="rematchWait" class="rematch-wait" style="display:none">다른 사람들의 응답을 기다리는 중…</div>
+        <div id="rematchCountdown" class="rematch-wait" style="display:none"></div>
+        <div class="rematch-btns" id="rematchWaitBtns" style="display:none;margin-top:8px">
+          <button class="btn ghost" id="rmCancel" style="display:none">✖ 제안 취소</button>
+          <button class="btn ghost" id="rmLeaveHub">골목으로</button>
+        </div>
       </div>
     </div>
   </div>
@@ -925,6 +957,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     }
     _maybeAI() {
       this._clear();
+      this.turnDeadline = 0;   // 현재 차례 사람 턴 제한시간(epoch ms). 아래 non-auto 분기에서만 설정.
       if (this._dead || this.phase === 'over') return;
       const p = this.players[this.turn];
       const auto = p && (p.ai || !p.connected);
@@ -939,6 +972,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           else this._endTurn();
         }, ms);
       } else if (this.turnMs > 0 && !auto) {
+        this.turnDeadline = Date.now() + this.turnMs;   // 클라 카운트다운 표시용
         this._timer = setTimeout(() => {
           if (this._dead) return;
           if (this.phase === 'throw') this.doThrow(p.pid);
@@ -961,6 +995,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
+        turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         players: this.players.map((p, i) => ({
           pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
@@ -1065,8 +1100,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('yut_ach'))||[];}catch(e){return[];}})();
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,streak:0,bestStreak:0,bigCap:0},JSON.parse(localStorage.getItem('yut_stats'))||{});}catch(e){return{games:0,wins:0,streak:0,bestStreak:0,bigCap:0};}})(),
     save(){try{localStorage.setItem('yut_stats',JSON.stringify(this.d));}catch(e){}},
-    record(won,caps){ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1; this.save(); checkAch(); renderStats(); renderAch(); } };
-  function checkAch(){ ACH.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('yut_ach',JSON.stringify(achUnlocked));}catch(e){} try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); }
+    record(won,caps){ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1; this.save(); this._lastGained=checkAch(); renderStats(); renderAch(); return this._lastGained; } };
+  function checkAch(){ const gained=[]; ACH.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('yut_ach',JSON.stringify(achUnlocked));}catch(e){} gained.push(a); try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); return gained; }
   function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
     const streak = d.streak>=2 ? ` · <b>🔥${d.streak}연승</b>` : '';
     el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b>${streak}<button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
@@ -1413,7 +1448,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           : '움직일 말 선택 · 남은 이동 <b>'+_pt+'</b>'; }
     } else {
       btn.disabled=true; const who=S.players[S.turn]; btn.textContent=(who?esc(who.name):'상대')+' 차례…';
-      ti.innerHTML='<b>'+(who?esc(who.name):'상대')+'</b>의 차례'+(S.phase==='move'?' · 말 이동 중':' · 던지는 중');
+      if(online && who && !who.ai && who.connected===false){
+        ti.innerHTML='🤖 <b>'+esc(who.name)+'</b> 접속 끊김 · AI가 대신 두는 중…';
+      } else {
+        ti.innerHTML='<b>'+(who?esc(who.name):'상대')+'</b>의 차례'+(S.phase==='move'?' · 말 이동 중':' · 던지는 중');
+      }
     }
     // 완주 감지 → 축하
     S.players.forEach(p=>{ if(prevDone[p.pid]!=null && p.doneCount>prevDone[p.pid] && S.phase!=='over'){ if(p.pid===MYPID){ showToast('🎉 내 말 완주!'); trackMission('finish', p.doneCount-prevDone[p.pid]); } else { showToast('🏁 '+p.name+' 말 완주'); } showSpeech(p.pid,'finish'); try{SFX.finish();}catch(e){} const bd=$('board'); bd.classList.remove('finflash'); void bd.offsetWidth; bd.classList.add('finflash'); } prevDone[p.pid]=p.doneCount; });
@@ -1432,7 +1471,29 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(S.phase!=='over') prevCaptured=S.captured;
     buildReactbar();
     checkRankConfirm();
+    refreshTurnTimer(S);   // 턴 타이머(온라인 · turnDeadline>0)
     if(S.phase==='over') setTimeout(showResult, 500);
+  }
+  /* ===== 턴 타이머(온라인) ===== deadline(epoch ms)까지 남은시간을 진행 바로. */
+  let turnTimerIv=null, curTurnDeadline=0, curTurnMs=0, turnWarned=false, lastTurnKey='';
+  function refreshTurnTimer(s){
+    curTurnDeadline=(s&&s.turnDeadline)||0; curTurnMs=(s&&s.turnMs)||0;
+    const key=s?(s.turn+'|'+curTurnDeadline):''; // 턴/데드라인이 바뀌면 10초 경고 재무장
+    if(key!==lastTurnKey){ lastTurnKey=key; turnWarned=false; }
+    if(online && curTurnDeadline>0 && s && s.phase!=='over'){ renderTurnTimerBar(); if(!turnTimerIv) turnTimerIv=setInterval(renderTurnTimerBar,200); }
+    else stopTurnTimer();
+  }
+  function stopTurnTimer(){ if(turnTimerIv){clearInterval(turnTimerIv);turnTimerIv=null;} const tt=$('turnTimer'); if(tt)tt.style.display='none'; }
+  function renderTurnTimerBar(){ const tt=$('turnTimer'); if(!tt)return;
+    if(!online || curTurnDeadline<=0 || !S || S.phase==='over'){ stopTurnTimer(); return; }
+    const rem=curTurnDeadline-Date.now();
+    if(rem<=0){ stopTurnTimer(); return; }
+    tt.style.display='block';
+    const frac=curTurnMs>0?Math.max(0,Math.min(1,rem/curTurnMs)):0;
+    $('ttFill').style.width=(frac*100)+'%';
+    tt.classList.toggle('urgent', rem<=5000);
+    // 10초 경고: 내 차례일 때만 토스트+알림음 1회
+    if(!turnWarned && rem<=10000 && mySeat()===S.turn){ turnWarned=true; showToast('⏰ 10초 안에 던지세요!'); try{SFX.ding();}catch(e){} }
   }
   /* 3인+ 개인전에서 내 순위가 확정되면(rankings에 내 pid) 미니 알림 + 빠르게 마무리 옵션 */
   let rankConfirmShown=false;
@@ -1656,18 +1717,35 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   });
 
   /* ===== 결과 ===== */
-  let resultShown=false, roundKey=null;
+  let resultShown=false, roundKey=null, growthInfo=null;
+  /* 결과창 성장 피드백: 연승·통산·새 도전과제 해금 한 줄 */
+  function renderGrowth(){
+    const box=$('resGrowth'); if(!box)return; const g=growthInfo;
+    if(!g){ box.style.display='none'; box.innerHTML=''; return; }
+    let line;
+    if(g.won){ line=`이번 판 <b>승리</b>! 통산 <b>${g.wins}</b>승 / ${g.games}판`; if(g.streak>=2) line+=` · <b>🔥${g.streak}연승</b>`; }
+    else { line=`아쉽게 패배 · 통산 <b>${g.wins}</b>승 / ${g.games}판 · 다음 판 설욕!`; }
+    let html=`<div class="growth-line">${line}</div>`;
+    if(g.newAch && g.newAch.length){ html+=`<div class="growth-ach"><span class="lbl">🏅 새 도전과제</span>`+g.newAch.map(a=>`<span class="ab">${a.icon} ${esc(a.name)}</span>`).join('')+`</div>`; }
+    box.innerHTML=html; box.style.display='flex';
+  }
+  function captureGrowth(iWon, spectator){
+    growthInfo = spectator ? null : { won:iWon, wins:Stats.d.wins, games:Stats.d.games, streak:Stats.d.streak, newAch:Stats._lastGained||[] };
+    renderGrowth();
+  }
   /* 새 판(로컬/온라인 공통) 시작 시 판 단위 상태 전부 초기화 */
   function resetRoundState(){
     resultShown=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null;
     moveSeqSeen=0; animatingId=null; skipSeen=0; pitSeen=0; selStep=null;
     rankConfirmShown=false; clearRankConfirm();
+    growthInfo=null; { const rg=$('resGrowth'); if(rg){ rg.style.display='none'; rg.innerHTML=''; } }
     initMissions();
   }
   function showResult(){
     if(resultShown)return; resultShown=true;
     clearRankConfirm();
     if(gameTimerInt){clearInterval(gameTimerInt);gameTimerInt=null;} if(gameTimer){clearTimeout(gameTimer);gameTimer=null;} { const th=$("timerHud"); if(th)th.style.display="none"; }
+    stopTurnTimer();
     const w=S.players.find(p=>p.pid===S.winner); const spectator=mySeat()<0;
     const rl=$('rankList');
     if(!S.teamMode && S.rankings && S.rankings.length){
@@ -1695,6 +1773,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           : '관전 종료');
       $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
       if(!spectator) Stats.record(iWon, capCount);
+      captureGrowth(iWon, spectator);
       try{ iWon?SFX.win():SFX.lose(); }catch(e){}
       $('resultOv').classList.add('on'); if(iWon) setTimeout(confettiBurst,150);
       return;
@@ -1707,6 +1786,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('resSub').innerHTML = `<div class="res-summary">` + (w ? `<span class="rs-line">목표 ${S.goal||S.markers}개 완주 달성! 🎉</span>` : '') + (missionScore>0 ? `<span class="rs-mission">🎯 미션 보너스 <b>+${missionScore}</b>점</span>` : '') + `</div>`;
     $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
     if(!spectator){ Stats.record(iWon, capCount); }
+    captureGrowth(iWon, spectator);
     try{ iWon?SFX.win():SFX.lose(); }catch(e){}
     $('resultOv').classList.add('on'); if(iWon) setTimeout(confettiBurst,150);
   }
@@ -1747,7 +1827,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* ===== 온라인 ===== */
   function wsUrl(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
   function wsSend(o){ if(ws&&ws.readyState===1)ws.send(JSON.stringify(o)); }
-  function teardownNet(){ try{clearWake&&clearWake();}catch(e){} if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+  function teardownNet(){ try{clearWake&&clearWake();}catch(e){} try{stopTurnTimer();}catch(e){} try{hideReconnFail();}catch(e){} if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
   let reconnects=0, reconnecting=false, bootReconnect=false;
   function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
   function tryReconnect(){ const room=lsGet('yut_room'), pid=lsGet('yut_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
@@ -1774,10 +1854,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     ws.onopen=()=>{ clearWake(); if(then)then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
     ws.onerror=()=>{ $('onErr').textContent='서버 연결 오류'; };
-    ws.onclose=()=>{ if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); } } };
+    ws.onclose=()=>{ if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){
+      if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); }
+      else { stopTurnTimer(); showReconnFail(); }   // 자동 재접속 소진 → 최종 실패 안내(수동 재시도)
+    } };
   }
+  function showReconnFail(){ const el=$('reconnFail'); if(el)el.style.display='flex'; }
+  function hideReconnFail(){ const el=$('reconnFail'); if(el)el.style.display='none'; }
   function onNet(m){
-    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{localStorage.setItem('yut_room',roomCode);localStorage.setItem('yut_pid',MYPID);}catch(e){} }
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; hideReconnFail(); try{localStorage.setItem('yut_room',roomCode);localStorage.setItem('yut_pid',MYPID);}catch(e){} }
     else if(m.t==='lobby'){
       const cur=m.room.members; const hadPrev=prevMembers!==null;
       if(prevMembers){ cur.forEach(x=>{ if(x.pid!==MYPID && !prevMembers.some(p=>p.pid===x.pid)) showToast('🚪 '+x.name+' 입장'); }); prevMembers.forEach(p=>{ if(p.pid!==MYPID && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); }); }
@@ -1816,6 +1901,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(!lobby)return; missions=[]; renderMissions();
     $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
+    { const lr=$('lobbyRules'); if(lr){ const mk=lobby.markers||4; const gl=lobby.goal||mk;
+        const parts=['말 '+mk+'개', (gl>=mk?'전부 완주':'먼저 '+gl+'개 완주'), lobby.teamMode?'팀전 2:2':'개인전'];
+        if(lobby.timer>0) parts.push(lobby.timer+'분');
+        lr.textContent='📋 '+parts.join(' · '); } }
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member';
@@ -1843,17 +1932,35 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
 
   /* ===== 재경기 투표 ===== */
+  let rematchTimerIv=null, rematchDeadline=0, rematchProposerSeen=null;
   function renderRematch(d){
     $('resultOv').classList.add('on'); $('resultBtns').style.display='none'; $('rematchBox').style.display='block';
     $('rematchMsg').textContent = `🔄 ${d.proposer}님이 재경기를 제안했어요!`;
     const mine=(d.voters.find(v=>v.pid===MYPID)||{}).vote;
     $('rematchBtns').style.display = mine?'none':'flex'; $('rematchWait').style.display = mine?'block':'none';
     $('rematchVoters').innerHTML = d.voters.map(v=>{ const ic=v.vote==='accept'?'✅':v.vote==='decline'?'❌':'⏳'; return `<div class="rmvoter">${ic} ${esc(v.name)}${v.pid===MYPID?' <b>(나)</b>':''}</div>`; }).join('');
+    // 30초 카운트다운: 이 제안을 처음 볼 때만 데드라인 설정(투표 갱신 재수신 때 리셋 방지)
+    if(rematchProposerSeen!==d.proposerPid || !rematchDeadline){ rematchProposerSeen=d.proposerPid; rematchDeadline=Date.now()+30000; }
+    // 제안 취소 버튼: 제안자 또는 방장만
+    const canCancel=(d.proposerPid===MYPID)||amHost;
+    $('rmCancel').style.display = canCancel?'inline-block':'none';
+    $('rematchWaitBtns').style.display='flex';
+    startRematchCountdown();
   }
-  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
+  function startRematchCountdown(){
+    const el=$('rematchCountdown'); if(!el)return; el.style.display='block';
+    const tick=()=>{ const rem=Math.max(0,Math.ceil((rematchDeadline-Date.now())/1000)); el.textContent='⏳ '+rem+'초 후 자동 처리'; if(rem<=0) stopRematchCountdown(); };
+    tick(); if(!rematchTimerIv) rematchTimerIv=setInterval(tick,300);
+  }
+  function stopRematchCountdown(){ if(rematchTimerIv){clearInterval(rematchTimerIv);rematchTimerIv=null;} const el=$('rematchCountdown'); if(el)el.style.display='none'; }
+  function resetRematchUI(){ stopRematchCountdown(); rematchDeadline=0; rematchProposerSeen=null;
+    const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block';
+    const wb=$('rematchWaitBtns'); if(wb)wb.style.display='none'; }
   function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
+  $('rmCancel').onclick=()=>{ wsSend({t:'rematchCancel'}); };   // 제안자/방장이 재경기 제안 취소
+  $('rmLeaveHub').onclick=()=>{ try{teardownNet();}catch(e){} online=false; try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} location.href='./'; };  // 대기 중에도 골목 이탈 허용
 
   /* ===== UI 바인딩 ===== */
   $('tabLocal').onclick=()=>{ $('tabLocal').classList.add('on'); $('tabOnline').classList.remove('on'); $('localBox').style.display='block'; $('onlineBox').style.display='none'; };
@@ -1896,9 +2003,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   })();
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
   $('leaveBtn').onclick=()=>{ if(confirm('게임에서 나갈까요? (다시 들어오려면 방 코드가 필요해요)')) rematchLeave(); };
+  /* ← 골목으로: 게임 진행 중(over 아님)이면 이탈 확인 */
+  (function(){ const hub=document.querySelector('a.hubx'); if(!hub)return;
+    hub.addEventListener('click',e=>{ const inGame=S && S.phase!=='over' && $('game').style.display!=='none';
+      if(inGame && !confirm('게임에서 나갈까요? 진행 중인 판을 떠납니다.')) e.preventDefault(); }); })();
+  $('reconnRetry').onclick=()=>{ hideReconnFail(); reconnects=0; reconnecting=false; showToast('🔄 재접속 시도 중…'); tryReconnect(); };
   $('setupRules').onclick=()=>$('helpOv').classList.add('on');
   $('yutHelp').onclick=()=>$('helpOv').classList.add('on');
   $('helpClose').onclick=()=>$('helpOv').classList.remove('on');
+  /* 공유 URL: 온라인·방 유지 중이면 ?room=CODE 딥링크(받은 사람이 바로 참가), 아니면 맨 링크 */
+  function shareUrl(){ const base=location.origin+location.pathname; return (online && roomCode) ? base+'?room='+roomCode : base; }
   function shareResult(){ const iWon=S&&S.winner===MYPID; const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
     let body='';
     if(S && S.teamMode){ body='\n'+(S.winnerTeam!=null?TEAM_NAME[S.winnerTeam]+' 승리! 🏆':''); }
@@ -1906,8 +2020,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       body='\n'+S.rankings.map((pid,i)=>{ const p=S.players.find(x=>x.pid===pid); return p?`${medal[i]||(i+1)+'위'} ${p.name}`:''; }).filter(Boolean).join('\n'); }
     else if(S){ const w=S.players.find(p=>p.pid===S.winner); if(w)body='\n🥇 '+w.name; }
     const head = iWon ? `주사위 골목 · 윷놀이에서 우승!${st} 🎲` : `주사위 골목 · 윷놀이 한 판! 🎲`;
-    const text = head + body;
-    const url=location.origin+location.pathname; if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url, '📋 결과 복사됨 — 자랑해!'); } }
+    const join = (online && roomCode) ? `\n같이 하자 → 방 코드 ${roomCode}` : '';
+    const text = head + body + join;
+    const url=shareUrl(); if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url, '📋 결과 복사됨 — 자랑해!'); } }
   $('shareBtn').onclick=shareResult;
 
   /* 결과를 1080×1080 이미지 카드로 만들어 공유(미지원 시 다운로드 폴백). 조용히 실패. */
@@ -1953,7 +2068,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       // 하단: 날짜 + 도메인
       g.textAlign='center'; g.fillStyle='#9a8f78'; g.font='34px '+FONT;
       const d=new Date(); const ds=d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
-      g.fillText(ds, W/2, H-140);
+      const roomLine = (online && roomCode) ? '  ·  방 코드 '+roomCode+'로 참가' : '';
+      g.fillText(ds+roomLine, W/2, H-140);
       g.fillStyle=BRASS; g.font='bold 38px '+FONT;
       g.fillText('yacht-dice-jxva.onrender.com', W/2, H-92);
       // 공유/다운로드
@@ -1962,7 +2078,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         var file; try{ file=new File([blob],'yut-result.png',{type:'image/png'}); }catch(e){ file=null; }
         try{
           if(file && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-            navigator.share({files:[file], title:'주사위 골목', text:'주사위 골목 · 윷놀이 결과! 🎲'}).catch(function(){});
+            var _txt='주사위 골목 · 윷놀이 결과! 🎲'+((online&&roomCode)?('\n같이 하자 → '+shareUrl()):'');
+            navigator.share({files:[file], title:'주사위 골목', text:_txt}).catch(function(){});
             return;
           }
         }catch(e){}

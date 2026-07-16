@@ -319,9 +319,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         else if(onFail){ onFail('그런 방이 없어요. 코드를 확인해줘'); }
       }).catch(function(){ clearTimeout(wakeT); if(onFail)onFail('연결 실패 — 잠시 후 다시 시도'); });
     }
-    // 링크로 들어온 ?room=CODE 자동 라우팅 (실패 시 종전처럼 요트로 폴백)
+    // 허브 상단 고정 배너(콜드스타트/에러 안내)
+    function hubBanner(msg, isErr){
+      var b=document.getElementById('hubBanner');
+      if(!b){ b=document.createElement('div'); b.id='hubBanner';
+        b.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9999;max-width:92vw;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);border:1px solid var(--line);background:var(--panel)';
+        document.body.appendChild(b); }
+      b.style.color=isErr?'var(--danger,#e88a8a)':'var(--ink)';
+      b.textContent=msg; b.style.display='block';
+    }
+    // 링크로 들어온 ?room=CODE 자동 라우팅 — 콜드스타트 안내 포함, 실패 시 요트 강제이동 대신 안내
     var r=new URLSearchParams(location.search).get('room');
-    if(r){ routeTo(r, function(){ location.replace('yacht.html?room='+encodeURIComponent(r)); }); return; }
+    if(r){ hubBanner('⏳ 방으로 들어가는 중…', false);
+      routeTo(r,
+        function(m){ hubBanner('⚠️ '+(m||'방을 찾을 수 없어요')+' — 아래에서 코드를 다시 확인해줘', true); },
+        function(m){ hubBanner(m, false); });
+      return; }
     // 허브의 "방 코드로 참가" 입력
     var inp=document.getElementById('joinCode'), btn=document.getElementById('joinGo'), msg=document.getElementById('joinMsg');
     if(!inp||!btn)return;
@@ -376,17 +389,32 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       try{ var p=JSON.parse(v); return (typeof p==='string')?p:(''+v); }catch(e){ return v; } }catch(e){ return null; } }
   function esc(s){ return (''+s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
-  // 1) 진행 중인 방 "이어하기" 배너 — room+pid 둘 다 있을 때만
-  var chips='';
-  GAMES.forEach(function(g){
-    var room=readStr(g.p+'_room'), pid=readStr(g.p+'_pid');
-    if(room&&pid){
-      chips+='<a class="resumechip" href="'+g.file+'?room='+encodeURIComponent(room)+'">'
-        +'<span class="re">🎮</span><span>이어하기 · <b>'+esc(g.name)+'</b> <small>'+esc(room)+'</small></span></a>';
-    }
-  });
+  // 1) 진행 중인 방 "이어하기" 배너 — room+pid 있고 + 서버에 방이 실제로 살아있을 때만
+  //    (죽은 방을 노출해 "방이 사라졌어요"로 튕기는 것 방지. 죽은 방 키는 정리.)
   var rb=$('resumeBar');
-  if(rb&&chips){ rb.innerHTML='<span class="rlbl">진행 중</span>'+chips; rb.classList.add('show'); }
+  (function(){
+    var candidates=[];
+    GAMES.forEach(function(g){ var room=readStr(g.p+'_room'), pid=readStr(g.p+'_pid'); if(room&&pid) candidates.push({g:g, room:room}); });
+    if(!candidates.length || !rb) return;
+    var live=[], pending=candidates.length;
+    function done(){
+      if(--pending>0) return;
+      if(!live.length) return;
+      var chips=live.map(function(c){ return '<a class="resumechip" href="'+c.g.file+'?room='+encodeURIComponent(c.room)+'">'
+        +'<span class="re">🎮</span><span>이어하기 · <b>'+esc(c.g.name)+'</b> <small>'+esc(c.room)+'</small></span></a>'; }).join('');
+      rb.innerHTML='<span class="rlbl">진행 중</span>'+chips; rb.classList.add('show');
+    }
+    candidates.forEach(function(c){
+      var to=setTimeout(function(){ done(); }, 4000);   // 콜드스타트로 늦으면 조용히 스킵
+      fetch('/api/room?code='+encodeURIComponent(c.room)).then(function(r){return r.json();}).then(function(d){
+        clearTimeout(to);
+        var expect=(c.g.p==='yd')?'yacht':c.g.p;
+        if(d&&d.ok&&d.game===expect){ live.push(c); }
+        else { try{ localStorage.removeItem(c.g.p+'_room'); localStorage.removeItem(c.g.p+'_pid'); }catch(e){} }  // 죽은 방 정리
+        done();
+      }).catch(function(){ clearTimeout(to); done(); });
+    });
+  })();
 
   // 2) 내 기록 요약 스트립 + 3) 카드별 미니 배지 (같은 stats를 재사용)
   var totGames=0, totWins=0, bestStreak=0, totAch=0, playedCount=0;

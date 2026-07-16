@@ -254,6 +254,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 콜드스타트 안내 배너 — 논블로킹, 상단 고정 */
   .wakebanner{ position:fixed;top:12px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;max-width:92vw;background:var(--panel);border:1px solid var(--brass);color:var(--ink);padding:9px 15px;border-radius:12px;font-size:12.5px;font-weight:700;z-index:190;box-shadow:0 6px 20px rgba(0,0,0,.42) }
   .wakebanner button{ border:none;background:var(--brass);color:var(--bg);font-weight:800;font-size:12px;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:inherit;flex:none }
+  /* 승리 confetti — 가볍게, reduced-motion에선 숨김 */
+  .cfetti{ position:fixed;top:-14px;width:9px;height:14px;z-index:210;pointer-events:none;border-radius:2px;will-change:transform,opacity;animation:cfettiFall linear forwards }
+  @keyframes cfettiFall{ 0%{opacity:1;transform:translateY(0) rotate(0)} 100%{opacity:0;transform:translateY(105vh) rotate(540deg)} }
+  @media (prefers-reduced-motion:reduce){ .cfetti{ display:none } }
   /* 결과 */
   .resbig{ font-size:40px;text-align:center;margin-bottom:6px }
   .restitle{ font-size:22px;font-weight:900;text-align:center;color:var(--brass);margin-bottom:6px }
@@ -273,7 +277,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 <body>
   <div class="app">
     <div class="topbar">
-      <a class="iconbtn hubx" href="./" title="골목으로">←</a>
+      <a class="iconbtn hubx" id="backBtn" href="./" title="골목으로">←</a>
       <div class="title"><span class="dot"></span>좌·중·우 <span id="modePill" style="font-size:11px;color:var(--muted);font-weight:600"></span></div>
       <div class="spacer"></div>
       <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
@@ -375,7 +379,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <button class="btn ghost" id="lobbyCopy" style="margin-bottom:8px">🔗 초대 링크 복사</button>
       <div class="members" id="members"></div>
       <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
-      <div class="waiting-line" id="lobbyWait">상대를 기다리는 중… (2~6인)</div>
+      <div class="waiting-line" id="lobbyRules" style="display:none"></div>
+      <div class="waiting-line" id="lobbyWait">상대를 기다리는 중… (3~6인)</div>
       <button class="btn" id="lobbyStart" style="display:none">시작</button>
       <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
     </div>
@@ -401,7 +406,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <button class="btn" id="rmAccept">✅ 수락</button>
           <button class="btn ghost" id="rmDecline">❌ 거절</button>
         </div>
-        <div id="rematchWait" class="rematch-wait" style="display:none">다른 사람들의 응답을 기다리는 중…</div>
+        <div id="rematchWait" class="rematch-wait" style="display:none">
+          <div id="rematchWaitTxt">다른 사람들의 응답을 기다리는 중… <b id="rematchCount" style="color:var(--brass)"></b></div>
+          <button class="btn ghost" id="rmCancel" style="margin-top:8px">재경기 취소</button>
+        </div>
       </div>
     </div>
   </div>
@@ -844,7 +852,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(S.phase==='over'){ btn.disabled=true; btn.textContent='게임 종료'; }
     else if(ms<0){ btn.disabled=true; btn.textContent='관전 중'; }
     else if(S.turn===ms){ btn.disabled=busy; btn.textContent='🎲 굴리기 ('+Math.min(3,S.players[ms].chips)+'개)'; }
-    else { btn.disabled=true; const who=S.players[S.turn]; btn.textContent=(who?who.name:'상대')+' 차례…'; }
+    else { btn.disabled=true; const who=S.players[S.turn];
+      if(online && who && !who.ai && who.connected===false) btn.textContent='🤖 접속 끊김 · AI가 대신 두는 중';
+      else btn.textContent=(who?dispName(who):'상대')+' 차례…'; }
   }
   function rollText(lr){
     if(!lr||!lr.dice.length) return '';
@@ -901,6 +911,23 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     // 승리/패배 SFX는 playPotSweep(스윕 타이밍)에서 이미 재생됨
     $('resultOv').classList.add('on');
+    if(iWon) fireConfetti();   // 내가 우승 → 가벼운 축하 confetti (reduced-motion은 CSS로 숨김)
+  }
+  // 가벼운 confetti — 상단에서 색종이 조각이 떨어진다. 과하지 않게 소량 + 자동 정리.
+  function fireConfetti(){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const colors=['#e0a23c','#7bd88f','#9b8cff','#e8696b','#efe7d6','#e0683c'];
+    const N=34;
+    for(let i=0;i<N;i++){
+      const el=document.createElement('div'); el.className='cfetti';
+      el.style.left=(Math.random()*100)+'vw';
+      el.style.background=colors[i%colors.length];
+      const dur=(1.6+Math.random()*1.4), delay=(Math.random()*0.5);
+      el.style.animationDuration=dur+'s'; el.style.animationDelay=delay+'s';
+      if(Math.random()<0.5) el.style.borderRadius='50%';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),(dur+delay)*1000+200);
+    }
   }
 
   /* ===== 로컬 ===== */
@@ -990,7 +1017,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     ws.onopen=()=>{ clearColdTimers(); hideWakeBanner(); if(then)then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
     ws.onerror=()=>{ $('onErr').textContent='서버 연결 오류'; };
-    ws.onclose=()=>{ clearColdTimers(); hideWakeBanner(); if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); } } };
+    ws.onclose=()=>{ clearColdTimers(); hideWakeBanner(); if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); } else { reconnecting=false; showWakeBanner('🔌 재접속 실패 — 새로고침하거나 다시 시도해줘', ()=>{ hideWakeBanner(); reconnects=0; reconnecting=true; tryReconnect(); }); } } };
   }
   function onNet(m){
     if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{localStorage.setItem('lcr_room',roomCode);localStorage.setItem('lcr_pid',MYPID);}catch(e){} }
@@ -1057,6 +1084,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
     // LCR은 3명부터 (2인이면 L·R이 같은 사람이라 게임이 성립하지 않음). 서버가 주는 min을 신뢰.
     const MIN = Math.max(3, lobby.min||0);
+    // 방 규칙 요약 한 줄 (서버가 준 startChips/min/cap 반영 — 호스트 설정을 참가자도 확인)
+    { const rl=$('lobbyRules'); if(rl){ const sc=lobby.startChips||3, cp=lobby.cap||6;
+      rl.innerHTML=`🎲 시작 칩 <b style="color:var(--brass)">${sc}개</b> · ${MIN}~${cp}인`; rl.style.display='block'; } }
     const ready=lobby.members.length>=MIN;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
     if(!ready){
@@ -1086,7 +1116,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   })();
   $('startBtn').onclick=startLocal;
   function saveName(v){ if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name,startChips:cfg.chips})); };
   function normCode(v){ return (v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); }
   // 코드칸: 입력 즉시 대문자+영숫자 4자리로 정규화 + Enter로 참가
   (function(){ const jc=$('joinCode'); if(!jc)return;
@@ -1105,6 +1135,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyCode').onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
+  // 재경기 대기 카운트다운(30초) — 방치되면 자동 취소해 결과창에 갇히지 않게
+  let rematchTimer=null, rematchLeft=30;
+  function stopRematchCountdown(){ if(rematchTimer){ clearInterval(rematchTimer); rematchTimer=null; } const el=$('rematchCount'); if(el)el.textContent=''; }
+  function startRematchCountdown(){ if(rematchTimer) return; rematchLeft=30;
+    const paint=()=>{ const e=$('rematchCount'); if(e)e.textContent='('+rematchLeft+'초)'; }; paint();
+    rematchTimer=setInterval(()=>{ rematchLeft--; paint(); if(rematchLeft<=0){ stopRematchCountdown(); wsSend({t:'rematchCancel'}); resetRematchUI(); showToast('⌛ 응답이 없어 재경기를 취소했어요'); } }, 1000);
+  }
   function renderRematch(d){
     $('resultOv').classList.add('on');
     $('resultBtns').style.display='none';
@@ -1113,16 +1150,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const mine=(d.voters.find(v=>v.pid===MYPID)||{}).vote;
     $('rematchBtns').style.display = mine?'none':'flex';
     $('rematchWait').style.display = mine?'block':'none';
+    if(mine) startRematchCountdown(); else stopRematchCountdown();
     $('rematchVoters').innerHTML = d.voters.map(v=>{
       const ic=v.vote==='accept'?'✅':v.vote==='decline'?'❌':'⏳';
       return `<div class="rmvoter">${ic} ${esc(v.name)}${v.pid===MYPID?' <b>(나)</b>':''}</div>`;
     }).join('');
   }
-  function resetRematchUI(){ const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
+  function resetRematchUI(){ stopRematchCountdown(); const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
   function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); }
-  $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
-  $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
-  $('toHub').onclick=()=>location.href='./';
+  $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; startRematchCountdown(); };
+  $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; startRematchCountdown(); };
+  $('rmCancel').onclick=()=>{ stopRematchCountdown(); wsSend({t:'rematchCancel'}); resetRematchUI(); showToast('재경기를 취소했어요'); };
+  // 골목 이탈 시 방 세션 정리 — 버려진 방에 자동 재접속(부트 rejoin)되는 걸 막는다
+  function clearRoomSession(){ try{ localStorage.removeItem('lcr_room'); localStorage.removeItem('lcr_pid'); }catch(e){} teardownNet(); online=false; }
+  // 진행 중(로비/게임/재경기 대기)이면 나가기 전에 한 번 확인
+  function inActiveSession(){ return online && (!!lobby || (S && S.phase!=='over') || $('game').style.display==='block'); }
+  $('toHub').onclick=()=>{ clearRoomSession(); location.href='./'; };
+  $('backBtn').onclick=(e)=>{
+    if(inActiveSession() && !confirm('게임을 나가고 골목으로 돌아갈까요?')){ e.preventDefault(); return; }
+    clearRoomSession();
+  };
   /* ===== 결과 공유 ===== */
   function buildShareText(){
     const w=S?S.players.find(p=>p.pid===S.winner):null;
@@ -1132,8 +1179,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(iWon){ const pp = pot>0?`팟 ${pot}개 포함 `:''; return `주사위 골목 · 좌중우(LCR)에서 ${pp}총 ${w?w.chips:''}칩 싹쓸이 승리!${st} 🔀`; }
     return `주사위 골목 · 좌중우(LCR) 한 판 붙었어. ${w?dispName(w)+' 승리':''} 🔀`;
   }
+  // 공유 URL — 방을 아직 유지 중이면 ?room=CODE 딥링크로 바로 합류 가능하게
+  function shareUrl(){ let u=location.origin+location.pathname; if(online && roomCode) u+='?room='+roomCode; return u; }
   function shareResult(){
-    const text=buildShareText(); const url=location.origin+location.pathname;
+    const text=buildShareText(); const url=shareUrl();
     if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url, '📋 결과 복사됨 — 붙여넣기 해서 자랑해!'); }
   }
@@ -1177,7 +1226,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         try{
           const file=new File([blob],'lcr-result.png',{type:'image/png'});
           if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
-            navigator.share({files:[file],title:'주사위 골목'}).catch(()=>{});
+            navigator.share({files:[file],title:'주사위 골목',url:shareUrl()}).catch(()=>{});
           } else {
             const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='lcr-result.png';
             document.body.appendChild(a); a.click(); a.remove();

@@ -301,6 +301,7 @@
     }
     _maybeAI() {
       this._clear();
+      this.turnDeadline = 0;   // 현재 차례 사람 턴 제한시간(epoch ms). 아래 non-auto 분기에서만 설정.
       if (this._dead || this.phase === 'over') return;
       const p = this.players[this.turn];
       const auto = p && (p.ai || !p.connected);
@@ -315,6 +316,7 @@
           else this._endTurn();
         }, ms);
       } else if (this.turnMs > 0 && !auto) {
+        this.turnDeadline = Date.now() + this.turnMs;   // 클라 카운트다운 표시용
         this._timer = setTimeout(() => {
           if (this._dead) return;
           if (this.phase === 'throw') this.doThrow(p.pid);
@@ -337,6 +339,7 @@
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
+        turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         players: this.players.map((p, i) => ({
           pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
