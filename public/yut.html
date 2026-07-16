@@ -567,6 +567,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
+        <button class="btn ghost" id="shareImgBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
       </div>
       <div id="rematchBox" style="display:none">
@@ -1908,6 +1909,68 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const text = head + body;
     const url=location.origin+location.pathname; if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url, '📋 결과 복사됨 — 자랑해!'); } }
   $('shareBtn').onclick=shareResult;
+
+  /* 결과를 1080×1080 이미지 카드로 만들어 공유(미지원 시 다운로드 폴백). 조용히 실패. */
+  function shareResultImage(){
+    try{
+      const W=1080, H=1080, BRASS='#e0a23c', FONT='system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+      const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+      const g=cv.getContext('2d'); if(!g) return;
+      // 배경
+      const bg=g.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#201b12'); bg.addColorStop(1,'#110f0a');
+      g.fillStyle=bg; g.fillRect(0,0,W,H);
+      g.strokeStyle=BRASS; g.lineWidth=6; g.strokeRect(42,42,W-84,H-84);
+      g.textAlign='center'; g.textBaseline='alphabetic';
+      // 상단 타이틀
+      g.fillStyle=BRASS; g.font='bold 56px '+FONT;
+      g.fillText('주사위 골목 · 윷놀이', W/2, 175);
+      g.strokeStyle='rgba(224,162,60,.35)'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(170,212); g.lineTo(W-170,212); g.stroke();
+      // 트로피 + 우승 헤드라인
+      g.font='120px '+FONT; g.fillText('🏆', W/2, 360);
+      let head='게임 종료';
+      if(S && S.teamMode){ head=(TEAM_NAME[S.winnerTeam]||'')+' 승리!'; }
+      else if(S){ const w=S.players.find(p=>p.pid===S.winner); if(w) head=w.name+' 우승!'; }
+      g.fillStyle=BRASS; g.font='bold 62px '+FONT;
+      g.fillText(head, W/2, 460);
+      // 완주 순위(개인전) 또는 참가자(팀전)
+      let rows=[];
+      if(S && S.rankings && S.rankings.length){ const medal=['🥇','🥈','🥉'];
+        rows=S.rankings.map((pid,i)=>{ const p=S.players.find(x=>x.pid===pid);
+          return { badge:medal[i]||((i+1)+'위'), name:p?p.name:'?', done:p?(p.doneCount||0):0 }; });
+      } else if(S && S.players){
+        rows=S.players.map(p=>({ badge:(p.team!=null?(TEAM_NAME[p.team]||'').slice(0,2):'🎲'), name:p.name||'?', done:p.doneCount||0 }));
+      }
+      const boxW=740, bx=(W-boxW)/2; let ry=560;
+      rows.slice(0,6).forEach(r=>{
+        g.textAlign='left'; g.fillStyle='#f0e6d2'; g.font='42px '+FONT;
+        let nm=r.name; while(nm.length>10){ nm=nm.slice(0,-1); } if(nm!==r.name) nm+='…';
+        g.fillText(r.badge+'  '+nm, bx, ry);
+        g.textAlign='right'; g.fillStyle=BRASS;
+        g.fillText('🏁 '+r.done, bx+boxW, ry);
+        ry+=76;
+      });
+      // 하단: 날짜 + 도메인
+      g.textAlign='center'; g.fillStyle='#9a8f78'; g.font='34px '+FONT;
+      const d=new Date(); const ds=d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
+      g.fillText(ds, W/2, H-140);
+      g.fillStyle=BRASS; g.font='bold 38px '+FONT;
+      g.fillText('yacht-dice-jxva.onrender.com', W/2, H-92);
+      // 공유/다운로드
+      cv.toBlob(function(blob){
+        if(!blob) return;
+        var file; try{ file=new File([blob],'yut-result.png',{type:'image/png'}); }catch(e){ file=null; }
+        try{
+          if(file && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+            navigator.share({files:[file], title:'주사위 골목', text:'주사위 골목 · 윷놀이 결과! 🎲'}).catch(function(){});
+            return;
+          }
+        }catch(e){}
+        try{ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='yut-result.png'; a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1000); }catch(e){}
+      }, 'image/png');
+    }catch(e){}
+  }
+  $('shareImgBtn').onclick=shareResultImage;
 
   (function boot(){
     renderStats(); renderAch(); buildCharPick(); refreshGoal('optGoal',cfg.markers,'goal'); refreshGoal('optGoalOn',cfg.onMarkers,'onGoal');

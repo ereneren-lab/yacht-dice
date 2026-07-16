@@ -1019,6 +1019,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="btn" id="replaySame">다시 하기</button>
         <button class="btn ghost" id="lobbyBtn" style="display:none">🏁 로비로 (규칙 변경)</button>
         <button class="btn ghost" id="shareBtn">📤 결과 자랑하기</button>
+        <button class="btn ghost" id="shareImgBtn">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="newGame">처음으로</button>
       </div>
       <div id="rematchBox" style="display:none">
@@ -1404,6 +1405,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const hexA=(hex,a)=>{const h=(hex||'#888').replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;};
   const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
   const avatar=p=>(p&&p.avatar)?p.avatar:AVATARS[((p&&p.seat)||0)%AVATARS.length];
+  // 공유 아바타 기본값: 골목 공용 키(alley_avatar, 원시 이모지 문자열). 온라인 기본 아바타·피커 초기값으로 씀.
+  const getStoredAvatar=()=>{try{return localStorage.getItem('alley_avatar')||null;}catch(e){return null;}};
+  const setStoredAvatar=e=>{try{if(e)localStorage.setItem('alley_avatar',e);}catch(_){}};
   const avHTML=(p,o)=>{o=o||{};return `<span class="av ${o.sm?'sm':''} ${o.cur?'cur':''} ${o.off?'off':''}" data-pid="${p.pid}" style="--ring:${p.color};background:${hexA(p.color,.18)}">${esc(avatar(p))}</span>`;};
 
   // ---------- prefs + stats ----------
@@ -1875,12 +1879,60 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const text=t.trim(); const url=location.origin+location.pathname;
     if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); } };
+
+  // ---------- 결과 이미지 카드 ----------
+  // 1080×1080 캔버스에 성적표를 그려 navigator.share(files)로 공유, 미지원이면 다운로드 폴백. 실패해도 조용히.
+  function buildResultCard(){ if(!S)return null;
+    const W=1080,H=1080; const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    const g=cv.getContext&&cv.getContext('2d'); if(!g)return null;
+    const BG='#15110d', BRASS='#e0a23c', INK='#f4ead6', DIM='#b7a88c';
+    const SANS='-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+    const ranked=[...S.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
+    g.fillStyle=BG; g.fillRect(0,0,W,H);
+    // 브래스 테두리
+    g.strokeStyle=BRASS; g.lineWidth=6; g.strokeRect(30,30,W-60,H-60);
+    g.textAlign='center';
+    // 상단 타이틀
+    g.fillStyle=BRASS; g.font='700 40px '+SANS; g.fillText('🎲 주사위 골목 · 요트 다이스',W/2,130);
+    g.fillStyle=DIM; g.font='400 30px '+SANS; g.fillText(String(S.modeName||''),W/2,180);
+    // 승자
+    const w=S.winners||{names:[],top:0}; const champ=ranked[0];
+    g.font='120px '+SANS; g.fillText(champ?avatar(champ):'🏆',W/2,360);
+    g.fillStyle=INK; g.font='700 62px '+SANS;
+    const title=(w.names&&w.names.length>1)?'공동 우승!':((w.names&&w.names[0]||(champ&&champ.name)||'우승')+' 우승!');
+    g.fillText(title,W/2,450);
+    g.fillStyle=BRASS; g.font='800 96px '+SANS; g.fillText((w.top!=null?w.top:(champ&&champ.total)||0)+'점',W/2,560);
+    // 순위 (상위 4명)
+    g.textAlign='left'; const medals=['🥇','🥈','🥉']; let y=660; const n=Math.min(ranked.length,4);
+    for(let i=0;i<n;i++){ const r=ranked[i]; const rowY=y+i*88;
+      g.fillStyle='rgba(224,162,60,0.10)'; g.fillRect(120,rowY-52,W-240,72);
+      g.textAlign='left'; g.fillStyle=INK; g.font='500 46px '+SANS;
+      g.fillText((medals[i]||(i+1)+'.')+' '+avatar(r)+' '+(r.name||''),160,rowY);
+      g.textAlign='right'; g.fillStyle=BRASS; g.font='700 46px '+SANS;
+      g.fillText(r.total+'점',W-160,rowY);
+    }
+    // 하단: 날짜 + 주소
+    g.textAlign='center'; g.fillStyle=DIM; g.font='400 30px '+SANS;
+    const d=new Date(); const ds=d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2);
+    g.fillText(ds+'  ·  yacht-dice-jxva.onrender.com',W/2,H-70);
+    return cv;
+  }
+  $('shareImgBtn').onclick=()=>{ try{
+    const cv=buildResultCard(); if(!cv||!cv.toBlob)return;
+    const title='주사위 골목 · 요트 다이스'; const text='요트 다이스 결과 🎲';
+    cv.toBlob(blob=>{ try{ if(!blob)return; const file=new File([blob],'요트결과.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){ navigator.share({files:[file],title,text}).catch(()=>{}); }
+      else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='요트결과.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+    }catch(e){} },'image/png');
+  }catch(e){} };
+
   $('newGame').onclick=()=>leave();
   function leave(){ stopBlink(); if(isOnline()){LS.del('yd_room');LS.del('yd_pid');try{ws&&ws.close();}catch(e){}} location.reload(); }
 
   // ========== LOCAL setup ==========
   let modeLocal='yacht_kr', diffLocal='normal', playerCount=2;
   let typeVals=['human','ai','ai','ai','ai','ai'], avatarVals=AVATARS.slice();
+  (function(){ const sa=getStoredAvatar(); if(sa && !avatarVals.slice(1).includes(sa)) avatarVals[0]=sa; })();  // 1P(사람) 기본 아바타를 저장값으로
   // 위장 중엔 기본 플레이어 이름("플레이어 N"/"AI N")도 중립적으로("레이어 N") — 설정·엑셀 헤더에서 게임 티 제거
   const _gameName=(i)=>typeVals[i]==='ai'?'AI '+(i+1):'플레이어 '+(i+1);
   const defName=(i)=>{ var th=document.documentElement.dataset.theme; if(th==='photoshop')return '레이어 '+(i+1); if(th==='excel')return '항목 '+(i+1); return _gameName(i); };
@@ -1893,7 +1945,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   diffChips($('diffL'),()=>diffLocal,id=>diffLocal=id,true);
   const countBox=$('count');
   for(let n=2;n<=6;n++){const b=document.createElement('button');b.textContent=n;b.dataset.n=n;if(n===playerCount)b.classList.add('on');b.onclick=()=>{playerCount=n;[...countBox.children].forEach(c=>c.classList.toggle('on',+c.dataset.n===n));renderNames();};countBox.appendChild(b);}
-  function renderNames(){const box=$('names');box.innerHTML='';for(let i=0;i<playerCount;i++){const row=document.createElement('div');row.className='row';const pill=document.createElement('span');pill.className='pill';pill.style.background=COLORS[i];pill.style.cursor='pointer';pill.title='캐릭터 선택';pill.textContent=avatarVals[i];pill.onclick=()=>openAvatarPicker(avatarVals[i],e=>{avatarVals[i]=e;pill.textContent=e;});const inp=document.createElement('input');inp.className='txt';inp.value=nameVals[i];inp.maxLength=10;inp.oninput=()=>nameVals[i]=inp.value;const seg=document.createElement('div');seg.className='seg';const bh=document.createElement('button');bh.textContent='사람';const ba=document.createElement('button');ba.textContent='AI';ba.classList.add('ai');const set=t=>{typeVals[i]=t;bh.classList.toggle('on',t==='human');ba.classList.toggle('on',t==='ai');if(isDefaultName(inp.value,i)){inp.value=defName(i);nameVals[i]=inp.value;}};bh.onclick=()=>set('human');ba.onclick=()=>set('ai');seg.append(bh,ba);row.append(pill,inp,seg);box.appendChild(row);bh.classList.toggle('on',typeVals[i]==='human');ba.classList.toggle('on',typeVals[i]==='ai');}}
+  function renderNames(){const box=$('names');box.innerHTML='';for(let i=0;i<playerCount;i++){const row=document.createElement('div');row.className='row';const pill=document.createElement('span');pill.className='pill';pill.style.background=COLORS[i];pill.style.cursor='pointer';pill.title='캐릭터 선택';pill.textContent=avatarVals[i];pill.onclick=()=>openAvatarPicker(avatarVals[i],e=>{avatarVals[i]=e;pill.textContent=e;setStoredAvatar(e);});const inp=document.createElement('input');inp.className='txt';inp.value=nameVals[i];inp.maxLength=10;inp.oninput=()=>nameVals[i]=inp.value;const seg=document.createElement('div');seg.className='seg';const bh=document.createElement('button');bh.textContent='사람';const ba=document.createElement('button');ba.textContent='AI';ba.classList.add('ai');const set=t=>{typeVals[i]=t;bh.classList.toggle('on',t==='human');ba.classList.toggle('on',t==='ai');if(isDefaultName(inp.value,i)){inp.value=defName(i);nameVals[i]=inp.value;}};bh.onclick=()=>set('human');ba.onclick=()=>set('ai');seg.append(bh,ba);row.append(pill,inp,seg);box.appendChild(row);bh.classList.toggle('on',typeVals[i]==='human');ba.classList.toggle('on',typeVals[i]==='ai');}}
   renderNames();
   const soundToggle=$('soundToggle'); soundToggle.classList.toggle('on',soundOn);
   soundToggle.onclick=()=>{soundOn=!soundOn;try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){}soundToggle.classList.toggle('on',soundOn);syncMute();};
@@ -1910,6 +1962,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function switchTab(local){$('tabLocal').classList.toggle('on',local);$('tabOnline').classList.toggle('on',!local);$('localCfg').style.display=local?'block':'none';$('onlineCfg').style.display=local?'none':'block';}
 
   // ========== ONLINE ==========
+  let avatarPushed=false;   // 저장된 공유 아바타를 방 입장 시 1회 서버에 반영했는지
   const wsUrl=()=>(location.protocol==='https:'?'wss':'ws')+'://'+location.host;
   function wsSend(o){ if(ws&&ws.readyState===1)ws.send(JSON.stringify(o)); }
   // 콜드스타트 안내: ws 오픈이 2.5초 내 안 되면 "서버 깨우는 중", 60초 넘게 실패하면 "연결 실패"
@@ -1932,7 +1985,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     ws.onmessage=ev=>{ let m;try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
   }
   function onNet(m){
-    if(m.t==='me'){ myPid=m.pid; MODE='online'; reconnects=0; reconnecting=false; lastMyTurn=false; LS.set('yd_pid',m.pid); LS.set('yd_room',m.code); $('netErr').textContent=''; }
+    if(m.t==='me'){ myPid=m.pid; MODE='online'; reconnects=0; reconnecting=false; lastMyTurn=false; avatarPushed=false; LS.set('yd_pid',m.pid); LS.set('yd_room',m.code); $('netErr').textContent=''; }
     else if(m.t==='lobby'){ lobby=m.room; if(bootReconnect){switchTab(false);bootReconnect=false;}
       if(m.room.phase==='lobby'){
         const cur=(m.room.members||[]).filter(x=>!x.ai);
@@ -1972,6 +2025,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyLeave').onclick=leaveLobby;
   function enterLobby(){ $('onlineJoin').style.display='none'; $('lobby').style.display='block'; $('lobbyCode').textContent=lobby.code;
     const me=lobby.members.find(u=>u.pid===myPid); if(me&&document.activeElement!==$('lobbyName'))$('lobbyName').value=me.name;
+    if(!avatarPushed){ avatarPushed=true; const sa=getStoredAvatar(); if(sa&&me&&me.avatar!==sa)wsSend({t:'setAvatar',emoji:sa}); }  // 저장된 공유 아바타를 기본값으로 1회 반영
     $('hostOnly').textContent=amHost()?'':'(호스트가 선택)'; $('diffHostOnly').textContent=amHost()?'':'(호스트가 선택)';
     modeChips($('modesO'),$('modedescO'),()=>lobby.mode,id=>{if(amHost())wsSend({t:'setMode',mode:id});});
     $('modesO').querySelectorAll('button').forEach(b=>{b.disabled=!amHost();b.classList.toggle('on',b.dataset.id===lobby.mode);});
@@ -1996,13 +2050,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(amHost()&&u.ai){const rm=document.createElement('button');rm.className='rm';rm.textContent='✕';rm.onclick=()=>wsSend({t:'removeAI',pid:u.pid});right.appendChild(rm);}
       d.innerHTML=avHTML({pid:u.pid,color:u.color,seat:i,avatar:u.avatar},{sm:true,off:!u.connected})+`<span class="conn ${u.connected?'':'off'}"></span><span class="mname">${esc(u.name)}${u.pid===myPid?' <span class="youtag">나</span>':''}${u.ai?' <span class="aitag">AI</span>':''}</span>`;
       d.appendChild(right);
-      if(u.pid===myPid){const a=d.querySelector('.av'); if(a){a.style.cursor='pointer';a.title='캐릭터 선택';a.onclick=()=>openAvatarPicker(u.avatar,e=>wsSend({t:'setAvatar',emoji:e}));}}
+      if(u.pid===myPid){const a=d.querySelector('.av'); if(a){a.style.cursor='pointer';a.title='캐릭터 선택';a.onclick=()=>openAvatarPicker(u.avatar,e=>{setStoredAvatar(e);wsSend({t:'setAvatar',emoji:e});});}}
       box.appendChild(d);
     });
   }
   $('renameBtn').onclick=()=>{const n=($('lobbyName').value||'').trim();if(n)wsSend({t:'rename',name:n});};
   $('lobbyName').addEventListener('keydown',e=>{if(e.key==='Enter')$('renameBtn').onclick();});
-  $('avatarBtn').onclick=()=>{ const me=lobby&&lobby.members.find(u=>u.pid===myPid); openAvatarPicker(me&&me.avatar,e=>wsSend({t:'setAvatar',emoji:e})); };
+  $('avatarBtn').onclick=()=>{ const me=lobby&&lobby.members.find(u=>u.pid===myPid); openAvatarPicker(me&&me.avatar,e=>{setStoredAvatar(e);wsSend({t:'setAvatar',emoji:e});}); };
   $('addAiBtn').onclick=()=>{ if(amHost())wsSend({t:'addAI'}); };
   $('startOnline').onclick=()=>{ if(amHost())wsSend({t:'start'}); };
   $('copyCode').onclick=()=>{ if(lobby)copyText(lobby.code); };

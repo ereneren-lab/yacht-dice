@@ -150,6 +150,63 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     border:1px solid color-mix(in srgb,var(--brass) 30%,var(--line));padding:4px 9px;border-radius:8px;white-space:nowrap}
   .statbadge.none{color:var(--muted);background:rgba(255,255,255,.04);border-color:var(--line);font-weight:600}
 
+  /* 프로필: 이름 + 아바타 편집 (접이식, 리텐션 톤 유지) */
+  .profilebox{margin:2px 2px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden}
+  .profilebox .psum{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;list-style:none;user-select:none}
+  .profilebox .psum::-webkit-details-marker{display:none}
+  .profilebox .psum .pav{width:34px;height:34px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:19px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+  .profilebox .psum .pname{font-size:13.5px;font-weight:700;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .profilebox .psum .pname.empty{color:var(--muted);font-weight:600}
+  .profilebox .psum .pedit{font-size:11.5px;font-weight:700;color:var(--brass);flex:none}
+  .profilebox[open] .psum .pedit::after{content:' ▲'}
+  .profilebox:not([open]) .psum .pedit::after{content:' ▼'}
+  .profilebox .pbody{padding:2px 14px 14px;display:flex;flex-direction:column;gap:11px;border-top:1px solid var(--line)}
+  .pfield{display:flex;flex-direction:column;gap:6px}
+  .pfield>.plbl{font-size:11.5px;font-weight:700;color:var(--muted)}
+  .pfield input.pin{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;
+    padding:9px 12px;font-size:14px;font-weight:600;font-family:inherit}
+  .pfield input.pin:focus{outline:none;border-color:var(--brass)}
+  .pfield input.pin.active{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 12%,var(--panel))}
+  .avgrid{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .avchip{width:36px;height:36px;flex:none;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+    display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;font-family:inherit;transition:.12s}
+  .avchip:hover{border-color:color-mix(in srgb,var(--brass) 45%,transparent)}
+  .avchip.on{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 15%,var(--panel))}
+  .avchip.custom{width:auto;padding:0 6px;font-size:15px;color:var(--muted);font-weight:700;letter-spacing:.02em}
+  .avchip.custom.on{color:var(--brass)}
+
+  /* 메타 도전과제: 골목 도전과제 선반 */
+  .achshelf{display:none;flex-direction:column;gap:10px;margin:0 2px 20px;padding:13px 15px;
+    border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+  .achshelf.show{display:flex}
+  .achshelf .ashdr{display:flex;align-items:baseline;gap:8px}
+  .achshelf .ashdr b{font-size:13px;font-weight:800;color:var(--ink)}
+  .achshelf .ashdr span{font-size:11.5px;font-weight:700;color:var(--brass)}
+  .achgrid{display:flex;gap:8px;flex-wrap:wrap}
+  .achbadge{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;
+    padding:8px 11px;background:var(--panel);transition:.12s}
+  .achbadge .ae{font-size:17px;flex:none;line-height:1}
+  .achbadge .at{display:flex;flex-direction:column;gap:1px}
+  .achbadge .at b{font-size:12px;font-weight:700;color:var(--ink);line-height:1.2}
+  .achbadge .at span{font-size:10.5px;color:var(--muted);line-height:1.2}
+  .achbadge.locked{opacity:.42;filter:grayscale(.7)}
+  .achbadge.on{border-color:color-mix(in srgb,var(--brass) 42%,var(--line));
+    background:color-mix(in srgb,var(--brass) 12%,var(--panel))}
+  .achbadge.on .at b{color:var(--brass)}
+
+  /* 메타 도전과제 해금 토스트 */
+  .metatoast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);z-index:9997;
+    display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:13px;opacity:0;pointer-events:none;
+    border:1px solid color-mix(in srgb,var(--brass) 45%,var(--line));
+    background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(8px);
+    box-shadow:0 12px 34px rgba(0,0,0,.42);transition:opacity .25s,transform .25s}
+  .metatoast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+  .metatoast .me{font-size:20px;flex:none}
+  .metatoast .mt{font-size:12.5px;color:var(--ink);line-height:1.35}
+  .metatoast .mt b{color:var(--brass);font-weight:800}
+  .metatoast .mt span{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+
   /* 접근성: 모션 최소화 선호 시 전환·애니메이션 억제 */
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important} }
 </style>
@@ -172,7 +229,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     <h1>주사위 골목<span class="en">Dice Alley</span></h1>
   </div>
   <p class="lede">뒷골목 주사위 도박장에 온 걸 환영해. 한 판 고르고 들어와.</p>
+  <details class="profilebox" id="profileBox">
+    <summary class="psum"><span class="pav" id="pavPreview">🎲</span><span class="pname empty" id="pnamePreview">프로필 설정</span><span class="pedit"></span></summary>
+    <div class="pbody">
+      <div class="pfield">
+        <label class="plbl" for="profName">이름 (온라인 참가 시 기본 닉네임)</label>
+        <input id="profName" class="pin" maxlength="12" placeholder="닉네임" autocomplete="off" aria-label="이름">
+      </div>
+      <div class="pfield">
+        <span class="plbl">아바타</span>
+        <div class="avgrid" id="avGrid"></div>
+        <div class="avgrid"><input id="profAvatarCustom" class="pin" style="width:auto;max-width:120px" maxlength="4" placeholder="직접 입력 🎲" aria-label="아바타 직접 입력"></div>
+      </div>
+    </div>
+  </details>
   <div class="statstrip" id="statStrip"></div>
+  <div class="achshelf" id="achShelf"></div>
   <div class="firstnote" id="firstNote"><span class="fe">🎲</span><span><b>처음이라면</b> — 혼자 <b>AI</b>랑 붙어봐도 되고, 친구가 준 <b>방 코드</b>를 아래에 입력해 바로 참가할 수도 있어.</span></div>
   <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
   <div class="joinbar">
@@ -225,6 +297,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 
   <p class="foot">주사위 골목 · 다섯 가지 주사위 게임이 모였다 🎲</p>
 </div>
+<div class="metatoast" id="metaToast"><span class="me">🏅</span><div class="mt"><b>도전과제 달성!</b><span id="metaToastTxt"></span></div></div>
 <div class="installbar" id="installBar">
   <span class="iemoji">🎲</span>
   <div class="itxt"><b>홈 화면에 추가</b><span>앱처럼 전체화면으로 바로 열기</span></div>
@@ -316,12 +389,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   if(rb&&chips){ rb.innerHTML='<span class="rlbl">진행 중</span>'+chips; rb.classList.add('show'); }
 
   // 2) 내 기록 요약 스트립 + 3) 카드별 미니 배지 (같은 stats를 재사용)
-  var totGames=0, totWins=0, bestStreak=0, totAch=0;
+  var totGames=0, totWins=0, bestStreak=0, totAch=0, playedCount=0;
   GAMES.forEach(function(g){
     var s=readJSON(g.p+'_stats');
     if(s&&typeof s==='object'){
-      totGames+=(+s.games||0); totWins+=(+s.wins||0);
+      var gn=+s.games||0;
+      totGames+=gn; totWins+=(+s.wins||0);
       bestStreak=Math.max(bestStreak, +s.bestStreak||0);
+      if(gn>0) playedCount++;
     }
     var a=readJSON(g.p+'_ach');
     if(Array.isArray(a)) totAch+=a.length;
@@ -341,6 +416,49 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     function si(v,l){ return '<div class="si"><b>'+v+'</b><span>'+l+'</span></div>'; }
     strip.innerHTML=si(totGames,'총 판수')+si(totWins,'총 승')+si(bestStreak,'최고 연승')+si(totAch,'뱃지');
     strip.classList.add('show');
+  }
+
+  // 5) 골목 도전과제 — 5종 stats 합산으로 순수 파생 계산 (별도 저장 없이 매 로드 판정)
+  var META=[
+    {id:'firststep', e:'🎲', name:'첫 발걸음',  desc:'아무 게임 1판',        ok:totGames>=1},
+    {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'5종 모두 1판 이상',    ok:playedCount>=5},
+    {id:'regular',   e:'🏆', name:'골목 단골',   desc:'전 게임 합 50판',      ok:totGames>=50},
+    {id:'contender', e:'👑', name:'승부사',     desc:'전 게임 합 20승',      ok:totWins>=20},
+    {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5}
+  ];
+  var shelf=$('achShelf');
+  if(shelf){
+    var unlocked=META.filter(function(m){return m.ok;}).length;
+    // 첫 발걸음(totGames>=1)조차 없는 완전 새 방문자에겐 선반 자체를 숨겨 첫 화면을 가볍게
+    if(unlocked>0){
+      var grid='';
+      META.forEach(function(m){
+        grid+='<div class="achbadge '+(m.ok?'on':'locked')+'" title="'+esc(m.desc)+'">'
+          +'<span class="ae">'+m.e+'</span>'
+          +'<span class="at"><b>'+esc(m.name)+'</b><span>'+(m.ok?'달성':esc(m.desc))+'</span></span></div>';
+      });
+      shelf.innerHTML='<div class="ashdr"><b>골목 도전과제</b><span>'+unlocked+' / '+META.length+'</span></div>'
+        +'<div class="achgrid">'+grid+'</div>';
+      shelf.classList.add('show');
+    }
+    // 새로 해금된 항목이 있으면 가벼운 토스트 (해금 집합만 저장, 재방문 시 중복 안내 방지)
+    try{
+      var prev=readJSON('alley_meta_ach'); if(!Array.isArray(prev)) prev=[];
+      var nowIds=META.filter(function(m){return m.ok;}).map(function(m){return m.id;});
+      var fresh=META.filter(function(m){return m.ok && prev.indexOf(m.id)<0;});
+      if(fresh.length){
+        localStorage.setItem('alley_meta_ach', JSON.stringify(nowIds));
+        var m0=fresh[0], tt=$('metaToast'), tx=$('metaToastTxt'), tst=$('metaToast');
+        if(tt&&tx){
+          tx.innerHTML='<b>'+esc(m0.name)+'</b>'+(fresh.length>1?(' 외 '+(fresh.length-1)+'개'):'');
+          tt.querySelector('.me').textContent=m0.e;
+          tt.classList.add('show');
+          setTimeout(function(){ tt.classList.remove('show'); }, 3600);
+        }
+      } else if(nowIds.length!==prev.length){
+        localStorage.setItem('alley_meta_ach', JSON.stringify(nowIds));
+      }
+    }catch(e){}
   }
 
   // 4) 첫 방문 안내 — alley_seen 없으면 1회 노출 후 기록
@@ -388,6 +506,55 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     sync();
   };
   sync(); setTimeout(sync,250);
+})();</script>
+<script>(function(){
+  // 프로필: 이름(alley_name) + 아바타(alley_avatar) 저장. 게임들은 온라인 참가 시 이걸 기본값으로 읽는다(허브는 저장만).
+  var $=function(id){return document.getElementById(id);};
+  var nameInp=$('profName'), custom=$('profAvatarCustom'), grid=$('avGrid');
+  var pavPrev=$('pavPreview'), pnamePrev=$('pnamePreview');
+  if(!nameInp||!grid) return;
+  var PRESETS=['🎲','🦴','🤥','🔀','🐎','👑','🔥','🍀','🎯','😎','🐯','🦊','🐧','🌙','⭐','🎩'];
+  function get(k,d){ try{ var v=localStorage.getItem(k); return v==null?d:v; }catch(e){ return d; } }
+  function set(k,v){ try{ if(v==null||v==='') localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+  var curName=get('alley_name','')||'', curAv=get('alley_avatar','')||'';
+
+  function refreshPreview(){
+    pavPrev.textContent=curAv||'🎲';
+    if(curName){ pnamePrev.textContent=curName; pnamePrev.classList.remove('empty'); }
+    else { pnamePrev.textContent='프로필 설정'; pnamePrev.classList.add('empty'); }
+  }
+  function markChips(){
+    var chips=grid.querySelectorAll('.avchip');
+    var matched=false;
+    chips.forEach(function(c){ var on=(c.dataset.av===curAv); c.classList.toggle('on',on); if(on)matched=true; });
+    // 프리셋에 없는 커스텀 이모지면 커스텀 입력칸을 활성 표시
+    if(custom) custom.classList.toggle('active', !!curAv && !matched);
+  }
+  // 프리셋 아바타 칩
+  PRESETS.forEach(function(em){
+    var b=document.createElement('button'); b.type='button'; b.className='avchip'; b.dataset.av=em; b.textContent=em;
+    b.setAttribute('aria-label','아바타 '+em);
+    b.onclick=function(){ curAv=em; set('alley_avatar',em); if(custom)custom.value=''; refreshPreview(); markChips(); };
+    grid.appendChild(b);
+  });
+
+  // 초기값 반영
+  nameInp.value=curName;
+  if(custom && curAv && PRESETS.indexOf(curAv)<0) custom.value=curAv;
+  refreshPreview(); markChips();
+
+  nameInp.addEventListener('input',function(){
+    curName=nameInp.value.replace(/\s+/g,' ').replace(/^\s+/,'').slice(0,12);
+    set('alley_name', curName.trim());
+    refreshPreview();
+  });
+  if(custom) custom.addEventListener('input',function(){
+    // 이모지 등 1~2자 상정. 앞쪽 문자 위주로 취해 과한 입력 방지 (grapheme 단순 처리).
+    var v=custom.value.trim();
+    var arr=Array.from(v); if(arr.length>2){ v=arr.slice(0,2).join(''); custom.value=v; }
+    if(v){ curAv=v; set('alley_avatar',v); } else { curAv=''; set('alley_avatar',''); }
+    refreshPreview(); markChips();
+  });
 })();</script>
 </body>
 </html>

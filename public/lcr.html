@@ -263,6 +263,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .rmvoter{ font-size:13px;color:var(--ink);text-align:left;padding:6px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:8px }
   .rematch-btns{ display:flex;gap:8px }
   .rematch-wait{ font-size:12.5px;color:var(--muted);text-align:center;margin-top:8px }
+  /* 아바타 선택 */
+  .avgrid{ display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:12px }
+  .avgrid button{ aspect-ratio:1;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit }
+  .avgrid button.on{ border-color:var(--brass);background:var(--panel2) }
+  .avgrid button:hover{ background:var(--panel2) }
 </style>
 </head>
 <body>
@@ -386,6 +391,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
+        <button class="btn ghost" id="shareImgBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
       </div>
       <div id="rematchBox" style="display:none">
@@ -431,6 +437,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="btn" id="tutNext" style="flex:1.4">다음</button>
       </div>
       <button class="rules-link" id="tutSkip" style="margin-top:10px">건너뛰기</button>
+    </div>
+  </div>
+
+  <!-- AVATAR PICKER -->
+  <div class="ov" id="avOv">
+    <div class="sheet" style="max-width:340px">
+      <h3>캐릭터 선택</h3>
+      <div class="avgrid" id="avGrid"></div>
+      <button class="btn ghost" id="avClose" style="margin-top:12px">닫기</button>
     </div>
   </div>
 
@@ -569,6 +584,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let autoRoll=false; try{ autoRoll=localStorage.getItem('lcr_auto')==='1'; }catch(e){}
   let autoTimer=null;
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null, duelOn=false, wasPlaying=false;
+  let avatarSynced=false;   // 저장된 alley_avatar를 방 입장 시 1회만 기본 적용
   let lastMyTurn=false;
 
   /* ===== SFX ===== */
@@ -950,7 +966,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ===== 온라인 ===== */
   function wsUrl(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
   function wsSend(o){ if(ws&&ws.readyState===1)ws.send(JSON.stringify(o)); }
-  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
+  function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } avatarSynced=false; }
   let reconnects=0, reconnecting=false, bootReconnect=false;
   function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
   function tryReconnect(){ const room=lsGet('lcr_room'), pid=lsGet('lcr_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
@@ -1028,10 +1044,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
+    // 저장된 아바타(alley_avatar)를 온라인 기본값으로 1회 적용
+    const meMem=lobby.members.find(x=>x.pid===MYPID);
+    if(meMem && !avatarSynced){ avatarSynced=true; const savedAv=lsGet('alley_avatar'); if(savedAv && meMem.avatar!==savedAv){ wsSend({t:'setAvatar',emoji:savedAv}); } }
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member'+(mem.pid===MYPID?' me':'');
       d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(dispName(mem))}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${mem.pid===MYPID?'<span class="mine-edit">✏️ 이름 변경</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
-      if(mem.pid===MYPID){ d.title='탭하면 이름 변경'; d.onclick=()=>{ const nn=prompt('새 닉네임 (최대 12자)', mem.name); if(nn==null)return; const v=nn.trim().slice(0,12); if(v && v!==mem.name){ wsSend({t:'rename',name:v}); saveName(v); } }; }
+      if(mem.pid===MYPID){ d.title='탭하면 이름 변경'; d.onclick=()=>{ const nn=prompt('새 닉네임 (최대 12자)', mem.name); if(nn==null)return; const v=nn.trim().slice(0,12); if(v && v!==mem.name){ wsSend({t:'rename',name:v}); saveName(v); } };
+        const avEl=d.querySelector('.mav'); if(avEl){ avEl.style.cursor='pointer'; avEl.title='캐릭터 선택'; avEl.onclick=ev=>{ ev.stopPropagation(); openAvatarPicker(mem.avatar, e=>{ saveAvatar(e); wsSend({t:'setAvatar',emoji:e}); }); }; } }
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
@@ -1118,6 +1138,65 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else { copyText(text+'\n'+url, '📋 결과 복사됨 — 붙여넣기 해서 자랑해!'); }
   }
   $('shareBtn').onclick=shareResult;
+
+  /* ===== 결과 이미지 카드 공유 ===== */
+  function drawShareCard(){
+    const c=document.createElement('canvas'); c.width=1080; c.height=1080;
+    const x=c.getContext('2d');
+    const w=S?S.players.find(p=>p.pid===S.winner):null;   // 마지막 칩 보유자
+    const pot=S?S.maxPot||0:0;
+    const F='-apple-system,system-ui,"Apple SD Gothic Neo","Segoe UI",sans-serif';
+    x.fillStyle='#15110d'; x.fillRect(0,0,1080,1080);
+    x.strokeStyle='#e0a23c'; x.lineWidth=6; x.strokeRect(40,40,1000,1000);
+    x.textAlign='center';
+    // 상단 타이틀
+    x.fillStyle='#a89a86'; x.font='700 42px '+F;
+    x.fillText('주사위 골목 · 좌·중·우(LCR)', 540, 180);
+    // 트로피
+    x.font='150px '+F; x.fillText('🏆', 540, 430);
+    // 우승자
+    x.fillStyle='#e0a23c'; x.font='900 74px '+F;
+    x.fillText(w?(dispName(w)+' 승리!'):'게임 종료', 540, 570);
+    if(w){
+      x.font='120px '+F; x.fillText(w.avatar||'🎲', 540, 720);
+      x.fillStyle='#f3ece0'; x.font='800 54px '+F;
+      const potPart = pot>0 ? '🎯 팟 '+pot+'개 · ' : '';
+      x.fillText(potPart+'총 '+w.chips+'칩 독식', 540, 830);
+    }
+    // 하단: 날짜 + 도메인
+    const d=new Date();
+    const ds=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
+    x.fillStyle='#a89a86'; x.font='500 36px '+F; x.fillText(ds, 540, 955);
+    x.fillStyle='#e0a23c'; x.font='700 38px '+F; x.fillText('yacht-dice-jxva.onrender.com', 540, 1015);
+    return c;
+  }
+  function shareImage(){
+    try{
+      drawShareCard().toBlob(blob=>{
+        if(!blob) return;
+        try{
+          const file=new File([blob],'lcr-result.png',{type:'image/png'});
+          if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+            navigator.share({files:[file],title:'주사위 골목'}).catch(()=>{});
+          } else {
+            const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='lcr-result.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(()=>{ try{URL.revokeObjectURL(a.href);}catch(e){} },1000);
+          }
+        }catch(e){}
+      },'image/png');
+    }catch(e){}
+  }
+  $('shareImgBtn').onclick=shareImage;
+
+  /* ===== 아바타 선택 (온라인) — alley_avatar에 저장, 게임 공통 기본값 ===== */
+  const AV_CHOICES=['🦊','🐸','🐼','🦁','🐰','🐵','🐶','🐱','🐯','🐨','🐷','🐮','🐔','🐧','🐢','🐝','🦉','🦄','🐙','🦖','🤖','👾','😎','👻'];
+  function saveAvatar(v){ if(v){ try{localStorage.setItem('alley_avatar',v);}catch(e){} } }
+  function openAvatarPicker(cur,onPick){ const g=$('avGrid'); if(!g)return; g.innerHTML='';
+    AV_CHOICES.forEach(e=>{ const b=document.createElement('button'); b.textContent=e; if(e===cur)b.classList.add('on'); b.onclick=()=>{ onPick(e); $('avOv').classList.remove('on'); }; g.appendChild(b); });
+    $('avOv').classList.add('on'); }
+  $('avClose').onclick=()=>$('avOv').classList.remove('on');
+
   $('setupRules').onclick=()=>$('helpOv').classList.add('on');
   $('lcrHelp').onclick=()=>$('helpOv').classList.add('on');
   $('helpClose').onclick=()=>$('helpOv').classList.remove('on');

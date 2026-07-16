@@ -593,6 +593,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
+        <button class="btn ghost" id="imgShareBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="iconbtn" style="width:100%;margin-top:10px;border-radius:14px;padding:14px" id="toHub2"><span style="font-weight:800">골목으로</span></button>
       </div>
       <div id="rematchBox" style="display:none">
@@ -816,6 +817,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let lastMyTurn=false;                        // (A) 내 차례 알림용 직전 상태
   let timerIv=null, curDeadline=0, curTurnMs=0; // (B) 턴 타이머 시각화용
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
+  // 내 아바타: 골목 공용 설정(alley_avatar) 우선, 없으면 기존 기본값 😎
+  let myAvatar='😎'; try{ const _a=localStorage.getItem('alley_avatar'); if(_a) myAvatar=_a; }catch(e){}
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null;
   let scoreCache=[[0,0,0],[0,0,0]], scorePrimed=false;   // colscore 폭증 연출용 직전값 캐시
   let growthInfo=null;   // P4 결과창 성장 피드백용 (기록 직전/직후 델타 캡처)
@@ -952,6 +955,71 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   $('shareBtn').onclick=shareResult;
 
+  // 결과를 1080×1080 이미지 카드로 만들어 공유(navigator.share) 또는 저장(다운로드)
+  function shareResultImage(){
+    try{
+      if(!S) return;
+      const b=bottomSeat(), t=1-b;
+      const sb=boardScore(S.boards[b]), st=boardScore(S.boards[t]);
+      const youName=S.players[b].name, oppName=S.players[t].name;
+      const tie=(sb===st);
+      const crown = tie?'🤝':'🏆';
+      const headline = tie ? '무승부' : ((sb>st?youName:oppName)+' 승리!');
+      // 로컬 선승제면 시리즈 스코어 한 줄 추가
+      let seriesLine=null;
+      const mi=(!online() && matchInfo)?matchInfo:null;
+      if(mi){ seriesLine=`시리즈 ${mi.seriesWins[b]} : ${mi.seriesWins[t]} · 3판 2선승`; }
+
+      const FONT='system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+      const C=document.createElement('canvas'); C.width=1080; C.height=1080;
+      const g=C.getContext('2d');
+      const grad=g.createLinearGradient(0,0,0,1080);
+      grad.addColorStop(0,'#241a0f'); grad.addColorStop(1,'#130e07');
+      g.fillStyle=grad; g.fillRect(0,0,1080,1080);
+      g.strokeStyle='#e0a23c'; g.lineWidth=8; g.strokeRect(44,44,992,992);
+      g.textAlign='center';
+      // 상단 타이틀
+      g.fillStyle='#e0a23c'; g.font='700 54px '+FONT;
+      g.fillText('주사위 골목 · 너클본즈', 540, 180);
+      // 왕관/무승부 이모지
+      g.font='140px '+FONT; g.fillText(crown, 540, 400);
+      // 승자 헤드라인
+      g.fillStyle='#fff'; g.font='800 84px '+FONT; g.fillText(headline, 540, 540);
+      // 스코어
+      g.fillStyle='#e0a23c'; g.font='800 150px '+FONT; g.fillText(`${sb} : ${st}`, 540, 720);
+      // 대진 이름
+      g.fillStyle='rgba(255,255,255,.72)'; g.font='500 42px '+FONT;
+      g.fillText(`${youName}   vs   ${oppName}`, 540, 800);
+      // 시리즈(있으면)
+      if(seriesLine){ g.fillStyle='#e0a23c'; g.font='700 46px '+FONT; g.fillText(seriesLine, 540, 872); }
+      // 하단: 날짜 + 주소
+      g.fillStyle='rgba(255,255,255,.55)'; g.font='500 38px '+FONT;
+      g.fillText(new Date().toLocaleDateString('ko-KR'), 540, 972);
+      g.fillStyle='#e0a23c'; g.font='600 40px '+FONT;
+      g.fillText('yacht-dice-jxva.onrender.com', 540, 1024);
+
+      C.toBlob(blob=>{
+        if(!blob) return;
+        try{
+          const file=new File([blob],'knucklebones.png',{type:'image/png'});
+          if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+            navigator.share({files:[file], title:'주사위 골목 · 너클본즈'}).catch(()=>{});
+            return;
+          }
+        }catch(e){}
+        // 폴백: 다운로드
+        try{
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement('a'); a.href=url; a.download='knucklebones.png';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(()=>URL.revokeObjectURL(url),1000);
+          try{ showToast('🖼️ 이미지 저장됨 — 자랑해!'); }catch(e){}
+        }catch(e){}
+      },'image/png');
+    }catch(e){}
+  }
+  $('imgShareBtn').onclick=shareResultImage;
+
   // ---------- screen ----------
   function showGame(){ document.body.classList.add('ingame');
     // 로컬(AI/2인)은 오른쪽 사이드 컬럼이 없으므로 가로 배치 레이아웃을 쓴다 (CSS에서 분기)
@@ -982,8 +1050,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     // 매치 중이면 상대 아바타 고정(같은 상대와 붙는 느낌), 아니면 매판 랜덤
     const oppAv = (matchActive && matchAvatar) ? matchAvatar : OPP_AV[Math.random()*OPP_AV.length|0];
     const players = (mode==='2p')
-      ? [{pid:'p0',name:'플레이어 1',ai:false,avatar:'😎'},{pid:'p1',name:'플레이어 2',ai:false,avatar:oppAv}]
-      : [{pid:'p0',name:'나',ai:false,avatar:'😎'},{pid:'p1',name:'AI',ai:true,aiDiff:diff,avatar:oppAv}];
+      ? [{pid:'p0',name:'플레이어 1',ai:false,avatar:myAvatar},{pid:'p1',name:'플레이어 2',ai:false,avatar:oppAv}]
+      : [{pid:'p0',name:'나',ai:false,avatar:myAvatar},{pid:'p1',name:'AI',ai:true,aiDiff:diff,avatar:oppAv}];
     mySeat = 0;
     S=null; prevBoards=null; lastSeq=0; busy=false;
     setModePill(); showGame();
@@ -1060,11 +1128,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     jc.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); $('joinBtn').onclick(); } });
   })();
   function saveName(v){ v=(v||'').trim(); if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
+  // 골목 공용 아바타를 서버에 반영(참가 직후) — 저장된 값이 있을 때만
+  function sendMyAvatar(){ try{ const a=localStorage.getItem('alley_avatar'); if(a) wsSend({t:'setAvatar',emoji:a}); }catch(e){} }
   $('createBtn').onclick = ()=>{ $('onErr').textContent=''; saveName($('onName').value); const name=($('onName').value||'').trim()||'호스트';
-    mode='online'; connect(()=>wsSend({t:'create',game:'kb',name})); };
+    mode='online'; connect(()=>{ wsSend({t:'create',game:'kb',name}); sendMyAvatar(); }); };
   $('joinBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
     const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해.'; return; }
-    saveName($('onName').value); mode='online'; connect(()=>wsSend({t:'join',code,name})); };
+    saveName($('onName').value); mode='online'; connect(()=>{ wsSend({t:'join',code,name}); sendMyAvatar(); }); };
   function switchOnline(){ mode='online'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('diffWrap').style.display='none'; $('matchWrap').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
 
   function renderLobby(){

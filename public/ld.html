@@ -250,6 +250,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .result .crown{font-size:46px}
   .result h3{font-family:var(--font);font-size:25px;font-weight:800;margin:6px 0 8px}
   .result .rsub{color:var(--muted);font-size:14px;margin-bottom:12px}
+  .avgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .avgrid button{aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .avgrid button:hover{background:var(--panel)}
+  .avgrid button.on{border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 50%,transparent)}
   .resgrowth{display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 auto 14px}
   .resgrowth b{color:var(--brass);font-weight:800}
   .resgrowth .rg-sep{color:var(--line)}
@@ -480,6 +484,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="toLobbyBtn" style="margin-top:10px;display:none">🏛 로비로</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
+        <button class="btn ghost" id="shareImgBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
       </div>
       <div id="rematchBox" style="display:none">
@@ -492,6 +497,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <div id="rematchWait" class="rematch-wait" style="display:none">다른 사람들의 응답을 기다리는 중…</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- avatar picker -->
+<div class="ov" id="avOv">
+  <div class="sheet" style="max-width:360px">
+    <h3 style="font-family:var(--font);font-size:19px;font-weight:800;text-align:center;margin:2px 0 4px">캐릭터 선택</h3>
+    <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px">골목 전체에서 함께 쓰는 캐릭터예요</div>
+    <div id="avGrid" class="avgrid"></div>
+    <button class="btn ghost" id="avClose" style="margin-top:14px">닫기</button>
   </div>
 </div>
 
@@ -869,6 +884,102 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   $('shareBtn').onclick=shareResult;
 
+  // 결과를 정사각 카드 이미지로 만들어 공유(가능하면 navigator.share, 아니면 다운로드)
+  function buildResultOrder(){
+    const win=S.winner; const order=[]; if(win) order.push(win);
+    for(let i=elimOrder.length-1;i>=0;i--){ if(elimOrder[i]!==win && order.indexOf(elimOrder[i])<0) order.push(elimOrder[i]); }
+    S.players.forEach(p=>{ if(order.indexOf(p.pid)<0) order.push(p.pid); });
+    return order;
+  }
+  function shareResultImage(){
+    try{
+      if(!S) return;
+      const win=S.winner; const wp=S.players.find(p=>p.pid===win);
+      const order=buildResultOrder();
+      const cs=getComputedStyle(document.documentElement);
+      const V=(k,f)=>{ const v=(cs.getPropertyValue(k)||'').trim(); return v||f; };
+      const bg=V('--bg','#15110d'), bg2=V('--bg2','#1d1711'), panel=V('--panel','#26201a');
+      const brass=V('--brass','#e0a23c'), ink=V('--ink','#f3ece0'), muted=V('--muted','#a89a86');
+      const FONT='"Apple SD Gothic Neo","Pretendard",system-ui,-apple-system,"Segoe UI",sans-serif';
+      const W=1080,H=1080, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+      const x=cv.getContext('2d');
+      // 배경
+      const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,bg2); g.addColorStop(1,bg);
+      x.fillStyle=g; x.fillRect(0,0,W,H);
+      x.strokeStyle=brass; x.globalAlpha=.5; x.lineWidth=6; x.strokeRect(28,28,W-56,H-56); x.globalAlpha=1;
+      x.textAlign='center'; x.textBaseline='middle';
+      // 상단 타이틀
+      x.fillStyle=brass; x.font='700 42px '+FONT;
+      x.fillText('주사위 골목 · 라이어 다이스', W/2, 118);
+      x.strokeStyle=brass; x.globalAlpha=.35; x.lineWidth=2;
+      x.beginPath(); x.moveTo(180,168); x.lineTo(W-180,168); x.stroke(); x.globalAlpha=1;
+      // 우승 왕관 + 이름
+      x.font='120px '+FONT; x.fillText('🏆', W/2, 300);
+      x.fillStyle=muted; x.font='700 30px '+FONT; x.fillText('최후의 1인', W/2, 400);
+      const wav=(wp&&wp.avatar)||'🎲'; const wnm=(wp&&wp.name)||'?';
+      x.font='58px '+FONT; x.fillText(wav, W/2, 476);
+      x.fillStyle=ink; x.font='800 62px '+FONT;
+      let dn=wnm; while(x.measureText(dn).width>W-220 && dn.length>1){ dn=dn.slice(0,-1); }
+      x.fillText(dn+(dn!==wnm?'…':''), W/2, 556);
+      // 순위 카드들
+      let ry=650; const rowH=88; const show=order.slice(0,5);
+      show.forEach((pid,i)=>{
+        const p=S.players.find(pp=>pp.pid===pid)||{name:'?',avatar:'🎲'};
+        const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'위';
+        const rw=W-260, rx=(W-rw)/2, ry0=ry+i*rowH;
+        x.fillStyle=panel;
+        roundRect(x,rx,ry0,rw,rowH-14,16); x.fill();
+        if(i===0){ x.strokeStyle=brass; x.globalAlpha=.7; x.lineWidth=3; roundRect(x,rx,ry0,rw,rowH-14,16); x.stroke(); x.globalAlpha=1; }
+        const cy=ry0+(rowH-14)/2;
+        x.textAlign='left';
+        x.fillStyle=ink; x.font='700 40px '+FONT; x.fillText(medal, rx+26, cy);
+        x.font='40px '+FONT; x.fillText(p.avatar||'🎲', rx+150, cy);
+        x.fillStyle=(i===0)?brass:ink; x.font='700 38px '+FONT;
+        let nm=p.name||'?'; while(x.measureText(nm).width>rw-360 && nm.length>1){ nm=nm.slice(0,-1); }
+        x.fillText(nm+(nm!==(p.name||'?')?'…':'')+(pid===MYPID?' (나)':''), rx+220, cy);
+        x.textAlign='right'; x.fillStyle=muted; x.font='700 30px '+FONT;
+        x.fillText(i===0?'우승':'탈락', rx+rw-26, cy);
+        x.textAlign='center';
+      });
+      // 하단 날짜 + 주소
+      const d=new Date();
+      const ds=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
+      x.fillStyle=muted; x.font='600 30px '+FONT; x.fillText(ds, W/2, H-118);
+      x.fillStyle=brass; x.font='700 34px '+FONT; x.fillText('yacht-dice-jxva.onrender.com', W/2, H-72);
+      cv.toBlob(async(blob)=>{
+        if(!blob) return;
+        const file=new File([blob],'liar-dice-result.png',{type:'image/png'});
+        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+          try{ await navigator.share({files:[file], title:'주사위 골목 · 라이어 다이스'}); return; }
+          catch(e){ if(e && e.name==='AbortError') return; }
+        }
+        try{
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement('a'); a.href=url; a.download='liar-dice-result.png';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(()=>URL.revokeObjectURL(url),3000);
+          showToast('🖼️ 결과 이미지를 저장했어');
+        }catch(e){}
+      },'image/png');
+    }catch(e){}
+  }
+  function roundRect(x,rx,ry,w,h,r){ x.beginPath(); x.moveTo(rx+r,ry); x.arcTo(rx+w,ry,rx+w,ry+h,r); x.arcTo(rx+w,ry+h,rx,ry+h,r); x.arcTo(rx,ry+h,rx,ry,r); x.arcTo(rx,ry,rx+w,ry,r); x.closePath(); }
+  $('shareImgBtn').onclick=shareResultImage;
+
+  // ---------- 공유 아바타 (골목 전체 공용 · localStorage alley_avatar) ----------
+  function loadAvatar(){ try{ return localStorage.getItem('alley_avatar')||''; }catch(e){ return ''; } }
+  function saveAvatar(a){ if(a){ try{ localStorage.setItem('alley_avatar',a); }catch(e){} } }
+  const AV_EMOJIS=['🦊','🐸','🐼','🦁','🐰','🐵','🐯','🐶','🐱','🐷','🐨','🐮','🦄','🐙','🐧','🐢','🦉','🐝','🦖','🐳','👻','🤖','👾','🎩'];
+  let _avOnPick=null;
+  function openAvatarPicker(cur, onPick){
+    _avOnPick=onPick; const grid=$('avGrid'); grid.innerHTML='';
+    AV_EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.textContent=e; if(e===cur)b.classList.add('on');
+      b.onclick=()=>{ $('avOv').classList.remove('on'); const cb=_avOnPick; _avOnPick=null; if(cb)cb(e); };
+      grid.appendChild(b); });
+    $('avOv').classList.add('on');
+  }
+  $('avClose').onclick=()=>{ $('avOv').classList.remove('on'); _avOnPick=null; };
+
   // online setup
   // 코드칸: 항상 노출 · 대문자+영숫자만 4자리로 정규화 · Enter로 바로 참가
   $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
@@ -880,7 +991,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     teardownNet(); online=false; MYPID='me'; ffActive=false; localDiff=cfg.diff||'normal';
     try{ localStorage.removeItem('ld_room'); localStorage.removeItem('ld_pid'); }catch(e){}
     if(engine){ engine.destroy(); engine=null; }
-    const players=[{pid:MYPID,name:'나',avatar:'😎',ai:false}];
+    const players=[{pid:MYPID,name:'나',avatar:loadAvatar()||'😎',ai:false}];
     const av=[...OPP_AV].sort(()=>Math.random()-.5), nm=[...OPP_NM].sort(()=>Math.random()-.5);
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:av[i-1],ai:true,aiDiff:cfg.diff});
     S=null; busy=false;
@@ -917,7 +1028,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
   function onNet(m){
-    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){} }
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){}
+      const _av=loadAvatar(); if(_av) wsSend({t:'setAvatar',emoji:_av}); }   // 저장된 공유 아바타를 온라인 기본값으로 적용
     else if(m.t==='lobby'){
       const cur=m.room.members;
       const hadPrev = prevMembers!==null;
@@ -958,7 +1070,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const isMe=mem.pid===MYPID; const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'')+(isMe?' me':'');
       d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}${isMe?' <span style="color:var(--brass);font-size:11px">✏️ 나</span>':''}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
-      if(isMe){ const nm=d.querySelector('.mnm2'); nm.style.cursor='pointer'; nm.title='탭해서 이름 변경'; nm.onclick=renameSelf; }
+      if(isMe){ const nm=d.querySelector('.mnm2'); nm.style.cursor='pointer'; nm.title='탭해서 이름 변경'; nm.onclick=renameSelf;
+        const av=d.querySelector('.mav2'); if(av){ av.style.cursor='pointer'; av.title='탭해서 캐릭터 변경'; av.onclick=()=>openAvatarPicker(mem.avatar, e=>{ saveAvatar(e); wsSend({t:'setAvatar',emoji:e}); }); } }
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<4) ? 'block' : 'none';
