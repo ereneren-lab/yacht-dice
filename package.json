@@ -5,6 +5,8 @@
   "author": "jaesung",
   "main": "electron/main.js",
   "scripts": {
+    "build": "node scripts/build-inline.js",
+    "check:drift": "node scripts/check-drift.js",
     "start": "node server.js",
     "app": "electron electron/main.js",
     "dist": "electron-builder",

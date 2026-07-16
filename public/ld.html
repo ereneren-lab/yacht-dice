@@ -488,8 +488,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   </div>
 </div>
 
+<!-- CORE:ld START (자동생성 — 직접 수정 금지, npm run build로 동기화) -->
 <script>
-/* === ld-core.js (인라인: 외부 파일 없이도 동작 / server.js는 별도 파일 사용) === */
 /* === ld-core.js — 라이어 다이스 엔진 (브라우저/Node 공용, 숨김정보) ===
  * 규칙: 1=와일드, 베팅은 face 2..6 "전체에 qty개 이상". 도전(dudo)/정확히(calza, 옵션).
  * 인터페이스:
@@ -744,7 +744,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   return { LDEngine, aiDecide, atLeast, exactly, legalRaises };
 });
+
 </script>
+<!-- CORE:ld END -->
 <script>
 (() => {
   const $ = id => document.getElementById(id);

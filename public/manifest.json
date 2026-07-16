@@ -1,7 +1,11 @@
 {
+  "id": "/",
   "name": "주사위 골목 Dice Alley",
   "short_name": "주사위 골목",
   "description": "뒷골목 주사위 도박장 — 윷놀이 · 요트 다이스 · 너클본즈 · 라이어 다이스 · 좌·중·우(LCR)",
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["games", "entertainment"],
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -12,5 +16,12 @@
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "요트 다이스", "short_name": "요트", "description": "점수 족보를 채우는 주사위 대결", "url": "./yacht.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "윷놀이", "short_name": "윷놀이", "description": "도·개·걸·윷·모! 정통 윷놀이", "url": "./yut.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "너클본즈", "short_name": "너클본즈", "description": "주사위를 쌓아 곱점을 노리고 상대를 부순다", "url": "./kb.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "라이어 다이스", "short_name": "라이어", "description": "컵 속 주사위로 뻥카와 심리전", "url": "./ld.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "좌·중·우 (LCR)", "short_name": "LCR", "description": "칩을 넘기는 순수 운빨 파티 게임", "url": "./lcr.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
   ]
 }
