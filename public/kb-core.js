@@ -28,7 +28,22 @@
       const gain = colScore(boards[p][c].concat(val)) - colScore(boards[p][c]);
       const destroy = colScore(boards[opp][c]) - colScore(boards[opp][c].filter(x=>x!==val));
       let s;
-      if(diff==='hard') s = gain + destroy*1.2 + (boards[p][c].includes(val)?2:0);
+      if(diff==='hard'){
+        s = gain + destroy*1.2 + (boards[p][c].includes(val)?2:0);
+        // 1-ply 응수: 이 자리에 두면 상대가 다음 턴에 내 열을 파괴할 수 있는 최선 이득만큼 감점
+        const myNext = boards[p].map((col,i)=> i===c ? col.concat(val) : col);
+        let risk=0;
+        for(let d=1; d<=6; d++){
+          let bestDes=0;
+          for(let oc=0; oc<3; oc++){
+            if(boards[opp][oc].length>=3) continue; // 상대 열이 가득이면 둘 수 없음
+            const des = colScore(myNext[oc]) - colScore(myNext[oc].filter(x=>x!==d));
+            if(des>bestDes) bestDes=des;
+          }
+          risk += bestDes; // 주사위 값은 무작위 → 6면 기대값
+        }
+        s -= (risk/6)*1.1;
+      }
       else s = gain + destroy + (Math.random()*6-3);
       if(s>bs){ bs=s; best=[c]; } else if(s===bs) best.push(c);
     }

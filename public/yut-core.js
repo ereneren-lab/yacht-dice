@@ -245,6 +245,24 @@
     }
 
     // ---- AI ----
+    // 착지 노드가 상대 말의 다음 사정거리(뒤 1~5칸)에 노출되는지 (잡기는 노드 일치만 봄)
+    _catchRisk(node, seat, pl) {
+      for (const op of this.players) {
+        if (op.seat === seat) continue;
+        if (this.teamMode && op.team === pl.team) continue;
+        for (const opc of op.pieces) {
+          if (opc.done || !opc.out) continue;
+          const odirs = isBranch(opc.node, opc.route) ? ['shortcut', null] : [null];
+          for (let os = 1; os <= 5; os++) {
+            for (const od of odirs) {
+              const orr = step(opc.node, opc.route, opc.out, os, od);
+              if (!orr.noMove && !orr.done && orr.node === node) return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
     _bestMove(seat) {
       const pl = this.players[seat];
       const diff = pl.aiDiff || 'normal';
@@ -258,7 +276,7 @@
             const r = step(pc.node, pc.route, pc.out, s, dir);
             if (r.noMove) continue;
             let sc = 0;
-            if (r.done) sc += 100;
+            if (r.done) { sc += 100; if (diff === 'hard') sc -= s; } // 고수: 완주는 최소 필요 수 우선(큰 수 아껴 다른 말 전진)
             else {
               for (const op of this.players) {
                 if (op.seat === seat) continue;
@@ -270,6 +288,7 @@
               sc += (r.route === 'sc10' ? 25 : r.route === 'sc5' ? 15 : 0);
               sc += (pc.out ? 5 : 0);
               if (diff === 'hard' && r.route === 'outer' && r.node === this.pitNode) sc -= 120; // 고수: 늪 회피
+              if (diff === 'hard' && this._catchRisk(r.node, seat, pl)) sc -= 30; // 고수: 착지 칸이 상대 사정거리(뒤 1~5칸)면 감점
             }
             cands.push({ mv: { pieceId: pc.id, pendingIndex: pi, dir }, sc });
           }

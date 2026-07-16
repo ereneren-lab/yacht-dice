@@ -60,8 +60,13 @@
   const PK=Object.keys(PERSONAS);
   function pw(id,per){ if(UPPER_IDS.indexOf(id)>=0)return per.wUp; if(HI.indexOf(id)>=0)return per.wHi; return 1; }
   function bestOpenW(d,open,rule,per){ let b=0; for(const id of open){ const s=scoreOf(id,d,rule)*pw(id,per); if(s>b)b=s; } return b; }
-  function aiHoldMask(d, open, rule, diff, per){
+  function aiHoldMask(d, open, rule, diff, per, ctx){
     per=per||PERSONAS.safe;
+    if (ctx && ctx.end){                       // 종반 견제/역전 (hard·멀티 전용): 홀드 성향 보정
+      per = Object.assign({}, per);
+      if (ctx.gap < 0) per.wHi = per.wHi*1.5;   // 뒤짐 → 야찌·스트레이트 등 고배당 추격
+      else per.wHi = Math.min(per.wHi, 1.05);   // 앞섬 → 안전(현 최선) 지향
+    }
     if (diff==='easy' && Math.random()<0.3) return Math.floor(Math.random()*32);
     if (per.noise && Math.random()<per.noise) return Math.floor(Math.random()*32);
     const N = diff==='hard'?60 : diff==='easy'?16 : 32;
@@ -84,7 +89,7 @@
     }
     return bm;
   }
-  function aiPickCat(d, open, rule, scores, diff, per){
+  function aiPickCat(d, open, rule, scores, diff, per, ctx){
     per=per||PERSONAS.safe;
     const scored = open.map(id=>({id, s:scoreOf(id,d,rule)}));
     if (diff==='easy'){ scored.sort((a,b)=>b.s-a.s); return scored[0].id; }
@@ -97,6 +102,11 @@
         if (curUpper<rule.bonus.th && curUpper+s>=rule.bonus.th) v+=18;
       }
       if (s===0) v -= (CEIL[id]||0)*0.5;
+      if (ctx && ctx.end){                       // 종반 상대 격차 반영 (hard·멀티 전용)
+        const ceil=CEIL[id]||0;
+        if (ctx.gap < 0){ if (HI.indexOf(id)>=0 && s>0) v += ceil*0.2; }  // 뒤짐 → 잡은 고배당 확정
+        else if (s===0) v -= ceil*0.4;             // 앞섬 → 아까운 칸 0점 처리 회피(안전)
+      }
       v *= pw(id,per);
       if (per.noise) v += (Math.random()-0.5)*per.noise*30;
       return v;
@@ -131,6 +141,16 @@
     _seat(pid){ return this.players.findIndex(p=>p.pid===pid); }
     _open(seat){ return openCats(this.rule, this.players[seat].scores); }
     _done(p){ return this.rule.cats.every(c=>p.scores[c.id]!==null); }
+    // 종반 상대 격차 컨텍스트 — hard·멀티(상대 존재)·남은 칸 ≤3 일 때만. 아니면 null(현행 유지)
+    _aiCtx(seat){
+      if(this.difficulty!=='hard') return null;
+      const others=this.players.filter((_,i)=>i!==seat);
+      if(!others.length) return null;                       // 솔로면 상대 없음 → 현행
+      if(this._open(seat).length>3) return null;            // 종반 아니면 현행
+      const myT=this._total(this.players[seat]);
+      const bestOpp=Math.max.apply(null, others.map(p=>this._total(p)));
+      return { end:true, gap: myT-bestOpp };                // gap>0 앞섬, <0 뒤짐
+    }
 
     _beginTurn(){
       if(this._dead) return;
@@ -155,7 +175,7 @@
       const g=++this._aiGen;
       this._busy=true;
       const seat=this.current, open=this._open(seat);
-      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona]); this._busy=false; this._commit(seat,cat); };
+      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat)); this._busy=false; this._commit(seat,cat); };
       if(!this.rolled){ this._doRoll(); setTimeout(finish, 900); } else finish();
     }
     action(pid,a){
@@ -194,14 +214,14 @@
       const wait=ms=>new Promise(r=>setTimeout(r,ms));
       this._doRoll(); await wait(800*this.AID);
       while(alive() && this.rollsLeft>0){
-        const mask=aiHoldMask(this.dice.map(d=>d.value),open,this.rule,this.difficulty,PERSONAS[this.players[seat].persona]);
+        const mask=aiHoldMask(this.dice.map(d=>d.value),open,this.rule,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat));
         if(mask===31) break;
         this.dice.forEach((d,i)=>d.held=!!(mask>>i&1)); this._emit(); await wait(650*this.AID);
         if(!alive()) return;
         this._doRoll(); await wait(800*this.AID);
       }
       if(!alive()) return;
-      const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona]);
+      const cat=aiPickCat(this.dice.map(d=>d.value),open,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat));
       await wait(450*this.AID);
       if(!alive()) return;
       this._busy=false; this._commit(seat,cat);

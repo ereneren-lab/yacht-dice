@@ -38,6 +38,8 @@
       for(let f=2; f<=6; f++){ const c=myMatch(f); if(c>bestC || (c===bestC&&f>bestF)){ bestC=c; bestF=f; } }
       let qty = Math.max(1, Math.round(myMatch(bestF) + unknown*p));
       if(diff==='easy') qty = Math.max(1, qty + (Math.random()<.5?0:1));
+      // hard 블러프: 약 25% 확률로 손패와 무관한 눈 + 한 단계 과감한 수량 (예측 차단, 항상 합법)
+      if(diff==='hard' && Math.random()<0.25){ bestF = 2 + Math.floor(Math.random()*5); qty = qty + 1; }
       qty = Math.min(qty, total);
       return { type:'bid', qty, face:bestF };
     }
@@ -62,6 +64,9 @@
     let choice=best;
     const noise = diff==='easy'?0.6 : diff==='normal'?0.28 : 0.0;
     if(Math.random() < noise){ choice = window[Math.floor(Math.random()*window.length)]; }
+    else if(diff==='hard' && Math.random()<0.25){ // 블러프: 확률 대비 한 단계 과감한 레이즈 (같은 눈 수량+1, 없으면 다음 후보 — 모두 legalRaises라 합법)
+      const bolder=cands.find(r=>r.qty===choice.qty+1 && r.face===choice.face);
+      if(bolder) choice=bolder; else { const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; } }
     else if(Math.random() < (diff==='hard'?0.12:0.08)){ const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; }
     return { type:'bid', qty:choice.qty, face:choice.face };
   }
