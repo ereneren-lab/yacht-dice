@@ -3,6 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { WebSocketServer } = require('ws');
 const { GameEngine } = require('./public/game-core.js');
 const { KBEngine } = require('./public/kb-core.js');
@@ -18,7 +19,9 @@ const AVA = ['🦊','🐸','🐼','🦁','🐰','🐵'];
 
 // ---------- static ----------
 const server = http.createServer((req, res) => {
-  let p = decodeURIComponent(req.url.split('?')[0]);
+  let p;
+  try { p = decodeURIComponent(req.url.split('?')[0]); }   // 잘못된 % 인코딩이 서버를 죽이지 않게
+  catch(e){ res.writeHead(400); return res.end('Bad Request'); }
   // 방 코드 → 게임 조회 (허브의 "방 코드로 참가"가 올바른 게임으로 라우팅하도록)
   if (p === '/api/room') {
     const code = (new URLSearchParams(req.url.split('?')[1] || '').get('code') || '').toUpperCase();
@@ -28,11 +31,25 @@ const server = http.createServer((req, res) => {
   }
   if (p === '/') p = '/index.html';
   const fp = path.join(PUBLIC, path.normalize(p));
-  if (!fp.startsWith(PUBLIC)) { res.writeHead(403); return res.end('Forbidden'); }
+  if (fp !== PUBLIC && !fp.startsWith(PUBLIC + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(fp, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(fp)] || 'application/octet-stream' });
-    res.end(data);
+    const ext = path.extname(fp), type = TYPES[ext] || 'application/octet-stream';
+    const headers = { 'Content-Type': type };
+    // 불변 애셋은 길게 캐시, HTML은 매번 재검증(배포 즉시 반영)
+    if (/\.(png|ico|webp|jpe?g|svg|woff2?)$/.test(ext)) headers['Cache-Control'] = 'public, max-age=604800';
+    else if (ext === '.html') headers['Cache-Control'] = 'no-cache';
+    else headers['Cache-Control'] = 'public, max-age=3600';
+    // 텍스트류 gzip 압축(HTML/JS/JSON — 무압축 200KB+를 70~80% 절감)
+    const textual = /text|javascript|json|manifest|svg/.test(type);
+    const ae = req.headers['accept-encoding'] || '';
+    if (textual && /\bgzip\b/.test(ae) && data.length > 1024) {
+      zlib.gzip(data, (gzErr, gz) => {
+        if (gzErr) { res.writeHead(200, headers); return res.end(data); }
+        headers['Content-Encoding'] = 'gzip'; headers['Vary'] = 'Accept-Encoding';
+        res.writeHead(200, headers); res.end(gz);
+      });
+    } else { res.writeHead(200, headers); res.end(data); }
   });
 });
 
@@ -58,6 +75,26 @@ function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
 const MIN_PLAYERS = { lcr: 3 };
 function minPlayers(room){ return MIN_PLAYERS[room.game] || 2; }
 function playableCount(room){ return room.members.filter(m=>!m.spectator).length; }
+// 게임별 정원(사람+AI). yut 팀전은 4, 개인전 6. 관전은 정원 위로 SPECTATOR_SLACK명까지.
+const CAP = { kb:2, ld:4, lcr:6, yut:6, yacht:8 };
+const SPECTATOR_SLACK = 8;
+const MAX_ROOMS = 500;
+function capOf(room){ return room.game==='yut' ? (room.teamMode?4:6) : (CAP[room.game]||8); }
+function clearGameTimer(room){ if(room.gameTimer){ clearTimeout(room.gameTimer); room.gameTimer=null; } }
+// 방 파괴: 모든 타이머 해제 + 엔진 정리 후 rooms에서 제거
+function destroyRoom(room){ clearGameTimer(room); if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;} if(room.rematch&&room.rematch.timer){clearTimeout(room.rematch.timer);} if(room.engine){ try{room.engine.destroy();}catch(e){} } rooms.delete(room.code); }
+// 소켓이 새 방으로 이동하기 전, 이전 방 멤버십 정리(유령 멤버·좀비 방 누수 방지)
+function detachFromRoom(ws){
+  const code = ws.meta && ws.meta.code; const prev = code ? rooms.get(code) : null;
+  if (!prev) return;
+  const pid = ws.meta.pid;
+  if (prev.phase === 'lobby'){ prev.members = prev.members.filter(x=>x.pid!==pid); recolor(prev); }
+  else { const mm = prev.members.find(x=>x.pid===pid); if(mm){ mm.connected=false; mm.ws=null; } }
+  ws.meta = { code:null, pid:null };
+  if (!prev.members.some(x=>!x.ai)) { destroyRoom(prev); }        // 사람 아무도 없음 → 즉시 파괴
+  else if (prev.phase === 'lobby'){ sendLobby(prev); }
+  else { if(prev.engine) prev.engine.setConnected(pid, false); sendLobby(prev); scheduleCleanup(prev); }
+}
 
 function startEngine(room){
   if (room.rematch){ if(room.rematch.timer) clearTimeout(room.rematch.timer); room.rematch=null; }
@@ -104,6 +141,7 @@ function checkRematchComplete(room){
   if(humans.every(m=>room.rematch.votes[m.pid])) resolveRematch(room);
 }
 function resolveRematch(room){
+  if(!rooms.has(room.code)) return;   // 이미 파괴된 방에서 타이머가 뒤늦게 발화하는 경우 방어
   const r=room.rematch; if(!r) return;
   if(r.timer) clearTimeout(r.timer);
   const votes=r.votes;
@@ -117,6 +155,7 @@ function resolveRematch(room){
   if(playableCount(room)>=minPlayers(room) && humanCount>=1){
     startEngine(room);            // 수락자끼리 새 게임
   } else {
+    clearGameTimer(room);
     if(room.engine){ room.engine.destroy(); room.engine=null; }
     room.phase='lobby';
     broadcast(room, { t:'rematchCancelled' });
@@ -129,19 +168,28 @@ function scheduleCleanup(room){
   const anyHuman = room.members.some(m=>!m.ai && m.connected);
   if (!anyHuman){
     room.cleanupTimer = setTimeout(()=>{
-      if (!room.members.some(m=>!m.ai && m.connected)){ if(room.gameTimer){clearTimeout(room.gameTimer);room.gameTimer=null;} if(room.engine) room.engine.destroy(); rooms.delete(room.code); }
+      if (!room.members.some(m=>!m.ai && m.connected)){ destroyRoom(room); }
     }, 120000); // 2분 내 아무도 안 돌아오면 정리
   }
 }
 
 wss.on('connection', (ws) => {
   ws.meta = { code:null, pid:null };
+  ws._rlStart = 0; ws._rlCount = 0;
+  ws.on('error', (e)=> console.error('[ws]', e && e.message));
 
   ws.on('message', (raw) => {
     let m; try { m = JSON.parse(raw); } catch(e){ return; }
+    // 소켓당 초당 메시지 상한(스팸/DoS 완화)
+    const now = Date.now();
+    if (now - ws._rlStart > 1000){ ws._rlStart = now; ws._rlCount = 0; }
+    if (++ws._rlCount > 40) return;
+    try {
     const room = rooms.get(ws.meta.code);
 
     if (m.t === 'create') {
+      if (rooms.size >= MAX_ROOMS) return send(ws, { t:'error', code:'busy', msg:'서버가 혼잡해요. 잠시 후 다시 시도해줘.' });
+      detachFromRoom(ws);   // 이전 방 정리(반복 생성 시 유령 방 누수 방지)
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
       const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
@@ -151,8 +199,9 @@ wss.on('connection', (ws) => {
     } else if (m.t === 'join') {
       const code = (m.code||'').toUpperCase(); const r = rooms.get(code);
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
-      const cap = r.game==='kb' ? 2 : r.game==='ld' ? 4 : r.game==='lcr' ? 6 : r.game==='yut' ? (r.teamMode?4:6) : 8;
-      if (r.members.length >= cap + 8) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요 (관전 포함).' });
+      const cap = capOf(r);
+      if (r.members.length >= cap + SPECTATOR_SLACK) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요 (관전 포함).' });
+      if (ws.meta.code !== code) detachFromRoom(ws);   // 다른 방에 있던 소켓이면 그 방 정리
       const pid = rid();
       const spectator = r.members.length >= cap;   // 정원 초과 → 관전자
       const waiting = spectator || r.phase !== 'lobby';   // 관전자 또는 진행 중 입장
@@ -200,7 +249,7 @@ wss.on('connection', (ws) => {
       if (ws.meta.pid===hostPid(room)){ room.aiFast=!!m.v; sendLobby(room); }
 
     } else if (m.t === 'addAI') {
-      const cap = room.game==='kb' ? 2 : room.game==='ld' ? 4 : 6;
+      const cap = capOf(room);
       if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && room.members.length<cap){
         const n=room.members.filter(x=>x.ai).length+1;
         const at0=room.members.filter(x=>x.team===0).length, at1=room.members.filter(x=>x.team===1).length; room.members.push({ pid:'ai_'+rid(), name:'AI '+n, avatar:AVA[room.members.length%AVA.length], ai:true, connected:true, ws:null, team:(at0<=at1?0:1) });
@@ -236,7 +285,7 @@ wss.on('connection', (ws) => {
       }
 
     } else if (m.t === 'action') {
-      if (room.engine) room.engine.action(ws.meta.pid, m.a);
+      if (room.engine && m.a && typeof m.a === 'object' && typeof m.a.type === 'string') room.engine.action(ws.meta.pid, m.a);
 
     } else if (m.t === 'reaction') {
       const emo = (m.emoji || '').slice(0, 12);
@@ -258,11 +307,13 @@ wss.on('connection', (ws) => {
       const isHost = ws.meta.pid === hostPid(room);
       const gameOver = !room.engine || room.engine.phase === 'over';
       if (isHost || gameOver) {
+        clearGameTimer(room);
         if (room.engine) { room.engine.destroy(); room.engine = null; }
         room.phase = 'lobby';
         sendLobby(room);
       }
     }
+    } catch(err){ console.error('[msg handler]', err && err.stack || err); }
   });
 
   ws.on('close', () => {
@@ -272,7 +323,7 @@ wss.on('connection', (ws) => {
     if (r.phase === 'lobby'){
       r.members = r.members.filter(x=>x.pid!==ws.meta.pid);
       recolor(r);
-      if (r.members.length===0){ if(r.gameTimer){clearTimeout(r.gameTimer);r.gameTimer=null;} rooms.delete(r.code); return; }
+      if (!r.members.some(x=>!x.ai)){ destroyRoom(r); return; }   // 사람 0명(AI만 남아도) → 방 파괴
       sendLobby(r);
     } else {
       if (r.engine) r.engine.setConnected(ws.meta.pid, false);
@@ -282,5 +333,11 @@ wss.on('connection', (ws) => {
     }
   });
 });
+
+// 마지막 방어선: 예외가 프로세스를 죽이지 않게 로깅만 하고 계속 살아있게
+process.on('uncaughtException', (e)=> console.error('[uncaughtException]', e && e.stack || e));
+process.on('unhandledRejection', (e)=> console.error('[unhandledRejection]', e && e.stack || e));
+server.on('clientError', (err, socket)=>{ try{ socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); }catch(e){} });
+wss.on('error', (e)=> console.error('[wss]', e && e.message));
 
 server.listen(PORT, () => console.log('요트 다이스 → http://localhost:' + PORT));
