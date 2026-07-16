@@ -44,7 +44,7 @@
       return { node: SEQ.outer[steps], route: 'outer', out: true };
     }
     let seq = SEQ[route], i = seq.indexOf(node);
-    if (dir === 'shortcut' && steps > 0) {
+    if (steps > 0) {   // 모서리(5·10·22)에 정확히 서면 무조건 꺾기(지름길) — 가기/꺾기 선택 없음
       if (route === 'outer' && node === 5) { seq = SEQ.sc5; i = 0; }
       else if (route === 'outer' && node === 10) { seq = SEQ.sc10; i = 0; }
       else if (route === 'sc5' && node === 22) { seq = SEQ.sc10; i = SEQ.sc10.indexOf(22); }
@@ -53,6 +53,8 @@
     const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
     if (steps < 0) {
       if (i <= 0) return { noMove: true };
+      const prev = seq[i - 1];
+      if (prev === 0) return { done: true };   // 빽도로 출발점(0) 복귀 → 그대로 나감(완주)
       return { node: seq[i - 1], route: rname, out: true };
     }
     const ni = i + steps;
@@ -76,6 +78,13 @@
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
+      // 팀전: 팀당 말 한 세트 공유 — 각 팀 첫 멤버(대표)에게만 말, 나머지 팀원은 빈 세트.
+      // 두 팀원이 자기 차례에 대표의 말을 함께 움직인다.
+      this.teamHolder = {};
+      if (this.teamMode) {
+        this.players.forEach(p => { if (this.teamHolder[p.team] == null) this.teamHolder[p.team] = p.seat; });
+        this.players.forEach(p => { if (p.seat !== this.teamHolder[p.team]) p.pieces = []; });
+      }
       this.turn = 0;
       this.phase = 'throw';        // 'throw' | 'move' | 'over'
       this.pending = [];           // 굴린 step 대기열
@@ -95,12 +104,65 @@
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
       this.turnMs = opt.turnMs || 0;
       this.aiFast = !!opt.aiFast;
+      // 선 뽑기: 게임 시작 전 각자 한 번씩 던져 높은 끗수 순으로 순서 결정(동점자끼리 재대결). 팀전 제외.
+      this.decideOrder = !!opt.decideOrder && this.N > 1 && !this.teamMode;
+      this.orderStack = null; this.orderRound = {}; this.orderThrowIdx = 0;
+      this.orderFinal = []; this.orderTie = false; this.orderSeq = 0; this.orderResult = null;
       this._timer = null; this._dead = false;
     }
     _emit() { try { this.onState(); } catch (e) { if(typeof console!=='undefined'&&console.error)console.error('onState/render error:', e && e.message, e && e.stack); } }
     _clear() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
 
-    start() { if (this._dead) return; this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = []; this.gameStartTime = Date.now(); this._emit(); this._maybeAI(); }
+    start() { if (this._dead) return; this.pending = []; this.gameStartTime = Date.now();
+      if (this.decideOrder) { this._orderStart(); }
+      else { this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; }
+      this._emit(); this._maybeAI(); }
+
+    // ===== 선 뽑기(순서 결정) — 스택 기반 동점 재대결 =====
+    _orderStart() {
+      this.phase = 'order';
+      this.orderStack = [ this.players.map((_, i) => i) ];   // 스택: 각 원소는 경쟁 중인 seat 배열(같은 값이면 재대결)
+      this.orderFinal = []; this.orderRound = {}; this.orderThrowIdx = 0; this.orderTie = false; this.orderResult = null;
+      this._orderCollapse();
+    }
+    _orderCollapse() {
+      // 크기 1인 top 풀은 순위 확정 → orderFinal로. 남은 풀의 첫 던질 사람으로 세팅.
+      while (this.orderStack.length && this.orderStack[this.orderStack.length - 1].length === 1) {
+        this.orderFinal.push(this.orderStack.pop()[0]);
+      }
+      if (!this.orderStack.length) { this._orderFinish(); return; }
+      this.orderRound = {}; this.orderThrowIdx = 0;
+      this.turn = this.orderStack[this.orderStack.length - 1][0];
+    }
+    _orderThrow(pid, power) {
+      if (this._dead || this.phase !== 'order' || !this.orderStack.length) return;
+      const pool = this.orderStack[this.orderStack.length - 1];
+      const seat = pool[this.orderThrowIdx];
+      if (!this.players[seat] || this.players[seat].pid !== pid) return;
+      const r = throwYut(this.rng, power);
+      this.lastThrow = { name: r.name, step: r.step }; this.throwSeq++;   // 던지기 애니/연출 재사용
+      this.orderRound[seat] = r.step; this.orderSeq++; this.orderTie = false;
+      this.orderThrowIdx++;
+      if (this.orderThrowIdx < pool.length) { this.turn = pool[this.orderThrowIdx]; this._emit(); this._maybeAI(); return; }
+      // 라운드 완료 → 값별 그룹으로 분해(동점 그룹만 재대결)
+      this.orderStack.pop();
+      const byVal = {}; pool.forEach(s => { const v = this.orderRound[s]; (byVal[v] = byVal[v] || []).push(s); });
+      const vals = Object.keys(byVal).map(Number).sort((a, b) => a - b);   // 오름차순
+      vals.forEach(v => this.orderStack.push(byVal[v]));                    // 오름차순 push → 최고값이 top
+      this.orderTie = (vals.length === 1);                                 // 전원 동점 → 재대결
+      this._emit();               // 라운드 결과 노출(클라가 잠깐 보여줌)
+      this._orderCollapse();      // 확정자 정리 + 다음 라운드 준비
+      this._emit(); this._maybeAI();
+    }
+    _orderFinish() {
+      const old = this.players;
+      this.players = this.orderFinal.map(si => old[si]);   // 정해진 순서대로 재배열
+      this.players.forEach((p, i) => { p.seat = i; });
+      this.N = this.players.length;
+      this.orderResult = this.players.map(p => p.pid);     // 발표용 순서(pid)
+      this.orderStack = null; this.orderRound = {};
+      this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = [];
+    }
     timeUp() {
       if (this._dead || this.phase === 'over') return;
       const prog = p => { let s = 0; for (const pc of p.pieces) { if (pc.done) s += 100; else if (pc.out) s += 1; } return s; };
@@ -130,7 +192,9 @@
 
     // 던지기
     doThrow(pid, power) {
-      if (this._dead || this.phase !== 'throw') return;
+      if (this._dead) return;
+      if (this.phase === 'order') { this._orderThrow(pid, power); return; }
+      if (this.phase !== 'throw') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat !== this.turn || this.throwsLeft <= 0) return;
       this._clear();
@@ -147,8 +211,10 @@
       this._emit(); this._maybeAI();
     }
 
+    // 말 소유자: 팀전이면 팀 대표(공유 말), 아니면 자기 자신
+    _pieceOwner(seat) { return this.teamMode ? this.teamHolder[this.players[seat].team] : seat; }
     _anyMovable(seat) {
-      const pl = this.players[seat];
+      const pl = this.players[this._pieceOwner(seat)];
       for (const s of this.pending) {
         for (const pc of pl.pieces) {
           if (pc.done) continue;
@@ -167,9 +233,8 @@
       if (pendingIndex == null) pendingIndex = 0;
       if (pendingIndex < 0 || pendingIndex >= this.pending.length) return;
       const steps = this.pending[pendingIndex];
-      // 소유자: 기본은 자기 말, 팀전이면 같은 팀 팀원 말도 제어 가능
-      let owner = seat;
-      if (ownerSeat != null && this.teamMode) { const os = this.players[ownerSeat]; if (os && os.team === this.players[seat].team) owner = ownerSeat; }
+      // 소유자: 팀전이면 팀 공유 말(대표), 아니면 자기 말
+      const owner = this._pieceOwner(seat);
       const pl = this.players[owner];
       const pc = pl.pieces.find(p => p.id === pieceId);
       if (!pc || pc.done) return;
@@ -188,7 +253,7 @@
       const sameCell = (pc.out && !pc.done)
         ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)), [])
         : [pc];
-      const group = (carry === false) ? [pc] : sameCell;
+      const group = sameCell;   // 업으면 무조건 같이 이동(따로 가기 선택 없음)
 
       if (r.done) {
         group.forEach(g => { g.done = true; g.out = false; });
@@ -264,8 +329,9 @@
       return false;
     }
     _bestMove(seat) {
-      const pl = this.players[seat];
-      const diff = pl.aiDiff || 'normal';
+      const me = this.players[seat];
+      const pl = this.players[this._pieceOwner(seat)];   // 팀전이면 공유 말(대표) 기준으로 후보 생성
+      const diff = me.aiDiff || 'normal';
       const cands = [];
       for (let pi = 0; pi < this.pending.length; pi++) {
         const s = this.pending[pi];
@@ -306,6 +372,11 @@
       const p = this.players[this.turn];
       const auto = p && (p.ai || !p.connected);
       const ms = this.aiFast ? 130 : this.aiMs;
+      if (this.phase === 'order') {   // 선 뽑기: 현재 던질 사람이 AI/끊김이면 자동, 사람이면 턴 제한
+        if (auto) { this._timer = setTimeout(() => this._orderThrow(p.pid, p.aiDiff === 'hard' ? 0.6 : null), ms); }
+        else if (this.turnMs > 0) { this.turnDeadline = Date.now() + this.turnMs; this._timer = setTimeout(() => { if (!this._dead && this.phase === 'order') this._orderThrow(p.pid); }, this.turnMs); }
+        return;
+      }
       if (this.phase === 'throw' && auto) {
         const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
         this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
@@ -334,12 +405,22 @@
     serialize() {
       return {
         game: 'yut', phase: this.phase, turn: this.turn, markers: this.markers, goal: this.goal, teamMode: this.teamMode, winnerTeam: this.winnerTeam,
+        teamHolder: this.teamMode ? Object.assign({}, this.teamHolder) : null,   // 팀전 공유 말 소유 seat (team→seat)
         pending: this.pending.slice(), throwsLeft: this.throwsLeft,
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
+        decideOrder: this.decideOrder,
+        order: this.phase === 'order' ? {
+          thrower: this.turn,
+          pool: (this.orderStack && this.orderStack.length) ? this.orderStack[this.orderStack.length - 1].slice() : [],
+          round: Object.assign({}, this.orderRound),
+          final: this.orderFinal.slice(),
+          tie: !!this.orderTie, seq: this.orderSeq
+        } : null,
+        orderResult: this.orderResult || null,
         players: this.players.map((p, i) => ({
           pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),

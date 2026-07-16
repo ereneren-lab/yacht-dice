@@ -345,6 +345,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .capfx{ animation:capfx .72s ease-out forwards }
   @keyframes capfx{ 0%{transform:translateY(0) scale(.6);opacity:0} 25%{transform:translateY(-6px) scale(1.25);opacity:1} 100%{transform:translateY(-22px) scale(1);opacity:0} }
   .tray-tag{ font-size:9px;color:var(--muted);font-weight:700;margin-left:2px }
+  .tray-mem{ font-size:9px;font-weight:600;color:var(--muted);margin-top:1px;letter-spacing:.2px }
+  .tray-us{ font-size:9px;color:var(--brass);margin-left:4px;font-weight:900 }
   /* 이모지 팝업 + 채팅 (공통) */
   .reactzone{ position:relative;margin-top:12px;text-align:center }
   .reacttoggle{ padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit }
@@ -541,6 +543,59 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     #vsIntro.on .vs-title{ transform:translateX(-50%) !important; }
     #vsIntro.on .vs-rays,#vsIntro.on .vs-sweep,#vsIntro.on .vs-flash,#pieceLayer .pcpiece .pcbody{ animation:none !important; }
   }
+  /* ==== 선 뽑기 설정 토글 (셋업 화면) ==== */
+  .orderswitch{ display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;user-select:none;font-family:inherit;transition:opacity .15s,border-color .15s }
+  .orderswitch .osw-txt{ flex:1;font-size:13px;font-weight:800;color:var(--ink);line-height:1.25;text-align:left }
+  .orderswitch .osw-txt small{ display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:2px }
+  .orderswitch .osw-tog{ flex:none;width:44px;height:26px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;transition:background .18s }
+  .orderswitch .osw-tog::after{ content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .18s,background .18s }
+  .orderswitch.on{ border-color:var(--brass) }
+  .orderswitch.on .osw-tog{ background:color-mix(in srgb,var(--brass) 60%,var(--panel2)) }
+  .orderswitch.on .osw-tog::after{ transform:translateX(18px);background:var(--brass) }
+  .orderswitch.disabled{ opacity:.4;pointer-events:none }
+  /* ==== 선 뽑기 진행 화면 ==== */
+  #game.orderphase .board{ opacity:.42;filter:saturate(.7);transition:opacity .3s,filter .3s }
+  #game.orderphase #pieceTray, #game.orderphase #pendingRow{ display:none }
+  .orderpanel{ background:var(--panel);border:1.5px solid var(--brass);border-radius:15px;padding:13px 13px 14px;margin-bottom:8px;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass) 16%,transparent),0 4px 14px rgba(0,0,0,.28) }
+  .orderpanel .op-head{ text-align:center;font-size:14px;font-weight:900;color:var(--ink);margin-bottom:3px }
+  .orderpanel .op-sub{ text-align:center;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px }
+  .orderpanel .op-tie{ text-align:center;font-size:12.5px;font-weight:800;color:var(--brass);margin:2px 0 9px;animation:optiepulse 1s ease-in-out infinite }
+  @keyframes optiepulse{ 0%,100%{opacity:1} 50%{opacity:.55} }
+  .orderpanel .op-final{ display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px }
+  .orderpanel .op-final:empty{ display:none }
+  .op-rankbadge{ display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:999px;background:color-mix(in srgb,var(--brass) 15%,var(--panel2));border:1.5px solid var(--brass) }
+  .op-rankbadge img{ width:24px;height:24px;border-radius:50%;object-fit:cover;background:#fff }
+  .op-rankbadge .opr-no{ font-size:12px;font-weight:900;color:var(--brass) }
+  .op-rankbadge .opr-nm{ font-size:11.5px;font-weight:800;color:var(--ink);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+  .orderpanel .op-pool{ display:flex;flex-direction:column;gap:7px }
+  .op-comp{ display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:12px;background:var(--panel2);border:1.5px solid var(--line);transition:.15s }
+  .op-comp.throwing{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 30%,transparent);background:color-mix(in srgb,var(--brass) 12%,var(--panel2)) }
+  .op-comp img{ width:34px;height:34px;border-radius:50%;object-fit:cover;background:#fff;border:2.5px solid var(--line);flex:none }
+  .op-comp.throwing img{ border-color:var(--brass) }
+  .op-comp .opc-nm{ flex:1;font-size:12.5px;font-weight:800;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+  .op-comp .opc-nm .opc-you{ color:var(--brass) }
+  .op-comp .opc-res{ flex:none;font-size:15px;font-weight:900;color:var(--brass);min-width:34px;text-align:center }
+  .op-comp .opc-res.wait{ font-size:13px;color:var(--muted);font-weight:700 }
+  .op-comp .opc-throwtag{ flex:none;font-size:10px;font-weight:900;color:var(--brass) }
+  /* ==== 순서 발표 오버레이 ==== */
+  #orderReveal{ position:fixed;inset:0;z-index:9350;display:none;align-items:center;justify-content:center;padding:20px;
+    background:radial-gradient(ellipse at center,rgba(24,14,4,.62),rgba(0,0,0,.8));opacity:0;transition:opacity .25s }
+  #orderReveal.on{ display:flex;opacity:1 }
+  #orderReveal .orv-box{ background:var(--bg2);border:1.5px solid var(--brass);border-radius:18px;padding:20px 22px;max-width:360px;width:100%;text-align:center;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);transform:scale(.85);transition:transform .3s cubic-bezier(.2,.8,.3,1.1) }
+  #orderReveal.on .orv-box{ transform:scale(1) }
+  #orderReveal .orv-title{ font-size:18px;font-weight:900;color:var(--brass);margin-bottom:12px }
+  #orderReveal .orv-list{ display:flex;flex-direction:column;gap:6px }
+  #orderReveal .orv-row{ display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);opacity:0;transform:translateY(8px);animation:orvIn .4s ease forwards }
+  #orderReveal .orv-row.first{ border-color:var(--brass);background:color-mix(in srgb,var(--brass) 13%,var(--panel)) }
+  @keyframes orvIn{ to{opacity:1;transform:translateY(0)} }
+  #orderReveal .orv-no{ font-size:15px;font-weight:900;min-width:30px;color:var(--brass) }
+  #orderReveal .orv-av{ width:32px;height:32px;border-radius:50%;object-fit:cover;background:#fff;border:2px solid var(--line) }
+  #orderReveal .orv-nm{ flex:1;text-align:left;font-size:13.5px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+  @media (prefers-reduced-motion: reduce){
+    #orderReveal .orv-box{ transition:none;transform:none !important } #orderReveal .orv-row{ animation:none;opacity:1;transform:none }
+  }
 </style>
 </head>
 <body>
@@ -552,6 +607,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     <button class="wbtn" id="winClose" title="닫기">✕</button>
   </div>
   <div id="vsIntro" aria-hidden="true"></div>
+  <div id="orderReveal" aria-hidden="true"></div>
   <div class="reconnfail" id="reconnFail">
     <span class="rf-txt">🔌 재접속 실패 — 새로고침하거나 방 코드로 다시 들어와줘</span>
     <button class="rf-btn" id="reconnRetry">🔄 다시 시도</button>
@@ -587,6 +643,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       </div>
       <div class="game-col game-center">
         <div class="players-strip" id="playersStrip"></div>
+        <div class="orderpanel" id="orderPanel" style="display:none"></div>
         <div class="speech-bubble" id="speechBubble"></div>
         <svg class="board" id="board" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="윷놀이 게임판"><g id="boardLayer"></g><g id="pieceLayer"></g></svg>
       </div>
@@ -662,6 +719,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <button class="opt on" data-af="0">🐢 보통</button>
           <button class="opt" data-af="1">⚡ 빠름</button>
         </div>
+        <button type="button" class="orderswitch" id="orderSwitchLocal" role="switch" aria-checked="true">
+          <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
+          <span class="osw-tog" aria-hidden="true"></span>
+        </button>
         <button class="btn" id="startBtn" style="margin-top:14px">시작</button>
       </div>
       <div id="onlineBox" style="display:none">
@@ -685,6 +746,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <button class="opt" data-tm="10">10분</button>
           <button class="opt" data-tm="15">15분</button>
         </div>
+        <button type="button" class="orderswitch" id="orderSwitchOn" role="switch" aria-checked="true">
+          <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
+          <span class="osw-tog" aria-hidden="true"></span>
+        </button>
         <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
         <div style="display:flex;gap:6px;margin-top:8px">
           <input class="field" id="joinCode" placeholder="방 코드" maxlength="4" autocapitalize="characters" autocomplete="off" inputmode="text" style="margin-bottom:0;text-transform:uppercase">
@@ -828,7 +893,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       return { node: SEQ.outer[steps], route: 'outer', out: true };
     }
     let seq = SEQ[route], i = seq.indexOf(node);
-    if (dir === 'shortcut' && steps > 0) {
+    if (steps > 0) {   // 모서리(5·10·22)에 정확히 서면 무조건 꺾기(지름길) — 가기/꺾기 선택 없음
       if (route === 'outer' && node === 5) { seq = SEQ.sc5; i = 0; }
       else if (route === 'outer' && node === 10) { seq = SEQ.sc10; i = 0; }
       else if (route === 'sc5' && node === 22) { seq = SEQ.sc10; i = SEQ.sc10.indexOf(22); }
@@ -837,6 +902,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
     if (steps < 0) {
       if (i <= 0) return { noMove: true };
+      const prev = seq[i - 1];
+      if (prev === 0) return { done: true };   // 빽도로 출발점(0) 복귀 → 그대로 나감(완주)
       return { node: seq[i - 1], route: rname, out: true };
     }
     const ni = i + steps;
@@ -860,6 +927,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         pieces: Array.from({ length: nm }, (_, k) => ({ id: k, out: false, node: 0, route: 'outer', done: false }))
       }));
       this.N = this.players.length;
+      // 팀전: 팀당 말 한 세트 공유 — 각 팀 첫 멤버(대표)에게만 말, 나머지 팀원은 빈 세트.
+      // 두 팀원이 자기 차례에 대표의 말을 함께 움직인다.
+      this.teamHolder = {};
+      if (this.teamMode) {
+        this.players.forEach(p => { if (this.teamHolder[p.team] == null) this.teamHolder[p.team] = p.seat; });
+        this.players.forEach(p => { if (p.seat !== this.teamHolder[p.team]) p.pieces = []; });
+      }
       this.turn = 0;
       this.phase = 'throw';        // 'throw' | 'move' | 'over'
       this.pending = [];           // 굴린 step 대기열
@@ -879,12 +953,65 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
       this.turnMs = opt.turnMs || 0;
       this.aiFast = !!opt.aiFast;
+      // 선 뽑기: 게임 시작 전 각자 한 번씩 던져 높은 끗수 순으로 순서 결정(동점자끼리 재대결). 팀전 제외.
+      this.decideOrder = !!opt.decideOrder && this.N > 1 && !this.teamMode;
+      this.orderStack = null; this.orderRound = {}; this.orderThrowIdx = 0;
+      this.orderFinal = []; this.orderTie = false; this.orderSeq = 0; this.orderResult = null;
       this._timer = null; this._dead = false;
     }
     _emit() { try { this.onState(); } catch (e) { if(typeof console!=='undefined'&&console.error)console.error('onState/render error:', e && e.message, e && e.stack); } }
     _clear() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
 
-    start() { if (this._dead) return; this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = []; this.gameStartTime = Date.now(); this._emit(); this._maybeAI(); }
+    start() { if (this._dead) return; this.pending = []; this.gameStartTime = Date.now();
+      if (this.decideOrder) { this._orderStart(); }
+      else { this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; }
+      this._emit(); this._maybeAI(); }
+
+    // ===== 선 뽑기(순서 결정) — 스택 기반 동점 재대결 =====
+    _orderStart() {
+      this.phase = 'order';
+      this.orderStack = [ this.players.map((_, i) => i) ];   // 스택: 각 원소는 경쟁 중인 seat 배열(같은 값이면 재대결)
+      this.orderFinal = []; this.orderRound = {}; this.orderThrowIdx = 0; this.orderTie = false; this.orderResult = null;
+      this._orderCollapse();
+    }
+    _orderCollapse() {
+      // 크기 1인 top 풀은 순위 확정 → orderFinal로. 남은 풀의 첫 던질 사람으로 세팅.
+      while (this.orderStack.length && this.orderStack[this.orderStack.length - 1].length === 1) {
+        this.orderFinal.push(this.orderStack.pop()[0]);
+      }
+      if (!this.orderStack.length) { this._orderFinish(); return; }
+      this.orderRound = {}; this.orderThrowIdx = 0;
+      this.turn = this.orderStack[this.orderStack.length - 1][0];
+    }
+    _orderThrow(pid, power) {
+      if (this._dead || this.phase !== 'order' || !this.orderStack.length) return;
+      const pool = this.orderStack[this.orderStack.length - 1];
+      const seat = pool[this.orderThrowIdx];
+      if (!this.players[seat] || this.players[seat].pid !== pid) return;
+      const r = throwYut(this.rng, power);
+      this.lastThrow = { name: r.name, step: r.step }; this.throwSeq++;   // 던지기 애니/연출 재사용
+      this.orderRound[seat] = r.step; this.orderSeq++; this.orderTie = false;
+      this.orderThrowIdx++;
+      if (this.orderThrowIdx < pool.length) { this.turn = pool[this.orderThrowIdx]; this._emit(); this._maybeAI(); return; }
+      // 라운드 완료 → 값별 그룹으로 분해(동점 그룹만 재대결)
+      this.orderStack.pop();
+      const byVal = {}; pool.forEach(s => { const v = this.orderRound[s]; (byVal[v] = byVal[v] || []).push(s); });
+      const vals = Object.keys(byVal).map(Number).sort((a, b) => a - b);   // 오름차순
+      vals.forEach(v => this.orderStack.push(byVal[v]));                    // 오름차순 push → 최고값이 top
+      this.orderTie = (vals.length === 1);                                 // 전원 동점 → 재대결
+      this._emit();               // 라운드 결과 노출(클라가 잠깐 보여줌)
+      this._orderCollapse();      // 확정자 정리 + 다음 라운드 준비
+      this._emit(); this._maybeAI();
+    }
+    _orderFinish() {
+      const old = this.players;
+      this.players = this.orderFinal.map(si => old[si]);   // 정해진 순서대로 재배열
+      this.players.forEach((p, i) => { p.seat = i; });
+      this.N = this.players.length;
+      this.orderResult = this.players.map(p => p.pid);     // 발표용 순서(pid)
+      this.orderStack = null; this.orderRound = {};
+      this.turn = 0; this.phase = 'throw'; this.throwsLeft = 1; this.pending = [];
+    }
     timeUp() {
       if (this._dead || this.phase === 'over') return;
       const prog = p => { let s = 0; for (const pc of p.pieces) { if (pc.done) s += 100; else if (pc.out) s += 1; } return s; };
@@ -914,7 +1041,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
     // 던지기
     doThrow(pid, power) {
-      if (this._dead || this.phase !== 'throw') return;
+      if (this._dead) return;
+      if (this.phase === 'order') { this._orderThrow(pid, power); return; }
+      if (this.phase !== 'throw') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat !== this.turn || this.throwsLeft <= 0) return;
       this._clear();
@@ -931,8 +1060,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this._emit(); this._maybeAI();
     }
 
+    // 말 소유자: 팀전이면 팀 대표(공유 말), 아니면 자기 자신
+    _pieceOwner(seat) { return this.teamMode ? this.teamHolder[this.players[seat].team] : seat; }
     _anyMovable(seat) {
-      const pl = this.players[seat];
+      const pl = this.players[this._pieceOwner(seat)];
       for (const s of this.pending) {
         for (const pc of pl.pieces) {
           if (pc.done) continue;
@@ -951,9 +1082,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (pendingIndex == null) pendingIndex = 0;
       if (pendingIndex < 0 || pendingIndex >= this.pending.length) return;
       const steps = this.pending[pendingIndex];
-      // 소유자: 기본은 자기 말, 팀전이면 같은 팀 팀원 말도 제어 가능
-      let owner = seat;
-      if (ownerSeat != null && this.teamMode) { const os = this.players[ownerSeat]; if (os && os.team === this.players[seat].team) owner = ownerSeat; }
+      // 소유자: 팀전이면 팀 공유 말(대표), 아니면 자기 말
+      const owner = this._pieceOwner(seat);
       const pl = this.players[owner];
       const pc = pl.pieces.find(p => p.id === pieceId);
       if (!pc || pc.done) return;
@@ -972,7 +1102,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const sameCell = (pc.out && !pc.done)
         ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)), [])
         : [pc];
-      const group = (carry === false) ? [pc] : sameCell;
+      const group = sameCell;   // 업으면 무조건 같이 이동(따로 가기 선택 없음)
 
       if (r.done) {
         group.forEach(g => { g.done = true; g.out = false; });
@@ -1048,8 +1178,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       return false;
     }
     _bestMove(seat) {
-      const pl = this.players[seat];
-      const diff = pl.aiDiff || 'normal';
+      const me = this.players[seat];
+      const pl = this.players[this._pieceOwner(seat)];   // 팀전이면 공유 말(대표) 기준으로 후보 생성
+      const diff = me.aiDiff || 'normal';
       const cands = [];
       for (let pi = 0; pi < this.pending.length; pi++) {
         const s = this.pending[pi];
@@ -1090,6 +1221,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const p = this.players[this.turn];
       const auto = p && (p.ai || !p.connected);
       const ms = this.aiFast ? 130 : this.aiMs;
+      if (this.phase === 'order') {   // 선 뽑기: 현재 던질 사람이 AI/끊김이면 자동, 사람이면 턴 제한
+        if (auto) { this._timer = setTimeout(() => this._orderThrow(p.pid, p.aiDiff === 'hard' ? 0.6 : null), ms); }
+        else if (this.turnMs > 0) { this.turnDeadline = Date.now() + this.turnMs; this._timer = setTimeout(() => { if (!this._dead && this.phase === 'order') this._orderThrow(p.pid); }, this.turnMs); }
+        return;
+      }
       if (this.phase === 'throw' && auto) {
         const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
         this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
@@ -1118,12 +1254,22 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     serialize() {
       return {
         game: 'yut', phase: this.phase, turn: this.turn, markers: this.markers, goal: this.goal, teamMode: this.teamMode, winnerTeam: this.winnerTeam,
+        teamHolder: this.teamMode ? Object.assign({}, this.teamHolder) : null,   // 팀전 공유 말 소유 seat (team→seat)
         pending: this.pending.slice(), throwsLeft: this.throwsLeft,
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
+        decideOrder: this.decideOrder,
+        order: this.phase === 'order' ? {
+          thrower: this.turn,
+          pool: (this.orderStack && this.orderStack.length) ? this.orderStack[this.orderStack.length - 1].slice() : [],
+          round: Object.assign({}, this.orderRound),
+          final: this.orderFinal.slice(),
+          tie: !!this.orderTie, seq: this.orderSeq
+        } : null,
+        orderResult: this.orderResult || null,
         players: this.players.map((p, i) => ({
           pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: p.team, catches: p.catches||0,
           pieces: p.pieces.map(pc => ({ id: pc.id, out: pc.out, node: pc.node, route: pc.route, done: pc.done })),
@@ -1166,7 +1312,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
   let engine=null, S=null, MYPID='me', online=false, ws=null, roomCode=null, lobby=null, amHost=false;
   let lastMyTurn=false; // 내 차례 알림: 직전 렌더의 내 차례 여부(에지 감지용)
-  let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false };
+  let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false, decideOrder:true };
+  try{ cfg.decideOrder = localStorage.getItem('yut_order')!=='0'; }catch(e){}
   const TEAM_COL=['#4a90d9','#e0683c']; const TEAM_NAME=['🔵 청팀','🔴 홍팀'];
   try{ const sc=localStorage.getItem('yut_char'); if(sc && ['pig','dog','sheep','cow','horse'].includes(sc)) cfg.character=sc; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
@@ -1418,6 +1565,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   const YUT_NAME={'-1':'빽도',1:'도',2:'개',3:'걸',4:'윷',5:'모'};
   function mySeat(){ return S?S.players.findIndex(p=>p.pid===MYPID):-1; }
   function canAct(){ return !!S && mySeat()===S.turn && S.phase==='move'; }
+  // 팀전: 어떤 seat이 다루는 "말 세트"의 소유(대표) seat. 팀 공유 말은 대표에게만 있다. 개인전이면 자기 자신.
+  function pieceOwnerSeat(seat){ if(S&&S.teamMode&&S.teamHolder&&S.players[seat]) return S.teamHolder[S.players[seat].team]; return seat; }
+  // 표시용 완주 수: 팀전이면 팀 공유 말(대표) 완주 수, 개인전이면 본인.
+  function dispDone(pi){ const o=pieceOwnerSeat(pi); return (S&&S.players[o]&&S.players[o].doneCount)||0; }
+  // 팀 목록(오름차순)
+  function teamList(){ return [...new Set(S.players.map(p=>p.team))].sort((a,b)=>a-b); }
   let capCount=0, prevCaptured=null, selStep=null, prevDone={}, moveSeqSeen=0, animatingId=null, skipSeen=0, pitSeen=0;
 
   function drawBoard(){
@@ -1708,10 +1861,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function simStep(node,route,out,steps,dir){
     if(!out){ if(steps<0)return{ok:false}; if(steps>=SEQ.outer.length)return{ok:true,done:true}; return{ok:true,node:SEQ.outer[steps],route:'outer'}; }
     let seq=SEQ[route], i=seq.indexOf(node);
-    if(dir==='shortcut'&&steps>0){ if(route==='outer'&&node===5){seq=SEQ.sc5;i=0;} else if(route==='outer'&&node===10){seq=SEQ.sc10;i=0;} else if(route==='sc5'&&node===22){seq=SEQ.sc10;i=SEQ.sc10.indexOf(22);} }
+    if(steps>0){ if(route==='outer'&&node===5){seq=SEQ.sc5;i=0;} else if(route==='outer'&&node===10){seq=SEQ.sc10;i=0;} else if(route==='sc5'&&node===22){seq=SEQ.sc10;i=SEQ.sc10.indexOf(22);} }  // 꺾기 강제
     if(i<0)return{ok:false};
     const rn=(seq===SEQ.sc5)?'sc5':(seq===SEQ.sc10)?'sc10':'outer';
-    if(steps<0){ if(i<=0)return{ok:false}; return{ok:true,node:seq[i-1],route:rn}; }
+    if(steps<0){ if(i<=0)return{ok:false}; if(seq[i-1]===0)return{ok:true,done:true}; return{ok:true,node:seq[i-1],route:rn}; }  // 빽도로 출발점 → 나감
     const ni=i+steps; if(ni>=seq.length)return{ok:true,done:true}; return{ok:true,node:seq[ni],route:rn};
   }
 
@@ -1726,11 +1879,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // 플레이어 스트립
     const strip=$('playersStrip'); strip.innerHTML='';
     const goalN=S.goal||S.markers;
-    const maxDone=Math.max(0,...S.players.map(p=>p.doneCount||0)); // 최다 완주 = 선두
+    const maxDone=Math.max(0,...S.players.map((p,pi)=>dispDone(pi))); // 최다 완주 = 선두(팀전은 팀 공유 말 기준)
     S.players.forEach((p,pi)=>{
-      const isLead=maxDone>0 && (p.doneCount||0)===maxDone && S.phase!=='over'; // 선두(공동 포함)
+      const dc=dispDone(pi);
+      const isLead=maxDone>0 && dc===maxDone && S.phase!=='over'; // 선두(공동 포함)
       const d=document.createElement('div'); d.className='pchip'+(S.turn===pi&&S.phase!=='over'?' turn':'')+(isLead?' lead':'')+(S.teamMode&&S.players[pi]?' tm'+S.players[pi].team:''); d.dataset.pid=p.pid;
-      const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; d.innerHTML=`<img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''} <span class="pdone">${isLead?'👑':''}${p.doneCount}/${goalN}</span>`;
+      const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; d.innerHTML=`<img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''} <span class="pdone">${isLead?'👑':''}${dc}/${goalN}</span>`;
       strip.appendChild(d);
     });
     // JUICE: 역전 배너 — 단독 선두가 실제로 바뀌는 순간만 (팀전 제외)
@@ -1753,6 +1907,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     renderThrower();
     renderSticks();
     renderTray();
+    $('game').classList.toggle('orderphase', S.phase==='order');
+    renderOrder();
+    maybeAnnounceOrder();
     // pending
     const _pend=S.pending||[]; if(selStep!=null && selStep>=_pend.length) selStep=null;
     $('pendingRow').innerHTML=_pend.map((st,i)=>{ const steps=st>0?st+'칸':'뒤로'; const pickable=canAct()&&_pend.length>1; return `<span class="pchipm${i===selStep?' sel':''}${pickable?' pick':''}" data-pi="${i}"><b class="pcm-nm">${YUT_NAME[st]}</b><span class="pcm-st">${steps}</span></span>`; }).join('');
@@ -1763,7 +1920,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const mt=(ms===S.turn && S.phase!=='over'); if(online){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
     const btn=$('throwBtn'); const ti=$('turnInfo');
     btn.classList.remove('ready'); ti.classList.remove('myturn');
-    const showGauge=(S.turn===ms && S.phase==='throw');
+    const showGauge=(S.turn===ms && (S.phase==='throw' || S.phase==='order'));
     $('powerGauge').classList.toggle('on',showGauge);
     { const gh=$('gaugeHint'); if(gh) gh.classList.toggle('show',showGauge); }
     if(!showGauge && gauging){ gauging=false; if(gaugeRAF)cancelAnimationFrame(gaugeRAF); $('powerFill').style.width='0%'; }
@@ -1772,20 +1929,25 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     else if(S.phase==='over'){ btn.disabled=true; btn.textContent='게임 종료'; ti.textContent=''; }
     else if(S.turn===ms){
       ti.classList.add('myturn');
-      if(S.phase==='throw'){ btn.disabled=false; btn.classList.add('ready'); btn.textContent='🎲 꾹 눌렀다 떼기'+(S.throwsLeft>1?` · ${S.throwsLeft}번`:''); ti.innerHTML='🎯 <b>내 차례</b> — 꾹 눌렀다 떼! 세게 던질수록 윷·모 확률 ↑'; }
+      // 팀전: 내가 다루는 건 "우리 팀 공유 말". 이름표에 팀 명시.
+      const _myTeamLbl=(S.teamMode&&S.players[ms])?TEAM_NAME[S.players[ms].team]:'';
+      const _turnLbl=_myTeamLbl?('내 차례 · <b>'+_myTeamLbl+'</b>'):'<b>내 차례</b>';
+      const _ownWord=S.teamMode?'우리 팀':'내';
+      if(S.phase==='order'){ btn.disabled=false; btn.classList.add('ready'); btn.textContent='🎲 꾹 눌렀다 떼기'; ti.innerHTML='🎲 <b>내 차례</b> — 던져서 순서를 정해요! 세게 던질수록 높은 끗수'; }
+      else if(S.phase==='throw'){ btn.disabled=false; btn.classList.add('ready'); btn.textContent='🎲 꾹 눌렀다 떼기'+(S.throwsLeft>1?` · ${S.throwsLeft}번`:''); ti.innerHTML='🎯 '+_turnLbl+' — 꾹 눌렀다 떼! 세게 던질수록 윷·모 확률 ↑'; }
       else { btn.disabled=true; btn.textContent='👇 말을 골라 탭하세요'; const _p=(S.pending||[]); const _pt=_p.map(s=>YUT_NAME[s]+(s>0?'('+s+'칸)':'')).join(', ');
-        const _mine=S.players[ms]; const _onb=_mine?_mine.pieces.filter(pc=>pc.out&&!pc.done).length:1;
-        if(_onb===0){ // 첫 말 꺼내기: 내 말이 전부 아래 트레이에 있음 → 어디를 눌러야 하는지 명확히
-          ti.innerHTML='🚩 <b>아래 내 말</b>을 탭해 출발! (반짝이는 말) · 남은 이동 <b>'+_pt+'</b>';
+        const _mine=S.players[pieceOwnerSeat(ms)]; const _onb=_mine?_mine.pieces.filter(pc=>pc.out&&!pc.done).length:1;
+        if(_onb===0){ // 첫 말 꺼내기: 우리 말이 전부 아래 트레이에 있음 → 어디를 눌러야 하는지 명확히
+          ti.innerHTML='🚩 <b>아래 '+_ownWord+' 말</b>을 탭해 출발! (반짝이는 말) · 남은 이동 <b>'+_pt+'</b>';
         } else ti.innerHTML = _p.length>1
-          ? '남은 이동 <b>'+_pt+'</b> · 위 칸을 탭해 <b>먼저 쓸 이동</b>을 고르거나, 바로 말 선택'
-          : '움직일 말 선택 · 남은 이동 <b>'+_pt+'</b>'; }
+          ? (S.teamMode?'<b>'+_myTeamLbl+'</b> 차례 · ':'')+'남은 이동 <b>'+_pt+'</b> · 위 칸을 탭해 <b>먼저 쓸 이동</b>을 고르거나, 바로 '+_ownWord+' 말 선택'
+          : (S.teamMode?'<b>'+_myTeamLbl+'</b> 차례 · ':'')+_ownWord+' 말 선택 · 남은 이동 <b>'+_pt+'</b>'; }
     } else {
-      btn.disabled=true; const who=S.players[S.turn]; btn.textContent=(who?esc(who.name):'상대')+' 차례…';
+      btn.disabled=true; const who=S.players[S.turn]; const _oTeam=(S.teamMode&&who)?TEAM_NAME[who.team]+' · ':''; btn.textContent=_oTeam+(who?esc(who.name):'상대')+' 차례…';
       if(online && who && !who.ai && who.connected===false){
-        ti.innerHTML='🤖 <b>'+esc(who.name)+'</b> 접속 끊김 · AI가 대신 두는 중…';
+        ti.innerHTML=_oTeam+'🤖 <b>'+esc(who.name)+'</b> 접속 끊김 · AI가 대신 두는 중…';
       } else {
-        ti.innerHTML='<b>'+(who?esc(who.name):'상대')+'</b>의 차례'+(S.phase==='move'?' · 말 이동 중':' · 던지는 중');
+        ti.innerHTML=(S.teamMode&&who?'<b>'+TEAM_NAME[who.team]+'</b> · ':'')+'<b>'+(who?esc(who.name):'상대')+'</b>의 차례'+(S.phase==='move'?' · 말 이동 중':' · 던지는 중');
       }
     }
     // 완주 감지 → 축하
@@ -1855,8 +2017,55 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(!S || S.phase==='over'){ el.innerHTML=''; return; }
     const p=S.players[S.turn]; if(!p){ el.innerHTML=''; return; }
     const av=pieceAnimal(p, S.turn);
-    el.innerHTML=`<img src="${ANIMAL_IMG[av]}" style="border-color:${pieceColor(S.turn)}"><span class="tname">${p.pid===MYPID?'🎯 내 차례':esc(p.name)+' 차례'}</span>`;
+    const tlbl=(S.teamMode&&p)?TEAM_NAME[p.team]+' · ':'';
+    el.innerHTML=`<img src="${ANIMAL_IMG[av]}" style="border-color:${pieceColor(S.turn)}"><span class="tname">${tlbl}${p.pid===MYPID?'🎯 내 차례':esc(p.name)+' 차례'}</span>`;
   }
+  /* ===== 선 뽑기(순서 결정) 화면 ===== */
+  function renderOrder(){
+    const el=$('orderPanel'); if(!el)return;
+    if(!S || S.phase!=='order' || !S.order){ el.style.display='none'; el.innerHTML=''; return; }
+    const o=S.order;
+    // 확정된 순위(final): final[0]=1등
+    const finalHtml=(o.final||[]).map((seat,i)=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
+      return `<span class="op-rankbadge"><span class="opr-no">${i+1}번</span><img src="${ANIMAL_IMG[av]}" alt=""><span class="opr-nm">${esc(p.name)}${p.pid===MYPID?'(나)':''}</span></span>`; }).join('');
+    // 경쟁 중인 풀: 이번 라운드 던진 결과 표시
+    const poolHtml=(o.pool||[]).map(seat=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
+      const thrown=Object.prototype.hasOwnProperty.call(o.round||{},seat);
+      const step=thrown?o.round[seat]:null;
+      const isThrower=(o.thrower===seat);
+      const resHtml = thrown
+        ? `<span class="opc-res">${YUT_NAME[step]||step}</span>`
+        : (isThrower ? `<span class="opc-res wait">던지는 중…</span>` : `<span class="opc-res wait">…</span>`);
+      const tag=isThrower&&!thrown?`<span class="opc-throwtag">▶ 지금</span>`:'';
+      return `<div class="op-comp${isThrower?' throwing':''}"><img src="${ANIMAL_IMG[av]}" alt=""><span class="opc-nm">${esc(p.name)}${p.pid===MYPID?'<span class="opc-you">(나)</span>':''}${p.ai?' 🤖':''}</span>${tag}${resHtml}</div>`; }).join('');
+    el.innerHTML=`<div class="op-head">🎲 선 뽑기 — 순서를 정합니다</div>`
+      +`<div class="op-sub">높은 끗수(모 &gt; 윷 &gt; 걸 &gt; 개 &gt; 도) 순으로 순서 결정</div>`
+      +(o.tie?`<div class="op-tie">동점! 다시 던져요 🔁</div>`:'')
+      +`<div class="op-final">${finalHtml}</div>`
+      +`<div class="op-pool">${poolHtml}</div>`;
+    el.style.display='';
+  }
+  /* 순서 확정(orderResult) → 발표 오버레이. order→throw 전환 순간 1회만. */
+  let _prevPhaseForOrder=null;
+  function maybeAnnounceOrder(){
+    if(!S) return;
+    if(_prevPhaseForOrder==='order' && S.phase!=='order' && S.phase!=='over' && S.orderResult && S.orderResult.length){
+      showOrderReveal(S.orderResult);
+    }
+    _prevPhaseForOrder = S.phase;
+  }
+  function showOrderReveal(pids){
+    const ov=$('orderReveal'); if(!ov || !S) return;
+    const rows=pids.map((pid,i)=>{ const p=S.players.find(x=>x.pid===pid); if(!p)return ''; const seat=S.players.indexOf(p); const av=pieceAnimal(p,seat);
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'등';
+      return `<div class="orv-row${i===0?' first':''}" style="animation-delay:${(i*0.12).toFixed(2)}s"><span class="orv-no">${medal}</span><img class="orv-av" src="${ANIMAL_IMG[av]}" alt=""><span class="orv-nm">${esc(p.name)}${p.pid===MYPID?' (나)':''}${p.ai?' 🤖':''}</span></div>`; }).join('');
+    ov.innerHTML=`<div class="orv-box"><div class="orv-title">🎉 순서 결정!</div><div class="orv-list">${rows}</div></div>`;
+    ov.classList.add('on');
+    try{SFX.pop&&SFX.pop();}catch(e){}
+    clearTimeout(_orvT); const life=FX_REDUCED()?1400:2400;
+    _orvT=setTimeout(()=>{ ov.classList.remove('on'); setTimeout(()=>{ if(!ov.classList.contains('on')) ov.innerHTML=''; },320); }, life);
+  }
+  let _orvT=null;
   let prevThrowKey=null, yutComboN=0, yutComboTurn=-1;
   function renderSticks(){
     const el=$('yutsticks'); const lt=S.lastThrow;
@@ -1887,22 +2096,44 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     },720); }
     else $('throwResult').innerHTML=throwLabel(lt);
   }
+  // 트레이 한 행의 슬롯 HTML(대기·판 위·완주) 생성. seat=말 소유(대표) seat, dispType/색은 표시용 seat.
+  function trayRowInner(pcs, ownerSeat, dispSeat, dispPieceP, label, colorHex){
+    const wait=pcs.filter(pc=>!pc.out&&!pc.done);
+    const onb=pcs.filter(pc=>pc.out&&!pc.done);
+    const done=pcs.filter(pc=>pc.done);
+    let slots='';
+    const type=pieceAnimal(dispPieceP, dispSeat);
+    const ast=`background-image:url(${ANIMAL_IMG[type]});background-size:cover;background-position:center;border-color:${colorHex}`;
+    wait.forEach(pc=>{ const mv=pieceMovable(pc, ownerSeat); slots+=`<div class="tp${mv?' movable':''}" style="${ast}" data-pi="${ownerSeat}" data-pid="${pc.id}" title="대기"></div>`; });
+    onb.forEach(pc=>{ const mv=pieceMovable(pc, ownerSeat); slots+=`<div class="tp onboard${mv?' movable':''}" style="${ast}" data-pi="${ownerSeat}" data-pid="${pc.id}" title="판 위"></div>`; });
+    done.forEach(()=>{ slots+=`<div class="tp done">★</div>`; });
+    if(!slots) slots='<span class="tray-empty">—</span>';
+    const tag = done.length ? `<span class="tray-tag">${done.length}/${S.goal||S.markers} 완주</span>` : '';
+    return `<span class="tray-name"><span class="dotc" style="background:${colorHex}"></span>${label}</span><span class="tray-slots">${slots}</span>${tag}`;
+  }
   function renderTray(){
     const el=$('pieceTray'); if(!el)return; el.innerHTML='';
+    if(S.teamMode){
+      // 팀당 공유 말 한 세트 → 팀 2행. 현재 차례 팀 강조. "우리 팀" 표시.
+      const myTeam=(mySeat()>=0&&S.players[mySeat()])?S.players[mySeat()].team:-1;
+      teamList().forEach(tm=>{
+        const seat=S.teamHolder[tm]; const rep=S.players[seat]; const pcs=rep?rep.pieces:[];
+        const isTurn=(S.phase!=='over' && S.players[S.turn] && S.players[S.turn].team===tm);
+        const row=document.createElement('div'); row.className='tray-row'+(isTurn?' myturn':'');
+        const members=S.players.filter(p=>p.team===tm).map(p=>esc(p.name)+(p.pid===MYPID?'(나)':'')).join(' · ');
+        const label=`${TEAM_NAME[tm]}${tm===myTeam?' <b class="tray-us">우리팀</b>':''}<small class="tray-mem">${members}</small>`;
+        row.innerHTML=trayRowInner(pcs, seat, seat, rep, label, TEAM_COL[tm]);
+        row.querySelector('.tray-name').style.flexDirection='column';
+        row.querySelector('.tray-name').style.alignItems='flex-start';
+        el.appendChild(row);
+      });
+      el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
+      return;
+    }
     S.players.forEach((p,pi)=>{
       const row=document.createElement('div'); row.className='tray-row'+(S.turn===pi&&S.phase!=='over'?' myturn':'');
-      const wait=p.pieces.filter(pc=>!pc.out&&!pc.done);
-      const onb=p.pieces.filter(pc=>pc.out&&!pc.done);
-      const done=p.pieces.filter(pc=>pc.done);
-      let slots='';
-      const type=pieceAnimal(p, pi);
-      const ast=`background-image:url(${ANIMAL_IMG[type]});background-size:cover;background-position:center;border-color:${pieceColor(pi)}`;
-      wait.forEach(pc=>{ const mv=pieceMovable(pc, pi); slots+=`<div class="tp${mv?' movable':''}" style="${ast}" data-pi="${pi}" data-pid="${pc.id}" title="대기"></div>`; });
-      onb.forEach(pc=>{ const mv=pieceMovable(pc, pi); slots+=`<div class="tp onboard${mv?' movable':''}" style="${ast}" data-pi="${pi}" data-pid="${pc.id}" title="판 위"></div>`; });
-      done.forEach(()=>{ slots+=`<div class="tp done">★</div>`; });
-      if(!slots) slots='<span class="tray-empty">—</span>';
-      const tag = done.length ? `<span class="tray-tag">${done.length}/${S.goal||S.markers} 완주</span>` : '';
-      row.innerHTML=`<span class="tray-name"><span class="dotc" style="background:${pieceColor(pi)}"></span>${esc(p.name)}${p.pid===MYPID?'(나)':''}</span><span class="tray-slots">${slots}</span>${tag}`;
+      const label=`${esc(p.name)}${p.pid===MYPID?'(나)':''}`;
+      row.innerHTML=trayRowInner(p.pieces, pi, pi, p, label, pieceColor(pi));
       el.appendChild(row);
     });
     el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
@@ -1917,18 +2148,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(selStep!=null && S.pending[selStep]!=null && canMove(pc, S.pending[selStep])) pi=selStep;
     else for(let k=0;k<S.pending.length;k++){ if(canMove(pc, S.pending[k])){ pi=k; break; } }
     if(pi<0){ showToast('그 말은 지금 움직일 수 없어'); return; }
-    const st=S.pending[pi]; selStep=null;
-    const branch=isBranchC(pc.node,pc.route);
-    const canSc=branch?simStep(pc.node,pc.route,pc.out,st,'shortcut').ok:false;
-    const canSt=branch?simStep(pc.node,pc.route,pc.out,st,null).ok:false;
-    const needDir=branch&&canSc&&canSt;
-    const defDir=branch?(canSc?'shortcut':null):null;
-    const mates = S.teamMode ? S.players.filter(p=>p.team===owner.team) : [owner];
-    const sameCell=(pc.out&&!pc.done)? mates.reduce((a,tp)=>a.concat(tp.pieces.filter(x=>!x.done&&x.out&&x.node===pc.node&&x.route===pc.route)),[]) : [pc];
-    const needStack=sameCell.length>=2;
-    if(needStack){ showStackChoice(pieceId,pi,needDir,defDir,sameCell.length,ownerSeat); return; }
-    if(needDir){ showDirChoice(pieceId,pi,true,ownerSeat); return; }
-    doMoveAction(pieceId,pi,defDir,true,ownerSeat);
+    selStep=null;
+    // 꺾기 강제·업기 항상 같이 → 가기/꺾기·따로/같이 선택 없이 바로 이동(엔진이 자동 꺾기+업은 말 함께 처리)
+    const carried = (pc.out && !pc.done) && ((S.teamMode ? S.players.filter(p=>p.team===owner.team) : [owner])
+      .reduce((a,tp)=>a.concat(tp.pieces.filter(x=>!x.done&&x.out&&x.node===pc.node&&x.route===pc.route)),[]).length>=2);
+    if(carried) trackMission('carry');
+    doMoveAction(pieceId,pi,'shortcut',true,ownerSeat);
   }
   // 선택 모달 닫기(취소 안전) — 두 모달 모두 확정 버튼 전까지 서버 전송/상태변경이 없으므로 그냥 닫기만 하면 원래 말 선택 화면으로 복귀됨
   function closeStackChoice(){ $('stackChoice').classList.remove('on'); }
@@ -1990,9 +2215,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     else engine.action(MYPID,{type:'move',pieceId,pendingIndex:pi,dir,carry,ownerSeat});
   }
   let gauging=false, gaugeVal=0, gaugeRAF=null, gaugeStart=0;
-  function canThrow(){ return S && S.phase==='throw' && mySeat()===S.turn && !gauging; }
+  function canThrow(){ return S && (S.phase==='throw' || S.phase==='order') && mySeat()===S.turn && !gauging; }
   function startGauge(){
-    if(gauging || !(S && S.phase==='throw' && mySeat()===S.turn)) return;
+    if(gauging || !(S && (S.phase==='throw' || S.phase==='order') && mySeat()===S.turn)) return;
     gauging=true; gaugeStart=performance.now(); $('powerGauge').classList.remove('locked');
     const loop=(t)=>{ if(!gauging)return; const el=(t-gaugeStart)/850; gaugeVal=(Math.sin(el*Math.PI*2-Math.PI/2)+1)/2; $('powerFill').style.width=(gaugeVal*100).toFixed(0)+'%'; gaugeRAF=requestAnimationFrame(loop); };
     gaugeRAF=requestAnimationFrame(loop);
@@ -2034,7 +2259,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   });
   // 전역 키보드 던지기: 내 차례 던지기 상태에서 Space/Enter로 파워게이지 트리거(길게=게이지, 짧게=적당 파워)
   function _kbThrowOK(){
-    if(!(S && S.phase==='throw' && mySeat()===S.turn)) return false; // 내 차례 던지기 상태만
+    if(!(S && (S.phase==='throw' || S.phase==='order') && mySeat()===S.turn)) return false; // 내 차례 던지기(선 뽑기 포함) 상태만
     if($('dirChoice').classList.contains('on')||$('stackChoice').classList.contains('on')) return false; // 모달 열림 무시
     const a=document.activeElement, tn=a&&a.tagName;
     if(tn==='INPUT'||tn==='TEXTAREA'||tn==='SELECT'||(a&&a.isContentEditable)) return false; // 입력창 포커스면 무시
@@ -2161,7 +2386,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
-    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
+    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
     try{vsIntro();}catch(e){}      // ★ VS 인트로
@@ -2318,8 +2543,21 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('tabLocal').onclick=()=>{ $('tabLocal').classList.add('on'); $('tabOnline').classList.remove('on'); $('localBox').style.display='block'; $('onlineBox').style.display='none'; };
   $('tabOnline').onclick=()=>{ $('tabOnline').classList.add('on'); $('tabLocal').classList.remove('on'); $('localBox').style.display='none'; $('onlineBox').style.display='block'; };
   $('optCount').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optCount').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.n=+o.dataset.n; });
-  $('optMode').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMode').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.team=+o.dataset.t; $('optCount').style.display=cfg.team?'none':'flex'; $('optCount').previousElementSibling.style.display=cfg.team?'none':'block'; if(cfg.team)cfg.n=4; });
-  $('optModeOn').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optModeOn').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.onTeam=+o.dataset.t; });
+  $('optMode').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMode').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.team=+o.dataset.t; $('optCount').style.display=cfg.team?'none':'flex'; $('optCount').previousElementSibling.style.display=cfg.team?'none':'block'; if(cfg.team)cfg.n=4; syncOrderToggles(); });
+  $('optModeOn').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optModeOn').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.onTeam=+o.dataset.t; syncOrderToggles(); });
+  /* 선 뽑기 토글: cfg.decideOrder + localStorage yut_order 연동. 팀전에선 미적용이라 흐리게. */
+  function syncOrderToggles(){
+    const on=!!cfg.decideOrder;
+    [['orderSwitchLocal', !!cfg.team], ['orderSwitchOn', !!cfg.onTeam]].forEach(([id,team])=>{
+      const el=$(id); if(!el)return;
+      el.classList.toggle('on', on && !team);
+      el.classList.toggle('disabled', team);   // 팀전 → 선 뽑기 미적용, 흐리게 + 비활성
+      el.setAttribute('aria-checked', (on && !team)?'true':'false');
+    });
+  }
+  function toggleOrder(){ cfg.decideOrder=!cfg.decideOrder; try{localStorage.setItem('yut_order', cfg.decideOrder?'1':'0');}catch(e){} syncOrderToggles(); }
+  { const a=$('orderSwitchLocal'), b=$('orderSwitchOn'); if(a)a.onclick=toggleOrder; if(b)b.onclick=toggleOrder; }
+  syncOrderToggles();
   function pieceColor(pi){ return (S && S.teamMode && S.players[pi]) ? TEAM_COL[S.players[pi].team] : PCOL[pi]; }
   $('optMarkers').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMarkers').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.markers=+o.dataset.m; refreshGoal('optGoal',cfg.markers,'goal'); });
   $('optTimer')&&$('optTimer').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optTimer').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.timer=+o.dataset.tm; });
@@ -2334,7 +2572,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let g=2; g<=markers; g++){ const b=document.createElement('button'); b.type='button'; b.className='opt'+(g===cfg[key]?' on':''); b.dataset.g=g; b.textContent=g+(g===markers?'개(전부)':'개'); b.onclick=()=>{ cfg[key]=g; refreshGoal(elId,markers,key); }; el.appendChild(b); }
   }
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,avatar:cfg.character})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,avatar:cfg.character})); };
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
   (function(){ const jc=$('joinCode'); if(!jc)return;
     jc.addEventListener('input',()=>{ const v=jc.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(v!==jc.value) jc.value=v; });
