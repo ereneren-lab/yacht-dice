@@ -197,13 +197,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   (function(){
     var GAMES={kb:1,ld:1,lcr:1,yut:1,yacht:1};
     // 방 코드 → 해당 게임 페이지로 라우팅. 서버에 코드를 물어 게임 종류를 알아낸다.
-    function routeTo(code, onFail){
+    function routeTo(code, onFail, onWait){
       code=(code||'').trim().toUpperCase();
       if(!code){ if(onFail)onFail('방 코드를 입력해'); return; }
+      // Render 무료 인스턴스가 잠들어 있으면 첫 요청이 30~60초 걸린다. 2.5초 넘게 응답 없으면 "깨우는 중" 안내.
+      var wakeT=setTimeout(function(){ if(onWait)onWait('⏳ 서버를 깨우는 중… 최대 1분 걸릴 수 있어요'); }, 2500);
       fetch('/api/room?code='+encodeURIComponent(code)).then(function(r){return r.json();}).then(function(d){
+        clearTimeout(wakeT);
         if(d&&d.ok&&GAMES[d.game]){ location.href=d.game+'.html?room='+encodeURIComponent(code); }
         else if(onFail){ onFail('그런 방이 없어요. 코드를 확인해줘'); }
-      }).catch(function(){ if(onFail)onFail('연결 실패 — 잠시 후 다시 시도'); });
+      }).catch(function(){ clearTimeout(wakeT); if(onFail)onFail('연결 실패 — 잠시 후 다시 시도'); });
     }
     // 링크로 들어온 ?room=CODE 자동 라우팅 (실패 시 종전처럼 요트로 폴백)
     var r=new URLSearchParams(location.search).get('room');
@@ -212,7 +215,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     var inp=document.getElementById('joinCode'), btn=document.getElementById('joinGo'), msg=document.getElementById('joinMsg');
     if(!inp||!btn)return;
     inp.addEventListener('input',function(){ inp.value=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); if(msg)msg.textContent=''; });
-    function go(){ btn.disabled=true; if(msg)msg.textContent=''; routeTo(inp.value, function(m){ if(msg)msg.textContent=m; btn.disabled=false; inp.focus(); }); }
+    function go(){ btn.disabled=true; if(msg){msg.textContent='';msg.style.color='';} routeTo(inp.value,
+      function(m){ if(msg){msg.textContent=m;msg.style.color='';} btn.disabled=false; inp.focus(); },
+      function(m){ if(msg){msg.textContent=m;msg.style.color='var(--muted)';} }); }
     btn.addEventListener('click',go);
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter')go(); });
   })();

@@ -534,7 +534,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         </div>
         <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <input class="field" id="joinCode" placeholder="방 코드" maxlength="6" style="margin-bottom:0;text-transform:uppercase">
+          <input class="field" id="joinCode" placeholder="방 코드" maxlength="4" autocapitalize="characters" autocomplete="off" inputmode="text" style="margin-bottom:0;text-transform:uppercase">
           <button class="btn ghost" id="joinBtn" style="width:auto;padding:12px 18px">참가</button>
         </div>
         <div class="err" id="onErr"></div>
@@ -1739,7 +1739,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     w.appendChild(document.createElement('br')); w.appendChild(b);
   }
   function connect(then){
-    if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인이 안 돼요. 배포 주소에서 접속하세요.'; return; }
+    if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
     teardownNet();
     try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버 연결 실패'; return; }
     /* 콜드스타트 안내: Render가 잠들어 있으면 첫 연결이 30~60초 걸린다.
@@ -1799,14 +1799,21 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const tBadge=(lobby.teamMode&&!mem.spectator)?`<span class="mteam mteam${mem.team}">${mem.team===0?'🔵 청팀':'🔴 홍팀'}</span>`:'';
       const tBtn=(lobby.teamMode&&!mem.spectator&&mem.pid===MYPID)?`<button class="teambtn" data-team="${mem.team===0?1:0}">↔ 팀 바꾸기</button>`:'';
       const specBadge=mem.spectator?`<span class="mhost" style="background:rgba(130,130,130,.18);color:var(--muted)">👀 관전</span>`:'';
-      d.innerHTML=`${ANIMAL_IMG[mem.avatar]?`<img class="mav-img" src="${ANIMAL_IMG[mem.avatar]}" style="border-color:${mem.host?'var(--brass)':'var(--line)'}">`:`<div class="mav">${mem.avatar||'🎲'}</div>`}<span class="mnm">${esc(mem.name)}</span>${specBadge}${tBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${tBtn}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      const meAttr=(mem.pid===MYPID&&!mem.ai)?' data-me="1" style="cursor:pointer" title="탭하면 이름 변경"':'';
+      d.innerHTML=`${ANIMAL_IMG[mem.avatar]?`<img class="mav-img" src="${ANIMAL_IMG[mem.avatar]}" style="border-color:${mem.host?'var(--brass)':'var(--line)'}">`:`<div class="mav">${mem.avatar||'🎲'}</div>`}<span class="mnm"${meAttr}>${esc(mem.name)}</span>${specBadge}${tBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${tBtn}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
       host.appendChild(d); });
+    host.querySelectorAll('.mnm[data-me]').forEach(el=>el.onclick=()=>{ const cur=(lobby.members.find(x=>x.pid===MYPID)||{}).name||''; const nn=(prompt('새 이름 (최대 12자)', cur)||'').trim().slice(0,12); if(nn && nn!==cur){ try{localStorage.setItem('alley_name',nn);}catch(e){} wsSend({t:'rename',name:nn}); } });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     host.querySelectorAll('.teambtn').forEach(b=>b.onclick=()=>wsSend({t:'setTeam',team:+b.dataset.team}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
-    const ready=lobby.members.length>=2;
+    const MINP=2;
+    const playable=lobby.members.filter(x=>!x.spectator).length;
+    const ready=playable>=MINP;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
-    if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='상대를 기다리는 중… (2~6인)'; }
+    if(!ready){ $('lobbyWait').style.display='block'; const need=MINP-playable;
+      let msg=`👥 현재 ${playable}명 · 최소 ${MINP}명`+(need>0?` (${need}명 더 필요)`:'');
+      if(amHost) msg+='<br>친구를 기다리거나 🤖 AI를 추가해 바로 시작하세요';
+      $('lobbyWait').innerHTML=msg; }
     else if(!amHost){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
     else { $('lobbyWait').style.display='none'; }
     if(wasPlaying){ wasPlaying=false; showToast('🔄 다시 시작 준비! 호스트가 시작하면 출발'); }
@@ -1845,11 +1852,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let g=2; g<=markers; g++){ const b=document.createElement('button'); b.type='button'; b.className='opt'+(g===cfg[key]?' on':''); b.dataset.g=g; b.textContent=g+(g===markers?'개(전부)':'개'); b.onclick=()=>{ cfg[key]=g; refreshGoal(elId,markers,key); }; el.appendChild(b); }
   }
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,avatar:cfg.character})); };
-  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트'; const code=($('joinCode').value||'').trim().toUpperCase(); if(!code){ $('onErr').textContent='방 코드를 입력해'; return; } online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,avatar:cfg.character})); };
+  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
+  (function(){ const jc=$('joinCode'); if(!jc)return;
+    jc.addEventListener('input',()=>{ const v=jc.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(v!==jc.value) jc.value=v; });
+    jc.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinBtn').click(); } });
+  })();
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ copyText(location.origin+location.pathname+'?room='+(roomCode||''), '🔗 초대 링크 복사됨'); };
+  $('lobbyCopy').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
+  (function(){ const lc=$('lobbyCode'); if(!lc)return; lc.style.cursor='pointer'; lc.title='탭하면 방 코드 복사'; lc.onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); }; })();
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   $('toHub').onclick=()=>location.href='./';
@@ -1877,10 +1889,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
 
   (function boot(){
     renderStats(); renderAch(); buildCharPick(); refreshGoal('optGoal',cfg.markers,'goal'); refreshGoal('optGoalOn',cfg.onMarkers,'onGoal');
+    try{ const sn=lsGet('alley_name'); if(sn && $('onName')) $('onName').value=sn; }catch(e){}
     const savedRoom=lsGet('yut_room'), savedPid=lsGet('yut_pid');
     if(savedRoom&&savedPid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; online=true; connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid})); return; }
     const params=new URLSearchParams(location.search); const room=params.get('room');
-    if(room){ $('tabOnline').click(); $('joinCode').value=room.toUpperCase(); }
+    if(room){ const code=room.toUpperCase(); $('tabOnline').click(); $('joinCode').value=code; if(lsGet('alley_name')){ $('joinBtn').click(); } else { $('onName').focus(); } }
   })();
 })();
 </script>

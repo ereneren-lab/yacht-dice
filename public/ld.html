@@ -397,14 +397,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div id="onlineBox" style="display:none">
       <div class="opt-label">내 이름</div>
       <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
-      <div class="row2">
-        <button class="btn" id="createBtn">방 만들기</button>
-        <button class="btn ghost" id="joinToggle">참가</button>
-      </div>
-      <div id="joinBox" style="display:none">
-        <input class="field code" id="joinCode" maxlength="4" placeholder="코드">
-        <button class="btn" id="joinBtn" style="margin-top:10px">코드로 참가</button>
-      </div>
+      <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
+      <div class="opt-label">방 코드 · 친구에게 공유</div>
+      <input class="field code" id="joinCode" maxlength="4" placeholder="코드" autocapitalize="characters" autocomplete="off" inputmode="text" spellcheck="false">
+      <button class="btn ghost" id="joinBtn" style="margin-top:10px">코드로 참가</button>
       <div class="err" id="onErr"></div>
     </div>
     <button class="btn" id="startBtn">시작</button>
@@ -852,9 +848,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('shareBtn').onclick=shareResult;
 
   // online setup
-  $('joinToggle').onclick=()=>{ const b=$('joinBox'); b.style.display=b.style.display==='none'?'block':'none'; };
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn})); };
-  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트'; const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='코드 4자리를 입력해.'; return; } online=true; connect(()=>wsSend({t:'join',code,name})); };
+  // 코드칸: 항상 노출 · 대문자+영숫자만 4자리로 정규화 · Enter로 바로 참가
+  $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
+  $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); $('joinBtn').onclick(); } });
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn})); };
+  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
 
   function start(){
     teardownNet(); online=false; MYPID='me'; ffActive=false; localDiff=cfg.diff||'normal';
@@ -936,20 +934,38 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);
     $('lobbySpot').style.opacity = amHost?'1':'.55';
     const host=$('members'); host.innerHTML='';
-    lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
-      d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`; host.appendChild(d); });
+    lobby.members.forEach(mem=>{ const isMe=mem.pid===MYPID; const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'')+(isMe?' me':'');
+      d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}${isMe?' <span style="color:var(--brass);font-size:11px">✏️ 나</span>':''}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      if(isMe){ const nm=d.querySelector('.mnm2'); nm.style.cursor='pointer'; nm.title='탭해서 이름 변경'; nm.onclick=renameSelf; }
+      host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<4) ? 'block' : 'none';
-    const ready=lobby.members.length>=2;
+    const MIN=2, cnt=lobby.members.length;
+    const ready=cnt>=MIN;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
-    if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='상대를 기다리는 중… (2~4인)'; }
+    if(!ready){ $('lobbyWait').style.display='block';
+      $('lobbyWait').innerHTML=`👥 현재 ${cnt}명 · 최소 ${MIN}명 <span style="color:var(--muted)">(${MIN-cnt}명 더 필요)</span>`
+        + (amHost?'<br>친구를 기다리거나 🤖 AI를 추가해 바로 시작하세요':''); }
     else if(!amHost){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
     else { $('lobbyWait').style.display='none'; }
+  }
+  // 로비에서 자기 이름 탭 → 이름 변경 (서버에 rename 전송)
+  function renameSelf(){
+    const cur=chatMyName();
+    const v=(prompt('새 이름을 입력해', cur)||'').trim();
+    if(!v || v===cur) return;
+    const name=v.slice(0,12);
+    saveName(name); wsSend({t:'rename',name});
   }
   $('lobbySpot').onclick=()=>{ if(!amHost)return; wsSend({t:'setSpot',v:!(lobby&&lobby.spotOn!==false)}); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('copyLink').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); copyText(url); $('copyLink').textContent='✓ 복사됨!'; setTimeout(()=>$('copyLink').textContent='🔗 초대 링크 복사',1500); };
+  $('copyLink').onclick=()=>{ const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
+    const fb=()=>{ copyText(url); showToast('🔗 초대 링크 복사됨'); };
+    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(fb); }
+    else fb(); };
+  $('lobbyCode').style.cursor='pointer';
+  $('lobbyCode').onclick=()=>{ const code=(lobby&&lobby.code)||roomCode||''; if(!code)return; copyText(code); showToast('방 코드 복사됨'); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} lobby=null; online=false; $('lobbyOv').classList.remove('on'); resetSetupMode(); openSetup(); };
 
   // ---------- render ----------
@@ -1112,7 +1128,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(ms<0){   // 관전자 (게임 중 입장 — 엔진 플레이어 아님)
       $('mydice').innerHTML=''; $('meNm').textContent='관전 중'; $('meAv').textContent='👁';
       $('meBox').classList.remove('turn');
-      $('controls').innerHTML='<div class="mini" style="padding:12px;text-align:center">관전 중 — 다음 판부터 참여할 수 있어</div>';
+      $('controls').innerHTML='<div class="mini" style="padding:12px;text-align:center">👀 관전 중 — 다음 판부터 참여해요</div>';
     } else { renderMine(); renderControls(); }
     renderReveal(); buildReactbar();
     syncTurnTimer(); checkAutoAct(); seenState=true;
@@ -1429,13 +1445,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH_LD.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); } }
-  function resetSetupMode(){ online=false; MYPID='me'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('aiBox').style.display='block'; $('onlineBox').style.display='none'; $('spotToggle').style.display='flex'; $('startBtn').style.display='block'; if($('onErr'))$('onErr').textContent=''; if($('joinBox'))$('joinBox').style.display='none'; }
+  function resetSetupMode(){ online=false; MYPID='me'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('aiBox').style.display='block'; $('onlineBox').style.display='none'; $('spotToggle').style.display='flex'; $('startBtn').style.display='block'; if($('onErr'))$('onErr').textContent=''; }
+  // 이름 기억 (전 게임 공유)
+  function saveName(n){ if(n){ try{localStorage.setItem('alley_name',n);}catch(e){} } }
+  function loadName(){ try{return localStorage.getItem('alley_name')||'';}catch(e){return '';} }
+  // 온라인 모드 UI로 전환 (optMode 온라인 선택과 동일)
+  function switchOnline(){ online=true; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('aiBox').style.display='none'; $('spotToggle').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
 
   (function boot(){
     const room=new URLSearchParams(location.search).get('room');
     let sr=null,sp=null; try{sr=localStorage.getItem('ld_room');sp=localStorage.getItem('ld_pid');}catch(e){}
-    if(room && location.protocol!=='file:'){ online=true; resetSetupMode(); online=true; connect(()=>wsSend({t:'join',code:room.toUpperCase(),name:'게스트'})); return; }
+    const nm=loadName(); if(nm && $('onName')) $('onName').value=nm;   // 이름 프리필
+    // 저장 세션 rejoin 우선
     if(sr && sp && location.protocol!=='file:'){ online=true; connect(()=>wsSend({t:'rejoin',code:sr,pid:sp})); return; }
+    if(room && location.protocol!=='file:'){
+      const code=room.toUpperCase();
+      if(nm){ resetSetupMode(); online=true; saveName(nm); connect(()=>wsSend({t:'join',code,name:nm})); return; }
+      // 이름 없음: 온라인 전환 + 코드 채우고 이름칸 포커스
+      openSetup(); switchOnline(); $('joinCode').value=code; setTimeout(()=>{try{$('onName').focus();}catch(e){}},80); return;
+    }
     openSetup();
   })();
 })();

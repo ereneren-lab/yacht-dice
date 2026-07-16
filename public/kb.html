@@ -479,13 +479,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div id="onlineBox" style="display:none">
       <div class="opt-label">내 이름</div>
       <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
-      <div class="row2">
-        <button class="btn" id="createBtn">방 만들기</button>
-        <button class="btn ghost" id="joinToggle">참가</button>
-      </div>
-      <div id="joinBox" style="display:none">
-        <input class="field code" id="joinCode" maxlength="4" placeholder="코드">
-        <button class="btn" id="joinBtn" style="margin-top:10px">코드로 참가</button>
+      <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
+      <div id="joinBox">
+        <div class="opt-label">친구 방 참가</div>
+        <input class="field code" id="joinCode" maxlength="4" placeholder="코드 4자리" autocapitalize="characters" autocomplete="off" inputmode="text">
+        <button class="btn ghost" id="joinBtn" style="margin-top:10px">코드로 참가</button>
       </div>
       <div class="err" id="onErr"></div>
     </div>
@@ -498,7 +496,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   <div class="sheet">
     <h3>방 코드</h3>
     <p>친구에게 코드나 링크를 보내. 둘 다 들어오면 시작!</p>
-    <div class="lobbycode" id="lobbyCode">····</div>
+    <div style="text-align:center;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--muted);margin-top:6px">방 코드 · 친구에게 공유</div>
+    <div class="lobbycode" id="lobbyCode" style="cursor:pointer" title="탭하면 방 코드 복사">····</div>
     <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
     <div class="members" id="members"></div>
     <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
@@ -999,12 +998,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
   }
 
-  $('joinToggle').onclick = ()=>{ const b=$('joinBox'); b.style.display = b.style.display==='none'?'block':'none'; };
-  $('createBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'호스트';
+  // [중-1] 코드칸 정규화(대문자+영숫자만, 4자 컷) + [하-1] Enter → 참가
+  (function(){ const jc=$('joinCode'); if(!jc) return;
+    jc.addEventListener('input', ()=>{ jc.value = jc.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
+    jc.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); $('joinBtn').onclick(); } });
+  })();
+  function saveName(v){ v=(v||'').trim(); if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
+  $('createBtn').onclick = ()=>{ $('onErr').textContent=''; saveName($('onName').value); const name=($('onName').value||'').trim()||'호스트';
     mode='online'; connect(()=>wsSend({t:'create',game:'kb',name})); };
   $('joinBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
-    const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='코드 4자리를 입력해.'; return; }
-    mode='online'; connect(()=>wsSend({t:'join',code,name})); };
+    const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해.'; return; }
+    saveName($('onName').value); mode='online'; connect(()=>wsSend({t:'join',code,name})); };
+  function switchOnline(){ mode='online'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('diffWrap').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
 
   function renderLobby(){
     if(!lobby) return;
@@ -1014,19 +1019,48 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const host = $('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{
       const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
-      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(mem.name)}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHostFlag)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      const isMe = mem.pid===myPid;
+      // [중-6] 관전/대기 배지
+      const specBadge = mem.spectator
+        ? '<span class="mhost" style="background:rgba(130,130,130,.18);color:var(--muted)">👀 관전</span>'
+        : (mem.waiting ? '<span class="mhost" style="background:rgba(130,130,130,.18);color:var(--muted)">대기</span>' : '');
+      // [중-3] 내 이름은 탭하면 변경 가능
+      const nameHtml = isMe
+        ? `<span class="mnm" data-me="1" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="탭하면 이름 변경">${esc(mem.name)} ✏️</span>`
+        : `<span class="mnm">${esc(mem.name)}</span>`;
+      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div>${nameHtml}${specBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHostFlag)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
       host.appendChild(d);
     });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
+    // [중-3] 이름 변경
+    const meEl = host.querySelector('.mnm[data-me]');
+    if(meEl) meEl.onclick=()=>{ const cur=(lobby.members.find(x=>x.pid===myPid)||{}).name||'';
+      const nn=(prompt('새 이름을 입력하세요', cur)||'').trim().slice(0,12);
+      if(nn && nn!==cur){ saveName(nn); wsSend({t:'rename',name:nn}); } };
     $('lobbyAddAi').style.display = (amHostFlag && lobby.members.length<2) ? 'block' : 'none';
-    const ready = lobby.members.length>=2;
-    $('lobbyWait').style.display = ready?'none':'block';
+    const MIN=2, N=lobby.members.length, ready = N>=MIN;
     $('lobbyStart').style.display = (ready && amHostFlag)?'block':'none';
-    if(ready && !amHostFlag){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
+    const wait=$('lobbyWait');
+    if(!ready){
+      // [중-4] 인원 안내 + 부족분 / [중-5] 방장 안내
+      const need=MIN-N;
+      let t=`👥 현재 ${N}명 · 최소 ${MIN}명`;
+      if(need>0) t+=` (${need}명 더 필요)`;
+      if(amHostFlag) t+='<br>친구를 기다리거나 🤖 AI를 추가해 바로 시작하세요';
+      wait.innerHTML=t; wait.style.display='block';
+    } else if(!amHostFlag){
+      wait.textContent='호스트가 시작하길 기다리는 중…'; wait.style.display='block';
+    } else {
+      wait.style.display='none';
+    }
   }
   $('lobbyStart').onclick = ()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick = ()=>wsSend({t:'addAI'});
-  $('copyLink').onclick = ()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); copyText(url); $('copyLink').textContent='✓ 복사됨!'; setTimeout(()=>$('copyLink').textContent='🔗 초대 링크 복사',1500); };
+  $('copyLink').onclick = ()=>{ const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
+    const fb=()=>{ copyText(url); showToast('🔗 초대 링크 복사됨'); };
+    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>fb()); }
+    else fb(); };
+  $('lobbyCode').onclick = ()=>{ const c=roomCode||(lobby&&lobby.code)||''; if(!c)return; copyText(c); showToast('📋 방 코드 복사됨'); };
   $('lobbyLeave').onclick = ()=>{ teardownNet(); try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} $('lobbyOv').classList.remove('on'); mode='ai'; resetSetup(); openSetup(); };
   function requestRematch(){ wsSend({t:'endGame'}); /* 호스트가 endGame하면 로비로; 양쪽 로비에서 재시작 */ }
 
@@ -1157,11 +1191,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('sideOpp').classList.toggle('active', s.turn===top && !isOver(s));
     // roll button
     const rb=$('rollBtn');
-    const myTurnRoll = !isOver(s) && !busy && s.phase==='roll' && canControl(s.turn, s);
+    // [중-6] 관전자: 온라인·미종료·플레이어 명단에 내가 없으면 관전 중
+    const spectating = online() && !isOver(s) && !s.players.some(p=>p.pid===myPid);
+    const myTurnRoll = !spectating && !isOver(s) && !busy && s.phase==='roll' && canControl(s.turn, s);
     rb.disabled = !myTurnRoll;
     rb.textContent = (s.phase==='place' && canControl(s.turn,s)) ? '줄을 선택해' : '굴리기';
+    $('rollWrap').style.display = spectating ? 'none' : 'block';
     // label
-    updateLabel(s);
+    if(spectating) setLabel('👀 <b>관전 중</b> — 다음 판부터 참여해요');
+    else updateLabel(s);
     // tray
     renderTray(s);
     buildReactbar();
@@ -1454,16 +1492,23 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   (function boot(){
     const params=new URLSearchParams(location.search);
     const room=params.get('room');
-    let savedRoom=null, savedPid=null;
+    let savedRoom=null, savedPid=null, savedName='';
     try{ savedRoom=localStorage.getItem('kb_room'); savedPid=localStorage.getItem('kb_pid'); }catch(e){}
-    if(room && location.protocol!=='file:'){
-      mode='online'; resetSetup(); mode='online';
-      connect(()=>wsSend({t:'join',code:room.toUpperCase(),name:'게스트'}));
-      return;
-    }
+    try{ savedName=(localStorage.getItem('alley_name')||'').trim(); }catch(e){}
+    if(savedName) $('onName').value=savedName;
     if(savedRoom && savedPid && location.protocol!=='file:'){
       mode='online';
       connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid}));
+      return;
+    }
+    if(room && location.protocol!=='file:'){
+      const code=room.toUpperCase();
+      if(savedName){
+        mode='online'; resetSetup(); mode='online';
+        connect(()=>wsSend({t:'join',code,name:savedName}));
+      } else {
+        openSetup(); switchOnline(); $('joinBox').style.display='block'; $('joinCode').value=code; $('onName').focus();
+      }
       return;
     }
     openSetup();

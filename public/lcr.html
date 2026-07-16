@@ -100,7 +100,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .member .mnm{ font-weight:800;font-size:14px }
   .member .mhost{ margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);padding:3px 8px;border-radius:6px }
   .member .airm{ margin-left:6px;border:none;background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger);width:24px;height:24px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:800;flex:none }
+  .member.me{ cursor:pointer }
+  .member .mine-edit{ margin-left:auto;font-size:10.5px;font-weight:800;color:var(--brass);opacity:.85 }
   .waiting-line{ text-align:center;font-size:12.5px;color:var(--muted);margin:8px 0 }
+  .specbadge{ text-align:center;font-size:12.5px;font-weight:800;color:var(--brass);background:color-mix(in srgb,var(--brass) 12%,transparent);border:1px solid color-mix(in srgb,var(--brass) 36%,var(--line));border-radius:11px;padding:8px 10px;margin:2px 0 12px }
   /* 게임 — 좌석은 항상 "한 줄"로: 화면 왼쪽→오른쪽 = 좌석 순서(원형) */
   .seatring{ display:flex;align-items:stretch;justify-content:center;gap:5px;margin:6px 0 4px }
   .players{ display:flex;flex-wrap:nowrap;gap:5px;justify-content:center;flex:1;min-width:0 }
@@ -284,6 +287,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
             <div class="wrapmark" title="양 끝은 서로 이웃 (원형)">↪</div>
           </div>
           <div class="seathint" id="seathint" title="탭하면 접기/펼치기"><span class="sh-full">← <b>L</b> 은 왼쪽 이웃 · <b>R</b> 은 오른쪽 이웃 → · 양 끝(↩↪)은 서로 이웃이야 (원형)</span><span class="sh-mini">ⓘ 좌·우 규칙</span></div>
+          <div class="specbadge" id="specBadge" style="display:none">👀 관전 중 — 다음 판부터 참여해요</div>
           <div class="pot" id="potBox"><div class="potn" id="potN">0</div><div class="potl">가운데 팟 🎯</div></div>
           <div class="dicerow" id="dicerow"></div>
           <div class="rolllog" id="rolllog" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -344,7 +348,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <button class="btn" id="createBtn">방 만들기</button>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <input class="field" id="joinCode" placeholder="방 코드" maxlength="6" style="margin-bottom:0;text-transform:uppercase">
+          <input class="field" id="joinCode" placeholder="방 코드" maxlength="4" autocapitalize="characters" autocomplete="off" inputmode="text" style="margin-bottom:0;text-transform:uppercase">
           <button class="btn ghost" id="joinBtn" style="width:auto;padding:12px 18px">참가</button>
         </div>
         <div class="err" id="onErr"></div>
@@ -675,6 +679,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(S.phase!=='over'){ resultShown=false; sweepShown=false; }   // 새 판 진입 시 결과창·팟스윕 재무장
     $('endBtn').style.display = (online && amHost && S.phase==='roll') ? 'flex' : 'none';
     const ms=mySeat();
+    { const sb=$('specBadge'); if(sb) sb.style.display=(online && ms<0 && S.phase==='roll')?'block':'none'; }
     const aliveN=S.players.filter(p=>p.alive).length;   // 실제 alive(칩>0) 인원
     // 결투 구간: 3인 이상으로 시작한 판에서 지금 딱 둘만 살아있고 진행 중일 때
     const inDuel = S.players.length>2 && aliveN===2 && S.phase==='roll';
@@ -919,7 +924,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function hideWakeBanner(){ const el=$('wakeBanner'); if(el) el.style.display='none'; }
   function clearColdTimers(){ if(coldT){clearTimeout(coldT);coldT=null;} if(failT){clearTimeout(failT);failT=null;} }
   function connect(then){
-    if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인이 안 돼요. 배포 주소에서 접속하세요.'; return; }
+    if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
     teardownNet(); clearColdTimers();
     try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버 연결 실패'; return; }
     coldT=setTimeout(()=>{ if(!ws||ws.readyState!==1) showWakeBanner('⏳ 서버를 깨우는 중… 최대 1분 걸릴 수 있어요'); }, 2500);
@@ -982,8 +987,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     const host=$('members'); host.innerHTML='';
-    lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member';
-      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(dispName(mem))}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+    lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member'+(mem.pid===MYPID?' me':'');
+      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(dispName(mem))}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${mem.pid===MYPID?'<span class="mine-edit">✏️ 이름 변경</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      if(mem.pid===MYPID){ d.title='탭하면 이름 변경'; d.onclick=()=>{ const nn=prompt('새 닉네임 (최대 12자)', mem.name); if(nn==null)return; const v=nn.trim().slice(0,12); if(v && v!==mem.name){ wsSend({t:'rename',name:v}); saveName(v); } }; }
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
@@ -991,7 +997,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const MIN = Math.max(3, lobby.min||0);
     const ready=lobby.members.length>=MIN;
     $('lobbyStart').style.display=(ready&&amHost)?'block':'none';
-    if(!ready){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent=`상대를 기다리는 중… (${MIN}~6인 · 현재 ${lobby.members.length}명)`; }
+    if(!ready){
+      const need=MIN-lobby.members.length;
+      let txt=`👥 현재 ${lobby.members.length}명 · 최소 ${MIN}명`;
+      if(need>0) txt+=` (${need}명 더 필요)`;
+      if(amHost) txt+=' — 친구를 기다리거나 🤖 AI를 추가해 바로 시작하세요';
+      $('lobbyWait').style.display='block'; $('lobbyWait').textContent=txt;
+    }
     else if(!amHost){ $('lobbyWait').style.display='block'; $('lobbyWait').textContent='호스트가 시작하길 기다리는 중…'; }
     else { $('lobbyWait').style.display='none'; }
   }
@@ -1006,11 +1018,24 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       o.onclick=()=>{ box.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.speed=o.dataset.s; try{localStorage.setItem('lcr_speed',cfg.speed);}catch(e){} }; });
   })();
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name})); };
-  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트'; const code=($('joinCode').value||'').trim().toUpperCase(); if(!code){ $('onErr').textContent='방 코드를 입력해'; return; } online=true; connect(()=>wsSend({t:'join',code,name})); };
+  function saveName(v){ if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name})); };
+  function normCode(v){ return (v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); }
+  // 코드칸: 입력 즉시 대문자+영숫자 4자리로 정규화 + Enter로 참가
+  (function(){ const jc=$('joinCode'); if(!jc)return;
+    jc.addEventListener('input',()=>{ const n=normCode(jc.value); if(jc.value!==n) jc.value=n; });
+    jc.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); $('joinBtn').click(); } });
+  })();
+  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=normCode($('joinCode').value); if(!code){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ copyText(location.origin+location.pathname+'?room='+(roomCode||''), '🔗 초대 링크 복사됨'); };
+  $('lobbyCopy').onclick=()=>{
+    const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
+    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url,'🔗 초대 링크 복사됨')); }
+    else copyText(url,'🔗 초대 링크 복사됨');
+  };
+  $('lobbyCode').style.cursor='pointer';
+  $('lobbyCode').onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   function renderRematch(d){
@@ -1084,11 +1109,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 부트: ?room= 자동 참가 */
   (function boot(){
     renderStats(); renderAch();
+    const savedName=lsGet('alley_name'); if(savedName){ const el=$('onName'); if(el&&!el.value) el.value=savedName; }
     const savedRoom=lsGet('lcr_room'), savedPid=lsGet('lcr_pid');
     if(savedRoom&&savedPid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; online=true; connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid})); return; }
     const params=new URLSearchParams(location.search);
     const room=params.get('room');
-    if(room){ $('tabOnline').click(); $('joinCode').value=room.toUpperCase(); }
+    if(room){ $('tabOnline').click(); $('joinCode').value=normCode(room); if(savedName){ $('joinBtn').click(); } else { $('onName').focus(); } }
   })();
 })();
 </script>
