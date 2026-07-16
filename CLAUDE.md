@@ -24,20 +24,22 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 
 ## ⚠️ 엔진 이중 구조 (제일 중요) — 윷만이 아니라 **5종 전부**
 
-**모든 게임 엔진은 `*-core.js`(서버가 `require`)와 해당 HTML 안 인라인 사본(브라우저용) 두 곳에 동일하게 존재한다.** 엔진 로직을 고칠 때 **반드시 두 곳 다** 수정해야 한다. 한쪽만 고치면 로컬/온라인 동작이 갈린다.
+**모든 게임 엔진은 `*-core.js`(서버가 `require`)와 해당 HTML 안 인라인 사본(브라우저용) 두 곳에 동일하게 존재한다.** 한쪽만 고치면 로컬/온라인 동작이 갈린다(드리프트).
+
+**✅ 단일 소스화 완료 — 엔진은 `*-core.js`만 고치고 `npm run build`.** 빌드 스크립트(`scripts/build-inline.js`)가 core를 각 HTML의 `<!-- CORE:x START -->`~`<!-- CORE:x END -->` 마커 사이에 자동 주입한다. **HTML의 CORE 마커 블록은 직접 손대지 말 것**(빌드가 덮어씀). UI·렌더 등 엔진이 아닌 코드는 마커 바깥에서 평소처럼 HTML을 고친다.
 
 - HTML은 `<script src="*-core.js">`로 불러오지 **않는다.** core 파일 내용이 UMD 래퍼째로 통째로 붙여넣어져 있다 (외부 파일 없이도 페이지가 동작하도록 한 의도적 복사).
 - UMD 래퍼가 Node에선 `module.exports`, 브라우저에선 `window.YutCore` / `LCRCore` 등으로 갈라주므로 **같은 소스를 양쪽에 그대로** 쓸 수 있다.
-- `lcr`의 인라인 사본은 여러 줄을 한 줄로 압축한 **다른 포맷**이라 눈으로는 비교가 어렵다. 드리프트를 놓치기 쉬우니 주의.
+- `lcr`의 인라인 사본은 과거 한 줄로 압축한 다른 포맷이었으나, **빌드 도입 시 core 원본으로 정규화**되어 이제 5종 모두 core와 동일 포맷이다.
 
-동기화 확인법 (주석·공백 제거 후 core가 HTML 안에 통째로 들어있는지 대조):
+동기화 확인법 — **`npm run check:drift`** (커밋/배포 전 실행, 5종 OK 확인 · 드리프트면 exit 1). 아래는 그 내부 로직(수동 대조용):
 ```bash
 node -e 'const fs=require("fs");const s=x=>x.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\/\/.*$/gm,"").replace(/\s+/g,"");
 for(const[n,c,h]of[["yut","yut-core.js","yut.html"],["kb","kb-core.js","kb.html"],["ld","ld-core.js","ld.html"],["lcr","lcr-core.js","lcr.html"],["yacht","game-core.js","yacht.html"]])
 console.log(n, s(fs.readFileSync("public/"+h,"utf8")).includes(s(fs.readFileSync("public/"+c,"utf8")))?"OK":"DRIFT")'
 ```
 
-> 개선 아이디어: 빌드 스크립트로 `*-core.js`를 HTML에 자동 주입해 단일 소스화 (아직 미구현).
+> 빌드/검사 스크립트: `scripts/build-inline.js`(core→HTML 주입), `scripts/check-drift.js`(드리프트 검사). `package.json`의 `npm run build` / `npm run check:drift`. 빌드는 멱등(같은 입력이면 재실행해도 변화 없음).
 
 ## 개발 워크플로
 
@@ -58,6 +60,8 @@ node server.js      # http://localhost:3000
 
 ### 배포
 ```bash
+npm run build         # 엔진(*-core.js)을 고쳤다면 먼저 HTML에 동기화
+npm run check:drift   # 5종 OK 확인 (드리프트면 커밋 금지)
 git add -A && git commit -m "..." && git push
 # → Render 자동 빌드 (몇 분) → Electron 재시작 시 반영
 ```
