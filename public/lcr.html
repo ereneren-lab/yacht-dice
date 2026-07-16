@@ -340,6 +340,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <button class="opt on" data-s="normal">🐢 보통</button>
           <button class="opt" data-s="fast">⚡ 빠름</button>
         </div>
+        <div class="lbl">시작 칩</div>
+        <div class="opts" id="optChips">
+          <button class="opt on" data-c="3">3개</button>
+          <button class="opt" data-c="4">4개</button>
+          <button class="opt" data-c="5">5개</button>
+        </div>
         <button class="btn" id="startBtn" style="margin-top:14px">시작</button>
       </div>
       <div id="onlineBox" style="display:none">
@@ -556,8 +562,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const AI_ANIMAL={'🦊':'여우','🐸':'개구리','🐼':'판다','🦁':'사자','🐰':'토끼','🐵':'원숭이','🐯':'호랑이','🐨':'코알라','🐻':'곰','🐶':'강아지'};
   function dispName(p){ if(p&&p.ai&&/^AI\s*\d*$/i.test(String(p.name||'').trim())){ return AI_ANIMAL[p.avatar]||p.name; } return p?p.name:''; }
   let engine=null, S=null, MYPID='me', online=false, ws=null, roomCode=null, lobby=null, amHost=false, busy=false;
-  let cfg={ n:4, speed:'normal' };
+  let cfg={ n:4, speed:'normal', chips:3 };
   try{ const sp=localStorage.getItem('lcr_speed'); if(sp==='fast'||sp==='normal') cfg.speed=sp; }catch(e){}
+  try{ const ch=+localStorage.getItem('lcr_chips'); if(ch>=3&&ch<=5) cfg.chips=ch; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   let autoRoll=false; try{ autoRoll=localStorage.getItem('lcr_auto')==='1'; }catch(e){}
   let autoTimer=null;
@@ -893,7 +900,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     applySeathint();
     $('modePill').textContent='· AI 대전';
     const aiMs = cfg.speed==='fast' ? 550 : 1500;   // 빠름: 6인도 라운드가 짧게
-    engine=new LCRCore.LCREngine({ players, startChips:3, aiMs, onState:()=>{ S=engine.serialize(MYPID); render(); } });
+    engine=new LCRCore.LCREngine({ players, startChips:cfg.chips, aiMs, onState:()=>{ S=engine.serialize(MYPID); render(); } });
     engine.start();
   }
   function doRoll(){
@@ -1051,6 +1058,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   (function(){ const box=$('optSpeed'); if(!box)return;
     box.querySelectorAll('.opt').forEach(o=>{ o.classList.toggle('on', o.dataset.s===cfg.speed);
       o.onclick=()=>{ box.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.speed=o.dataset.s; try{localStorage.setItem('lcr_speed',cfg.speed);}catch(e){} }; });
+  })();
+  // 시작 칩 토글 — 저장된 값 반영 + 클릭 저장
+  (function(){ const box=$('optChips'); if(!box)return;
+    box.querySelectorAll('.opt').forEach(o=>{ o.classList.toggle('on', +o.dataset.c===cfg.chips);
+      o.onclick=()=>{ box.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.chips=+o.dataset.c; try{localStorage.setItem('lcr_chips',cfg.chips);}catch(e){} }; });
   })();
   $('startBtn').onclick=startLocal;
   function saveName(v){ if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }

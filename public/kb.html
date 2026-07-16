@@ -476,6 +476,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="opt" data-d="hard">어려움</button>
       </div>
     </div>
+    <div id="matchWrap">
+      <div class="opt-label">매치</div>
+      <div class="opts" id="optMatch">
+        <button class="opt on" data-match="single">단판</button>
+        <button class="opt" data-match="bo3">3판 2선승</button>
+      </div>
+    </div>
     <div id="onlineBox" style="display:none">
       <div class="opt-label">내 이름</div>
       <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
@@ -577,6 +584,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="crown" id="resCrown">🏆</div>
       <h3 id="resTitle">승리!</h3>
       <div class="rsub" id="resSub"></div>
+      <div class="rsub" id="resSeries" style="display:none;font-weight:800;color:var(--ink);margin-top:-8px"></div>
       <div class="scores">
         <div class="sc you"><div class="who" id="rYouName">나</div><div class="n" id="rYouScore">0</div></div>
         <div class="sc opp"><div class="who" id="rOppName">상대</div><div class="n" id="rOppScore">0</div></div>
@@ -811,6 +819,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null;
   let scoreCache=[[0,0,0],[0,0,0]], scorePrimed=false;   // colscore 폭증 연출용 직전값 캐시
   let growthInfo=null;   // P4 결과창 성장 피드백용 (기록 직전/직후 델타 캡처)
+  // 로컬 선승제(3판 2선승) 매치 — 클라 래퍼(엔진은 판마다 재시작). 온라인은 미적용.
+  const MATCH_TARGET=2;                 // 먼저 2승이면 매치 종료
+  let matchMode='single';               // 'single' | 'bo3'
+  try{ matchMode=localStorage.getItem('kb_match')||'single'; }catch(e){}
+  let matchActive=false;                // bo3 시리즈 진행 중?
+  let seriesWins=[0,0];                 // 좌석(0=나/P1, 1=상대)별 누적 승수
+  let matchInfo=null;                   // 판 종료 시 캡처: {seriesWins,matchOver,matchWinnerSeat,tie}
+  let matchAvatar=null;                 // 시리즈 내내 상대 아바타 고정(연속감)
   const REDUCE = () => { try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
 
   const online = () => mode==='online';
@@ -878,7 +894,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   $('setupTut').onclick=()=>{ tutStep=0; renderTut(); $('tutOv').classList.add('on'); };
   // 튜토리얼 마지막에서 바로 시작 — 설정창(setupOv)도 반드시 함께 닫아야 게임 조작이 가능하다
-  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); $('setupOv').classList.remove('on'); startLocal(); } };
+  $('tutNext').onclick=()=>{ if(tutStep<TUT.length-1){ tutStep++; renderTut(); } else { $('tutOv').classList.remove('on'); $('setupOv').classList.remove('on'); startMatch(); } };
   $('tutPrev').onclick=()=>{ if(tutStep>0){ tutStep--; renderTut(); } };
   $('tutSkip').onclick=()=>$('tutOv').classList.remove('on');
   $('helpOv').addEventListener('click', e=>{ if(e.target.id==='helpOv') $('helpOv').classList.remove('on'); });
@@ -888,13 +904,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('optMode').onclick = e=>{ const b=e.target.closest('.opt'); if(!b)return; mode=b.dataset.m;
     document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o===b));
     $('diffWrap').style.display = mode==='ai'?'block':'none';
+    $('matchWrap').style.display = mode==='online'?'none':'block';   // 선승제는 로컬 전용
     $('onlineBox').style.display = mode==='online'?'block':'none';
     $('startBtn').style.display = mode==='online'?'none':'block';
   };
   $('optDiff').onclick = e=>{ const b=e.target.closest('.opt'); if(!b)return; diff=b.dataset.d;
     document.querySelectorAll('#optDiff .opt').forEach(o=>o.classList.toggle('on',o===b)); };
-  $('startBtn').onclick = ()=>{ $('setupOv').classList.remove('on'); startLocal(); };
-  $('againBtn').onclick = ()=>{ if(online()){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
+  // 매치 옵션(단판 / 3판 2선승) — 로컬 전용, localStorage 기억
+  $('optMatch').onclick = e=>{ const b=e.target.closest('.opt'); if(!b)return; matchMode=b.dataset.match;
+    document.querySelectorAll('#optMatch .opt').forEach(o=>o.classList.toggle('on',o===b));
+    try{localStorage.setItem('kb_match',matchMode);}catch(e){} };
+  // 저장된 매치 설정을 버튼에 반영
+  document.querySelectorAll('#optMatch .opt').forEach(o=>o.classList.toggle('on',o.dataset.match===matchMode));
+  $('startBtn').onclick = ()=>{ $('setupOv').classList.remove('on'); startMatch(); };
+  $('againBtn').onclick = ()=>{ if(online()){ wsSend({t:'rematchPropose'}); return; }
+    $('resultOv').classList.remove('on');
+    // 매치가 아직 안 끝났으면 승수 유지한 채 다음 판, 그 외엔 새 매치(승수 리셋)
+    if(matchInfo && matchActive && !matchInfo.matchOver) startLocal();
+    else startMatch();
+  };
   function renderRematch(d){
     $('resultOv').classList.add('on');
     $('resultBtns').style.display='none';
@@ -936,15 +964,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('kbMode').innerHTML = dot+txt;
   }
 
+  // ---------- MATCH (로컬 선승제) ----------
+  // 새 매치 시작: 승수 리셋 후 첫 판. bo3면 시리즈 활성 + 상대 아바타 고정.
+  function startMatch(){
+    seriesWins=[0,0]; matchInfo=null;
+    matchActive = (matchMode==='bo3');
+    matchAvatar = matchActive ? OPP_AV[Math.random()*OPP_AV.length|0] : null;
+    startLocal();
+  }
+
   // ---------- LOCAL start ----------
   function startLocal(){
     teardownNet();
     try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){}
     mode = mode==='online' ? 'ai' : mode; // safety
     if(engine){ engine.destroy(); engine=null; }
+    // 매치 중이면 상대 아바타 고정(같은 상대와 붙는 느낌), 아니면 매판 랜덤
+    const oppAv = (matchActive && matchAvatar) ? matchAvatar : OPP_AV[Math.random()*OPP_AV.length|0];
     const players = (mode==='2p')
-      ? [{pid:'p0',name:'플레이어 1',ai:false,avatar:'😎'},{pid:'p1',name:'플레이어 2',ai:false,avatar:OPP_AV[Math.random()*OPP_AV.length|0]}]
-      : [{pid:'p0',name:'나',ai:false,avatar:'😎'},{pid:'p1',name:'AI',ai:true,aiDiff:diff,avatar:OPP_AV[Math.random()*OPP_AV.length|0]}];
+      ? [{pid:'p0',name:'플레이어 1',ai:false,avatar:'😎'},{pid:'p1',name:'플레이어 2',ai:false,avatar:oppAv}]
+      : [{pid:'p0',name:'나',ai:false,avatar:'😎'},{pid:'p1',name:'AI',ai:true,aiDiff:diff,avatar:oppAv}];
     mySeat = 0;
     S=null; prevBoards=null; lastSeq=0; busy=false;
     setModePill(); showGame();
@@ -971,6 +1010,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     sock.addEventListener('close',()=>{ clearTimeout(t1); failed(); });
   }
   function connect(then){
+    matchActive=false; matchInfo=null;   // 온라인 진입 시 로컬 선승제 상태 해제
     if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
     try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버에 연결할 수 없어요.'; return; }
     coldStart(ws);
@@ -1025,7 +1065,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('joinBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
     const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해.'; return; }
     saveName($('onName').value); mode='online'; connect(()=>wsSend({t:'join',code,name})); };
-  function switchOnline(){ mode='online'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('diffWrap').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
+  function switchOnline(){ mode='online'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('diffWrap').style.display='none'; $('matchWrap').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
 
   function renderLobby(){
     if(!lobby) return;
@@ -1100,6 +1140,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         growthInfo={ won:my>op, tie:my===op, wins:Stats.d.wins, streak:Stats.d.streak, score:my,
           newBest:(my>beforeBest && my>0),
           newAch: ACH_KB.filter(a=>achUnlocked.includes(a.id) && !beforeAch.includes(a.id)) };
+        // 로컬 선승제: 판 승자에 승수 누적(동점 판은 변화 없음), 먼저 2승이면 매치 종료
+        if(matchMode==='bo3' && matchActive){
+          if(my!==op){ const w = my>op ? b : (1-b); seriesWins[w]++; }
+          const mo = seriesWins[0]>=MATCH_TARGET || seriesWins[1]>=MATCH_TARGET;
+          matchInfo = { seriesWins:seriesWins.slice(), matchOver:mo,
+            matchWinnerSeat: mo ? (seriesWins[0]>=MATCH_TARGET?0:1) : -1, tie:my===op };
+        }
         if(!online()) setTimeout(()=>aiTauntKb(my>op), 750); }
       try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){} setTimeout(()=>showResult(s), 600);
     } else { recorded=false; $('resultOv').classList.remove('on'); resetRematchUI(); }
@@ -1439,10 +1486,27 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(sb===st){ title='무승부'; crown='🤝'; sub=`${sb} : ${st} — 막상막하`; }
     else if(sb>st){ title=(mode==='2p'?s.players[bottom].name+' ':'')+'승리!'; crown='🏆'; sub=`${sb} : ${st}`; }
     else { title=(mode==='online'||mode==='2p')?s.players[top].name+' 승리':'패배…'; crown=(mode==='ai')?'😵':'🏆'; sub=`${sb} : ${st}`; }
+    // ---- 로컬 선승제(3판 2선승) 오버레이 ----
+    const mi = (!online() && matchInfo) ? matchInfo : null;
+    const serEl = $('resSeries');
+    if(mi){
+      const bw=mi.seriesWins[bottom], tw=mi.seriesWins[top];
+      serEl.style.display='block';
+      serEl.innerHTML = `🏁 매치 <b style="color:var(--brass)">${bw}</b> : <b>${tw}</b> <span style="opacity:.65;font-weight:700">· 3판 2선승</span>`;
+      if(mi.matchOver){
+        if(mode==='2p'){ title=s.players[mi.matchWinnerSeat].name+' 매치 승리!'; crown='🏆'; }
+        else if(mi.matchWinnerSeat===bottom){ title='🏆 매치 승리!'; crown='🏆'; }
+        else { title='매치 패배…'; crown='😵'; }
+        sub = `매치 최종 ${bw} : ${tw}`;
+      } else if(mi.tie){
+        sub = `이 판 무승부 — 승수 그대로, 한 판 더!`;
+      }
+    } else { serEl.style.display='none'; }
     $('resTitle').textContent=title; $('resCrown').textContent=crown; $('resSub').textContent=sub;
     renderGrowth();   // P4: 이번 판 성장(승수·연승·기록·해금) 요약
     try{ sb>=st?SFX.win():SFX.lose(); }catch(e){}
-    $('againBtn').textContent = online() ? '로비로' : '다시 한 판';
+    // 매치 진행 중이면 "다음 판", 매치 종료/단판이면 "다시 한 판"(새 매치)
+    $('againBtn').textContent = online() ? '로비로' : (mi && !mi.matchOver ? '다음 판 ▶' : (mi ? '새 매치 ▶' : '다시 한 판'));
     $('resultOv').classList.add('on');
   }
   // P4 결과피드백: Stats.record 직후 캡처한 growthInfo로 이번 판 성장 요약을 그린다.
@@ -1502,7 +1566,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let recorded=false;
   renderStats(); renderAch();
   function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); } }
-  function resetSetup(){ mode='ai'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('diffWrap').style.display='block'; $('onlineBox').style.display='none'; $('startBtn').style.display='block'; $('onErr').textContent=''; }
+  function resetSetup(){ mode='ai'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('diffWrap').style.display='block'; $('matchWrap').style.display='block'; $('onlineBox').style.display='none'; $('startBtn').style.display='block'; $('onErr').textContent=''; }
 
   // ---------- boot ----------
   (function boot(){
