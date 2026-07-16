@@ -1139,14 +1139,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function connect(then){
     matchActive=false; matchInfo=null;   // 온라인 진입 시 로컬 선승제 상태 해제
     if(location.protocol==='file:'){ $('onErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.'; return; }
+    if(ws){ try{ ws.onclose=null; ws.close(); }catch(e){} ws=null; }   // 옛 소켓 정리(중복 연결 방지)
     try{ ws=new WebSocket(wsUrl()); }catch(e){ $('onErr').textContent='서버에 연결할 수 없어요.'; return; }
     coldStart(ws);
     ws.onopen = ()=>{ setModePill(); then&&then(); };
     ws.onmessage = ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
     ws.onclose = ()=>{ setModePill(); reconnecting=false;
-      // 세션이 살아있으면(방 진행/로비/부팅 재접속) 1.5초 간격으로 최대 6회 자동 재접속
+      // 콜드스타트/재배포로 서버가 30~60초 뒤 깨어나므로 최대 60초(30회×2초)까지 자동 재접속(서버는 방을 120초 유지)
       if(online() && (bootReconnect || (S && !isOver(S)) || lobby)){
-        if(reconnects<6){ reconnects++; if(S && !isOver(S)) showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); }
+        if(reconnects<30){ reconnects++; if(reconnects===1 && S && !isOver(S)) showToast('서버 연결 끊김 — 재접속 시도 중… (최대 1분)'); setTimeout(tryReconnect,2000); }
         else showReconnectFail();
       }
     };
@@ -1180,10 +1181,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       prevConn={}; s.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
       $('lobbyOv').classList.remove('on'); setModePill(); showGame(); onState(s);
     }
-    else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
-      reconnecting=false; reconnects=6; bootReconnect=false;   // 재접속 루프 중단(자리 없음 등)
-      const cf=document.getElementById('coldstart'); if(cf)cf.remove();
-      try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} }
+    else if(m.t==='error'){ reconnecting=false;
+      if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
+        reconnects=30; bootReconnect=false;   // 치명 오류(자리 없음 등) → 재접속 루프 중단
+        const cf=document.getElementById('coldstart'); if(cf)cf.remove();
+        try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} }
+      else showToast(m.msg||'오류'); }   // 비치명 경고는 세션 유지
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==myPid) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }

@@ -1017,7 +1017,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     ws.onopen=()=>{ clearColdTimers(); hideWakeBanner(); if(then)then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
     ws.onerror=()=>{ $('onErr').textContent='서버 연결 오류'; };
-    ws.onclose=()=>{ clearColdTimers(); hideWakeBanner(); if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); } else { reconnecting=false; showWakeBanner('🔌 재접속 실패 — 새로고침하거나 다시 시도해줘', ()=>{ hideWakeBanner(); reconnects=0; reconnecting=true; tryReconnect(); }); } } };
+    ws.onclose=()=>{ clearColdTimers(); reconnecting=false; if(online && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<30){ reconnects++; if(reconnects===1 && S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중… (최대 1분)'); setTimeout(tryReconnect,2000); } else { showWakeBanner('🔌 재접속 실패 — 새로고침하거나 다시 시도해줘', ()=>{ hideWakeBanner(); reconnects=0; reconnecting=true; tryReconnect(); }); } } else { hideWakeBanner(); } };
   }
   function onNet(m){
     if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{localStorage.setItem('lcr_room',roomCode);localStorage.setItem('lcr_pid',MYPID);}catch(e){} }

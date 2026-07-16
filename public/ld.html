@@ -1060,11 +1060,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     coldStart(ws);
     ws.onopen=()=>{ then&&then(); };
     ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
-    ws.onclose=()=>{
-      // 세션이 살아있고 아직 판 진행 중/로비/부팅재접속이면 자동 재접속(≤6회). 소진 시 안내.
-      if(online && !reconnecting && (bootReconnect || (S && S.phase!=='over') || lobby)){
-        if(reconnects<6){ reconnects++; if(S&&S.phase!=='over')showToast('🔌 서버 연결 끊김 — 재접속 시도 중…'); setTimeout(tryReconnect,1500); }
-        else showToast('🔌 재접속 실패 — 새로고침하거나 다시 접속해줘');
+    ws.onclose=()=>{ reconnecting=false;   // 실패 소켓 close마다 리셋 → 다음 재시도 예약(핵심 버그 수정)
+      // 세션이 살아있고 판 진행 중/로비/부팅재접속이면 자동 재접속. 콜드스타트 커버로 최대 60초(30회×2초).
+      if(online && (bootReconnect || (S && S.phase!=='over') || lobby)){
+        if(reconnects<30){ reconnects++; if(reconnects===1 && S&&S.phase!=='over')showToast('🔌 서버 연결 끊김 — 재접속 시도 중… (최대 1분)'); setTimeout(tryReconnect,2000); }
+        else showToast('🔌 재접속 실패 — 새로고침하거나 방 코드로 다시 들어와줘');
       }
     };
     ws.onerror=()=>{ $('onErr').textContent='연결 오류'; };
@@ -1096,7 +1096,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       prevConn={}; S.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; });
       render();
     }
-    else if(m.t==='error'){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
+    else if(m.t==='error'){ reconnecting=false; bootReconnect=false;
+      if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
+      else showToast(m.msg||'오류'); }   // 비치명 경고는 세션 유지
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }

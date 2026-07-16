@@ -2041,11 +2041,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     sock.addEventListener('close',()=>{ clearTimeout(t1); failed(); });
   }
   function connect(then){ if(location.protocol==='file:'){$('netErr').textContent='파일로 열면 온라인을 쓸 수 없어요. 배포된 주소에서 접속하세요.';return;}
+    if(ws){ try{ ws.onclose=null; ws.close(); }catch(e){} ws=null; }   // 옛 소켓 정리(중복 연결 방지)
     try{ws=new WebSocket(wsUrl());}catch(e){$('netErr').textContent='서버에 연결할 수 없어요.';return;}
     coldStart(ws);
     ws.onopen=()=>{ if(then)then(); };
     ws.onerror=()=>{ if(!reconnecting)$('netErr').textContent='서버 연결 오류. 배포된 주소인지, 서버가 켜져 있는지 확인하세요.'; };
-    ws.onclose=()=>{ if(reconnects<6){ if(S&&S.phase==='play')$('hint').textContent='서버 연결이 끊겼어요. 재접속 시도 중…'; reconnects++; setTimeout(tryReconnect,1500); }
+    // 콜드스타트/재배포로 서버가 30~60초 뒤 깨어나므로 최대 60초(30회×2초)까지 재시도(서버는 방을 120초 유지)
+    ws.onclose=()=>{ if(reconnects<30){ if(reconnects===0 && S&&S.phase==='play')$('hint').textContent='서버 연결이 끊겼어요. 재접속 시도 중… (최대 1분)'; reconnects++; setTimeout(tryReconnect,2000); }
       else { if(S&&S.phase==='play')$('hint').textContent=''; showReconnFail(); } };   // 재접속 소진 → '재접속 시도 중' 힌트를 걷고 실패 안내 노출
     ws.onmessage=ev=>{ let m;try{m=JSON.parse(ev.data);}catch(e){return;} onNet(m); };
   }
