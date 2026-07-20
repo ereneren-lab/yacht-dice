@@ -8,6 +8,7 @@
  * 사용: node scripts/browser-test/verify-fx.js   (서버는 안 떠 있으면 알아서 띄운다)
  */
 const { CDP, ensureServer, startGame, throwYut, pickPiece, resolveDirection, state, restartIfOver } = require('./yut-drive');
+const { launchWithRetry } = require('./cdp');
 
 const OPACITY_PROBE = `
   window.__op = [];
@@ -41,9 +42,9 @@ function skip(name, detail) {
   console.log(`⚠️  ${name} — 판정 불가: ${detail}`);
 }
 
-(async () => {
+async function run() {
   const server = await ensureServer();
-  const cdp = await new CDP().launch();
+  const cdp = await launchWithRetry();
 
   // ── 1·2) 모션 켠 상태: 출발칸 잔상 + 페이드 ────────────────────────
   const page = await startGame(cdp, { motion: true });
@@ -136,5 +137,17 @@ function skip(name, detail) {
     : skipped.length
       ? `\n실패 없음 — 다만 판정 불가 ${skipped.length}건, 재실행 권장`
       : '\n전부 통과');
-  process.exit(failed.length ? 1 : skipped.length ? 2 : 0);
-})().catch(e => { console.error('실행 실패:', e.message); process.exit(1); });
+  return failed.length ? 1 : skipped.length ? 2 : 0;
+}
+
+(async () => {
+  // 이 환경은 메모리가 빠듯해 실행 도중 CDP 소켓이 조용히 끊기는 일이 있다 → 1회 재시도
+  try { process.exit(await run()); }
+  catch (e) {
+    console.error('실행 실패:', e.message.split('\n')[0], '— 재시도');
+    results.length = 0;
+    await new Promise(r => setTimeout(r, 4000));
+    try { process.exit(await run()); }
+    catch (e2) { console.error('실행 실패:', e2.message); process.exit(1); }
+  }
+})();

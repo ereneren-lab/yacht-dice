@@ -49,19 +49,40 @@ class CDP {
       '--autoplay-policy=no-user-gesture-required',
     ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-    const wsUrl = await new Promise((res, rej) => {
-      let buf = '';
-      const to = setTimeout(() => rej(new Error('브라우저 기동 타임아웃')), 20000);
-      this.proc.stderr.on('data', d => {
-        buf += d.toString();
-        const m = /DevTools listening on (ws:\/\/\S+)/.exec(buf);
-        if (m) { clearTimeout(to); res(m[1]); }
-      });
-      this.proc.on('exit', c => { clearTimeout(to); rej(new Error('브라우저 종료 code=' + c + '\n' + buf)); });
+    // stderr는 계속 모아둔다(최근 8KB). 브라우저가 죽었을 때 원인을 보여주기 위해서다.
+    this._stderr = '';
+    this.proc.stderr.on('data', d => {
+      this._stderr = (this._stderr + d.toString()).slice(-8192);
     });
 
+    const wsUrl = await new Promise((res, rej) => {
+      const to = setTimeout(() => rej(new Error('브라우저 기동 타임아웃\n' + this._stderr.slice(-800))), 20000);
+      const onData = () => {
+        const m = /DevTools listening on (ws:\/\/\S+)/.exec(this._stderr);
+        if (m) { clearTimeout(to); this.proc.stderr.off('data', onData); res(m[1]); }
+      };
+      this.proc.stderr.on('data', onData);
+      this.proc.once('exit', c => { clearTimeout(to); rej(new Error('브라우저 종료 code=' + c + '\n' + this._stderr.slice(-800))); });
+    });
+
+    // ⚠️ 브라우저가 죽거나 소켓이 끊기면 대기 중인 요청을 즉시 실패시킨다.
+    // 이게 없으면 크래시가 전부 "타임아웃: Runtime.evaluate"로 보여 원인을 못 찾는다.
+    this._dead = null;
+    const killPending = (why) => {
+      this._dead = why;
+      const tail = this._stderr.slice(-600).trim();
+      for (const [, { rej }] of this.pending) rej(new Error(why + (tail ? '\n--- 브라우저 stderr ---\n' + tail : '')));
+      this.pending.clear();
+    };
+    this.proc.once('exit', c => killPending('브라우저 프로세스 종료 (code=' + c + ')'));
+
     this.ws = new WebSocket(wsUrl, { perMessageDeflate: false, maxPayload: 512 * 1024 * 1024 });
-    await new Promise(r => this.ws.once('open', r));
+    await new Promise((res, rej) => {
+      this.ws.once('open', res);
+      this.ws.once('error', e => rej(new Error('CDP 연결 실패: ' + e.message)));
+    });
+    this.ws.on('close', () => killPending('CDP 소켓이 끊겼다'));
+    this.ws.on('error', e => killPending('CDP 소켓 오류: ' + e.message));
     this.ws.on('message', raw => {
       const msg = JSON.parse(raw);
       if (msg.id && this.pending.has(msg.id)) {
@@ -81,14 +102,20 @@ class CDP {
   }
 
   send(method, params = {}, sessionId) {
+    if (this._dead) return Promise.reject(new Error(this._dead + ' (' + method + ')'));
     const id = ++this.id;
     const msg = { id, method, params };
     if (sessionId) msg.sessionId = sessionId;
     return new Promise((res, rej) => {
       this.pending.set(id, { res, rej });
-      this.ws.send(JSON.stringify(msg));
+      try { this.ws.send(JSON.stringify(msg)); }
+      catch (e) { this.pending.delete(id); return rej(new Error('CDP 전송 실패(' + method + '): ' + e.message)); }
       setTimeout(() => {
-        if (this.pending.has(id)) { this.pending.delete(id); rej(new Error('타임아웃: ' + method)); }
+        if (this.pending.has(id)) {
+          this.pending.delete(id);
+          const tail = (this._stderr || '').slice(-400).trim();
+          rej(new Error('타임아웃: ' + method + (tail ? '\n--- 브라우저 stderr ---\n' + tail : '')));
+        }
       }, 30000);
     });
   }
@@ -211,4 +238,24 @@ class Page {
   }
 }
 
-module.exports = { CDP, Page, findBrowser };
+/**
+ * 간헐 실패(메모리 압박·소켓 끊김)에 대비해 재시도하며 브라우저를 띄운다.
+ * 이 환경에선 크로미움이 여러 개 떠 있거나 메모리가 부족하면 CDP 소켓이 조용히 끊긴다
+ * (stderr에 아무것도 안 남는다). 한 번 더 시도하면 대개 살아난다.
+ */
+async function launchWithRetry(tries = 3, waitMs = 3000) {
+  let last;
+  for (let i = 1; i <= tries; i++) {
+    try { return await new CDP().launch(); }
+    catch (e) {
+      last = e;
+      if (i < tries) {
+        console.error(`  브라우저 기동 실패(${i}/${tries}) — ${e.message.split('\n')[0]} … 재시도`);
+        await new Promise(r => setTimeout(r, waitMs));
+      }
+    }
+  }
+  throw last;
+}
+
+module.exports = { CDP, Page, findBrowser, launchWithRetry };
