@@ -6,11 +6,12 @@
   else root.YutCore = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
 
-  // 경로 시퀀스 (노드 번호). 끝을 지나면 완주.
+  // 경로 시퀀스 (노드 번호). 끝(29=완주 게이트=출발점)에 정확히 서면 머무르고, 지나가면 완주(나감).
+  // 29는 출발점(0) 위치에 렌더 — "한 바퀴 돌아 출발점에 도달해 머물 수 있고, 거기서 한 번 더 나가면 완주".
   const SEQ = {
-    outer: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    sc5:   [5, 20, 21, 22, 23, 24, 15, 16, 17, 18, 19],   // 우상(5) 지름길 → 중앙(22) → 좌하(15) 합류
-    sc10:  [10, 25, 26, 22, 27, 28],                       // 좌상(10) 지름길 → 중앙(22) → 출발 직행
+    outer: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 29],
+    sc5:   [5, 20, 21, 22, 23, 24, 15, 16, 17, 18, 19, 29],   // 우상(5) 지름길 → 중앙(22) → 좌하(15) 합류 → 출발
+    sc10:  [10, 25, 26, 22, 27, 28, 29],                       // 좌상(10) 지름길 → 중앙(22) → 출발 직행
   };
   const THROWS = [
     { name: '빽도', step: -1, again: false },
@@ -59,6 +60,32 @@
     if (ni >= seq.length) return { done: true };
     let nn = seq[ni], nr = rname;
     return { node: nn, route: nr, out: true };
+  }
+  // 이동 경로(중간 칸들). step()의 단일 계산과 '경로 선택이 동일':
+  // 출발칸이 모서리(5·10·22)일 때만 1회 꺾고 그 route 안에서 직진 — 모서리를 '지나가는' 건 꺾지 않는다.
+  // 마지막 원소의 node는 step()의 최종 위치와 항상 같다(=애니 경로와 목적지 불일치로 인한 '스냅' 제거).
+  function buildPath(node, route, out, steps) {
+    const path = [];
+    if (!steps) return path;
+    if (!out) {                                   // 대기 말이 판에 나옴: outer[1..steps]
+      if (steps < 0) return path;
+      for (let s = 1; s <= steps; s++) { if (s >= SEQ.outer.length) { path.push({ done: true }); return path; } path.push({ node: SEQ.outer[s], route: 'outer' }); }
+      return path;
+    }
+    let seq = SEQ[route], i = seq.indexOf(node);
+    if (steps > 0) {                              // 출발칸이 모서리면 1회 꺾기(step과 동일)
+      if (route === 'outer' && node === 5) { seq = SEQ.sc5; i = 0; }
+      else if (route === 'outer' && node === 10) { seq = SEQ.sc10; i = 0; }
+      else if (route === 'sc5' && node === 22) { seq = SEQ.sc10; i = SEQ.sc10.indexOf(22); }
+    }
+    if (i < 0) return path;
+    const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
+    if (steps < 0) {                              // 후퇴(빽도 등): 같은 route에서 한 칸씩 뒤로
+      for (let s = 1; s <= -steps; s++) { const ni = i - s; if (ni < 0) break; path.push({ node: seq[ni], route: rname }); }
+      return path;
+    }
+    for (let s = 1; s <= steps; s++) { const ni = i + s; if (ni >= seq.length) { path.push({ done: true }); return path; } path.push({ node: seq[ni], route: rname }); }
+    return path;
   }
 
   class YutEngine {
@@ -233,29 +260,40 @@
       this._emit(); this._maybeAI();
     }
 
-    // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 재발동/추가 잡기 없이 1회성.
+    // 잡기: node 칸에 있는 다른 편 말을 처음으로 돌려보냄. 잡으면 한 번 더(잡기축제=두 번). 반환: 잡았는지.
+    _captureAt(node, seat, pl) {
+      if (node == null) return false;
+      let caught = false, caughtN = 0;
+      for (const op of this.players) {
+        if (op.seat === seat) continue;
+        if (this.teamMode && op.team === pl.team) continue;                     // 같은 팀은 안 잡음
+        if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
+        for (const opc of op.pieces) {
+          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; }
+        }
+      }
+      if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN }; }
+      return caught;
+    }
+    // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 이벤트·늪 재발동은 없음(연쇄 방지). 반환: 이동형이면 도착 노드(잡기 판정용).
     _applyEventTile(node, group, owner) {
       const type = this.eventTiles[node];
-      let path = null;   // 이동형 이벤트(부스터/후퇴)의 이동 경로 — 클라가 천천히 애니
+      let path = null, movedTo = null;   // 이동형 이벤트(부스터/후퇴)의 이동 경로 — 클라가 천천히 애니
       if (type === 'bonus') { this.throwsLeft++; }                              // 한 번 더
       else if (type === 'gold') { this.throwsLeft++;                            // 황금: 한 번 더 + 아이템전이면 아이템 획득
         if (this.itemBattle) { const p = this.players[owner]; if (!p.items) p.items = []; if (p.items.length < 5) p.items.push(['shield', 'rethrow', 'push'][Math.floor(this.rng() * 3)]); } }
-      else if (type === 'boost') { path = this._shiftGroup(group, 3); }         // 앞으로 3칸 부스터
-      else if (type === 'back') { path = this._shiftGroup(group, -2); }         // 뒤로 2칸
+      else if (type === 'boost') { path = this._shiftGroup(group, 3); if (path && !group[0].done) movedTo = group[0].node; }   // 앞으로 3칸 부스터
+      else if (type === 'back') { path = this._shiftGroup(group, -2); if (path && !group[0].done) movedTo = group[0].node; }   // 뒤로 2칸
       this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length, path: path };
+      return movedTo;
     }
     _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 한 칸씩 이동, 경로 반환(연출용). 이벤트/구렁텅이 재발동 없음.
       const lead = group[0]; if (!lead || lead.done || !lead.out) return null;
-      const path = []; let cn = lead.node, cr = lead.route, co = lead.out; const dstep = delta < 0 ? -1 : 1; let done = false;
-      for (let k = 0; k < Math.abs(delta); k++) {
-        const rr = step(cn, cr, co, dstep, null);
-        if (rr.noMove) break;
-        if (rr.done) { done = true; path.push({ done: true }); break; }
-        path.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true;
-      }
+      const path = buildPath(lead.node, lead.route, lead.out, delta);   // 일반 이동과 동일 규칙(지나가는 모서리는 안 꺾음)
       if (!path.length) return null;
-      if (done) group.forEach(g => { g.done = true; g.out = false; });
-      else group.forEach(g => { g.out = true; g.node = cn; g.route = cr; });
+      const last = path[path.length - 1];
+      if (last.done) group.forEach(g => { g.done = true; g.out = false; });
+      else group.forEach(g => { g.out = true; g.node = last.node; g.route = last.route; });
       return path;
     }
     // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
@@ -280,6 +318,7 @@
       if (item === 'push') {
         const ts = data.targetSeat;
         if (ts == null || this._sameSide(seat, ts)) return;   // 같은 편은 밀치기 금지
+        if (this.shieldSide != null && this._pieceOwner(ts) === this.shieldSide) return;   // 방어막 편은 밀치기도 막음
         const to = this.players[this._pieceOwner(ts)];
         const opc = to && to.pieces.find(p => p.id === data.targetPieceId && p.out && !p.done);
         if (!opc) return;
@@ -323,9 +362,8 @@
       if (!pc || pc.done) return;
       const r = step(pc.node, pc.route, pc.out, steps, dir);
       if (r.noMove) return;                       // 이 말은 이 step으로 못 감
-      // 이동 경로(한 칸씩) 기록 — 연출용
-      const mpath = []; { let cn = pc.node, cr = pc.route, co = pc.out; const dstep = steps < 0 ? -1 : 1; const cnt = Math.abs(steps);
-        for (let k = 0; k < cnt; k++) { const rr = step(cn, cr, co, dstep, k === 0 ? dir : null); if (rr.noMove) break; if (rr.done) { mpath.push({ done: true }); break; } mpath.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true; } }
+      // 이동 경로 기록 — 연출용. buildPath는 step()과 경로 선택이 동일해 마지막 칸이 r과 항상 일치(스냅 없음).
+      const mpath = buildPath(pc.node, pc.route, pc.out, steps);
       this.moveSeq++; this.lastMovePath = { seq: this.moveSeq, seat: owner, pieceId, path: mpath };
       this._clear();
       this.pending.splice(pendingIndex, 1);
@@ -337,25 +375,13 @@
         ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)), [])
         : [pc];
       const group = sameCell;   // 업으면 무조건 같이 이동(따로 가기 선택 없음)
+      this.lastMovePath.group = group.map(g => g.id);   // 업힌 말 전체 id — 클라가 함께 애니(스택 유지)
 
       if (r.done) {
         group.forEach(g => { g.done = true; g.out = false; });
       } else {
         group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; });
-        // 잡기: 도착 노드에 다른 편 말이 있으면 원위치
-        let caught = false, caughtN = 0;
-        for (const op of this.players) {
-          if (op.seat === seat) continue;
-          if (this.teamMode && op.team === pl.team) continue; // 같은 팀은 안 잡음
-          if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
-          for (const opc of op.pieces) {
-            if (!opc.done && opc.out && opc.node === r.node) {
-              opc.out = false; opc.node = 0; opc.route = 'outer';
-              caught = true; caughtN++;
-            }
-          }
-        }
-        if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node: r.node, count: caughtN }; } // 잡으면 한 번 더(잡기축제=두 번), count=멀티잡기
+        this._captureAt(r.node, seat, pl);   // 잡기: 도착 칸의 다른 편 말 → 처음으로(잡으면 한 번 더)
 
         // 구렁텅이: 순수 outer 함정 칸에 멈추면 그 말(업은 말 포함) 처음으로
         if (r.route === 'outer' && r.node === this.pitNode) {
@@ -363,7 +389,10 @@
           this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
         }
         // 이벤트 칸: 부스터(+3)/보너스(한 번 더)/후퇴(-2)/황금(한 번 더+보상)
-        else if (r.route === 'outer' && this.eventTiles[r.node]) { this._applyEventTile(r.node, group, owner); }
+        else if (r.route === 'outer' && this.eventTiles[r.node]) {
+          const movedTo = this._applyEventTile(r.node, group, owner);
+          if (movedTo != null) this._captureAt(movedTo, seat, pl);   // 부스터/후퇴로 밀려간 칸의 상대도 잡음
+        }
       }
 
       // 승리 판정

@@ -242,10 +242,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .ctrlbar .gaugehint{ margin-bottom:4px;font-size:10px }
     .ctrlbar .bigbtn{ padding:13px;font-size:16px }
   }
-  #pieceLayer .pcpiece{ transition:transform .14s cubic-bezier(.4,.05,.3,1) }
-  #pieceLayer .pcpiece.pitfall{ transition:transform .62s cubic-bezier(.5,.02,.86,.36) }
-  #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:pitspin .62s ease-in; transform-origin:center; transform-box:fill-box }
+  #pieceLayer .pcpiece{ transition:transform .28s cubic-bezier(.4,.05,.3,1) }
+  #pieceLayer .pcpiece.pitfall{ transition:transform 1s cubic-bezier(.5,.02,.86,.36) }
+  #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:pitspin 1s ease-in; transform-origin:center; transform-box:fill-box }
   @keyframes pitspin{ 0%{transform:rotate(0) scale(1)} 42%{transform:rotate(430deg) scale(.26)} 58%{transform:rotate(500deg) scale(.2)} 100%{transform:rotate(720deg) scale(1)} }
+  #pieceLayer .pcpiece.finishing{ transition:transform .28s ease-in, opacity .72s ease-in; opacity:0 }
+  #pieceLayer .pcpiece.finishing .pcbody{ animation:finishpop .72s cubic-bezier(.2,.9,.3,1) forwards }
+  @keyframes finishpop{ 0%{transform:scale(1) translateY(0)} 45%{transform:scale(1.5) translateY(-12px)} 100%{transform:scale(1.95) translateY(-30px)} }
   #pieceLayer .pcpiece.mv{ cursor:pointer }
   #pieceLayer .pcpiece.mv .ring{ animation:pcpulse 1.1s ease-in-out infinite }
   @keyframes pcpulse{ 0%,100%{stroke-opacity:1} 50%{stroke-opacity:.35} }
@@ -261,6 +264,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes bshake{ 0%,100%{transform:translateX(0)} 18%{transform:translateX(-6px)} 38%{transform:translateX(6px)} 58%{transform:translateX(-4px)} 78%{transform:translateX(4px)} }
   #pieceLayer .pcpiece .pcbump{ animation:pcbump .42s ease }
   @keyframes pcbump{ 0%{transform:translateY(0)} 40%{transform:translateY(-7px)} 100%{transform:translateY(0)} }
+  /* ── 🎨 살아있는 캐릭터: 상황별 생동감 ── */
+  #pieceLayer .pcpiece.mv .pcbody{ animation:pcEager .95s ease-in-out infinite }   /* 이동 가능한 내 말 = 신나서 들썩 */
+  @keyframes pcEager{ 0%,100%{transform:translateY(0) scale(1)} 32%{transform:translateY(-3.6px) scale(1.06)} 64%{transform:translateY(0) scale(1)} }
+  .pchip.turn .pav, .thrower img{ animation:avBob 1.35s ease-in-out infinite }     /* 차례인 캐릭터 = 살랑살랑 */
+  @keyframes avBob{ 0%,100%{transform:translateY(0) rotate(0)} 26%{transform:translateY(-2px) rotate(-4deg)} 58%{transform:translateY(0) rotate(3.5deg)} }
   #pieceLayer .pcpiece.caught{ animation:pccaught .5s ease }
   @keyframes pccaught{ 0%{transform:scale(1)} 40%{transform:scale(1.5) rotate(20deg)} 100%{transform:scale(1)} }
   .throwarea{ text-align:center;margin:6px 0 4px }
@@ -424,7 +432,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .rank-row{ display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:10px;background:var(--panel2);border:1.5px solid var(--line);font-size:13px;font-weight:700 }
   .rank-row.me{ border-color:var(--brass);background:color-mix(in srgb,var(--brass) 13%,var(--panel2)) }
   .rank-row .rank-medal{ font-size:15px;min-width:24px;text-align:center;flex:none }
-  .rank-row .rank-av{ width:26px;height:26px;border-radius:50%;object-fit:cover;background:#fff;flex:none;border:1.5px solid var(--line) }
+  .rank-row .rank-av{ width:26px;height:26px;border-radius:50%;object-fit:cover;background:#fff;flex:none;border:1.5px solid var(--line);transform-origin:50% 80% }
+  .rank-row.win .rank-av{ border-color:var(--brass);animation:rankWinPose 1.15s cubic-bezier(.2,1.3,.4,1) infinite }   /* 우승 = 방방 뛰며 환호 */
+  @keyframes rankWinPose{ 0%,100%{transform:translateY(0) rotate(-5deg)} 30%{transform:translateY(-7px) rotate(6deg) scale(1.08)} 60%{transform:translateY(0) rotate(-3deg)} }
+  .rank-row.lastp .rank-av{ animation:rankLastPose 2.4s ease-in-out infinite;filter:grayscale(.35) }   /* 꼴찌 = 시무룩 축 */
+  @keyframes rankLastPose{ 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(2px) rotate(-8deg)} }
   .rank-row .rank-name{ flex:1;text-align:left;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
   .rank-row .rank-stat{ font-size:12px;color:var(--muted);font-weight:700;flex:none;min-width:24px;text-align:center }
   .rank-row .rank-score{ font-size:13.5px;font-weight:800;color:var(--brass);flex:none;min-width:46px;text-align:right }
@@ -623,7 +635,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     #vsIntro.on .vs-left{ transform:translateY(-50%) !important; } #vsIntro.on .vs-right{ transform:translateY(-50%) !important; }
     #vsIntro.on .vs-mid{ transform:translate(-50%,-50%) !important; }
     #vsIntro.on .vs-title{ transform:translateX(-50%) !important; }
-    #vsIntro.on .vs-rays,#vsIntro.on .vs-sweep,#vsIntro.on .vs-flash,#pieceLayer .pcpiece .pcbody{ animation:none !important; }
+    #vsIntro.on .vs-rays,#vsIntro.on .vs-sweep,#vsIntro.on .vs-flash,#pieceLayer .pcpiece .pcbody,.pchip.turn .pav,.thrower img,.rank-row.win .rank-av,.rank-row.lastp .rank-av{ animation:none !important; }
   }
   /* ==== 선 뽑기 설정 토글 (셋업 화면) ==== */
   .orderswitch{ display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;user-select:none;font-family:inherit;transition:opacity .15s,border-color .15s }
@@ -731,7 +743,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         <div class="players-strip" id="playersStrip"></div>
         <div class="orderpanel" id="orderPanel" style="display:none"></div>
         <div class="speech-bubble" id="speechBubble"></div>
-        <svg class="board" id="board" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="윷놀이 게임판"><g id="boardLayer"></g><g id="pieceLayer"></g></svg>
+        <svg class="board" id="board" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="윷놀이 게임판"><g id="boardLayer"></g><g id="fxLayer"></g><g id="pieceLayer"></g></svg>
       </div>
       <div class="game-col game-right">
         <div class="turninfo" id="turnInfo" role="status" aria-live="polite"></div>
@@ -950,11 +962,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   else root.YutCore = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
 
-  // 경로 시퀀스 (노드 번호). 끝을 지나면 완주.
+  // 경로 시퀀스 (노드 번호). 끝(29=완주 게이트=출발점)에 정확히 서면 머무르고, 지나가면 완주(나감).
+  // 29는 출발점(0) 위치에 렌더 — "한 바퀴 돌아 출발점에 도달해 머물 수 있고, 거기서 한 번 더 나가면 완주".
   const SEQ = {
-    outer: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-    sc5:   [5, 20, 21, 22, 23, 24, 15, 16, 17, 18, 19],   // 우상(5) 지름길 → 중앙(22) → 좌하(15) 합류
-    sc10:  [10, 25, 26, 22, 27, 28],                       // 좌상(10) 지름길 → 중앙(22) → 출발 직행
+    outer: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 29],
+    sc5:   [5, 20, 21, 22, 23, 24, 15, 16, 17, 18, 19, 29],   // 우상(5) 지름길 → 중앙(22) → 좌하(15) 합류 → 출발
+    sc10:  [10, 25, 26, 22, 27, 28, 29],                       // 좌상(10) 지름길 → 중앙(22) → 출발 직행
   };
   const THROWS = [
     { name: '빽도', step: -1, again: false },
@@ -1003,6 +1016,32 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if (ni >= seq.length) return { done: true };
     let nn = seq[ni], nr = rname;
     return { node: nn, route: nr, out: true };
+  }
+  // 이동 경로(중간 칸들). step()의 단일 계산과 '경로 선택이 동일':
+  // 출발칸이 모서리(5·10·22)일 때만 1회 꺾고 그 route 안에서 직진 — 모서리를 '지나가는' 건 꺾지 않는다.
+  // 마지막 원소의 node는 step()의 최종 위치와 항상 같다(=애니 경로와 목적지 불일치로 인한 '스냅' 제거).
+  function buildPath(node, route, out, steps) {
+    const path = [];
+    if (!steps) return path;
+    if (!out) {                                   // 대기 말이 판에 나옴: outer[1..steps]
+      if (steps < 0) return path;
+      for (let s = 1; s <= steps; s++) { if (s >= SEQ.outer.length) { path.push({ done: true }); return path; } path.push({ node: SEQ.outer[s], route: 'outer' }); }
+      return path;
+    }
+    let seq = SEQ[route], i = seq.indexOf(node);
+    if (steps > 0) {                              // 출발칸이 모서리면 1회 꺾기(step과 동일)
+      if (route === 'outer' && node === 5) { seq = SEQ.sc5; i = 0; }
+      else if (route === 'outer' && node === 10) { seq = SEQ.sc10; i = 0; }
+      else if (route === 'sc5' && node === 22) { seq = SEQ.sc10; i = SEQ.sc10.indexOf(22); }
+    }
+    if (i < 0) return path;
+    const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
+    if (steps < 0) {                              // 후퇴(빽도 등): 같은 route에서 한 칸씩 뒤로
+      for (let s = 1; s <= -steps; s++) { const ni = i - s; if (ni < 0) break; path.push({ node: seq[ni], route: rname }); }
+      return path;
+    }
+    for (let s = 1; s <= steps; s++) { const ni = i + s; if (ni >= seq.length) { path.push({ done: true }); return path; } path.push({ node: seq[ni], route: rname }); }
+    return path;
   }
 
   class YutEngine {
@@ -1177,29 +1216,40 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this._emit(); this._maybeAI();
     }
 
-    // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 재발동/추가 잡기 없이 1회성.
+    // 잡기: node 칸에 있는 다른 편 말을 처음으로 돌려보냄. 잡으면 한 번 더(잡기축제=두 번). 반환: 잡았는지.
+    _captureAt(node, seat, pl) {
+      if (node == null) return false;
+      let caught = false, caughtN = 0;
+      for (const op of this.players) {
+        if (op.seat === seat) continue;
+        if (this.teamMode && op.team === pl.team) continue;                     // 같은 팀은 안 잡음
+        if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
+        for (const opc of op.pieces) {
+          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; }
+        }
+      }
+      if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN }; }
+      return caught;
+    }
+    // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 이벤트·늪 재발동은 없음(연쇄 방지). 반환: 이동형이면 도착 노드(잡기 판정용).
     _applyEventTile(node, group, owner) {
       const type = this.eventTiles[node];
-      let path = null;   // 이동형 이벤트(부스터/후퇴)의 이동 경로 — 클라가 천천히 애니
+      let path = null, movedTo = null;   // 이동형 이벤트(부스터/후퇴)의 이동 경로 — 클라가 천천히 애니
       if (type === 'bonus') { this.throwsLeft++; }                              // 한 번 더
       else if (type === 'gold') { this.throwsLeft++;                            // 황금: 한 번 더 + 아이템전이면 아이템 획득
         if (this.itemBattle) { const p = this.players[owner]; if (!p.items) p.items = []; if (p.items.length < 5) p.items.push(['shield', 'rethrow', 'push'][Math.floor(this.rng() * 3)]); } }
-      else if (type === 'boost') { path = this._shiftGroup(group, 3); }         // 앞으로 3칸 부스터
-      else if (type === 'back') { path = this._shiftGroup(group, -2); }         // 뒤로 2칸
+      else if (type === 'boost') { path = this._shiftGroup(group, 3); if (path && !group[0].done) movedTo = group[0].node; }   // 앞으로 3칸 부스터
+      else if (type === 'back') { path = this._shiftGroup(group, -2); if (path && !group[0].done) movedTo = group[0].node; }   // 뒤로 2칸
       this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length, path: path };
+      return movedTo;
     }
     _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 한 칸씩 이동, 경로 반환(연출용). 이벤트/구렁텅이 재발동 없음.
       const lead = group[0]; if (!lead || lead.done || !lead.out) return null;
-      const path = []; let cn = lead.node, cr = lead.route, co = lead.out; const dstep = delta < 0 ? -1 : 1; let done = false;
-      for (let k = 0; k < Math.abs(delta); k++) {
-        const rr = step(cn, cr, co, dstep, null);
-        if (rr.noMove) break;
-        if (rr.done) { done = true; path.push({ done: true }); break; }
-        path.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true;
-      }
+      const path = buildPath(lead.node, lead.route, lead.out, delta);   // 일반 이동과 동일 규칙(지나가는 모서리는 안 꺾음)
       if (!path.length) return null;
-      if (done) group.forEach(g => { g.done = true; g.out = false; });
-      else group.forEach(g => { g.out = true; g.node = cn; g.route = cr; });
+      const last = path[path.length - 1];
+      if (last.done) group.forEach(g => { g.done = true; g.out = false; });
+      else group.forEach(g => { g.out = true; g.node = last.node; g.route = last.route; });
       return path;
     }
     // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
@@ -1224,6 +1274,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (item === 'push') {
         const ts = data.targetSeat;
         if (ts == null || this._sameSide(seat, ts)) return;   // 같은 편은 밀치기 금지
+        if (this.shieldSide != null && this._pieceOwner(ts) === this.shieldSide) return;   // 방어막 편은 밀치기도 막음
         const to = this.players[this._pieceOwner(ts)];
         const opc = to && to.pieces.find(p => p.id === data.targetPieceId && p.out && !p.done);
         if (!opc) return;
@@ -1267,9 +1318,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if (!pc || pc.done) return;
       const r = step(pc.node, pc.route, pc.out, steps, dir);
       if (r.noMove) return;                       // 이 말은 이 step으로 못 감
-      // 이동 경로(한 칸씩) 기록 — 연출용
-      const mpath = []; { let cn = pc.node, cr = pc.route, co = pc.out; const dstep = steps < 0 ? -1 : 1; const cnt = Math.abs(steps);
-        for (let k = 0; k < cnt; k++) { const rr = step(cn, cr, co, dstep, k === 0 ? dir : null); if (rr.noMove) break; if (rr.done) { mpath.push({ done: true }); break; } mpath.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true; } }
+      // 이동 경로 기록 — 연출용. buildPath는 step()과 경로 선택이 동일해 마지막 칸이 r과 항상 일치(스냅 없음).
+      const mpath = buildPath(pc.node, pc.route, pc.out, steps);
       this.moveSeq++; this.lastMovePath = { seq: this.moveSeq, seat: owner, pieceId, path: mpath };
       this._clear();
       this.pending.splice(pendingIndex, 1);
@@ -1281,25 +1331,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)), [])
         : [pc];
       const group = sameCell;   // 업으면 무조건 같이 이동(따로 가기 선택 없음)
+      this.lastMovePath.group = group.map(g => g.id);   // 업힌 말 전체 id — 클라가 함께 애니(스택 유지)
 
       if (r.done) {
         group.forEach(g => { g.done = true; g.out = false; });
       } else {
         group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; });
-        // 잡기: 도착 노드에 다른 편 말이 있으면 원위치
-        let caught = false, caughtN = 0;
-        for (const op of this.players) {
-          if (op.seat === seat) continue;
-          if (this.teamMode && op.team === pl.team) continue; // 같은 팀은 안 잡음
-          if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
-          for (const opc of op.pieces) {
-            if (!opc.done && opc.out && opc.node === r.node) {
-              opc.out = false; opc.node = 0; opc.route = 'outer';
-              caught = true; caughtN++;
-            }
-          }
-        }
-        if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node: r.node, count: caughtN }; } // 잡으면 한 번 더(잡기축제=두 번), count=멀티잡기
+        this._captureAt(r.node, seat, pl);   // 잡기: 도착 칸의 다른 편 말 → 처음으로(잡으면 한 번 더)
 
         // 구렁텅이: 순수 outer 함정 칸에 멈추면 그 말(업은 말 포함) 처음으로
         if (r.route === 'outer' && r.node === this.pitNode) {
@@ -1307,7 +1345,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
         }
         // 이벤트 칸: 부스터(+3)/보너스(한 번 더)/후퇴(-2)/황금(한 번 더+보상)
-        else if (r.route === 'outer' && this.eventTiles[r.node]) { this._applyEventTile(r.node, group, owner); }
+        else if (r.route === 'outer' && this.eventTiles[r.node]) {
+          const movedTo = this._applyEventTile(r.node, group, owner);
+          if (movedTo != null) this._captureAt(movedTo, seat, pl);   // 부스터/후퇴로 밀려간 칸의 상대도 잡음
+        }
       }
 
       // 승리 판정
@@ -1506,21 +1547,29 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null, wasPlaying=false;
 
-  const SFX=(()=>{ let ctx, _nb=null; const ac=()=>{ if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended')ctx.resume(); return ctx; };
-    function tone(f,t,d,g,type){ const c=ac(); const o=c.createOscillator(),v=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(v);v.connect(c.destination); o.start(t); o.stop(t+d); }
+  const SFX=(()=>{ let ctx, _nb=null, _bus=null, _ir=null; const ac=()=>{ if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended')ctx.resume(); return ctx; };
+    // 짧은 임펄스(감쇠 노이즈) — 컨볼루션 리버브용(외부 파일 0개)
+    function irBuf(c){ if(_ir)return _ir; const len=Math.floor(c.sampleRate*1.1); const b=c.createBuffer(2,len,c.sampleRate); for(let ch=0;ch<2;ch++){ const d=b.getChannelData(ch); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6); } return _ir=b; }
+    // 마스터 버스: 드라이 + 리버브 센드(14%) → 리미터 → 출력. 겹침 클리핑 방지 + 공간감으로 "삐- 합성음" 티 완화.
+    function out(c){ if(_bus)return _bus;
+      const lim=c.createDynamicsCompressor(); lim.threshold.value=-3; lim.knee.value=2; lim.ratio.value=12; lim.attack.value=0.003; lim.release.value=0.12; lim.connect(c.destination);
+      const bus=c.createGain(); bus.gain.value=1; bus.connect(lim);
+      try{ const cv=c.createConvolver(); cv.buffer=irBuf(c); const wet=c.createGain(); wet.gain.value=0.14; bus.connect(cv); cv.connect(wet); wet.connect(lim); }catch(e){}
+      return _bus=bus; }
+    function tone(f,t,d,g,type){ const c=ac(); const o=c.createOscillator(),v=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(v);v.connect(out(c)); o.start(t); o.stop(t+d); }
     // 짧은 화이트노이즈 버퍼(재사용) — 나무 부딪힘 등 타격감용
     function nbuf(c){ if(_nb)return _nb; const n=Math.floor(c.sampleRate*0.2); const b=c.createBuffer(1,n,c.sampleRate); const d=b.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1; return _nb=b; }
     // 나무 "딱!" — 밴드패스(중고역) 통과 노이즈 버스트
-    function woodClack(c,t,g,freq){ const s=c.createBufferSource(); s.buffer=nbuf(c); const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.setValueAtTime(freq||3200,t); bp.Q.value=2.2; const v=c.createGain(); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+.05); s.connect(bp); bp.connect(v); v.connect(c.destination); s.start(t); s.stop(t+.06); }
+    function woodClack(c,t,g,freq){ const s=c.createBufferSource(); s.buffer=nbuf(c); const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.setValueAtTime(freq||3200,t); bp.Q.value=2.2; const v=c.createGain(); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(.0001,t+.05); s.connect(bp); bp.connect(v); v.connect(out(c)); s.start(t); s.stop(t+.06); }
     const buzz=(p)=>{ try{navigator.vibrate&&navigator.vibrate(p);}catch(e){} };
     return {
       /* 진동(buzz)은 음소거해도 유지 — soundOn 가드 밖에서 먼저 호출 */
       toss(){ buzz(18); if(!soundOn)return; const c=ac(),t=c.currentTime; for(let k=0;k<5;k++){ tone(500+Math.random()*900,t+k*0.05,.09,.09,'triangle'); woodClack(c,t+k*0.05,.16,2600+Math.random()*1600); } },
       move(){ if(!soundOn)return; const c=ac(),t=c.currentTime; tone(660,t,.1,.1,'square'); },
-      capture(){ buzz([25,30,45]); if(!soundOn)return; const c=ac(),t=c.currentTime; [880,440].forEach((f,i)=>tone(f,t+i*.08,.15,.13,'sawtooth')); const o=c.createOscillator(),v=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(30,t+.16); v.gain.setValueAtTime(.001,t); v.gain.linearRampToValueAtTime(.3,t+.01); v.gain.exponentialRampToValueAtTime(.0001,t+.22); o.connect(v); v.connect(c.destination); o.start(t); o.stop(t+.24); },
+      capture(){ buzz([25,30,45]); if(!soundOn)return; const c=ac(),t=c.currentTime; [880,440].forEach((f,i)=>tone(f,t+i*.08,.15,.13,'sawtooth')); const o=c.createOscillator(),v=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(30,t+.16); v.gain.setValueAtTime(.001,t); v.gain.linearRampToValueAtTime(.3,t+.01); v.gain.exponentialRampToValueAtTime(.0001,t+.22); o.connect(v); v.connect(out(c)); o.start(t); o.stop(t+.24); },
       win(){ buzz([60,50,70,50,140]); if(!soundOn)return; const c=ac(),t=c.currentTime; [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.1,.3,.14,'triangle')); },
       lose(){ buzz([70,60]); if(!soundOn)return; const c=ac(),t=c.currentTime; [392,330,262].forEach((f,i)=>tone(f,t+i*.13,.32,.13,'sine')); },
-      pop(){ if(!soundOn)return; const c=ac(),t=c.currentTime; const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(820,t); o.frequency.exponentialRampToValueAtTime(430,t+.07); g.gain.setValueAtTime(.1,t); g.gain.exponentialRampToValueAtTime(.0001,t+.09); o.connect(g);g.connect(c.destination); o.start(t); o.stop(t+.1); },
+      pop(){ if(!soundOn)return; const c=ac(),t=c.currentTime; const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(820,t); o.frequency.exponentialRampToValueAtTime(430,t+.07); g.gain.setValueAtTime(.1,t); g.gain.exponentialRampToValueAtTime(.0001,t+.09); o.connect(g);g.connect(out(c)); o.start(t); o.stop(t+.1); },
       yut(){ buzz([30,20,50]); if(!soundOn)return; const c=ac(),t=c.currentTime; [784,1047,1319].forEach((f,i)=>tone(f,t+i*.07,.15,.12,'triangle')); },
       finish(){ buzz([40,40,90]); if(!soundOn)return; const c=ac(),t=c.currentTime; [523,784,1047].forEach((f,i)=>tone(f,t+i*.09,.2,.13,'triangle')); },
       backdo(){ buzz([15,50,15]); if(!soundOn)return; const c=ac(),t=c.currentTime; [420,300].forEach((f,i)=>tone(f,t+i*.1,.17,.1,'sine')); },
@@ -1547,7 +1596,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const ac=()=>{
       if(!ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return null;
         try{ ctx=new AC(); }catch(e){ return null; }
-        master=ctx.createGain(); master.gain.value=0.0001; master.connect(ctx.destination); }
+        master=ctx.createGain(); master.gain.value=0.0001;
+        // master → [드라이 + 리버브 센드 12%] → 리미터 → 출력 (가야금·장구에 공간감, 겹침 클리핑 방지)
+        try{ const lim=ctx.createDynamicsCompressor(); lim.threshold.value=-4; lim.knee.value=3; lim.ratio.value=10; lim.attack.value=0.004; lim.release.value=0.16; lim.connect(ctx.destination); master.connect(lim);
+          const irLen=Math.floor(ctx.sampleRate*1.4); const ir=ctx.createBuffer(2,irLen,ctx.sampleRate); for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); for(let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,2.8); }
+          const cv=ctx.createConvolver(); cv.buffer=ir; const wet=ctx.createGain(); wet.gain.value=0.12; master.connect(cv); cv.connect(wet); wet.connect(lim);
+        }catch(e){ master.connect(ctx.destination); }
+      }
       if(ctx.state==='suspended'){ try{ctx.resume();}catch(e){} }
       return ctx;
     };
@@ -1772,7 +1827,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function dispDone(pi){ const o=pieceOwnerSeat(pi); return (S&&S.players[o]&&S.players[o].doneCount)||0; }
   // 팀 목록(오름차순)
   function teamList(){ return [...new Set(S.players.map(p=>p.team))].sort((a,b)=>a-b); }
-  let capCount=0, prevCaptured=null, selStep=null, prevDone={}, moveSeqSeen=0, animatingId=null, skipSeen=0, pitSeen=0, eventFxSeen=0;
+  let capCount=0, prevCaptured=null, selStep=null, prevDone={}, moveSeqSeen=0, animatingId=null, animGroup=new Set(), skipSeen=0, pitSeen=0, eventFxSeen=0;
 
   /* ===== 아이템전 클라 ===== */
   const ITEM_INFO={ shield:{ico:'🛡',nm:'방어막',desc:'다음 내 차례까지 안 잡힘'}, rethrow:{ico:'🔄',nm:'재던지기',desc:'한 번 더 던지기'}, push:{ico:'👊',nm:'밀치기',desc:'상대 말 하나 처음으로'} };
@@ -1807,7 +1862,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     sendItem({item:'push', targetSeat, targetPieceId:pieceId});
   }
   // 밀치기 타겟 후보인가(상대 편 + 판 위)
-  function isPushTarget(seat, pc){ return pushMode && pc && pc.out && !pc.done && !sameSideSeat(seat, ctrlSeat()); }
+  function isPushTarget(seat, pc){ return pushMode && pc && pc.out && !pc.done && !sameSideSeat(seat, ctrlSeat()) && !(S && S.shieldSide!=null && pieceOwnerSeat(seat)===S.shieldSide); }  // 방어막 편은 밀치기도 못 함
   function renderItemBar(){
     const el=$('itemBar'); if(!el)return;
     if(!S || !S.itemBattle || S.phase==='over'){ el.className='itembar'; el.innerHTML=''; pushMode=false; return; }
@@ -1847,6 +1902,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       else { SFX.ding&&SFX.ding(); } }catch(e){}
   }
 
+  // ⚡ 판 캐시: pit/이벤트칸 시그니처가 바뀔 때(=새 게임)만 재생성. 매 상태변경 재파싱 방지.
+  let _boardSig=null;
+  function ensureBoard(){
+    const bl=$('boardLayer'); if(!bl) return;
+    const sig=(S?S.pitNode:'')+'|'+(S&&S.eventTiles?JSON.stringify(S.eventTiles):'');
+    if(sig!==_boardSig || !bl.firstChild){ _boardSig=sig; bl.innerHTML=drawBoard(); }
+  }
   function drawBoard(){
     const W=332, M=34;
     const P=i=>[NODE[i][0]*W+M, NODE[i][1]*W+M];
@@ -1918,7 +1980,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     });
     return s;
   }
-  function nodeXY(nd){ const W=332,M=34; return [NODE[nd][0]*W+M, NODE[nd][1]*W+M]; }
+  function nodeXY(nd){ if(nd===29)nd=0; const W=332,M=34; return [NODE[nd][0]*W+M, NODE[nd][1]*W+M]; }  // 29=완주 게이트, 출발점(0) 위치에 렌더
   function pieceAnimal(p, pi){ return (p && p.avatar && ANIMAL_IMG[p.avatar]) ? p.avatar : ANIMAL_ORDER[pi % ANIMAL_ORDER.length]; }
   const NS='http://www.w3.org/2000/svg';
   const SPEECH={
@@ -2141,19 +2203,44 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     layer.appendChild(t);
     setTimeout(()=>{ try{ring.remove();t.remove();if(ring2)ring2.remove();frags.forEach(fr=>fr.el.remove());}catch(e){} },720);
   }
-  function animatePieceMove(mp){
-    const id='pc-'+mp.seat+'-'+mp.pieceId;
-    const g=document.getElementById(id);
-    if(!g || !mp.path || !mp.path.length){ animatingId=null; return; }
-    animatingId=id; let i=0;
-    const hop=()=>{
-      if(!S || i>=mp.path.length){ animatingId=null; renderPieces(); return; }
-      const p=mp.path[i];
-      if(p.done){ animatingId=null; renderPieces(); return; }
-      const [x,y]=nodeXY(p.node); g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);
-      i++; setTimeout(hop, 160);
-    };
-    hop();
+  // ── 이동 연출 속도(천천히 · 한 눈에 보이게) ──
+  const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=1050, BANNER_MS=1700;
+  // renderPieces가 이 말을 실제로 놓을 좌표(업기 스택 오프셋·y보정 포함) — 도착 후 튐(옮겨가는 것처럼 보임) 방지
+  function pieceSettledXY(seat, pieceId){
+    if(!S) return null;
+    const byNode={};
+    S.players.forEach((p,pi)=>p.pieces.forEach(pc=>{ if(!pc.done&&pc.out){ (byNode[pc.node]=byNode[pc.node]||[]).push({pi,id:pc.id}); } }));
+    for(const nd of Object.keys(byNode)){
+      const arr=byNode[nd]; const idx=arr.findIndex(o=>o.pi===seat&&o.id===pieceId);
+      if(idx>=0){ const [bx,by]=nodeXY(+nd); return [bx+(idx-(arr.length-1)/2)*13, by-2]; }
+    }
+    return null; // 완주해 판에서 빠짐
+  }
+  // ✨ 착지 먼지: 말이 칸에 내려앉을 때 발밑에서 살짝 폴폴(나무판 먼지). 과하지 않게 착지당 1회.
+  function spawnPuff(x, y){
+    const layer=$('fxLayer'); if(!layer || FX_REDUCED()) return;
+    const n=5;
+    for(let i=0;i<n;i++){
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',x.toFixed(1)); c.setAttribute('cy',(y+12).toFixed(1));
+      c.setAttribute('r',(1.5+Math.random()*1.5).toFixed(1)); c.setAttribute('fill','rgba(150,120,80,.5)');
+      layer.appendChild(c);
+      const spread=(i/(n-1)-0.5)*2;              // -1..1 좌우
+      const dx=spread*(6+Math.random()*7), dy=-(2+Math.random()*5);
+      requestAnimationFrame(()=>{ c.style.transition='transform .5s ease-out, opacity .5s ease-out'; c.style.transform='translate('+dx.toFixed(1)+'px,'+dy.toFixed(1)+'px)'; c.style.opacity='0'; });
+      setTimeout(()=>{ try{c.remove();}catch(e){} }, 560);
+    }
+  }
+  // 완주 연출: 종착(=출발) 코너로 미끄러진 뒤 크게 떠오르며 사라짐 + 배너 (그냥 툭 사라지지 않게)
+  function animateFinish(ids, onDone){
+    const els=(Array.isArray(ids)?ids:[ids]).map(id=>document.getElementById(id)).filter(Boolean);
+    if(!els.length){ if(onDone)onDone(); return; }
+    const [sx,sy]=nodeXY(0); const N=els.length;
+    els.forEach((g,k)=>{ g.setAttribute('transform',`translate(${(sx+(k-(N-1)/2)*13).toFixed(1)},${sy.toFixed(1)})`); }); // 종착점(=출발점)으로 미끄러짐
+    effectAnnounce('<span class="efann-big">🏁 완주!</span><span class="efann-sub">한 바퀴 돌아 골인 🎉</span>', BANNER_MS);
+    try{ SFX.finish&&SFX.finish(); }catch(e){}
+    setTimeout(()=>{ els.forEach(g=>{ if(g.isConnected) g.classList.add('finishing'); }); }, HOP_MAIN);   // 미끄러진 뒤 떠오름
+    setTimeout(()=>{ if(onDone)onDone(); }, HOP_MAIN+780);
   }
   // 특수 칸 효과 안내 배너(크고 명확히, 잠깐 유지)
   let _effT=null;
@@ -2169,58 +2256,78 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     bonus:'<span class="efann-big">🎁 보너스!</span><span class="efann-sub">한 번 더 던져요</span>',
     gold:'<span class="efann-big">⭐ 황금!</span><span class="efann-sub">한 번 더 던져요</span>'
   };
-  // 말 엘리먼트 하나를 경로 따라 한 칸씩 이동(renderPieces 없이 — 시퀀스 중 스냅 방지)
-  function animateAlong(id, path, hopMs, onDone){
-    const g=document.getElementById(id);
-    if(!g || !path || !path.length){ if(onDone)onDone(); return; }
-    let i=0;
+  // 그룹(업힌 말 포함)을 경로 따라 함께 미끄러뜨림 — 각 말이 스택 오프셋 유지(꼬임 방지).
+  // endMap[elId]=[x,y]가 있으면 마지막 칸은 그 정착 좌표. onDone(hitDone): 완주 마커면 true.
+  function slideAlong(ids, path, hopMs, endMap, onDone){
+    const nodes=[]; let hitDone=false;
+    if(path){ for(const p of path){ if(p.done){ hitDone=true; break; } nodes.push(p.node); } }
+    const els=(Array.isArray(ids)?ids:[ids]).map(id=>({id,g:document.getElementById(id)})).filter(o=>o.g);
+    if(!els.length || !nodes.length){ if(onDone)onDone(hitDone); return; }
+    const N=els.length; let i=0;
     const hop=()=>{
-      if(!S || i>=path.length){ if(onDone)onDone(); return; }
-      const p=path[i];
-      if(p.done){ if(onDone)onDone(); return; }
-      const [x,y]=nodeXY(p.node); g.setAttribute('transform','translate('+x.toFixed(1)+','+y.toFixed(1)+')');
+      if(!S || i>=nodes.length){ if(onDone)onDone(hitDone); return; }
+      const last=(i===nodes.length-1 && !hitDone); const [bx,by]=nodeXY(nodes[i]);
+      els.forEach((o,k)=>{
+        const e=(last && endMap && endMap[o.id]) ? endMap[o.id] : [bx+(k-(N-1)/2)*13, by-2];
+        o.g.setAttribute('transform','translate('+e[0].toFixed(1)+','+e[1].toFixed(1)+')');
+      });
       i++; setTimeout(hop, hopMs);
     };
     hop();
   }
-  // 이동 + 특수효과 순차 연출: 메인 이동 → 잠깐 멈춤 + 명확한 안내 → 효과 이동(천천히)
+  // 이동 + 특수효과 순차 연출: 메인 이동(천천히) → 도착 후 멈춤 + 큰 배너 → 효과 이동/낙하(천천히)
   function runMoveSequence(mp, ev, pit){
-    const id='pc-'+mp.seat+'-'+mp.pieceId;
-    animatingId=id;
-    const finish=()=>{ animatingId=null; if(S) renderPieces(); };
+    const gpids = (mp.group && mp.group.length) ? mp.group : [mp.pieceId];   // 업힌 말 전체
+    const gids = gpids.map(pid=>'pc-'+mp.seat+'-'+pid);
+    animatingId='pc-'+mp.seat+'-'+mp.pieceId; animGroup=new Set(gids);
+    const endMap=()=>{ const m={}; gpids.forEach(pid=>{ const sp=pieceSettledXY(mp.seat,pid); if(sp)m['pc-'+mp.seat+'-'+pid]=sp; }); return m; };
+    const finish=()=>{ animatingId=null; animGroup=new Set(); const lead=S?pieceSettledXY(mp.seat, mp.pieceId):null; if(S) renderPieces(); if(lead) spawnPuff(lead[0], lead[1]); };
     if(FX_REDUCED()){
       if(pit){ try{SFX.capture&&SFX.capture();}catch(e){} }
-      if(ev){ effectAnnounce(EV_LABEL[ev.type]||'', 800); }
+      if(ev){ effectAnnounce(EV_LABEL[ev.type]||'', 900); try{eventFxBurst(ev);}catch(e){} }
       finish(); return;
     }
-    // 1) 메인 이동
-    animateAlong(id, mp.path, 160, ()=>{
-      // 2) 특수 칸 도착 → 멈춤 + 안내
+    // 일반 이동일 때만 마지막 칸을 정착 좌표로(늪·이벤트·완주는 뒤에 추가 연출이 이어짐)
+    const plain = !pit && !(ev && ev.path && ev.path.length);
+    const mainEnd = plain ? endMap() : null;
+    // 1) 메인 이동(그룹 함께)
+    slideAlong(gids, mp.path, HOP_MAIN, mainEnd, (hitDone)=>{
+      // 2a) 완주 — 종착점으로 미끄러진 뒤 떠오르며 골인(그룹 전체)
+      if(hitDone){ animateFinish(gids, finish); return; }
+      // 2b) 늪 — 도착해 잠깐 멈춤 + 배너 → 천천히 처음으로 떨어짐(빙글 회전, 그룹 전체는 animatePitFall이 처리)
       if(pit){
         try{SFX.capture&&SFX.capture();}catch(e){}
-        effectAnnounce('<span class="efann-big">🕳️ 늪에 빠졌다!</span><span class="efann-sub">처음으로 돌아가요 💦</span>', 1300);
-        setTimeout(()=>{ animatingId=null; animatePitFall(pit); }, 950);   // 3) 늪: 천천히 처음으로
-      } else if(ev){
-        effectAnnounce(EV_LABEL[ev.type]||'', 1300);
+        effectAnnounce('<span class="efann-big">🕳️ 늪에 빠졌다!</span><span class="efann-sub">처음으로 돌아가요 💦</span>', BANNER_MS);
+        setTimeout(()=>{ animatingId=null; animGroup=new Set(); animatePitFall(pit); }, MOVE_PAUSE);
+        return;
+      }
+      // 2c) 이벤트 — 도착해 배너/이펙트 → (이동형이면) 천천히 추가 이동(그룹 함께)
+      if(ev){
+        effectAnnounce(EV_LABEL[ev.type]||'', BANNER_MS);
         try{ eventFxBurst(ev); }catch(e){}
         if(ev.path && ev.path.length){
-          setTimeout(()=>{ animateAlong(id, ev.path, 270, finish); }, 950);  // 3) 부스터/후퇴: 천천히 이동
-        } else { setTimeout(finish, 950); }   // 보너스/황금: 이동 없음
-      } else { finish(); }
+          const evFinish = ev.path.some(p=>p.done);
+          const evEnd = evFinish ? null : endMap();
+          setTimeout(()=>{ slideAlong(gids, ev.path, HOP_EVENT, evEnd, (hd)=>{ if(hd) animateFinish(gids, finish); else finish(); }); }, MOVE_PAUSE);
+        } else { setTimeout(finish, MOVE_PAUSE); }   // 보너스/황금: 제자리, 배너만
+        return;
+      }
+      finish();
     });
   }
   const pitAnimatingIds=new Set();
   function animatePitFall(pf){
     if(!pf || !pf.pieceIds || !pf.pieceIds.length) return;
-    const [px,py]=nodeXY(pf.node); const [sx,sy]=nodeXY(0);
+    const [px,py]=nodeXY(pf.node);
     pf.pieceIds.forEach(pid=>{
       const id='pc-'+pf.seat+'-'+pid; const g=document.getElementById(id); if(!g)return;
+      const end=pieceSettledXY(pf.seat, pid)||nodeXY(0);   // 처음(출발점) 정착 좌표
       pitAnimatingIds.add(id);
       g.setAttribute('transform',`translate(${px.toFixed(1)},${py.toFixed(1)})`); // 늪 위치에서 출발
       void g.getBoundingClientRect(); // 리플로우 강제(transition 시작점 고정)
       g.classList.add('pitfall');
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(g.isConnected) g.setAttribute('transform',`translate(${sx.toFixed(1)},${sy.toFixed(1)})`); }));
-      setTimeout(()=>{ g.classList.remove('pitfall'); pitAnimatingIds.delete(id); if(S) renderPieces(); }, 660);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(g.isConnected) g.setAttribute('transform',`translate(${end[0].toFixed(1)},${end[1].toFixed(1)})`); }));
+      setTimeout(()=>{ g.classList.remove('pitfall'); pitAnimatingIds.delete(id); if(S) renderPieces(); }, 1080);
     });
   }
   function renderPieces(){
@@ -2242,7 +2349,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           layer.appendChild(g);
           if(id===animatingId){ const [sx,sy]=nodeXY(0); g.setAttribute('transform',`translate(${sx.toFixed(1)},${sy.toFixed(1)})`); }
           else g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);
-        } else if(id!==animatingId && !pitAnimatingIds.has(id)){ g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`); }
+        } else if(id!==animatingId && !animGroup.has(id) && !pitAnimatingIds.has(id)){ g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`); }
         const ring=g.querySelector('.ring'); ring.setAttribute('stroke',mv?'#ffffff':pieceColor(o.pi)); ring.setAttribute('stroke-width',mv?3.5:2.5);
         ring.setAttribute('stroke-dasharray',(S.teamMode&&S.players[o.pi]&&S.players[o.pi].team===1)?'4 2.5':'none'); // 홍팀 점선(색맹 구분)
         // 방어막 표시: 소유 편이 방어막 상태면 말 위 🛡
@@ -2265,7 +2372,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         }
       });
     });
-    [...layer.children].forEach(c=>{ if(!seen[c.id] && c.id!==animatingId && !pitAnimatingIds.has(c.id)) c.remove(); });
+    [...layer.children].forEach(c=>{ if(!seen[c.id] && c.id!==animatingId && !animGroup.has(c.id) && !pitAnimatingIds.has(c.id)) c.remove(); });
   }
   function pieceMovable(pc, seat){ // 이 말이 이번 턴 pending 중 하나로 이동 가능? (seat=말 소유자)
     if(!S || S.phase!=='move' || mySeat()!==S.turn) return false;
@@ -2277,7 +2384,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     return simStep(pc.node, pc.route, pc.out, st, null).ok;
   }
   // 엔진 step 로직 클라 재현 (이동 가능 판정용)
-  const SEQ={ outer:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19], sc5:[5,20,21,22,23,24,15,16,17,18,19], sc10:[10,25,26,22,27,28] };
+  const SEQ={ outer:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,29], sc5:[5,20,21,22,23,24,15,16,17,18,19,29], sc10:[10,25,26,22,27,28,29] };
   function isBranchC(node,route){ return (route==='outer'&&(node===5||node===10))||(route==='sc5'&&node===22); }
   function simStep(node,route,out,steps,dir){
     if(!out){ if(steps<0)return{ok:false}; if(steps>=SEQ.outer.length)return{ok:true,done:true}; return{ok:true,node:SEQ.outer[steps],route:'outer'}; }
@@ -2316,7 +2423,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       else if(leaders.length===1){ const lp=leaders[0].pid; if(prevLeadPid!==null && lp!==prevLeadPid){ reversalBanner(); } prevLeadPid=lp; }
     } else if(S.phase==='over'){ prevLeadPid=null; }
     // 보드(배경 고정) + 말(재사용 → 이동 애니메이션)
-    $('boardLayer').innerHTML=drawBoard();
+    // ⚡ 최적화: 판 SVG(무거운 feTurbulence·필터 포함)는 pit/이벤트칸에만 의존 → 게임당 1회만 그리고 캐시.
+    ensureBoard();
     if(S.lastMovePath && S.lastMovePath.seq!==moveSeqSeen){
       moveSeqSeen=S.lastMovePath.seq;
       if(S.lastMovePath.seat===mySeat() && S.lastMovePath.path.some(p=>p.route==='sc5'||p.route==='sc10')) trackMission('shortcut');
@@ -2325,6 +2433,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const _ev=(S.eventFx && S.eventFx.seq!==eventFxSeen)?S.eventFx:null; if(_ev)eventFxSeen=S.eventFx.seq;
       if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); }
       animatingId='pc-'+S.lastMovePath.seat+'-'+S.lastMovePath.pieceId;
+      animGroup=new Set((S.lastMovePath.group||[S.lastMovePath.pieceId]).map(pid=>'pc-'+S.lastMovePath.seat+'-'+pid)); // 업힌 말 전체를 렌더 스냅에서 보호
       renderPieces();
       runMoveSequence(S.lastMovePath, _ev, _pit);   // 메인 이동 → 멈춤+안내 → 효과 이동(천천히)
     } else renderPieces();
@@ -2752,7 +2861,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* 새 판(로컬/온라인 공통) 시작 시 판 단위 상태 전부 초기화 */
   function resetRoundState(){
     resultShown=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null;
-    moveSeqSeen=0; animatingId=null; skipSeen=0; pitSeen=0; selStep=null; eventFxSeen=0;
+    moveSeqSeen=0; animatingId=null; animGroup=new Set(); skipSeen=0; pitSeen=0; selStep=null; eventFxSeen=0; _boardSig=null;
     rankConfirmShown=false; clearRankConfirm();
     growthInfo=null; { const rg=$('resGrowth'); if(rg){ rg.style.display='none'; rg.innerHTML=''; } }
     initMissions();
@@ -2776,7 +2885,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         // 등수 가중치를 크게 둬서 "꼴찌 점수 > 1등 점수" 모순이 나오지 않게 함.
         const score=(N-i)*500 + catches*20 + done*30;
         const animal=p?pieceAnimal(p,p.seat):null;
-        return `<div class="rank-row${pid===MYPID?' me':''}"><span class="rank-medal">${last?'💩':(medals[i]||(i+1))}</span><img class="rank-av" src="${animal?ANIMAL_IMG[animal]:''}" alt=""><span class="rank-name">${esc(p?p.name:'?')}${pid===MYPID?' (나)':''}${p&&p.ai?' 🤖':''}</span><span class="rank-stat">${done}</span><span class="rank-stat">${catches}</span><span class="rank-score">${score}</span></div>`;
+        return `<div class="rank-row${i===0?' win':''}${last&&!(i===0)?' lastp':''}${pid===MYPID?' me':''}"><span class="rank-medal">${last?'💩':(medals[i]||(i+1))}</span><img class="rank-av" src="${animal?ANIMAL_IMG[animal]:''}" alt=""><span class="rank-name">${esc(p?p.name:'?')}${pid===MYPID?' (나)':''}${p&&p.ai?' 🤖':''}</span><span class="rank-stat">${done}</span><span class="rank-stat">${catches}</span><span class="rank-score">${score}</span></div>`;
       }).join('');
       const myRank=S.rankings.indexOf(MYPID); const myPlace=myRank>=0?myRank+1:0; const iWon=myPlace===1;
       $('resBig').textContent = myPlace===1?'🏆':(myPlace===S.rankings.length&&myPlace>0)?'💩':'🎲';

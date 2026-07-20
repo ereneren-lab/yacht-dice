@@ -136,6 +136,41 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .statstrip .si b{font-size:19px;font-weight:800;color:var(--brass);line-height:1.1}
   .statstrip .si span{font-size:11px;color:var(--muted);font-weight:600}
 
+  /* 메타 진행: 프로필 레벨/XP 카드 */
+  .levelcard{display:none;margin:0 2px 16px;padding:14px 16px;border-radius:16px;
+    border:1px solid color-mix(in srgb,var(--brass) 32%,var(--line));
+    background:linear-gradient(135deg,color-mix(in srgb,var(--brass) 13%,var(--panel2)),var(--panel2))}
+  .levelcard.show{display:flex;gap:14px;align-items:center}
+  .levelcard .lv-badge{flex:none;width:56px;height:56px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:linear-gradient(150deg,var(--brass),var(--brass-d));color:var(--brass-ink,#15110d);box-shadow:0 5px 16px color-mix(in srgb,var(--brass) 34%,transparent)}
+  .levelcard .lv-badge .lvw{font-size:9px;font-weight:800;letter-spacing:.14em;opacity:.82;line-height:1}
+  .levelcard .lv-badge .lvn{font-size:24px;font-weight:900;line-height:1.05}
+  .levelcard .lv-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+  .levelcard .lv-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .levelcard .lv-top b{font-size:15px;font-weight:800;color:var(--ink)}
+  .levelcard .lv-top span{font-size:11.5px;font-weight:700;color:var(--brass);flex:none}
+  .levelcard .lv-bar{height:9px;border-radius:999px;background:color-mix(in srgb,var(--brass) 12%,rgba(0,0,0,.25));overflow:hidden}
+  .levelcard .lv-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brass-d),var(--brass));transition:width .6s cubic-bezier(.3,1,.4,1)}
+  .levelcard .lv-sub{font-size:10.5px;font-weight:600;color:var(--muted)}
+
+  /* 메타 진행: 일일 목표 */
+  .dailygoals{display:none;flex-direction:column;gap:9px;margin:0 2px 20px;padding:13px 15px;
+    border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+  .dailygoals.show{display:flex}
+  .dailygoals .dghdr{display:flex;align-items:baseline;gap:8px}
+  .dailygoals .dghdr b{font-size:13px;font-weight:800;color:var(--ink)}
+  .dailygoals .dghdr span{font-size:11px;font-weight:700;color:var(--muted)}
+  .dailygoals .dgrow{display:flex;align-items:center;gap:10px}
+  .dailygoals .dge{font-size:16px;flex:none;line-height:1}
+  .dailygoals .dgmid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .dailygoals .dgl{font-size:12px;font-weight:700;color:var(--ink)}
+  .dailygoals .dgrow.done .dgl{color:var(--win)}
+  .dailygoals .dgbar{height:6px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+  .dailygoals .dgbar i{display:block;height:100%;border-radius:999px;background:var(--brass);transition:width .5s ease}
+  .dailygoals .dgrow.done .dgbar i{background:var(--win)}
+  .dailygoals .dgn{flex:none;font-size:11px;font-weight:800;color:var(--muted);min-width:34px;text-align:right}
+  .dailygoals .dgrow.done .dgn{color:var(--win)}
+
   /* 리텐션: 첫 방문 안내 */
   .firstnote{display:none;align-items:flex-start;gap:9px;margin:2px 2px 18px;padding:11px 14px;
     border:1px dashed color-mix(in srgb,var(--brass) 45%,var(--line));border-radius:13px;
@@ -243,8 +278,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       </div>
     </div>
   </details>
+  <div class="levelcard" id="levelCard"></div>
   <div class="statstrip" id="statStrip"></div>
   <div class="achshelf" id="achShelf"></div>
+  <div class="dailygoals" id="dailyGoals"></div>
   <div class="firstnote" id="firstNote"><span class="fe">🎲</span><span><b>처음이라면</b> — 혼자 <b>AI</b>랑 붙어봐도 되고, 친구가 준 <b>방 코드</b>를 아래에 입력해 바로 참가할 수도 있어.</span></div>
   <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
   <div class="joinbar">
@@ -446,13 +483,54 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     strip.classList.add('show');
   }
 
+  // 2.5) 프로필 레벨/XP — 5종 통계 합산에서 파생(별도 저장 없이 매 로드 계산)
+  (function(){
+    var lc=$('levelCard'); if(!lc||totGames<=0) return;
+    var xp = totGames*12 + totWins*28 + totAch*55 + bestStreak*22 + playedCount*35;
+    var lvl=1, need=120, acc=0; while(xp>=acc+need && lvl<99){ acc+=need; lvl++; need=Math.round(need*1.22); }
+    var into=xp-acc, pct=Math.max(3,Math.min(100,Math.round(into/need*100)));
+    var TT=[[1,'초심자'],[3,'골목 견습'],[5,'단골 노름꾼'],[8,'승부사'],[12,'골목 고수'],[16,'주사위 장인'],[22,'골목의 전설']];
+    var title='초심자'; for(var i=0;i<TT.length;i++){ if(lvl>=TT[i][0]) title=TT[i][1]; }
+    lc.innerHTML='<div class="lv-badge"><span class="lvw">LV</span><span class="lvn">'+lvl+'</span></div>'
+      +'<div class="lv-main"><div class="lv-top"><b>'+esc(title)+'</b><span>'+xp+' XP</span></div>'
+      +'<div class="lv-bar"><i style="width:0%"></i></div>'
+      +'<div class="lv-sub">다음 레벨까지 '+(need-into)+' XP</div></div>';
+    lc.classList.add('show');
+    var bar=lc.querySelector('.lv-bar i'); if(bar) setTimeout(function(){ bar.style.width=pct+'%'; },60);
+  })();
+
+  // 2.6) 일일 목표 — 로컬 자정 기준 스냅샷 델타로 오늘 진행 계산(게임 파일 무수정)
+  (function(){
+    var dg=$('dailyGoals'); if(!dg||totGames<=0) return;
+    var d=new Date(), today=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    var snap=readJSON('alley_daily');
+    if(!snap || snap.date!==today){ snap={date:today, bg:totGames, bw:totWins, ba:totAch}; try{localStorage.setItem('alley_daily',JSON.stringify(snap));}catch(e){} }
+    var tG=Math.max(0,totGames-(+snap.bg||0)), tW=Math.max(0,totWins-(+snap.bw||0)), tA=Math.max(0,totAch-(+snap.ba||0));
+    var goals=[
+      {e:'🎲', l:'오늘 3판 플레이', cur:tG, tgt:3},
+      {e:'🏆', l:'오늘 1승 거두기', cur:tW, tgt:1},
+      {e:'🏅', l:'오늘 새 뱃지 얻기', cur:tA, tgt:1}
+    ];
+    var doneN=goals.filter(function(g){return g.cur>=g.tgt;}).length;
+    var rows=goals.map(function(g){ var done=g.cur>=g.tgt, pct=Math.max(0,Math.min(100,Math.round(g.cur/g.tgt*100)));
+      return '<div class="dgrow'+(done?' done':'')+'"><span class="dge">'+(done?'✅':g.e)+'</span>'
+        +'<div class="dgmid"><span class="dgl">'+esc(g.l)+'</span><div class="dgbar"><i style="width:'+pct+'%"></i></div></div>'
+        +'<span class="dgn">'+Math.min(g.cur,g.tgt)+'/'+g.tgt+'</span></div>'; }).join('');
+    dg.innerHTML='<div class="dghdr"><b>오늘의 목표</b><span>'+doneN+' / '+goals.length+' 완료</span></div>'+rows;
+    dg.classList.add('show');
+  })();
+
   // 5) 골목 도전과제 — 5종 stats 합산으로 순수 파생 계산 (별도 저장 없이 매 로드 판정)
   var META=[
     {id:'firststep', e:'🎲', name:'첫 발걸음',  desc:'아무 게임 1판',        ok:totGames>=1},
     {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'5종 모두 1판 이상',    ok:playedCount>=5},
     {id:'regular',   e:'🏆', name:'골목 단골',   desc:'전 게임 합 50판',      ok:totGames>=50},
     {id:'contender', e:'👑', name:'승부사',     desc:'전 게임 합 20승',      ok:totWins>=20},
-    {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5}
+    {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5},
+    {id:'veteran',   e:'🎖️', name:'골목 베테랑', desc:'전 게임 합 100판',     ok:totGames>=100},
+    {id:'champion',  e:'💎', name:'챔피언',     desc:'전 게임 합 50승',      ok:totWins>=50},
+    {id:'collector', e:'📚', name:'수집가',     desc:'게임 뱃지 15개',       ok:totAch>=15},
+    {id:'inferno',   e:'🌋', name:'맹렬',       desc:'최고 연승 10 이상',    ok:bestStreak>=10}
   ];
   var shelf=$('achShelf');
   if(shelf){
