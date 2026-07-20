@@ -308,7 +308,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .growth-ach .ab{font-size:13px; font-weight:800; color:var(--ink); display:inline-flex; align-items:center; gap:3px}
   @keyframes achpop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
 
-  @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important} }
+  /* transition-duration·scroll-behavior가 빠져 있어 전환 애니메이션이 그대로 돌았다(다른 게임은 잡고 있음) */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important }
+  }
   @media(max-width:380px){ .board{gap:6px} .col{padding:5px;gap:5px} }
 
   /* 투명 위젯 컨트롤 (Electron 앱 전용) */
@@ -1250,16 +1253,27 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         : `<span class="mnm">${esc(mem.name)}</span>`;
       d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div>${nameHtml}${specBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHostFlag)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
       // [9] 내 아바타 탭 → 이모지 피커 → alley_avatar 저장 + setAvatar 전송
-      if(isMe){ const av=d.querySelector('.mav'); if(av){ av.style.cursor='pointer'; av.title='탭해서 캐릭터 변경';
-        av.onclick=()=>openAvatarPicker(mem.avatar, e=>{ try{localStorage.setItem('alley_avatar',e);}catch(_){} myAvatar=e; wsSend({t:'setAvatar',emoji:e}); }); } }
+      // div에 onclick만 달면 키보드로 도달할 수 없다 → role/tabindex/Enter·Space를 함께 준다
+      if(isMe){ const av=d.querySelector('.mav'); if(av){
+        const pick=()=>openAvatarPicker(mem.avatar, e=>{ try{localStorage.setItem('alley_avatar',e);}catch(_){} myAvatar=e; wsSend({t:'setAvatar',emoji:e}); });
+        av.style.cursor='pointer'; av.title='탭해서 캐릭터 변경';
+        av.setAttribute('role','button'); av.setAttribute('tabindex','0'); av.setAttribute('aria-label','캐릭터 선택');
+        av.onclick=pick;
+        av.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); pick(); } };
+      } }
       host.appendChild(d);
     });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     // [중-3] 이름 변경
     const meEl = host.querySelector('.mnm[data-me]');
-    if(meEl) meEl.onclick=()=>{ const cur=(lobby.members.find(x=>x.pid===myPid)||{}).name||'';
-      const nn=(prompt('새 이름을 입력하세요', cur)||'').trim().slice(0,12);
-      if(nn && nn!==cur){ saveName(nn); wsSend({t:'rename',name:nn}); } };
+    if(meEl){
+      const rename=()=>{ const cur=(lobby.members.find(x=>x.pid===myPid)||{}).name||'';
+        const nn=(prompt('새 이름을 입력하세요', cur)||'').trim().slice(0,12);
+        if(nn && nn!==cur){ saveName(nn); wsSend({t:'rename',name:nn}); } };
+      meEl.onclick=rename;
+      meEl.setAttribute('role','button'); meEl.setAttribute('tabindex','0'); meEl.setAttribute('aria-label','내 이름 변경');
+      meEl.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); rename(); } };
+    }
     $('lobbyAddAi').style.display = (amHostFlag && lobby.members.length<2) ? 'block' : 'none';
     const MIN=2, N=lobby.members.length, ready = N>=MIN;
     $('lobbyStart').style.display = (ready && amHostFlag)?'block':'none';

@@ -1124,8 +1124,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const isMe=mem.pid===MYPID; const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'')+(isMe?' me':'');
       d.innerHTML=`<div class="mav2">${mem.avatar||'🎲'}</div><span class="mnm2">${esc(mem.name)}${isMe?' <span style="color:var(--brass);font-size:11px">✏️ 나</span>':''}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
-      if(isMe){ const nm=d.querySelector('.mnm2'); nm.style.cursor='pointer'; nm.title='탭해서 이름 변경'; nm.onclick=renameSelf;
-        const av=d.querySelector('.mav2'); if(av){ av.style.cursor='pointer'; av.title='탭해서 캐릭터 변경'; av.onclick=()=>openAvatarPicker(mem.avatar, e=>{ saveAvatar(e); wsSend({t:'setAvatar',emoji:e}); }); } }
+      // span/div에 onclick만 달면 키보드로 도달할 수 없다 → role/tabindex/Enter·Space를 함께 준다
+      if(isMe){
+        const kb=(el,fn)=>{ el.setAttribute('role','button'); el.setAttribute('tabindex','0');
+          el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); fn(); } }; };
+        const nm=d.querySelector('.mnm2');
+        if(nm){ nm.style.cursor='pointer'; nm.title='탭해서 이름 변경'; nm.setAttribute('aria-label','내 이름 변경'); nm.onclick=renameSelf; kb(nm, renameSelf); }
+        const av=d.querySelector('.mav2');
+        if(av){ const pick=()=>openAvatarPicker(mem.avatar, e=>{ saveAvatar(e); wsSend({t:'setAvatar',emoji:e}); });
+          av.style.cursor='pointer'; av.title='탭해서 캐릭터 변경'; av.setAttribute('aria-label','캐릭터 선택'); av.onclick=pick; kb(av, pick); }
+      }
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<4) ? 'block' : 'none';

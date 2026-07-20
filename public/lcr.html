@@ -1082,8 +1082,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member'+(mem.pid===MYPID?' me':'');
       d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div><span class="mnm">${esc(dispName(mem))}</span>${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${mem.pid===MYPID?'<span class="mine-edit">✏️ 이름 변경</span>':''}${(mem.ai&&amHost)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
-      if(mem.pid===MYPID){ d.title='탭하면 이름 변경'; d.onclick=()=>{ const nn=prompt('새 닉네임 (최대 12자)', mem.name); if(nn==null)return; const v=nn.trim().slice(0,12); if(v && v!==mem.name){ wsSend({t:'rename',name:v}); saveName(v); } };
-        const avEl=d.querySelector('.mav'); if(avEl){ avEl.style.cursor='pointer'; avEl.title='캐릭터 선택'; avEl.onclick=ev=>{ ev.stopPropagation(); openAvatarPicker(mem.avatar, e=>{ saveAvatar(e); wsSend({t:'setAvatar',emoji:e}); }); }; } }
+      if(mem.pid===MYPID){
+        // div에 onclick만 달면 키보드로는 도달조차 못 한다 → role/tabindex/Enter·Space를 함께 준다
+        const rename=()=>{ const nn=prompt('새 닉네임 (최대 12자)', mem.name); if(nn==null)return; const v=nn.trim().slice(0,12); if(v && v!==mem.name){ wsSend({t:'rename',name:v}); saveName(v); } };
+        d.title='탭하면 이름 변경'; d.onclick=rename;
+        d.setAttribute('role','button'); d.setAttribute('tabindex','0'); d.setAttribute('aria-label','내 이름 변경');
+        d.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); rename(); } };
+        const avEl=d.querySelector('.mav');
+        if(avEl){
+          const pick=()=>openAvatarPicker(mem.avatar, e=>{ saveAvatar(e); wsSend({t:'setAvatar',emoji:e}); });
+          avEl.style.cursor='pointer'; avEl.title='캐릭터 선택';
+          avEl.onclick=ev=>{ ev.stopPropagation(); pick(); };
+          avEl.setAttribute('role','button'); avEl.setAttribute('tabindex','0'); avEl.setAttribute('aria-label','캐릭터 선택');
+          avEl.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); e.stopPropagation(); pick(); } };
+        }
+      }
       host.appendChild(d); });
     host.querySelectorAll('.airm').forEach(b=>b.onclick=()=>wsSend({t:'removeAI',pid:b.dataset.pid}));
     $('lobbyAddAi').style.display = (amHost && lobby.members.length<6) ? 'block' : 'none';
