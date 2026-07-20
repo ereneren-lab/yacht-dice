@@ -162,8 +162,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* 현재 차례 = 테두리 발광 + 캐릭터가 살랑 (기존 avBob 재사용) */
   .ccard.turn{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 26%,transparent),0 4px 14px rgba(0,0,0,.3);transform:translateY(-2px) }
   .ccard.turn img{ animation:avBob 1.35s ease-in-out infinite }
-  .ccard:not(.turn) img{ animation:avIdleY 5.4s ease-in-out infinite }   /* 대기 중에도 미세하게 숨쉬기 */
-  @keyframes avIdleY{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.028)} }
+  /* 대기 카드는 아예 정지시킨다 — 현재 차례 카드만 움직여야 시선이 그리로 간다.
+     (측정: 대기 숨쉬기가 상시 306샘플로 배경 소음에 기여) */
   .ccard.lead::after{ content:'👑';position:absolute;top:-9px;right:8px;font-size:19px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)) }
   .ccard .ccbadge{ position:absolute;top:6px;left:7px;font-size:14px }
   .ccard.me{ background:color-mix(in srgb,var(--brass) 8%,var(--panel)) }
@@ -284,19 +284,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #pieceLayer .pcpiece.finishing .pcbody{ animation:finishpop .72s cubic-bezier(.2,.9,.3,1) forwards }
   @keyframes finishpop{ 0%{transform:scale(1) translateY(0)} 45%{transform:scale(1.5) translateY(-12px)} 100%{transform:scale(1.95) translateY(-30px)} }
   #pieceLayer .pcpiece.mv{ cursor:pointer }
-  #pieceLayer .pcpiece.mv .ring{ animation:pcpulse 1.1s ease-in-out infinite }
+  #pieceLayer .pcpiece.mv .ring{ animation:pcpulse 2.2s ease-in-out infinite }
   @keyframes pcpulse{ 0%,100%{stroke-opacity:1} 50%{stroke-opacity:.35} }
   /* 말 입체화: 판 위에 선 조각 느낌 — 미세한 idle breathing */
-  /* 숨쉬기 + 가끔 눈 깜빡(세로로 살짝 눌림) + 두리번(미세 회전). 말마다 delay가 랜덤이라 동기화되지 않는다 */
-  #pieceLayer .pcpiece .pcbody{ transform-box:fill-box;transform-origin:center;animation:pcbreath 5.2s ease-in-out infinite }
+  /* 숨쉬기 + 가끔 눈 깜빡. 말마다 delay가 랜덤이라 동기화되지 않는다.
+     ⚠️ 말 수만큼 곱해지는 애니라(8인이면 8개 상시) 주기를 9s로 늘리고 두리번(회전)은 뺐다.
+     회전까지 넣으니 판 전체가 계속 꼼지락거려 정신없었다. */
+  #pieceLayer .pcpiece .pcbody{ transform-box:fill-box;transform-origin:center;animation:pcbreath 9s ease-in-out infinite }
   @keyframes pcbreath{
-    0%,100%{ transform:scale(1) rotate(0) }
-    22%{ transform:scale(1.025) rotate(0) }
-    44%{ transform:scale(1) rotate(0) }
-    58%{ transform:scaleX(1.03) scaleY(.9) rotate(0) }   /* 눈 깜빡 */
-    63%{ transform:scale(1) rotate(0) }
-    78%{ transform:scale(1) rotate(-3.2deg) }            /* 두리번 */
-    90%{ transform:scale(1) rotate(3.2deg) }
+    0%,100%{ transform:scale(1) }
+    26%{ transform:scale(1.022) }
+    52%{ transform:scale(1) }
+    62%{ transform:scaleX(1.03) scaleY(.9) }   /* 눈 깜빡 */
+    67%{ transform:scale(1) }
   }
   #pieceLayer .pcpiece .pcshadow{ pointer-events:none }
   #pieceLayer .pcpiece .pchit{ fill:transparent }
@@ -308,7 +308,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #pieceLayer .pcpiece .pcbump{ animation:pcbump .42s ease }
   @keyframes pcbump{ 0%{transform:translateY(0)} 40%{transform:translateY(-7px)} 100%{transform:translateY(0)} }
   /* ── 🎨 살아있는 캐릭터: 상황별 생동감 ── */
-  #pieceLayer .pcpiece.mv .pcbody{ animation:pcEager .95s ease-in-out infinite }   /* 이동 가능한 내 말 = 신나서 들썩 */
+  #pieceLayer .pcpiece.mv .pcbody{ animation:pcEager 1.9s ease-in-out infinite }   /* 이동 가능한 내 말 = 신나서 들썩 */
   @keyframes pcEager{ 0%,100%{transform:translateY(0) scale(1)} 32%{transform:translateY(-3.6px) scale(1.06)} 64%{transform:translateY(0) scale(1)} }
   .pchip.turn .pav, .thrower img{ animation:avBob 1.35s ease-in-out infinite }     /* 차례인 캐릭터 = 살랑살랑 */
   @keyframes avBob{ 0%,100%{transform:translateY(0) rotate(0)} 26%{transform:translateY(-2px) rotate(-4deg)} 58%{transform:translateY(0) rotate(3.5deg)} }
@@ -317,11 +317,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes avTense{ 0%,100%{transform:translateY(1px) scale(.97) rotate(-1.5deg)} 50%{transform:translateY(-1px) scale(1.02) rotate(1.5deg)} }
   /* 선두(최다 완주) 말 = 은은한 금빛 광 */
   #pieceLayer .pcpiece.lead .ring{ stroke:#ffd77a }
-  #pieceLayer .pcpiece.lead .pclead{ animation:leadGlow 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center;pointer-events:none }
-  @keyframes leadGlow{ 0%,100%{opacity:.18;transform:scale(1)} 50%{opacity:.5;transform:scale(1.1)} }
+  #pieceLayer .pcpiece.lead .pclead{ animation:leadGlow 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center;pointer-events:none }
+  @keyframes leadGlow{ 0%,100%{opacity:.22;transform:scale(1)} 50%{opacity:.4;transform:scale(1.05)} }   /* 진폭 축소 — 상시 도는 애니라 크면 거슬린다 */
   /* 특수칸(황금·이벤트) 반짝임 — boardLayer는 캐시되므로 fxLayer에 따로 얹는다 */
-  #twinkleG circle{ fill:#fff6d8;pointer-events:none;animation:twk 4.2s ease-in-out infinite }
-  @keyframes twk{ 0%,100%{opacity:0} 42%{opacity:.8} 58%{opacity:.3} 72%{opacity:.6} }
+  /* ⚠️ 상시 반짝이면 배경 소음이 된다(측정: 동시 애니 1836샘플로 압도적 1위 → 화면이 정신없음).
+     주기를 11s로 늘리고 그중 잠깐만 빛나게 해서, 대부분의 시간은 꺼져 있도록 한다. */
+  #twinkleG circle{ fill:#fff6d8;pointer-events:none;animation:twk 11s ease-in-out infinite }
+  @keyframes twk{ 0%,72%,100%{opacity:0} 80%{opacity:.75} 88%{opacity:.25} 94%{opacity:.5} }
   /* ✨ 잡힌 말이 튕겨 날아감 */
   .flyhome{ position:fixed; width:34px; height:34px; z-index:9040; pointer-events:none; border-radius:50%; background:#fff; border:2.5px solid #888; box-shadow:0 3px 10px rgba(0,0,0,.45); overflow:hidden; transform:translate(-50%,-50%); transition:transform .8s cubic-bezier(.25,-0.3,.6,1), opacity .8s ease-in; }
   .flyhome img{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -366,8 +368,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .tp{ width:30px;height:30px;border-radius:50%;border:2.5px solid rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:rgba(255,255,255,.9) }
   .tp.onboard{ opacity:.3 }
   .tp.done{ background:var(--brass)!important;border-color:var(--brass);color:var(--bg) }
-  .tp.movable{ cursor:pointer;border-color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 45%,transparent);animation:tppulse 1.1s ease-in-out infinite }
-  @keyframes tppulse{ 0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 30%,transparent)} 50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--brass) 55%,transparent)} }
+  /* 펄스 제거: 대기 말 4개가 동시에 뛰어 가장 시끄러웠다(측정 1위).
+     흰 테두리 + 금빛 링만으로도 '움직일 수 있는 말'은 충분히 구분된다. */
+  .tp.movable{ cursor:pointer;border-color:#fff;box-shadow:0 0 0 2.5px color-mix(in srgb,var(--brass) 60%,transparent) }
   .tray-empty{ font-size:11px;color:var(--muted) }
   .turninfo{ text-align:center;font-size:13px;color:var(--muted);min-height:20px;margin:6px 0;font-weight:700 }
   .turninfo{ text-align:center;font-size:13.5px;color:var(--muted);min-height:22px;margin:10px 0 8px;font-weight:700;padding:9px 12px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);transition:.2s;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass) 15%,transparent),inset 0 1px 0 rgba(255,255,255,.07),0 2px 6px rgba(0,0,0,.2) }
@@ -1980,15 +1983,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     g=document.createElementNS(NS,'g'); g.setAttribute('id','twinkleG');
     Object.keys(S.eventTiles).forEach((nd,ni)=>{
       const [x,y]=nodeXY(+nd);
-      for(let k=0;k<2;k++){
-        const a=(ni*2.3+k*3.1), rr=9+k*3;                       // 칸 주위에 흩어 놓기(고정 배치 — 매번 흔들리지 않게)
-        const c=document.createElementNS(NS,'circle');
-        c.setAttribute('cx',(x+Math.cos(a)*rr).toFixed(1));
-        c.setAttribute('cy',(y+Math.sin(a)*rr).toFixed(1));
-        c.setAttribute('r',(2.1+k*0.6).toFixed(2));   // r1 남짓은 판 위에서 아예 안 보인다(잔상 때와 같은 함정)
-        c.style.animationDelay=(-((ni*0.7+k*1.9)%4.2)).toFixed(2)+'s';
-        g.appendChild(c);
-      }
+      // 칸당 1개만. 딜레이도 거의 통일해 '다 같이 잠깐 반짝 → 다 같이 쉼'이 되게 한다.
+      // 위상을 흩뿌리면 항상 누군가는 빛나서 화면이 한순간도 조용하지 않다(측정으로 확인).
+      const a=ni*2.3, rr=10;                          // 칸 주위 고정 배치(매번 흔들리지 않게)
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',(x+Math.cos(a)*rr).toFixed(1));
+      c.setAttribute('cy',(y+Math.sin(a)*rr).toFixed(1));
+      c.setAttribute('r','2.3');                      // r1 남짓은 판 위에서 아예 안 보인다(잔상 때와 같은 함정)
+      c.style.animationDelay=(-(ni*0.12)).toFixed(2)+'s';   // 아주 살짝만 어긋나게(줄줄이 켜지는 느낌)
+      g.appendChild(c);
     });
     fl.insertBefore(g, fl.firstChild);                          // 잔상보다 아래에
   }
@@ -2303,7 +2306,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     });
   }
   // ── 이동 연출 속도(천천히 · 한 눈에 보이게) ──
-  const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=1050, BANNER_MS=1700;
+  // BANNER_MS: 1700→1150. AI 턴 간격(900ms)보다 길어서 배너가 다음 턴까지 남아 겹쳤다
+  // (측정: 오버레이가 화면에 떠 있는 시간이 56%였다).
+  const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=1050, BANNER_MS=1150;
   // renderPieces가 이 말을 실제로 놓을 좌표(업기 스택 오프셋·y보정 포함) — 도착 후 튐(옮겨가는 것처럼 보임) 방지
   function pieceSettledXY(seat, pieceId){
     if(!S) return null;

@@ -39,6 +39,7 @@ class CDP {
 
   async launch() {
     const udd = fs.mkdtempSync(path.join(os.tmpdir(), 'cdp-profile-'));
+    this._udd = udd;   // close()에서 지운다 — 안 지우면 실행마다 쌓여 100개를 넘긴다
     this.proc = spawn(findBrowser(), [
       '--remote-debugging-port=0',
       '--user-data-dir=' + udd,
@@ -102,7 +103,9 @@ class CDP {
 
   async close() {
     try { this.ws.close(); } catch (e) {}
-    try { this.proc.kill(); } catch (e) {}
+    try { this.proc.kill('SIGKILL'); } catch (e) {}
+    // 프로필 디렉토리를 지우지 않으면 실행마다 쌓인다(실측: 114개 누적 → 브라우저 기동 실패)
+    try { fs.rmSync(this._udd, { recursive: true, force: true }); } catch (e) {}
   }
 }
 

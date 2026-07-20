@@ -25,11 +25,17 @@ function ping() {
 async function ensureServer() {
   if (await ping()) return null;
   const proc = spawn('node', [path.join(__dirname, '../../server.js')], { stdio: 'ignore' });
+  // 스크립트가 에러로 끝나면 호출자의 kill이 실행되지 않아 서버가 남는다.
+  // 실측: 이렇게 새어나간 server.js가 10개까지 쌓여 이후 실행이 통째로 타임아웃했다.
+  const kill = () => { try { proc.kill('SIGKILL'); } catch (e) {} };
+  process.once('exit', kill);
+  process.once('SIGINT', () => { kill(); process.exit(130); });
+  process.once('uncaughtException', e => { kill(); console.error(e); process.exit(1); });
   for (let i = 0; i < 25; i++) {
     await new Promise(r => setTimeout(r, 400));
     if (await ping()) return proc;
   }
-  proc.kill();
+  kill();
   throw new Error('서버를 띄우지 못했다 (node server.js 를 직접 확인할 것)');
 }
 
