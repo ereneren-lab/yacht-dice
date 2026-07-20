@@ -2250,6 +2250,20 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       setTimeout(()=>{ try{c.remove();}catch(e){} }, 560);
     }
   }
+  // ✨ 이동 잔상: 말이 지나간 칸에 옅은 자취 하나만. 번잡하지 않게 — 옅고(α.22) 짧게(480ms).
+  function spawnTrail(x, y){
+    const layer=$('fxLayer'); if(!layer || FX_REDUCED()) return;
+    const c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',x.toFixed(1)); c.setAttribute('cy',(y+4).toFixed(1));
+    // 밝은 갈색(150,120,80)은 나무판과 명도가 같아 안 보인다 → 어두운 갈색으로 은은하게
+    c.setAttribute('r','5'); c.setAttribute('fill','rgba(90,66,40,.22)');
+    // SVG는 transform-box 기본이 view-box라 transform-origin 50%가 판 중심(200,200)이 된다 → 원 중심으로 명시
+    c.style.transformBox='view-box'; c.style.transformOrigin=x.toFixed(1)+'px '+(y+4).toFixed(1)+'px';
+    layer.appendChild(c);
+    // 수명 480ms — HOP_MAIN(300ms)보다 조금 길어야 자취가 1~2개 겹쳐 '궤적'으로 읽힌다
+    requestAnimationFrame(()=>{ c.style.transition='transform .48s ease-out, opacity .48s ease-out'; c.style.transform='scale(.35)'; c.style.opacity='0'; });
+    setTimeout(()=>{ try{c.remove();}catch(e){} }, 540);
+  }
   // 완주 연출: 종착(=출발) 코너로 미끄러진 뒤 크게 떠오르며 사라짐 + 배너 (그냥 툭 사라지지 않게)
   function animateFinish(ids, onDone){
     const els=(Array.isArray(ids)?ids:[ids]).map(id=>document.getElementById(id)).filter(Boolean);
@@ -2286,6 +2300,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const hop=()=>{
       if(!S || i>=nodes.length){ if(onDone)onDone(hitDone); return; }
       const last=(i===nodes.length-1 && !hitDone); const [bx,by]=nodeXY(nodes[i]);
+      // 지나온 칸에 옅은 자취. path는 출발칸을 포함하지 않으므로(buildPath는 s=1부터),
+      // 첫 hop은 선두 말의 현재 좌표를 출발점으로 읽는다 — 안 그러면 '도'(1칸)에 자취가 아예 안 생긴다.
+      if(i>0){ const [px,py]=nodeXY(nodes[i-1]); spawnTrail(px,py); }
+      else {
+        // 업힌 말은 (k-(N-1)/2)*13 만큼 좌우로 벌어져 있다 → 평균이 곧 출발 칸 중심.
+        // 이후 잔상은 전부 nodeXY(칸 중심) 기준이므로 첫 잔상도 중심이어야 축이 맞는다.
+        let sx=0, sy=0, c=0;
+        els.forEach(o=>{ const m=/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/.exec(o.g.getAttribute('transform')||''); if(m){ sx+=+m[1]; sy+=+m[2]; c++; } });
+        if(c) spawnTrail(sx/c, sy/c);
+      }
       els.forEach((o,k)=>{
         const e=(last && endMap && endMap[o.id]) ? endMap[o.id] : [bx+(k-(N-1)/2)*13, by-2];
         o.g.setAttribute('transform','translate('+e[0].toFixed(1)+','+e[1].toFixed(1)+')');
