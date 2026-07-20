@@ -54,7 +54,9 @@ const server = http.createServer((req, res) => {
 });
 
 // ---------- rooms ----------
-const wss = new WebSocketServer({ server });
+// maxPayload: ws 기본값이 100MiB라 거대 프레임 한 방으로 메모리를 밀어넣을 수 있다.
+// 이 게임의 메시지는 수 KB를 넘지 않으므로 64KB로 조인다.
+const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
 const rooms = new Map(); // code -> Room
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rid = () => Math.random().toString(36).slice(2, 12);
@@ -183,14 +185,17 @@ function scheduleCleanup(room){
 wss.on('connection', (ws) => {
   ws.meta = { code:null, pid:null };
   ws._rlStart = 0; ws._rlCount = 0;
+  ws.isAlive = true;
+  ws.on('pong', ()=>{ ws.isAlive = true; });
   ws.on('error', (e)=> console.error('[ws]', e && e.message));
 
   ws.on('message', (raw) => {
-    let m; try { m = JSON.parse(raw); } catch(e){ return; }
-    // 소켓당 초당 메시지 상한(스팸/DoS 완화)
+    // 레이트리밋을 JSON.parse보다 '먼저' 본다. 뒤에 두면 상한에 걸리기 전에 파싱 비용을 다 치른다.
     const now = Date.now();
     if (now - ws._rlStart > 1000){ ws._rlStart = now; ws._rlCount = 0; }
     if (++ws._rlCount > 40) return;
+    ws._lastSeen = now;                        // 유휴 방 판정용
+    let m; try { m = JSON.parse(raw); } catch(e){ return; }
     try {
     const room = rooms.get(ws.meta.code);
 
@@ -208,7 +213,9 @@ wss.on('connection', (ws) => {
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방을 찾을 수 없어요.' });
       const cap = capOf(r);
       if (r.members.length >= cap + SPECTATOR_SLACK) return send(ws, { t:'error', code:'full', msg:'방이 가득 찼어요 (관전 포함).' });
-      if (ws.meta.code !== code) detachFromRoom(ws);   // 다른 방에 있던 소켓이면 그 방 정리
+      // 같은 방이라도 반드시 정리한다. 건너뛰면 참가 버튼 더블클릭 시 소켓 하나가 멤버 두 개를 점유하고,
+      // ws.meta.pid가 새 pid로 덮여 옛 멤버가 connected:true인 유령으로 영구히 남는다(정원 계산·방장 선정 오염).
+      detachFromRoom(ws);
       const pid = rid();
       const spectator = r.members.length >= cap;   // 정원 초과 → 관전자
       const waiting = spectator || r.phase !== 'lobby';   // 관전자 또는 진행 중 입장
@@ -223,6 +230,9 @@ wss.on('connection', (ws) => {
       if (!r) return send(ws, { t:'error', code:'no-room', msg:'방이 사라졌어요.' });
       const mem = r.members.find(x=>x.pid===m.pid);
       if (!mem) return send(ws, { t:'error', code:'no-seat', msg:'자리를 찾을 수 없어요.' });
+      // 옛 소켓이 아직 살아 있으면 명시적으로 닫는다(중복 연결 방지).
+      // close 핸들러의 소유권 검사 덕에 이 close가 새 소켓을 끊지는 않는다.
+      if (mem.ws && mem.ws !== ws) { try { mem.ws.close(); } catch(e){} }
       mem.ws = ws; mem.connected = true; ws.meta = { code, pid:m.pid };
       if (r.cleanupTimer){ clearTimeout(r.cleanupTimer); r.cleanupTimer=null; }
       send(ws, { t:'me', pid:m.pid, code });
@@ -336,6 +346,10 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     const r = rooms.get(ws.meta.code); if (!r) return;
     const mem = r.members.find(x=>x.pid===ws.meta.pid); if (!mem) return;
+    // ⚠️ 이 close가 '현재 연결된 소켓'의 것인지 확인한다.
+    // 모바일 슬립으로 죽은 소켓 A의 close가 뒤늦게 오는 사이 소켓 B로 이미 rejoin했다면,
+    // 이 검사가 없으면 정상 접속된 B를 connected=false로 끊어버려 화면이 멈춘다.
+    if (mem.ws && mem.ws !== ws) return;
     mem.connected = false; mem.ws = null;
     if (r.phase === 'lobby'){
       r.members = r.members.filter(x=>x.pid!==ws.meta.pid);
@@ -350,6 +364,24 @@ wss.on('connection', (ws) => {
     }
   });
 });
+
+/* ---------- 하트비트 ----------
+   ⚠️ 이게 없으면 서버가 서서히 죽는다.
+   모바일 화면 잠금이나 NAT 타임아웃으로 TCP가 조용히 끊기면 'close' 이벤트가 영영 오지 않는다.
+   그러면 mem.connected가 true로 고정 → scheduleCleanup의 '사람 0명' 조건이 영원히 거짓 →
+   방이 rooms에서 절대 제거되지 않는다. MAX_ROOMS(500)를 채우면 이후 모든 방 생성이
+   'busy'로 영구 실패하고, 재시작해야만 복구된다.
+   30초마다 ping을 보내고 응답 없는 소켓을 terminate해서 close 경로를 정상적으로 태운다. */
+const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS) || 30000;   // 테스트에서 짧게 덮어쓸 수 있게
+const heartbeat = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) { try { ws.terminate(); } catch(e){} return; }
+    ws.isAlive = false;
+    try { ws.ping(); } catch(e){ try { ws.terminate(); } catch(e2){} }
+  });
+}, HEARTBEAT_MS);
+heartbeat.unref?.();
+wss.on('close', ()=> clearInterval(heartbeat));
 
 // 마지막 방어선: 예외가 프로세스를 죽이지 않게 로깅만 하고 계속 살아있게
 process.on('uncaughtException', (e)=> console.error('[uncaughtException]', e && e.stack || e));
