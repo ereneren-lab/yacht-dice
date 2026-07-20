@@ -78,13 +78,12 @@ function skip(name, detail) {
 
     const trail = await page.eval('return window.__fx.trail.map(function(r){return [r.cx, r.cy]})');
     if (!trail.length) { rows.push({ ok: false, n: 0 }); continue; }
-    // 잔상은 cy에 +4 오프셋
-    const [fx, fy] = trail[0];
-    // 업힌 말 그룹이면 클릭한 말은 칸 중심에서 최대 ±13*(N-1)/2 만큼 벌어져 있고,
-    // 잔상은 칸 중심에 찍힌다. 확인하려는 건 '출발 칸에 남는가'이므로 그만큼 허용한다.
-    const ok = Math.abs(fx - before[0]) <= 20 && Math.abs(fy - (before[1] + 4)) <= 20;
-    rows.push({ ok, n: trail.length, before, first: [fx, fy], grouped: st.mv });
-    if (!ok) console.log(`   ↳ 불일치: 말(${before}) vs 첫잔상(${fx},${fy})  동시이동가능말=${st.mv}`);
+    // '첫' 잔상으로 단정하면 안 된다 — 대기 중 다음 턴 연출이 겹치면 남의 잔상이 섞인다.
+    // 확인하려는 건 '출발 칸에 자취가 남는가'이므로 하나라도 맞으면 통과.
+    // 잔상은 cy에 +4 오프셋, 업힌 말은 칸 중심에서 ±13*(N-1)/2 만큼 벌어져 있어 그만큼 허용한다.
+    const ok = trail.some(t => Math.abs(t[0] - before[0]) <= 20 && Math.abs(t[1] - (before[1] + 4)) <= 20);
+    rows.push({ ok, n: trail.length, before });
+    if (!ok) console.log(`   ↳ 불일치: 말(${before}) 출발칸에 잔상 없음. 생성된 잔상=${JSON.stringify(trail)}`);
   }
 
   const sampled = rows.filter(r => r.n > 0);

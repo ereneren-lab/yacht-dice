@@ -117,11 +117,9 @@
   .d2 .p{width:60%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 38% 32%,#4a4038,var(--bg));box-shadow:inset 0 1.5px 2px rgba(0,0,0,.55),0 .5px 0 rgba(255,255,255,.4)}
   .d2.held{box-shadow:0 0 0 3px var(--gold),0 0 16px rgba(255,212,94,.55);transform:translateY(-7px)}
   .d2.blank{background:linear-gradient(145deg,#322a48,#231d33)}
-  .d2.rolling{animation:wob .18s infinite}
-  .d2.land{animation:land .18s}
   .d2.lock{cursor:default}
-  @keyframes wob{0%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-3px) rotate(4deg)}100%{transform:translateY(0) rotate(-4deg)}}
-  @keyframes land{0%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+  /* (제거) .d2.rolling/wob, .d2.land/land — JS에서 붙이는 곳이 없는 죽은 스타일이었다.
+     실제 굴림 연출은 아래 .d2.toss 하나다. */
   .rollbtn{max-width:280px}
   .hint{color:var(--muted);font-size:12.5px;text-align:center;min-height:16px;padding:0 6px}
 
@@ -194,6 +192,12 @@
   .av{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:19px;background:var(--panel2);box-shadow:inset 0 0 0 2px rgba(255,255,255,.14);flex:none;line-height:1}
   .av.sm{width:26px;height:26px;font-size:15px}
   .av.cur{box-shadow:0 0 0 2px var(--ring),0 0 12px var(--ring);animation:avpulse 1.5s infinite,avCurBob 1.45s ease-in-out infinite}
+  /* 비차례 아바타도 아주 옅게 숨쉬기 — 정적인 얼굴들이 굳어 보이지 않게. nth-child로 위상만 어긋뜨린다 */
+  .av:not(.cur){animation:avIdle 4.6s ease-in-out infinite}
+  @keyframes avIdle{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  /* 굴리기 직전 = 현재 차례 아바타가 웅크렸다 튀어오름 */
+  .av.cur.tense{animation:avTenseY .42s cubic-bezier(.25,1.5,.4,1)}
+  @keyframes avTenseY{0%{transform:translateY(0) scale(1)}34%{transform:translateY(2px) scale(1.1,.9)}70%{transform:translateY(-5px) scale(.94,1.09)}100%{transform:translateY(0) scale(1)}}
   @keyframes avpulse{0%,100%{box-shadow:0 0 0 2px var(--ring),0 0 4px 0 var(--ring)}50%{box-shadow:0 0 0 2px var(--ring),0 0 13px 2px var(--ring)}}
   @keyframes avCurBob{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-2.5px) rotate(-5deg)}62%{transform:translateY(0) rotate(4deg)}}   /* 🎨 차례 캐릭터 = 살랑살랑 */
   .rank.first .av{animation:yRankWin 1.15s cubic-bezier(.2,1.3,.4,1) infinite;transform-origin:50% 80%}   /* 🎨 우승 = 방방 환호 */
@@ -207,8 +211,15 @@
   thead th .hav{display:flex;flex-direction:column;align-items:center;gap:3px}
   thead th .hnm{font-size:11px;font-weight:700;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* dice toss + popups */
-  .d2.toss{animation:toss .5s ease}
-  @keyframes toss{0%{transform:translateY(-16px) rotate(var(--r,140deg))}100%{transform:translateY(0) rotate(0)}}
+  /* 굴림 착지 juice: 떨어져 → 바닥에서 납작(squash) → 살짝 튕겨오르며 길쭉(stretch) → 정착 */
+  .d2.toss{animation:toss .56s cubic-bezier(.3,.85,.4,1)}
+  @keyframes toss{
+    0%{transform:translateY(-16px) rotate(var(--r,140deg)) scale(1.02,.96)}
+    52%{transform:translateY(0) rotate(0) scale(1.14,.84)}
+    70%{transform:translateY(-5px) rotate(0) scale(.94,1.09)}
+    86%{transform:translateY(0) rotate(0) scale(1.05,.97)}
+    100%{transform:translateY(0) rotate(0) scale(1,1)}
+  }
   td.justfill{animation:cellflash .8s}
   @keyframes cellflash{0%{background:var(--accent);color:#15110f}100%{background:transparent}}
   .scorepop{position:fixed;font-weight:800;color:var(--accent);font-size:22px;pointer-events:none;z-index:40;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:pop 1s ease-out forwards}
@@ -1431,7 +1442,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 공유 아바타 기본값: 골목 공용 키(alley_avatar, 원시 이모지 문자열). 온라인 기본 아바타·피커 초기값으로 씀.
   const getStoredAvatar=()=>{try{return localStorage.getItem('alley_avatar')||null;}catch(e){return null;}};
   const setStoredAvatar=e=>{try{if(e)localStorage.setItem('alley_avatar',e);}catch(_){}};
-  const avHTML=(p,o)=>{o=o||{};return `<span class="av ${o.sm?'sm':''} ${o.cur?'cur':''} ${o.off?'off':''}" data-pid="${p.pid}" style="--ring:${p.color};background:${hexA(p.color,.18)}">${esc(avatar(p))}</span>`;};
+  // idle 숨쉬기 위상은 pid로 갈라 둔다 — 같은 부모에 아바타가 하나뿐이라 nth-child로는 못 어긋뜨린다
+  const avHTML=(p,o)=>{o=o||{};const ph=(-(Math.abs(hashPid(p.pid))%46)/10).toFixed(1);return `<span class="av ${o.sm?'sm':''} ${o.cur?'cur':''} ${o.off?'off':''}" data-pid="${p.pid}" style="--ring:${p.color};background:${hexA(p.color,.18)};animation-delay:${ph}s">${esc(avatar(p))}</span>`;};
+  function hashPid(s){ let h=0; s=String(s||''); for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h; }
 
   // ---------- prefs + stats ----------
   let soundOn=(function(){try{return localStorage.getItem('alley_sound')!=='0';}catch(e){return true;}})();
@@ -2160,7 +2173,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 위장(엑셀·포토샵) 창 컨트롤: 닫기(✕) → 실제 나가기 / 호스트 '처음으로·문서 닫기' → 판 종료→로비
   ['xlWinClose','psWinClose'].forEach(id=>{ const b=$(id); if(b)b.onclick=()=>{ if(confirm('게임에서 나갈까요?'))leave(); }; });
   ['xlLobby','psLobby'].forEach(id=>{ const b=$(id); if(b)b.onclick=()=>{ if(isOnline()&&amHost()&&confirm('이 판을 끝내고 모두 로비로 돌아갈까요?'))wsSend({t:'endGame'}); }; });
-  $('rollBtn').onclick=()=>{ if(canAct()&&S.rollsLeft>0){ SFX.ensure(); sendAction({type:'roll'}); } };
+  // sendAction은 동기적으로 render를 돌려 아바타 DOM을 다시 만든다 → 클래스는 그 '뒤에' 붙여야 살아남는다
+  $('rollBtn').onclick=()=>{ if(canAct()&&S.rollsLeft>0){ SFX.ensure(); sendAction({type:'roll'}); tenseCurAvatar(); } };
+  // 굴리기 직전 현재 차례 아바타가 웅크렸다 튀어오름(짧게 1회). 애니 재시작을 위해 클래스를 뗐다 붙인다.
+  function tenseCurAvatar(){
+    try{ if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; }catch(e){}
+    document.querySelectorAll('.av.cur').forEach(a=>{
+      a.classList.remove('tense'); void a.offsetWidth; a.classList.add('tense');
+      setTimeout(()=>a.classList.remove('tense'), 460);
+    });
+  }
   $('compactBtn').onclick=()=>{ compact=!compact; $('compactBtn').classList.toggle('on',compact); $('compactBtn').textContent=compact?'전체':'간략히'; renderSheet(); };
   $('compactBtn').classList.toggle('on',compact); $('compactBtn').textContent=compact?'전체':'간략히';
   syncMute();
