@@ -1894,6 +1894,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   // 팀 목록(오름차순)
   function teamList(){ return [...new Set(S.players.map(p=>p.team))].sort((a,b)=>a-b); }
   let capCount=0, prevCaptured=null, selStep=null, prevDone={}, moveSeqSeen=0, animatingId=null, animGroup=new Set(), skipSeen=0, pitSeen=0, eventFxSeen=0;
+  /* 🔒 이동 연출 토큰 — 연출이 끝나기 전에 다음 턴이 시작되면(AI 딜레이 900ms < 연출 1~3초)
+     두 시퀀스가 겹쳐 말이 A→B→A로 튄다(실측: 300ms 만에 큰 거리 왕복 = 스냅).
+     새 시퀀스를 시작할 때 토큰을 올려 이전 시퀀스의 콜백·타이머를 전부 무효화한다. */
+  let moveTok=0; const moveTimers=[];
+  function cancelMoveSeq(){ moveTimers.forEach(t=>clearTimeout(t)); moveTimers.length=0; return ++moveTok; }
+  function mvT(fn, ms, tok){ const t=setTimeout(()=>{ if(tok!==moveTok) return; fn(); }, ms); moveTimers.push(t); return t; }
 
   /* ===== 아이템전 클라 ===== */
   const ITEM_INFO={ shield:{ico:'🛡',nm:'방어막',desc:'다음 내 차례까지 안 잡힘'}, rethrow:{ico:'🔄',nm:'재던지기',desc:'한 번 더 던지기'}, push:{ico:'👊',nm:'밀치기',desc:'상대 말 하나 처음으로'} };
@@ -2381,13 +2387,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   };
   // 그룹(업힌 말 포함)을 경로 따라 함께 미끄러뜨림 — 각 말이 스택 오프셋 유지(꼬임 방지).
   // endMap[elId]=[x,y]가 있으면 마지막 칸은 그 정착 좌표. onDone(hitDone): 완주 마커면 true.
-  function slideAlong(ids, path, hopMs, endMap, onDone){
+  // tok: 이 슬라이드가 속한 연출 시퀀스 토큰. 새 시퀀스가 시작되면 중간에 멈춘다(겹침 방지).
+  function slideAlong(ids, path, hopMs, endMap, onDone, tok){
     const nodes=[]; let hitDone=false;
     if(path){ for(const p of path){ if(p.done){ hitDone=true; break; } nodes.push(p.node); } }
     const els=(Array.isArray(ids)?ids:[ids]).map(id=>({id,g:document.getElementById(id)})).filter(o=>o.g);
     if(!els.length || !nodes.length){ if(onDone)onDone(hitDone); return; }
     const N=els.length; let i=0;
     const hop=()=>{
+      if(tok!=null && tok!==moveTok) return;          // 낡은 시퀀스 — 조용히 중단
       if(!S || i>=nodes.length){ if(onDone)onDone(hitDone); return; }
       const last=(i===nodes.length-1 && !hitDone); const [bx,by]=nodeXY(nodes[i]);
       // 지나온 칸에 옅은 자취. path는 출발칸을 포함하지 않으므로(buildPath는 s=1부터),
@@ -2404,17 +2412,23 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         const e=(last && endMap && endMap[o.id]) ? endMap[o.id] : [bx+(k-(N-1)/2)*13, by-2];
         o.g.setAttribute('transform','translate('+e[0].toFixed(1)+','+e[1].toFixed(1)+')');
       });
-      i++; setTimeout(hop, hopMs);
+      i++;
+      const t=setTimeout(hop, hopMs);
+      if(tok!=null) moveTimers.push(t);              // 새 시퀀스 시작 시 함께 취소되도록
     };
     hop();
   }
   // 이동 + 특수효과 순차 연출: 메인 이동(천천히) → 도착 후 멈춤 + 큰 배너 → 효과 이동/낙하(천천히)
   function runMoveSequence(mp, ev, pit){
+    // 이전 연출이 아직 돌고 있으면 전부 무효화하고, 그 말들을 최종 위치로 정착시킨다.
+    // 안 그러면 두 시퀀스가 같은 말을 서로 다른 좌표로 끌어 A→B→A로 튄다.
+    const tok = cancelMoveSeq();
+    if(animatingId || animGroup.size){ animatingId=null; animGroup=new Set(); if(S) renderPieces(); }
     const gpids = (mp.group && mp.group.length) ? mp.group : [mp.pieceId];   // 업힌 말 전체
     const gids = gpids.map(pid=>'pc-'+mp.seat+'-'+pid);
     animatingId='pc-'+mp.seat+'-'+mp.pieceId; animGroup=new Set(gids);
     const endMap=()=>{ const m={}; gpids.forEach(pid=>{ const sp=pieceSettledXY(mp.seat,pid); if(sp)m['pc-'+mp.seat+'-'+pid]=sp; }); return m; };
-    const finish=()=>{ animatingId=null; animGroup=new Set(); const lead=S?pieceSettledXY(mp.seat, mp.pieceId):null; if(S) renderPieces(); if(lead) spawnPuff(lead[0], lead[1]); };
+    const finish=()=>{ if(tok!==moveTok) return; animatingId=null; animGroup=new Set(); const lead=S?pieceSettledXY(mp.seat, mp.pieceId):null; if(S) renderPieces(); if(lead) spawnPuff(lead[0], lead[1]); };
     if(FX_REDUCED()){
       if(pit){ try{SFX.capture&&SFX.capture();}catch(e){} }
       if(ev){ effectAnnounce(EV_LABEL[ev.type]||'', 900); try{eventFxBurst(ev);}catch(e){} }
@@ -2425,13 +2439,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const mainEnd = plain ? endMap() : null;
     // 1) 메인 이동(그룹 함께)
     slideAlong(gids, mp.path, HOP_MAIN, mainEnd, (hitDone)=>{
+      if(tok!==moveTok) return;
       // 2a) 완주 — 종착점으로 미끄러진 뒤 떠오르며 골인(그룹 전체)
       if(hitDone){ animateFinish(gids, finish); return; }
       // 2b) 늪 — 도착해 잠깐 멈춤 + 배너 → 천천히 처음으로 떨어짐(빙글 회전, 그룹 전체는 animatePitFall이 처리)
       if(pit){
         try{SFX.capture&&SFX.capture();}catch(e){}
         effectAnnounce('<span class="efann-big">🕳️ 늪에 빠졌다!</span><span class="efann-sub">처음으로 돌아가요 💦</span>', BANNER_MS);
-        setTimeout(()=>{ animatingId=null; animGroup=new Set(); animatePitFall(pit); }, MOVE_PAUSE);
+        mvT(()=>{ animatingId=null; animGroup=new Set(); animatePitFall(pit); }, MOVE_PAUSE, tok);
         return;
       }
       // 2c) 이벤트 — 도착해 배너/이펙트 → (이동형이면) 천천히 추가 이동(그룹 함께)
@@ -2441,12 +2456,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         if(ev.path && ev.path.length){
           const evFinish = ev.path.some(p=>p.done);
           const evEnd = evFinish ? null : endMap();
-          setTimeout(()=>{ slideAlong(gids, ev.path, HOP_EVENT, evEnd, (hd)=>{ if(hd) animateFinish(gids, finish); else finish(); }); }, MOVE_PAUSE);
-        } else { setTimeout(finish, MOVE_PAUSE); }   // 보너스/황금: 제자리, 배너만
+          mvT(()=>{ slideAlong(gids, ev.path, HOP_EVENT, evEnd, (hd)=>{ if(tok!==moveTok) return; if(hd) animateFinish(gids, finish); else finish(); }, tok); }, MOVE_PAUSE, tok);
+        } else { mvT(finish, MOVE_PAUSE, tok); }   // 보너스/황금: 제자리, 배너만
         return;
       }
       finish();
-    });
+    }, tok);
   }
   const pitAnimatingIds=new Set();
   function animatePitFall(pf){
