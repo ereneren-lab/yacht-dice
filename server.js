@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { GameEngine } = require('./public/game-core.js');
 const { KBEngine } = require('./public/kb-core.js');
@@ -32,26 +33,48 @@ const server = http.createServer((req, res) => {
   if (p === '/') p = '/index.html';
   const fp = path.join(PUBLIC, path.normalize(p));
   if (fp !== PUBLIC && !fp.startsWith(PUBLIC + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
-  fs.readFile(fp, (err, data) => {
-    if (err) { res.writeHead(404); return res.end('Not found'); }
-    const ext = path.extname(fp), type = TYPES[ext] || 'application/octet-stream';
-    const headers = { 'Content-Type': type };
-    // 불변 애셋은 길게 캐시, HTML은 매번 재검증(배포 즉시 반영)
-    if (/\.(png|ico|webp|jpe?g|svg|woff2?)$/.test(ext)) headers['Cache-Control'] = 'public, max-age=604800';
-    else if (ext === '.html') headers['Cache-Control'] = 'no-cache';
-    else headers['Cache-Control'] = 'public, max-age=3600';
-    // 텍스트류 gzip 압축(HTML/JS/JSON — 무압축 200KB+를 70~80% 절감)
-    const textual = /text|javascript|json|manifest|svg/.test(type);
-    const ae = req.headers['accept-encoding'] || '';
-    if (textual && /\bgzip\b/.test(ae) && data.length > 1024) {
-      zlib.gzip(data, (gzErr, gz) => {
-        if (gzErr) { res.writeHead(200, headers); return res.end(data); }
-        headers['Content-Encoding'] = 'gzip'; headers['Vary'] = 'Accept-Encoding';
-        res.writeHead(200, headers); res.end(gz);
-      });
-    } else { res.writeHead(200, headers); res.end(data); }
-  });
+  serveFile(fp, req, res);
 });
+
+/* 정적 파일 캐시: 요청마다 디스크를 읽고 gzip을 다시 돌리면
+   276KB짜리 yut.html 하나에도 Render 무료 티어 CPU가 눈에 띄게 소모된다.
+   mtime+size가 그대로면 원본과 gzip 결과를 재사용한다. */
+const fileCache = new Map();   // fp -> { mtimeMs, size, data, gz, etag, type }
+function serveFile(fp, req, res) {
+  fs.stat(fp, (statErr, st) => {
+    if (statErr || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }
+    const hit = fileCache.get(fp);
+    if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return sendCached(hit, req, res);
+    fs.readFile(fp, (err, data) => {
+      if (err) { res.writeHead(404); return res.end('Not found'); }
+      const ext = path.extname(fp), type = TYPES[ext] || 'application/octet-stream';
+      const etag = '"' + crypto.createHash('sha1').update(data).digest('base64').slice(0, 22) + '"';
+      const entry = { mtimeMs: st.mtimeMs, size: st.size, data, gz: null, etag, type, ext };
+      const textual = /text|javascript|json|manifest|svg/.test(type);
+      if (textual && data.length > 1024) {
+        zlib.gzip(data, (gzErr, gz) => { if (!gzErr) entry.gz = gz; fileCache.set(fp, entry); sendCached(entry, req, res); });
+      } else { fileCache.set(fp, entry); sendCached(entry, req, res); }
+    });
+  });
+}
+function sendCached(e, req, res) {
+  const headers = { 'Content-Type': e.type, 'ETag': e.etag };
+  // 불변 애셋은 길게 캐시, HTML은 매번 재검증(배포 즉시 반영)
+  if (/\.(png|ico|webp|jpe?g|svg|woff2?)$/.test(e.ext)) headers['Cache-Control'] = 'public, max-age=604800';
+  else if (e.ext === '.html') headers['Cache-Control'] = 'no-cache';
+  else headers['Cache-Control'] = 'public, max-age=3600';
+  // ETag가 맞으면 본문 없이 304 — no-cache(매번 재검증)라도 재전송을 막는다.
+  // 기존엔 검증자가 없어 변경이 없어도 매번 전체(gzip 후 79KB)를 다시 보냈다.
+  if ((req.headers['if-none-match'] || '').split(/,\s*/).includes(e.etag)) {
+    res.writeHead(304, headers); return res.end();
+  }
+  const ae = req.headers['accept-encoding'] || '';
+  if (e.gz && /\bgzip\b/.test(ae)) {
+    headers['Content-Encoding'] = 'gzip'; headers['Vary'] = 'Accept-Encoding';
+    res.writeHead(200, headers); return res.end(e.gz);
+  }
+  res.writeHead(200, headers); res.end(e.data);
+}
 
 // ---------- rooms ----------
 // maxPayload: ws 기본값이 100MiB라 거대 프레임 한 방으로 메모리를 밀어넣을 수 있다.
@@ -59,8 +82,17 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
 const rooms = new Map(); // code -> Room
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const rid = () => Math.random().toString(36).slice(2, 12);
-const newCode = () => { let c; do { c = Array.from({length:4}, () => CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(''); } while (rooms.has(c)); return c; };
+// pid는 '자리 소유권'을 증명하는 값이다(rejoin이 code+pid만 맞으면 좌석을 넘겨준다).
+// Math.random은 예측 가능하므로 암호학적 난수를 쓴다.
+const rid = () => crypto.randomBytes(9).toString('base64url');
+const newCode = () => {
+  let c;
+  do {
+    const b = crypto.randomBytes(4);
+    c = Array.from(b, x => CODE_CHARS[x % CODE_CHARS.length]).join('');
+  } while (rooms.has(c));
+  return c;
+};
 const send = (ws, o) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
 
 function recolor(room){ room.members.forEach((m,i)=>{ m.color = COLORS[i % COLORS.length]; }); }
@@ -88,7 +120,16 @@ function promoteSpectators(room){ const seats = capOf(room); let active = room.m
   for (const m of room.members){ if (m.spectator && active < seats){ m.spectator=false; active++; } } }
 function clearGameTimer(room){ if(room.gameTimer){ clearTimeout(room.gameTimer); room.gameTimer=null; } }
 // 방 파괴: 모든 타이머 해제 + 엔진 정리 후 rooms에서 제거
-function destroyRoom(room){ clearGameTimer(room); if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;} if(room.rematch&&room.rematch.timer){clearTimeout(room.rematch.timer);} if(room.engine){ try{room.engine.destroy();}catch(e){} } rooms.delete(room.code); }
+function destroyRoom(room){
+  clearGameTimer(room);
+  if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
+  if(room.rematch&&room.rematch.timer){clearTimeout(room.rematch.timer);}
+  if(room.engine){ try{room.engine.destroy();}catch(e){} }
+  // 남은 소켓의 meta를 비운다. 안 그러면 죽은 code를 들고 있다가 이후 모든 명령이
+  // 조용히 무시돼(클라는 아무 피드백 없이 먹통) 원인을 알 수 없다.
+  room.members.forEach(m=>{ if(m.ws && m.ws.meta && m.ws.meta.code===room.code){ m.ws.meta = { code:null, pid:null }; } });
+  rooms.delete(room.code);
+}
 // 소켓이 새 방으로 이동하기 전, 이전 방 멤버십 정리(유령 멤버·좀비 방 누수 방지)
 function detachFromRoom(ws){
   const code = ws.meta && ws.meta.code; const prev = code ? rooms.get(code) : null;
@@ -194,10 +235,10 @@ wss.on('connection', (ws) => {
     const now = Date.now();
     if (now - ws._rlStart > 1000){ ws._rlStart = now; ws._rlCount = 0; }
     if (++ws._rlCount > 40) return;
-    ws._lastSeen = now;                        // 유휴 방 판정용
     let m; try { m = JSON.parse(raw); } catch(e){ return; }
     try {
     const room = rooms.get(ws.meta.code);
+    if (room) room.lastActivity = now;          // 유휴 방 정리(idleSweep) 판정용
 
     if (m.t === 'create') {
       if (rooms.size >= MAX_ROOMS) return send(ws, { t:'error', code:'busy', msg:'서버가 혼잡해요. 잠시 후 다시 시도해줘.' });
@@ -205,6 +246,7 @@ wss.on('connection', (ws) => {
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : 'yacht';
       const code = newCode(), pid = rid();
       const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+      r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
 
@@ -372,6 +414,22 @@ wss.on('connection', (ws) => {
    방이 rooms에서 절대 제거되지 않는다. MAX_ROOMS(500)를 채우면 이후 모든 방 생성이
    'busy'로 영구 실패하고, 재시작해야만 복구된다.
    30초마다 ping을 보내고 응답 없는 소켓을 terminate해서 close 경로를 정상적으로 태운다. */
+/* 유휴 방 정리: scheduleCleanup은 '사람이 0명'일 때만 동작한다.
+   호스트가 로비를 열어두고 자리를 뜨면(소켓은 살아 있음) 방이 무한정 남는다.
+   마지막 메시지로부터 IDLE_MS 넘게 아무 활동이 없으면 정리한다. */
+const IDLE_MS = Number(process.env.IDLE_MS) || 45 * 60 * 1000;
+const idleSweep = setInterval(() => {
+  const now = Date.now();
+  for (const room of Array.from(rooms.values())) {
+    const last = room.lastActivity || 0;
+    if (last && now - last > IDLE_MS) {
+      broadcast(room, { t:'error', code:'idle', msg:'오래 움직임이 없어 방을 정리했어요.' });
+      destroyRoom(room);
+    }
+  }
+}, 5 * 60 * 1000);
+idleSweep.unref?.();
+
 const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS) || 30000;   // 테스트에서 짧게 덮어쓸 수 있게
 const heartbeat = setInterval(() => {
   wss.clients.forEach((ws) => {
