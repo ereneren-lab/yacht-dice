@@ -142,6 +142,7 @@
     }
 
     action(pid, a){
+      if (!a || typeof a !== 'object') return;   // 클라가 a 없이 보내도 죽지 않게(서버는 m.a를 그대로 넘긴다)
       if(this._dead || this.phase!=='bid' || this._busy) return;
       const seat=this.players.findIndex(p=>p.pid===pid && p.alive);
       if(seat<0 || seat!==this.turn) return;

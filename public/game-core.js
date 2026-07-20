@@ -205,6 +205,7 @@
       if(!this.rolled){ this._doRoll(); setTimeout(finish, 900); } else finish();
     }
     action(pid,a){
+      if (!a || typeof a !== 'object') return;   // 클라가 a 없이 보내도 죽지 않게(서버는 m.a를 그대로 넘긴다)
       if(this._dead||this.phase!=='play'||this._busy) return;
       const seat=this._seat(pid);
       if(seat<0||seat!==this.current) return;
@@ -222,7 +223,8 @@
       this.onRoll(idx,vals);
       this._emit();
     }
-    _hold(i){ if(!this.rolled||this.rollsLeft<=0||i<0||i>4) return; this.dice[i].held=!this.dice[i].held; this._emit(); }
+    // NaN/undefined는 i<0·i>4 비교를 둘 다 통과해버려 dice[NaN]에서 터진다 → 정수인지 먼저 확인
+    _hold(i){ if(!this.rolled||this.rollsLeft<=0||!Number.isInteger(i)||i<0||i>=this.dice.length) return; this.dice[i].held=!this.dice[i].held; this._emit(); }
     _commit(seat,catId){
       const p=this.players[seat];
       if(!this.rolled||!p||p.scores[catId]!==null||!this.rule.cats.find(c=>c.id===catId)) return;
