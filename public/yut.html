@@ -269,6 +269,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes pcEager{ 0%,100%{transform:translateY(0) scale(1)} 32%{transform:translateY(-3.6px) scale(1.06)} 64%{transform:translateY(0) scale(1)} }
   .pchip.turn .pav, .thrower img{ animation:avBob 1.35s ease-in-out infinite }     /* 차례인 캐릭터 = 살랑살랑 */
   @keyframes avBob{ 0%,100%{transform:translateY(0) rotate(0)} 26%{transform:translateY(-2px) rotate(-4deg)} 58%{transform:translateY(0) rotate(3.5deg)} }
+  /* ✨ 잡힌 말이 튕겨 날아감 */
+  .flyhome{ position:fixed; width:34px; height:34px; z-index:9040; pointer-events:none; border-radius:50%; background:#fff; border:2.5px solid #888; box-shadow:0 3px 10px rgba(0,0,0,.45); overflow:hidden; transform:translate(-50%,-50%); transition:transform .8s cubic-bezier(.25,-0.3,.6,1), opacity .8s ease-in; }
+  .flyhome img{ width:100%; height:100%; object-fit:cover; display:block; }
   #pieceLayer .pcpiece.caught{ animation:pccaught .5s ease }
   @keyframes pccaught{ 0%{transform:scale(1)} 40%{transform:scale(1.5) rotate(20deg)} 100%{transform:scale(1)} }
   .throwarea{ text-align:center;margin:6px 0 4px }
@@ -1219,16 +1222,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // 잡기: node 칸에 있는 다른 편 말을 처음으로 돌려보냄. 잡으면 한 번 더(잡기축제=두 번). 반환: 잡았는지.
     _captureAt(node, seat, pl) {
       if (node == null) return false;
-      let caught = false, caughtN = 0;
+      let caught = false, caughtN = 0; const victims = [];
       for (const op of this.players) {
         if (op.seat === seat) continue;
         if (this.teamMode && op.team === pl.team) continue;                     // 같은 팀은 안 잡음
         if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
         for (const opc of op.pieces) {
-          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; }
+          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; victims.push(op.seat); }
         }
       }
-      if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN }; }
+      if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN, victims }; } // victims=잡힌 말 주인 seat들(클라 튕겨날아가기 연출용)
       return caught;
     }
     // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 이벤트·늪 재발동은 없음(연쇄 방지). 반환: 이동형이면 도착 노드(잡기 판정용).
@@ -2203,6 +2206,22 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     layer.appendChild(t);
     setTimeout(()=>{ try{ring.remove();t.remove();if(ring2)ring2.remove();frags.forEach(fr=>fr.el.remove());}catch(e){} },720);
   }
+  // ✨ 잡힌 말이 잡힌 자리에서 빙글 돌며 튕겨 날아감(주인 아바타 색 링). victims=잡힌 말 주인 seat들.
+  function flyCapturedHome(node, seats){
+    if(FX_REDUCED() || !seats || !seats.length) return;
+    const pos=nodeScreenXY(node); if(!pos) return;
+    seats.forEach((seat)=>{
+      const p=S&&S.players[seat]; if(!p) return;
+      const type=pieceAnimal(p, seat);
+      const el=document.createElement('div'); el.className='flyhome';
+      el.style.left=pos[0]+'px'; el.style.top=pos[1]+'px'; el.style.borderColor=pieceColor(seat);
+      el.innerHTML='<img src="'+(ANIMAL_IMG[type]||'')+'" alt="">';
+      document.body.appendChild(el);
+      const dx=(Math.random()*2-1)*70, rot=(Math.random()*2-1)*340;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(el.isConnected){ el.style.transform='translate(-50%,-50%) translate('+dx.toFixed(0)+'px,-120px) rotate('+rot.toFixed(0)+'deg) scale(.4)'; el.style.opacity='0'; } }));
+      setTimeout(()=>{ try{el.remove();}catch(e){} }, 840);
+    });
+  }
   // ── 이동 연출 속도(천천히 · 한 눈에 보이게) ──
   const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=1050, BANNER_MS=1700;
   // renderPieces가 이 말을 실제로 놓을 좌표(업기 스택 오프셋·y보정 포함) — 도착 후 튐(옮겨가는 것처럼 보임) 방지
@@ -2431,7 +2450,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       // 이 이동에 딸린 특수 칸 효과(늪/이벤트)를 함께 잡아 순차 연출
       const _pit=(S.pitFall && S.pitFall.seq!==pitSeen)?S.pitFall:null; if(_pit)pitSeen=S.pitFall.seq;
       const _ev=(S.eventFx && S.eventFx.seq!==eventFxSeen)?S.eventFx:null; if(_ev)eventFxSeen=S.eventFx.seq;
-      if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); }
+      if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); if(who) floatReaction(who.pid,'😱'); }
       animatingId='pc-'+S.lastMovePath.seat+'-'+S.lastMovePath.pieceId;
       animGroup=new Set((S.lastMovePath.group||[S.lastMovePath.pieceId]).map(pid=>'pc-'+S.lastMovePath.seat+'-'+pid)); // 업힌 말 전체를 렌더 스냅에서 보호
       renderPieces();
@@ -2486,7 +2505,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       }
     }
     // 완주 감지 → 축하
-    S.players.forEach(p=>{ if(prevDone[p.pid]!=null && p.doneCount>prevDone[p.pid] && S.phase!=='over'){ if(p.pid===MYPID){ showToast('🎉 내 말 완주!'); trackMission('finish', p.doneCount-prevDone[p.pid]); } else { showToast('🏁 '+p.name+' 말 완주'); } showSpeech(p.pid,'finish'); try{SFX.finish();}catch(e){} const bd=$('board'); bd.classList.remove('finflash'); void bd.offsetWidth; bd.classList.add('finflash'); cameraPunch(); } prevDone[p.pid]=p.doneCount; });
+    S.players.forEach(p=>{ if(prevDone[p.pid]!=null && p.doneCount>prevDone[p.pid] && S.phase!=='over'){ if(p.pid===MYPID){ showToast('🎉 내 말 완주!'); trackMission('finish', p.doneCount-prevDone[p.pid]); } else { showToast('🏁 '+p.name+' 말 완주'); } showSpeech(p.pid,'finish'); floatReaction(p.pid,'🎉'); try{SFX.finish();}catch(e){} const bd=$('board'); bd.classList.remove('finflash'); void bd.offsetWidth; bd.classList.add('finflash'); cameraPunch(); } prevDone[p.pid]=p.doneCount; });
     // 잡기 연출
     if(S.captured && JSON.stringify(S.captured)!==JSON.stringify(prevCaptured)){
       prevCaptured=S.captured; try{SFX.capture();}catch(e){} try{BGM.duck();}catch(e){}
@@ -2495,6 +2514,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       showToast(catchWord+' '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
       if(who) showSpeech(who.pid,'catch');
       captureEffect(S.captured.node, cn);
+      flyCapturedHome(S.captured.node, S.captured.victims);   // ✨ 잡힌 말 튕겨 날아가기
+      if(who) floatReaction(who.pid, '😆');                    // 잡은 쪽 신남
+      const vseats=[...new Set(S.captured.victims||[])];        // 잡힌 쪽 시무룩(주인별 1회)
+      vseats.forEach(vs=>{ const vp=S.players[vs]; if(vp&&vp.pid!==(who&&who.pid)) floatReaction(vp.pid, '😵'); });
       if(cn>=2) multiCatchBanner(cn);
       const bd=$('board'); bd.classList.remove('shake'); void bd.offsetWidth; bd.classList.add('shake');
       if(S.captured.seat===ms){ capCount++; trackMission('catch'); }

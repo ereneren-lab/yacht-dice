@@ -1859,7 +1859,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(isOnline()&&s.players){ if(prevConn){ s.players.forEach(p=>{ if(!p.ai && p.pid!==myPid && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) toast((p.connected?'🔌 ':'⚠️ ')+(p.name||'상대')+(p.connected?' 재접속':' 연결 끊김')); }); } prevConn={}; s.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; }); }
     if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; $('leaveBtn').style.display='flex'; buildReactbar(); }
     if(s.phase==='play'){ $('overlay').classList.remove('show'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
-    renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f; }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
+    renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f;
+      const rpid=S.players[f.seat]&&S.players[f.seat].pid;   // ✨ 캐릭터 리액션: 대박 🤩 / 0점 😬
+      if(rpid){ if(isBig(f)) floatReaction(rpid,'🤩'); else if(f.val===0) floatReaction(rpid,'😬'); }
+    }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
     // 모바일 왕복 완화: 마지막 굴림(굴림 소진)으로 이제 '골라야' 하는 순간 점수판을 위로 스무스 스크롤.
     // 굴림 남았을 땐(홀드 재굴림 가능) 주사위를 시야에 유지하려 스크롤하지 않음.
     if(S&&S.phase==='play'&&S.rolled&&S.rollsLeft===0&&isMyTurn()&&window.innerWidth<=480&&prevRollsLeft!==null&&prevRollsLeft>0){

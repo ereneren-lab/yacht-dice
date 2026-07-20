@@ -263,16 +263,16 @@
     // 잡기: node 칸에 있는 다른 편 말을 처음으로 돌려보냄. 잡으면 한 번 더(잡기축제=두 번). 반환: 잡았는지.
     _captureAt(node, seat, pl) {
       if (node == null) return false;
-      let caught = false, caughtN = 0;
+      let caught = false, caughtN = 0; const victims = [];
       for (const op of this.players) {
         if (op.seat === seat) continue;
         if (this.teamMode && op.team === pl.team) continue;                     // 같은 팀은 안 잡음
         if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
         for (const opc of op.pieces) {
-          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; }
+          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; victims.push(op.seat); }
         }
       }
-      if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN }; }
+      if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN, victims }; } // victims=잡힌 말 주인 seat들(클라 튕겨날아가기 연출용)
       return caught;
     }
     // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 이벤트·늪 재발동은 없음(연쇄 방지). 반환: 이동형이면 도착 노드(잡기 판정용).
