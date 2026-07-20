@@ -146,6 +146,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .charcards.grid2 .ccdone b{ font-size:11.5px }
     .charcards.grid2 .ccard.lead::after{ font-size:15px;top:-7px;right:4px }
     body.ingame .players-strip{ display:none }      /* 카드가 대신하므로 상단 칩은 감춘다 */
+    /* 우측은 '액션 전용'으로 비운다 — 캐릭터는 좌측 카드가 크게 보여주므로 48px 아바타는 중복.
+       던지기 연출(긴장·던짐)도 아래처럼 좌측 큰 카드로 옮겨 효과를 키웠다. */
+    body.ingame .thrower{ display:none }
+    #charCards.charging .ccard.turn img{ animation:avTense .5s ease-in-out infinite }
   }
   .ccard{ position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
     padding:9px 8px 8px;border-radius:15px;background:var(--panel);border:2px solid var(--line);
@@ -537,6 +541,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important }
     .stick.tossing, .thrower.throwing img, #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:none !important }
+    #charCards .ccard img, #charCards.charging .ccard.turn img{ animation:none !important }
     #pieceLayer .pcpiece.mv .ring{ animation:none !important }
     .bigbtn.ready{ animation:none !important }
     #pieceLayer .pcpiece, #pieceLayer .pcpiece.pitfall{ transition:none !important }
@@ -2791,7 +2796,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const tilt = (Math.random()*12-6).toFixed(0);
       return `<div class="stick${i===0?' mark':''}${isNew?' tossing':''}" style="--landdeg:${land}deg;--half:${half}deg;--tilt:${tilt}deg;animation-delay:${(i*0.08).toFixed(2)}s"><div class="face front"></div><div class="face back"></div></div>`;
     }).join('');
-    if(isNew){ const th=$('thrower'); if(th){ th.classList.remove('throwing'); void th.offsetWidth; th.classList.add('throwing'); } }
+    if(isNew){
+      const th=$('thrower'); if(th){ th.classList.remove('throwing'); void th.offsetWidth; th.classList.add('throwing'); }
+      // 좌측 큰 카드도 같이 던지는 모션. 컨테이너 클래스로 걸면 render가 반복될 때
+      // 애니가 되풀이되므로, 현재 차례 카드의 img에 인라인으로 직접 건다.
+      // (카드가 다시 그려지면 인라인 스타일도 함께 사라져 저절로 1회로 끝난다)
+      const im=document.querySelector('#charCards .ccard.turn img');
+      if(im){ im.style.animation='none'; void im.offsetWidth; im.style.animation='throwmo .68s cubic-bezier(.3,.55,.4,1)'; }
+    }
     const throwLabel=t=>{ const ex=(t.step===4||t.step===5?' <span class="big">한 번 더!</span>':t.step===-1?' <span class="big">뒤로!</span>':''); return t.name+ex; };
     if(isNew){ const rr=$('throwResult'); rr.textContent=''; rr.classList.remove('pop'); setTimeout(()=>{ if(!S||!S.lastThrow)return; rr.innerHTML=throwLabel(S.lastThrow); rr.classList.remove('pop'); void rr.offsetWidth; rr.classList.add('pop');
       const st=S.lastThrow.step; const key=st===5?'mo':st===4?'yut':st===-1?'backdo':st===1?'do':st===2?'gae':'geol';
@@ -2942,13 +2954,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function startGauge(){
     if(gauging || !(S && (S.phase==='throw' || S.phase==='order') && mySeat()===S.turn)) return;
     gauging=true; gaugeStart=performance.now(); $('powerGauge').classList.remove('locked');
-    { const th=document.querySelector('.thrower'); if(th) th.classList.add('charging'); }   // 던지기 직전 긴장
+    // 던지기 직전 긴장. 클래스는 '컨테이너'에 건다 — 카드가 render로 다시 그려져도 살아남게.
+    { const th=document.querySelector('.thrower'); if(th) th.classList.add('charging');      // 좁은 폭(카드 없음)용
+      const cc=$('charCards'); if(cc) cc.classList.add('charging'); }                        // 3단 폭: 좌측 큰 카드
     const loop=(t)=>{ if(!gauging)return; const el=(t-gaugeStart)/850; gaugeVal=(Math.sin(el*Math.PI*2-Math.PI/2)+1)/2; $('powerFill').style.width=(gaugeVal*100).toFixed(0)+'%'; gaugeRAF=requestAnimationFrame(loop); };
     gaugeRAF=requestAnimationFrame(loop);
   }
   function endGauge(){
     if(!gauging)return; gauging=false; if(gaugeRAF)cancelAnimationFrame(gaugeRAF);
-    { const th=document.querySelector('.thrower'); if(th) th.classList.remove('charging'); }
+    { const th=document.querySelector('.thrower'); if(th) th.classList.remove('charging');
+      const cc=$('charCards'); if(cc) cc.classList.remove('charging'); }
     const power=gaugeVal; const pg=$('powerGauge');
     // 찬스 구간(.powersweet: left 64% ~ width 18% → 0.64~0.82)에서 떼면 골드 플래시 + 토스트로 보상감
     const inChance = power>=0.64 && power<=0.82;
