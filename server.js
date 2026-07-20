@@ -235,7 +235,13 @@ wss.on('connection', (ws) => {
     const now = Date.now();
     if (now - ws._rlStart > 1000){ ws._rlStart = now; ws._rlCount = 0; }
     if (++ws._rlCount > 40) return;
+    // JSON.parse('null')·'[]'·'42'는 예외 없이 통과하므로 객체인지 확인해야 한다.
     let m; try { m = JSON.parse(raw); } catch(e){ return; }
+    if (!m || typeof m !== 'object' || Array.isArray(m) || typeof m.t !== 'string') return;
+    // 문자열로 와야 하는 필드가 숫자/객체로 오면 .toUpperCase 등에서 터진다 → 여기서 정규화
+    if (m.code != null) m.code = String(m.code);
+    if (m.pid != null) m.pid = String(m.pid);
+    if (m.name != null) m.name = String(m.name);
     try {
     const room = rooms.get(ws.meta.code);
     if (room) room.lastActivity = now;          // 유휴 방 정리(idleSweep) 판정용
