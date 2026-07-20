@@ -100,6 +100,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .lighttoggle{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;line-height:1;
     border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;
     cursor:pointer;font-size:14px;font-family:inherit;transition:.12s}
+  /* 28px은 터치 타겟으로 너무 작다 → 시각은 유지하고 영역만 44px로 */
+  .lighttoggle{ position:relative }
+  .lighttoggle::after{ content:'';position:absolute;inset:-8px }
+
   .lighttoggle:hover{border-color:color-mix(in srgb,var(--brass) 45%,transparent);color:var(--ink)}
 
   /* 방 코드로 바로 참가 — 친구가 준 코드를 게임 선택 없이 입력 */

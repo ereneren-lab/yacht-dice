@@ -68,8 +68,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   .kbtop{display:flex; align-items:center; gap:12px; margin:4px 2px 16px}
-  .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  .iconbtn{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
     font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s;text-decoration:none}
+  /* 터치 영역만 44px로 넓힌다(WCAG 2.5.5). 시각 크기는 40px 그대로라 레이아웃은 안 바뀐다.
+     상단바 gap이 8~12px이므로 ±2px 확장은 인접 버튼과 겹치지 않는다. */
+  .iconbtn{ position:relative }
+  .iconbtn::after{ content:'';position:absolute;inset:-3px }
+
   .iconbtn:hover{background:var(--panel2)}
   .kbtop h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1;white-space:nowrap;min-width:0}
   .kbtop .mode-pill{font-size:11.5px;color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 12%,transparent);padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none}
@@ -78,7 +83,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .kbtop{gap:6px}
     .kbtop h2{font-size:17px}
     .kbtop .mode-pill{font-size:10px;padding:4px 7px;gap:4px}
-    .iconbtn{width:33px;height:33px;border-radius:9px;font-size:15px}
+    .iconbtn{width:40px;height:40px;border-radius:9px;font-size:15px}
   }
   .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
   .dot.on{background:var(--win)} .dot.off{background:var(--danger)}
@@ -1389,7 +1394,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(!isText && comboN>=3) showCombo(comboN, cx, r.top-30);
   }
   function showCombo(n,x,y){ const el=document.createElement('div'); el.className='combobadge'; el.textContent='×'+n; el.style.left=x+'px'; el.style.top=y+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),900); }
-  function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+  function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
   // 로컬 AI 깐죽
   const AI_TAUNT_KB={
     win:['ㅋㅋ 이김','격자 압살','내 점수 봐라','쉽긴','복수 성공','한 수 위지','졌잘싸~','다음 판도 ㄱㄱ?'],

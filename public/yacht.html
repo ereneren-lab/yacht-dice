@@ -177,7 +177,12 @@
   .achbadge span{font-size:8.5px;font-weight:700;color:var(--muted);text-align:center;line-height:1.1}
   .achbadge.on span{color:var(--ink)}
   .tbctrls{display:flex;align-items:center;gap:8px}
-  .iconbtn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;background:var(--panel2);color:var(--ink);font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+  .iconbtn{width:40px;height:40px;border-radius:8px;border:none;cursor:pointer;background:var(--panel2);color:var(--ink);font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+  /* 터치 영역만 44px로 넓힌다(WCAG 2.5.5). 시각 크기는 40px 그대로라 레이아웃은 안 바뀐다.
+     상단바 gap이 8~12px이므로 ±2px 확장은 인접 버튼과 겹치지 않는다. */
+  .iconbtn{ position:relative }
+  .iconbtn::after{ content:'';position:absolute;inset:-3px }
+
   .iconbtn:hover{background:#3a3052}
   #leaveBtn:hover{background:var(--danger);color:#fff}
   .member .conn{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
@@ -1015,7 +1020,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="gamewrap">
         <div class="leftcol">
           <div class="turnbanner specbar" id="specBar" style="display:none">👀 관전 중 — 다음 판부터 참여해요</div>
-          <div class="turnbanner other" id="turnBanner" style="display:none"></div>
+          <!-- 턴 변경을 스크린리더가 읽도록 라이브 리전으로. yacht엔 aria-live가 하나도 없었다 -->
+          <div class="turnbanner other" id="turnBanner" style="display:none" role="status" aria-live="polite"></div>
           <div class="pane turnbar">
             <div class="rolls"><span>남은 굴림</span><span class="pips" id="rollPips"></span></div>
             <div class="rolls prog"><span id="progressCap">이번 차례</span><b id="progressLbl">0/12</b></div>

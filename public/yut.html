@@ -60,7 +60,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes tickpulse{ 0%,100%{opacity:1} 50%{opacity:.6} }
   .title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; }
   .title .dot{ width:9px;height:9px;border-radius:50%;background:var(--brass); }
-  .iconbtn{ width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;flex:none }
+  .iconbtn{ width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;flex:none }
+  /* 터치 영역만 44px로 넓힌다(WCAG 2.5.5). 시각 크기는 40px 그대로라 레이아웃은 안 바뀐다.
+     상단바 gap이 8~12px이므로 ±2px 확장은 인접 버튼과 겹치지 않는다. */
+  .iconbtn{ position:relative }
+  .iconbtn::after{ content:'';position:absolute;inset:-3px }
+
   .iconbtn:hover{ background:var(--panel2) }
   .spacer{ flex:1 }
   .btn{ width:100%;padding:14px;border-radius:14px;border:none;background:var(--brass);color:var(--brass-ink);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;transition:transform .09s ease,background .15s }
@@ -1862,7 +1867,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const now=Date.now(); if(!isText && emoji===lastComboEmoji && now-lastComboT<1300) comboN++; else comboN=1;
     lastComboEmoji=emoji; lastComboT=now;
   }
-  function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+  function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
 
   /* ===== 렌더 ===== */
   const YUT_NAME={'-1':'빽도',1:'도',2:'개',3:'걸',4:'윷',5:'모'};
