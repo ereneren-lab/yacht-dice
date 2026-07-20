@@ -110,6 +110,7 @@ function skip(name, detail) {
   check('콘솔 예외 없음 (모션 ON)', page.errors.length === 0, page.errors.slice(0, 2).join(' | '));
 
   // ── 3) reduced-motion: 연출 전량 생략 ──────────────────────────────
+  await page.close();          // 안 닫고 새 페이지를 열면 세션이 죽는다
   const rp = await startGame(cdp, { motion: false });
   let moves = 0, trails = 0;
   for (let i = 0; i < 120 && moves < 5; i++) {

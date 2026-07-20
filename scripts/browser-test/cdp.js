@@ -189,6 +189,12 @@ class Page {
     return frames;
   }
 
+  /** 페이지를 닫는다. 여러 페이지를 순차로 쓸 땐 반드시 닫을 것 —
+   *  안 닫고 새로 열면 세션이 죽어 "Session with given id not found"가 난다. */
+  async close() {
+    try { await this.cdp.send('Target.closeTarget', { targetId: this.targetId }); } catch (e) {}
+  }
+
   /** clipSel 주면 그 요소 영역만 잘라 저장 */
   async shot(file, clipSel) {
     const params = { format: 'png' };
