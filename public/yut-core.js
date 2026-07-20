@@ -53,9 +53,7 @@
     const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
     if (steps < 0) {
       if (i <= 0) return { noMove: true };
-      const prev = seq[i - 1];
-      if (prev === 0) return { done: true };   // 빽도로 출발점(0) 복귀 → 그대로 나감(완주)
-      return { node: seq[i - 1], route: rname, out: true };
+      return { node: seq[i - 1], route: rname, out: true };   // 빽도: 뒤로 한 칸(출발점에 서면 그대로 머무름, 자동으로 나가지 않음)
     }
     const ni = i + steps;
     if (ni >= seq.length) return { done: true };
@@ -238,19 +236,27 @@
     // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 재발동/추가 잡기 없이 1회성.
     _applyEventTile(node, group, owner) {
       const type = this.eventTiles[node];
-      this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length };
+      let path = null;   // 이동형 이벤트(부스터/후퇴)의 이동 경로 — 클라가 천천히 애니
       if (type === 'bonus') { this.throwsLeft++; }                              // 한 번 더
       else if (type === 'gold') { this.throwsLeft++;                            // 황금: 한 번 더 + 아이템전이면 아이템 획득
         if (this.itemBattle) { const p = this.players[owner]; if (!p.items) p.items = []; if (p.items.length < 5) p.items.push(['shield', 'rethrow', 'push'][Math.floor(this.rng() * 3)]); } }
-      else if (type === 'boost') { this._shiftGroup(group, 3); }                // 앞으로 3칸 부스터
-      else if (type === 'back') { this._shiftGroup(group, -2); }                // 뒤로 2칸
+      else if (type === 'boost') { path = this._shiftGroup(group, 3); }         // 앞으로 3칸 부스터
+      else if (type === 'back') { path = this._shiftGroup(group, -2); }         // 뒤로 2칸
+      this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length, path: path };
     }
-    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 이동(이벤트/구렁텅이 재발동 없음)
-      const lead = group[0]; if (!lead || lead.done || !lead.out) return;
-      const r = step(lead.node, lead.route, lead.out, delta, null);
-      if (r.noMove) return;
-      if (r.done) { group.forEach(g => { g.done = true; g.out = false; }); }
-      else { group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; }); }
+    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 한 칸씩 이동, 경로 반환(연출용). 이벤트/구렁텅이 재발동 없음.
+      const lead = group[0]; if (!lead || lead.done || !lead.out) return null;
+      const path = []; let cn = lead.node, cr = lead.route, co = lead.out; const dstep = delta < 0 ? -1 : 1; let done = false;
+      for (let k = 0; k < Math.abs(delta); k++) {
+        const rr = step(cn, cr, co, dstep, null);
+        if (rr.noMove) break;
+        if (rr.done) { done = true; path.push({ done: true }); break; }
+        path.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true;
+      }
+      if (!path.length) return null;
+      if (done) group.forEach(g => { g.done = true; g.out = false; });
+      else group.forEach(g => { g.out = true; g.node = cn; g.route = cr; });
+      return path;
     }
     // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
     _applyDailyStart() {

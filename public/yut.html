@@ -479,6 +479,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     /* JUICE: 감소 모드 — 오버레이는 정적으로만(애니 제거), 화면 흔들림/줌/플래시/코인은 아예 생략(JS 가드) */
     #yutFx .yf-word, #yutFx .yf-sub, #yutFx .yf-dim, #yutFx .yf-rays,
     #yutReversal .rv-band, #yutReversal .rv-txt{ animation:none !important; opacity:1 !important; }
+    #yutEffect > div{ animation:none !important; }
     #yutCombo.on{ animation:none !important; opacity:1 !important; }
     #yutMultiCatch .mc-band, #yutMultiCatch .mc-txt{ animation:none !important; opacity:1 !important; }
     #yutItemFx .if-band, #yutItemFx .if-txt{ animation:none !important; opacity:1 !important; }
@@ -535,6 +536,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #yutReversal.on{ opacity:1; visibility:visible; }
   #yutReversal .rv-band{ width:100%; padding:22px 0; text-align:center; background:linear-gradient(90deg, rgba(58,36,16,0) 0%, rgba(58,36,16,.82) 22%, rgba(58,36,16,.82) 78%, rgba(58,36,16,0) 100%); transform-origin:center; animation:rvBand .95s ease-out forwards; }
   #yutReversal .rv-txt{ display:inline-block; font-weight:900; letter-spacing:2px; font-size:clamp(34px,8vw,72px); background:linear-gradient(178deg,#fff6d8,#f2ce68 50%,#e0a23c); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; -webkit-text-stroke:4px #3a2410; paint-order:stroke fill; animation:rvTxt .95s cubic-bezier(.2,1.4,.4,1) forwards; }
+  /* 특수 칸 효과 안내 배너 */
+  .efann-big{ font-size:clamp(26px,6.5vw,52px); line-height:1.1; }
+  .efann-sub{ display:block; margin-top:6px; font-size:clamp(13px,3.2vw,20px); font-weight:800; opacity:.92; letter-spacing:.5px; }
+  @keyframes efPop{ 0%{transform:scale(.55);opacity:0} 60%{transform:scale(1.09)} 100%{transform:scale(1);opacity:1} }
   @keyframes rvBand{ 0%{opacity:0;transform:scaleX(.35)} 20%{opacity:1;transform:scaleX(1)} 78%{opacity:1} 100%{opacity:0} }
   @keyframes rvTxt{ 0%{opacity:0;transform:translateX(-44px) skewX(-9deg)} 26%{opacity:1;transform:translateX(0) skewX(0)} 78%{opacity:1} 100%{opacity:0;transform:translateX(32px)} }
   /* 멀티 잡기 배너 (역전 밴드 키프레임 재사용) */
@@ -992,9 +997,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
     if (steps < 0) {
       if (i <= 0) return { noMove: true };
-      const prev = seq[i - 1];
-      if (prev === 0) return { done: true };   // 빽도로 출발점(0) 복귀 → 그대로 나감(완주)
-      return { node: seq[i - 1], route: rname, out: true };
+      return { node: seq[i - 1], route: rname, out: true };   // 빽도: 뒤로 한 칸(출발점에 서면 그대로 머무름, 자동으로 나가지 않음)
     }
     const ni = i + steps;
     if (ni >= seq.length) return { done: true };
@@ -1177,19 +1180,27 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 재발동/추가 잡기 없이 1회성.
     _applyEventTile(node, group, owner) {
       const type = this.eventTiles[node];
-      this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length };
+      let path = null;   // 이동형 이벤트(부스터/후퇴)의 이동 경로 — 클라가 천천히 애니
       if (type === 'bonus') { this.throwsLeft++; }                              // 한 번 더
       else if (type === 'gold') { this.throwsLeft++;                            // 황금: 한 번 더 + 아이템전이면 아이템 획득
         if (this.itemBattle) { const p = this.players[owner]; if (!p.items) p.items = []; if (p.items.length < 5) p.items.push(['shield', 'rethrow', 'push'][Math.floor(this.rng() * 3)]); } }
-      else if (type === 'boost') { this._shiftGroup(group, 3); }                // 앞으로 3칸 부스터
-      else if (type === 'back') { this._shiftGroup(group, -2); }                // 뒤로 2칸
+      else if (type === 'boost') { path = this._shiftGroup(group, 3); }         // 앞으로 3칸 부스터
+      else if (type === 'back') { path = this._shiftGroup(group, -2); }         // 뒤로 2칸
+      this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length, path: path };
     }
-    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 이동(이벤트/구렁텅이 재발동 없음)
-      const lead = group[0]; if (!lead || lead.done || !lead.out) return;
-      const r = step(lead.node, lead.route, lead.out, delta, null);
-      if (r.noMove) return;
-      if (r.done) { group.forEach(g => { g.done = true; g.out = false; }); }
-      else { group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; }); }
+    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 한 칸씩 이동, 경로 반환(연출용). 이벤트/구렁텅이 재발동 없음.
+      const lead = group[0]; if (!lead || lead.done || !lead.out) return null;
+      const path = []; let cn = lead.node, cr = lead.route, co = lead.out; const dstep = delta < 0 ? -1 : 1; let done = false;
+      for (let k = 0; k < Math.abs(delta); k++) {
+        const rr = step(cn, cr, co, dstep, null);
+        if (rr.noMove) break;
+        if (rr.done) { done = true; path.push({ done: true }); break; }
+        path.push({ node: rr.node, route: rr.route }); cn = rr.node; cr = rr.route; co = true;
+      }
+      if (!path.length) return null;
+      if (done) group.forEach(g => { g.done = true; g.out = false; });
+      else group.forEach(g => { g.out = true; g.node = cn; g.route = cr; });
+      return path;
     }
     // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
     _applyDailyStart() {
@@ -2144,6 +2155,60 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     };
     hop();
   }
+  // 특수 칸 효과 안내 배너(크고 명확히, 잠깐 유지)
+  let _effT=null;
+  function effectAnnounce(inner, ms){
+    const el=_fxEl('yutEffect');
+    el.style.cssText='position:fixed;inset:0;z-index:9060;pointer-events:none;display:flex;align-items:center;justify-content:center;';
+    el.innerHTML='<div style="background:linear-gradient(180deg,rgba(58,36,16,.94),rgba(38,22,10,.94));border:2.5px solid var(--brass,#e0a23c);border-radius:20px;padding:16px 30px;text-align:center;font-weight:900;color:#fff6d8;box-shadow:0 14px 44px rgba(0,0,0,.55);animation:efPop .3s cubic-bezier(.2,1.4,.4,1);max-width:88vw">'+inner+'</div>';
+    clearTimeout(_effT); _effT=setTimeout(()=>{ try{el.innerHTML='';}catch(e){} }, ms||1200);
+  }
+  const EV_LABEL={
+    boost:'<span class="efann-big">⚡ 부스터!</span><span class="efann-sub">앞으로 3칸 순간이동</span>',
+    back:'<span class="efann-big">💨 후퇴!</span><span class="efann-sub">뒤로 2칸</span>',
+    bonus:'<span class="efann-big">🎁 보너스!</span><span class="efann-sub">한 번 더 던져요</span>',
+    gold:'<span class="efann-big">⭐ 황금!</span><span class="efann-sub">한 번 더 던져요</span>'
+  };
+  // 말 엘리먼트 하나를 경로 따라 한 칸씩 이동(renderPieces 없이 — 시퀀스 중 스냅 방지)
+  function animateAlong(id, path, hopMs, onDone){
+    const g=document.getElementById(id);
+    if(!g || !path || !path.length){ if(onDone)onDone(); return; }
+    let i=0;
+    const hop=()=>{
+      if(!S || i>=path.length){ if(onDone)onDone(); return; }
+      const p=path[i];
+      if(p.done){ if(onDone)onDone(); return; }
+      const [x,y]=nodeXY(p.node); g.setAttribute('transform','translate('+x.toFixed(1)+','+y.toFixed(1)+')');
+      i++; setTimeout(hop, hopMs);
+    };
+    hop();
+  }
+  // 이동 + 특수효과 순차 연출: 메인 이동 → 잠깐 멈춤 + 명확한 안내 → 효과 이동(천천히)
+  function runMoveSequence(mp, ev, pit){
+    const id='pc-'+mp.seat+'-'+mp.pieceId;
+    animatingId=id;
+    const finish=()=>{ animatingId=null; if(S) renderPieces(); };
+    if(FX_REDUCED()){
+      if(pit){ try{SFX.capture&&SFX.capture();}catch(e){} }
+      if(ev){ effectAnnounce(EV_LABEL[ev.type]||'', 800); }
+      finish(); return;
+    }
+    // 1) 메인 이동
+    animateAlong(id, mp.path, 160, ()=>{
+      // 2) 특수 칸 도착 → 멈춤 + 안내
+      if(pit){
+        try{SFX.capture&&SFX.capture();}catch(e){}
+        effectAnnounce('<span class="efann-big">🕳️ 늪에 빠졌다!</span><span class="efann-sub">처음으로 돌아가요 💦</span>', 1300);
+        setTimeout(()=>{ animatingId=null; animatePitFall(pit); }, 950);   // 3) 늪: 천천히 처음으로
+      } else if(ev){
+        effectAnnounce(EV_LABEL[ev.type]||'', 1300);
+        try{ eventFxBurst(ev); }catch(e){}
+        if(ev.path && ev.path.length){
+          setTimeout(()=>{ animateAlong(id, ev.path, 270, finish); }, 950);  // 3) 부스터/후퇴: 천천히 이동
+        } else { setTimeout(finish, 950); }   // 보너스/황금: 이동 없음
+      } else { finish(); }
+    });
+  }
   const pitAnimatingIds=new Set();
   function animatePitFall(pf){
     if(!pf || !pf.pieceIds || !pf.pieceIds.length) return;
@@ -2220,7 +2285,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(steps>0){ if(route==='outer'&&node===5){seq=SEQ.sc5;i=0;} else if(route==='outer'&&node===10){seq=SEQ.sc10;i=0;} else if(route==='sc5'&&node===22){seq=SEQ.sc10;i=SEQ.sc10.indexOf(22);} }  // 꺾기 강제
     if(i<0)return{ok:false};
     const rn=(seq===SEQ.sc5)?'sc5':(seq===SEQ.sc10)?'sc10':'outer';
-    if(steps<0){ if(i<=0)return{ok:false}; if(seq[i-1]===0)return{ok:true,done:true}; return{ok:true,node:seq[i-1],route:rn}; }  // 빽도로 출발점 → 나감
+    if(steps<0){ if(i<=0)return{ok:false}; return{ok:true,node:seq[i-1],route:rn}; }  // 빽도: 뒤로 한 칸(출발점에 머무를 수 있음)
     const ni=i+steps; if(ni>=seq.length)return{ok:true,done:true}; return{ok:true,node:seq[ni],route:rn};
   }
 
@@ -2255,9 +2320,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(S.lastMovePath && S.lastMovePath.seq!==moveSeqSeen){
       moveSeqSeen=S.lastMovePath.seq;
       if(S.lastMovePath.seat===mySeat() && S.lastMovePath.path.some(p=>p.route==='sc5'||p.route==='sc10')) trackMission('shortcut');
+      // 이 이동에 딸린 특수 칸 효과(늪/이벤트)를 함께 잡아 순차 연출
+      const _pit=(S.pitFall && S.pitFall.seq!==pitSeen)?S.pitFall:null; if(_pit)pitSeen=S.pitFall.seq;
+      const _ev=(S.eventFx && S.eventFx.seq!==eventFxSeen)?S.eventFx:null; if(_ev)eventFxSeen=S.eventFx.seq;
+      if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); }
       animatingId='pc-'+S.lastMovePath.seat+'-'+S.lastMovePath.pieceId;
       renderPieces();
-      animatePieceMove(S.lastMovePath);
+      runMoveSequence(S.lastMovePath, _ev, _pit);   // 메인 이동 → 멈춤+안내 → 효과 이동(천천히)
     } else renderPieces();
     // 대기 말 표시 (출발점 근처 텍스트)
     // 윷가락
