@@ -737,6 +737,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .op-comp .opc-res{ flex:none;font-size:15px;font-weight:900;color:var(--brass);min-width:34px;text-align:center }
   .op-comp .opc-res.wait{ font-size:13px;color:var(--muted);font-weight:700 }
   .op-comp .opc-throwtag{ flex:none;font-size:10px;font-weight:900;color:var(--brass) }
+  /* 순위·끗수 숫자·진행 표시 — "누가 앞서는지"를 규칙을 다시 읽지 않고도 알게 한다 */
+  .op-comp .opc-rank{ flex:none;min-width:30px;font-size:11px;font-weight:900;color:var(--muted);text-align:center }
+  .op-comp.lead .opc-rank{ font-size:15px }
+  .op-comp.lead{ border-color:color-mix(in srgb,var(--brass) 55%,var(--line)) }
+  .op-comp .opc-res .opc-num{ display:block;font-size:10px;font-weight:800;color:var(--muted);line-height:1.1 }
+  .orderpanel .op-progress{ text-align:center;font-size:11.5px;font-weight:800;color:var(--brass);margin-bottom:8px }
+  .orderpanel .op-sub b{ color:var(--ink) }
   /* ==== 순서 발표 오버레이 ==== */
   #orderReveal{ position:fixed;inset:0;z-index:9350;display:none;align-items:center;justify-content:center;padding:20px;
     background:radial-gradient(ellipse at center,rgba(24,14,4,.62),rgba(0,0,0,.8));opacity:0;transition:opacity .25s }
@@ -2486,8 +2493,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     el.classList.toggle('grid2', n>=5);   // 5인 이상은 2열
     el.style.setProperty('--cardav', (CARD_AV[n]||Math.max(60, Math.round(300/n)))+'px');
     el.innerHTML='';
+    const orderMode = (S.phase==='order' && S.order);
     S.players.forEach((p,pi)=>{
       const dc=dispDone(pi);
+      const ordStep = orderMode && Object.prototype.hasOwnProperty.call(S.order.round||{},pi) ? S.order.round[pi] : null;
       const isLead=maxDone>0 && dc===maxDone && S.phase!=='over';
       const isTurn=(S.turn===pi && S.phase!=='over');
       const shielded=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(pi)===S.shieldSide);
@@ -2498,7 +2507,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       d.innerHTML=`${(team||shielded)?`<span class="ccbadge">${team}${shielded?'🛡':''}</span>`:''}`
         +`<img src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)}">`
         +`<span class="ccname">${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}</span>`
-        +`<span class="ccdone"><b>${dc}</b>/${goalN} 완주</span>`;
+        // 선 뽑기 중엔 완주 수(항상 0)가 의미 없다 → 그 사람이 던진 끗수를 보여준다
+        +(orderMode
+            ? `<span class="ccdone">${ordStep!=null ? '<b>'+(YUT_NAME[ordStep]||ordStep)+'</b>' : '<span style="color:var(--muted)">던지기 전</span>'}</span>`
+            : `<span class="ccdone"><b>${dc}</b>/${goalN} 완주</span>`);
       el.appendChild(d);
     });
   }
@@ -2768,19 +2780,31 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     // 확정된 순위(final): final[0]=1등
     const finalHtml=(o.final||[]).map((seat,i)=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
       return `<span class="op-rankbadge"><span class="opr-no">${i+1}번</span><img src="${ANIMAL_IMG[av]}" alt=""><span class="opr-nm">${esc(p.name)}${p.pid===MYPID?'(나)':''}</span></span>`; }).join('');
-    // 경쟁 중인 풀: 이번 라운드 던진 결과 표시
-    const poolHtml=(o.pool||[]).map(seat=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
-      const thrown=Object.prototype.hasOwnProperty.call(o.round||{},seat);
-      const step=thrown?o.round[seat]:null;
+    // 경쟁 중인 풀 — 던진 사람은 '끗수 높은 순'으로 세운다.
+    // 던진 순서대로 두면 누가 앞서는지 한눈에 안 보여 매번 "모>윷>걸>개>도"를 다시 읽어야 했다.
+    const pool=(o.pool||[]).slice();
+    const has=seat=>Object.prototype.hasOwnProperty.call(o.round||{},seat);
+    const thrownList=pool.filter(has).sort((a,b)=>o.round[b]-o.round[a]);   // 끗수 내림차순
+    const waitList=pool.filter(s=>!has(s));                                  // 아직 안 던진 사람은 아래에
+    const topStep=thrownList.length?o.round[thrownList[0]]:null;
+    const rowOf=(seat, rank)=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
+      const thrown=has(seat), step=thrown?o.round[seat]:null;
       const isThrower=(o.thrower===seat);
+      const lead=thrown && step===topStep;                                   // 현재 선두(공동 포함)
       const resHtml = thrown
-        ? `<span class="opc-res">${YUT_NAME[step]||step}</span>`
-        : (isThrower ? `<span class="opc-res wait">던지는 중…</span>` : `<span class="opc-res wait">…</span>`);
+        ? `<span class="opc-res">${YUT_NAME[step]||step}<b class="opc-num">${step<0?'꽝':step}</b></span>`
+        : (isThrower ? `<span class="opc-res wait">던지는 중…</span>` : `<span class="opc-res wait">대기</span>`);
       const tag=isThrower&&!thrown?`<span class="opc-throwtag">▶ 지금</span>`:'';
-      return `<div class="op-comp${isThrower?' throwing':''}"><img src="${ANIMAL_IMG[av]}" alt=""><span class="opc-nm">${esc(p.name)}${p.pid===MYPID?'<span class="opc-you">(나)</span>':''}${p.ai?' 🤖':''}</span>${tag}${resHtml}</div>`; }).join('');
+      const rk=thrown?`<span class="opc-rank">${lead?'👑':rank+'위'}</span>`:'';
+      return `<div class="op-comp${isThrower?' throwing':''}${lead?' lead':''}">${rk}<img src="${ANIMAL_IMG[av]}" alt=""><span class="opc-nm">${esc(p.name)}${p.pid===MYPID?'<span class="opc-you">(나)</span>':''}${p.ai?' 🤖':''}</span>${tag}${resHtml}</div>`; };
+    let rank=0, prev=null;
+    const poolHtml = thrownList.map((s,i)=>{ if(o.round[s]!==prev){ rank=i+1; prev=o.round[s]; } return rowOf(s, rank); }).join('')
+                   + waitList.map(s=>rowOf(s,0)).join('');
+    const done=thrownList.length, total=pool.length;
     el.innerHTML=`<div class="op-head">🎲 선 뽑기 — 순서를 정합니다</div>`
-      +`<div class="op-sub">높은 끗수(모 &gt; 윷 &gt; 걸 &gt; 개 &gt; 도) 순으로 순서 결정</div>`
-      +(o.tie?`<div class="op-tie">동점! 다시 던져요 🔁</div>`:'')
+      +`<div class="op-sub">끗수가 높을수록 먼저 <b>(모5 · 윷4 · 걸3 · 개2 · 도1)</b></div>`
+      +`<div class="op-progress">${done}/${total}명 던짐${done<total?' — 남은 사람을 기다리는 중':''}</div>`
+      +(o.tie?`<div class="op-tie">동점! 같은 끗수끼리 다시 던져요 🔁</div>`:'')
       +`<div class="op-final">${finalHtml}</div>`
       +`<div class="op-pool">${poolHtml}</div>`;
     el.style.display='';
