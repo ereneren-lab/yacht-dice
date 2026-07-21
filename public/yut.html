@@ -167,6 +167,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* 현재 차례 = 테두리 발광 + 캐릭터가 살랑 (기존 avBob 재사용) */
   .ccard.turn{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 26%,transparent),0 4px 14px rgba(0,0,0,.3);transform:translateY(-2px) }
   .ccard.turn img{ animation:avBob 1.35s ease-in-out infinite }
+  /* 결과별 큰 캐릭터 포즈 — img에 인라인 애니로 1회 재생(재렌더 시 저절로 사라짐, throwmo와 같은 방식).
+     오직 '현재 차례 카드' 하나에만 건다(잡음·완주·윷/모·빽도 전부 현재 차례 이벤트) → 배경 소음 0. */
+  @keyframes cardJoy{ 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 42%{transform:translateY(0) scale(.97)} 62%{transform:translateY(-6px) scale(1.03)} 82%{transform:translateY(0) scale(1)} 100%{transform:translateY(0) scale(1)} }
+  @keyframes cardCheer{ 0%{transform:translateY(0) scale(1) rotate(0)} 14%{transform:translateY(-17px) scale(1.1) rotate(-5deg)} 34%{transform:translateY(0) scale(.96) rotate(4deg)} 54%{transform:translateY(-9px) scale(1.05) rotate(-2deg)} 76%{transform:translateY(0) scale(1) rotate(0)} 100%{transform:translateY(0) scale(1) rotate(0)} }
+  @keyframes cardDismay{ 0%{transform:translateY(0) rotate(0) scale(1)} 30%{transform:translateY(4px) rotate(-5deg) scale(.96)} 68%{transform:translateY(6px) rotate(-8deg) scale(.94)} 100%{transform:translateY(3px) rotate(-4deg) scale(.97)} }
   /* 대기 카드는 아예 정지시킨다 — 현재 차례 카드만 움직여야 시선이 그리로 간다.
      (측정: 대기 숨쉬기가 상시 306샘플로 배경 소음에 기여) */
   .ccard.lead::after{ content:'👑';position:absolute;top:-9px;right:8px;font-size:19px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)) }
@@ -2514,6 +2519,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       el.appendChild(d);
     });
   }
+  // 현재 차례 큰 캐릭터가 결과에 반응해 포즈 1회. throwmo와 똑같이 img 인라인 애니로 걸어
+  // 카드가 재렌더되면 저절로 끝난다(1회성). reduced-motion은 CSS !important가 덮고 여기서도 가드.
+  function reactCard(pid, anim, dur, ease){
+    if(FX_REDUCED()) return;
+    const im=document.querySelector('#charCards .ccard[data-pid="'+pid+'"] img');
+    if(!im) return;
+    im.style.animation='none'; void im.offsetWidth;
+    im.style.animation=anim+' '+dur+'s '+(ease||'cubic-bezier(.25,.9,.3,1.3)')+' 1';
+  }
   function renderPieces(){
     const layer=$('pieceLayer'); if(!layer)return;
     // 선두 = 완주 수 최다. 아직 아무도 못 넣었거나(0) 공동 선두면 강조하지 않는다 — 판이 번잡해진다.
@@ -2687,11 +2701,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       }
     }
     // 완주 감지 → 축하
-    S.players.forEach(p=>{ if(prevDone[p.pid]!=null && p.doneCount>prevDone[p.pid] && S.phase!=='over'){ if(p.pid===MYPID){ showToast('🎉 내 말 완주!'); trackMission('finish', p.doneCount-prevDone[p.pid]); } else { showToast('🏁 '+p.name+' 말 완주'); } showSpeech(p.pid,'finish'); floatReaction(p.pid,'🎉'); try{SFX.finish();}catch(e){} const bd=$('board'); bd.classList.remove('finflash'); void bd.offsetWidth; bd.classList.add('finflash'); cameraPunch(); } prevDone[p.pid]=p.doneCount; });
+    S.players.forEach(p=>{ if(prevDone[p.pid]!=null && p.doneCount>prevDone[p.pid] && S.phase!=='over'){ if(p.pid===MYPID){ showToast('🎉 내 말 완주!'); trackMission('finish', p.doneCount-prevDone[p.pid]); } else { showToast('🏁 '+p.name+' 말 완주'); } showSpeech(p.pid,'finish'); floatReaction(p.pid,'🎉'); reactCard(p.pid,'cardCheer',1.1); try{SFX.finish();}catch(e){} const bd=$('board'); bd.classList.remove('finflash'); void bd.offsetWidth; bd.classList.add('finflash'); cameraPunch(); } prevDone[p.pid]=p.doneCount; });
     // 잡기 연출
     if(S.captured && JSON.stringify(S.captured)!==JSON.stringify(prevCaptured)){
       prevCaptured=S.captured; try{SFX.capture();}catch(e){} try{BGM.duck();}catch(e){}
       const who=S.players[S.captured.seat]; const cn=S.captured.count||1;
+      if(who) reactCard(who.pid,'cardJoy',0.9);  // 큰 캐릭터: 잡은 쪽 의기양양
       const catchWord=cn>=3?'💥💥💥 트리플 잡기!':cn>=2?'💥💥 더블 잡기!':'💥';
       showToast(catchWord+' '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
       if(who) showSpeech(who.pid,'catch');
@@ -2857,6 +2872,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(isNew){ const rr=$('throwResult'); rr.textContent=''; rr.classList.remove('pop'); setTimeout(()=>{ if(!S||!S.lastThrow)return; rr.innerHTML=throwLabel(S.lastThrow); rr.classList.remove('pop'); void rr.offsetWidth; rr.classList.add('pop');
       const st=S.lastThrow.step; const key=st===5?'mo':st===4?'yut':st===-1?'backdo':st===1?'do':st===2?'gae':'geol';
       const tp=S.players[S.turn]; if(tp) showSpeech(tp.pid, key);
+      if(tp){ if(st===4||st===5) reactCard(tp.pid,'cardJoy',0.9); else if(st===-1) reactCard(tp.pid,'cardDismay',0.8,'ease-out'); }  // 큰 캐릭터: 윷·모 환호 / 빽도 낙담
       try{ if(st===4||st===5){SFX.yut(); BGM.duck();} else if(st===-1)SFX.backdo(); }catch(e){}
       // JUICE: 풀스크린 결과 오버레이
       resultBurst(st);
