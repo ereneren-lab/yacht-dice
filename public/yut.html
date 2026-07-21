@@ -767,6 +767,21 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #game.orderphase #pieceTray, #game.orderphase #pendingRow{ display:none }
   /* 선 뽑기 중엔 우측 turnInfo("X의 차례")를 숨긴다 — 중앙 순서 패널이 차례·상태를 이미 말해줘 중복. */
   #game.orderphase .turninfo{ display:none }
+  /* ==== 🧭 첫 판 코치마크 튜토리얼 ==== 오버레이는 안내만(클릭 통과), 대상은 그대로 조작 가능 */
+  #coach{ position:fixed; inset:0; z-index:9500; pointer-events:none; display:none }
+  #coach.on{ display:block }
+  #coach .co-hole{ position:absolute; border-radius:14px; box-shadow:0 0 0 9999px rgba(0,0,0,.5); transition:all .25s ease; pointer-events:none }
+  #coach .co-ring{ position:absolute; border:3px solid var(--brass); border-radius:16px; box-shadow:0 0 20px var(--brass); transition:all .25s ease; pointer-events:none; animation:coRing 1.3s ease-in-out infinite }
+  @keyframes coRing{ 0%,100%{ opacity:1; transform:scale(1) } 50%{ opacity:.55; transform:scale(1.03) } }
+  #coach .co-tip{ position:absolute; max-width:288px; background:var(--panel); border:1.5px solid var(--brass); border-radius:15px; padding:14px 16px 12px;
+    box-shadow:0 12px 34px rgba(0,0,0,.55); pointer-events:auto; transition:all .25s ease }
+  #coach .co-tip .co-t{ font-size:13.5px; font-weight:800; color:var(--ink); line-height:1.5 }
+  #coach .co-tip .co-t b{ color:var(--brass) }
+  #coach .co-tip .co-step{ font-size:10.5px; font-weight:900; color:var(--muted); margin-bottom:5px; letter-spacing:.4px }
+  #coach .co-btns{ display:flex; align-items:center; justify-content:space-between; margin-top:12px }
+  #coach .co-skip{ background:none; border:none; color:var(--muted); font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; padding:4px }
+  #coach .co-next{ background:var(--brass); color:var(--brass-ink); border:none; border-radius:9px; padding:7px 15px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit }
+  #coach .co-wait{ font-size:11.5px; font-weight:800; color:var(--brass); animation:coRing 1.3s ease-in-out infinite }
   .orderpanel{ background:var(--panel);border:1.5px solid var(--brass);border-radius:15px;padding:13px 13px 14px;margin-bottom:8px;
     box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass) 16%,transparent),0 4px 14px rgba(0,0,0,.28) }
   .orderpanel .op-head{ text-align:center;font-size:14px;font-weight:900;color:var(--ink);margin-bottom:3px }
@@ -2682,6 +2697,63 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
 
   let prevLeadPid=null; // JUICE: 역전 배너용 — 직전 단독 선두
+  // ===== 🧭 첫 판 인터랙티브 튜토리얼 (코치마크) =====
+  // 로컬 AI 첫 판(games===0)에서만. 던지기→이동→개념 3스텝을 스포트라이트로 안내. 스킵/1회성.
+  const TUT_STEPS=[
+    { sel:'#ctrlBar', label:'STEP 1 · 던지기', text:'버튼을 <b>꾹 눌렀다 떼서</b> 윷을 던져요. 세게(초록 <b>찬스칸</b>)에서 떼면 윷·모 확률이 올라가요!', adv:'throw' },
+    { sel:'#board',    label:'STEP 2 · 말 이동', text:'나온 끗수만큼 <b>움직일 말을 탭</b>하세요. 대각선 <b>지름길</b>로 질러갈 수도 있어요.', adv:'move' },
+    { sel:null,        label:'STEP 3 · 이기는 법', text:'상대 말을 밟으면 <b>잡고 한 번 더!</b> 내 말끼리는 업어서 함께 달려요. 말을 <b>모두 완주</b>시키면 승리 🎉', adv:'next' }
+  ];
+  const Tut={
+    seen:(function(){try{return localStorage.getItem('yut_tut')==='1';}catch(e){return false;}})(),
+    i:-1, active:false,
+    maybeStart(){
+      if(this.seen||this.active||online) return;
+      if(!S||S.phase!=='throw'||S.turn!==mySeat()||(S.throwsLeft|0)<=0) return;
+      if(((Stats&&Stats.d&&Stats.d.games)|0)>0) return;   // 첫 판만
+      this.active=true; this.i=0; this.show();
+    },
+    el(){ let c=$('coach'); if(!c){ c=document.createElement('div'); c.id='coach'; c.innerHTML='<div class="co-hole"></div><div class="co-ring"></div><div class="co-tip"></div>'; document.body.appendChild(c); } return c; },
+    show(){ const st=TUT_STEPS[this.i]; if(!st){ this.finish(); return; } const c=this.el();
+      const tip=c.querySelector('.co-tip');
+      const btn = st.adv==='next'
+        ? '<button class="co-next" id="coNext">시작하기 🎲</button>'
+        : '<span class="co-wait">👉 직접 해보세요</span>';
+      tip.innerHTML=`<div class="co-step">${st.label}</div><div class="co-t">${st.text}</div>`
+        +`<div class="co-btns"><button class="co-skip" id="coSkip">건너뛰기</button>${btn}</div>`;
+      c.classList.add('on'); this.place();
+      const sk=$('coSkip'); if(sk) sk.onclick=()=>this.finish();
+      const nx=$('coNext'); if(nx) nx.onclick=()=>this.next();
+    },
+    place(){ if(!this.active) return; const c=$('coach'); if(!c) return; const st=TUT_STEPS[this.i]; if(!st) return;
+      const hole=c.querySelector('.co-hole'), ring=c.querySelector('.co-ring'), tip=c.querySelector('.co-tip');
+      const tgt=st.sel?document.querySelector(st.sel):null;
+      const r=(tgt&&tgt.getBoundingClientRect().width)?tgt.getBoundingClientRect():null;
+      if(r){ const pad=8;
+        hole.style.cssText=`left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px;border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)`;
+        ring.style.cssText=`left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px`;
+        ring.style.display='';
+        // 팁은 대상 위/아래 공간 많은 쪽에 붙인다
+        const below=r.bottom+14, above=r.top-14; const tipW=Math.min(288,innerWidth-24);
+        let left=Math.min(Math.max(12, r.left+r.width/2-tipW/2), innerWidth-tipW-12);
+        tip.style.left=left+'px'; tip.style.right='';
+        if(innerHeight-r.bottom>200){ tip.style.top=below+'px'; tip.style.bottom=''; }
+        else { tip.style.top=''; tip.style.bottom=(innerHeight-above)+'px'; }
+      } else { // 대상 없음(개념 스텝) → 화면 중앙, 딤만
+        hole.style.cssText='left:50%;top:50%;width:0;height:0;box-shadow:0 0 0 9999px rgba(0,0,0,.5)';
+        ring.style.display='none';
+        tip.style.left='50%'; tip.style.right=''; tip.style.top='50%'; tip.style.bottom='';
+        tip.style.transform='translate(-50%,-50%)';
+      }
+      if(r) tip.style.transform='';
+    },
+    next(){ this.i++; if(this.i>=TUT_STEPS.length) this.finish(); else this.show(); },
+    onThrow(){ const st=TUT_STEPS[this.i]; if(this.active&&st&&st.adv==='throw') this.next(); },
+    onMove(){ const st=TUT_STEPS[this.i]; if(this.active&&st&&st.adv==='move') setTimeout(()=>this.onMove2(),700); },
+    onMove2(){ const st=TUT_STEPS[this.i]; if(this.active&&st&&st.adv==='move') this.next(); },
+    finish(){ this.active=false; const c=$('coach'); if(c)c.classList.remove('on'); if(!this.seen){ this.seen=true; try{localStorage.setItem('yut_tut','1');}catch(e){} } }
+  };
+  try{ addEventListener('resize',()=>Tut.place()); }catch(e){}
   function render(){
     if(!S)return;
     if(pushMode && (!S.itemBattle || !itemsUsable())) pushMode=false;   // 밀치기 모드 유효성(내 차례·아이템전 아니면 해제)
@@ -2733,6 +2805,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('game').classList.toggle('orderphase', S.phase==='order');
     renderOrder();
     maybeAnnounceOrder();
+    // 🧭 첫 판 튜토리얼: 시작 조건 확인 + 던지기→이동 진행 + 위치 재조정
+    Tut.maybeStart();
+    if(Tut.active){ const _ts=TUT_STEPS[Tut.i]; if(_ts&&_ts.adv==='throw'&&S.phase==='move') Tut.onThrow(); Tut.place(); }
     // pending
     const _pend=S.pending||[]; if(selStep!=null && selStep>=_pend.length) selStep=null;
     $('pendingRow').innerHTML=_pend.map((st,i)=>{ const steps=st>0?st+'칸':'뒤로'; const pickable=canAct()&&_pend.length>1; return `<span class="pchipm${i===selStep?' sel':''}${pickable?' pick':''}" data-pi="${i}"><b class="pcm-nm">${YUT_NAME[st]}</b><span class="pcm-st">${steps}</span></span>`; }).join('');
@@ -3030,6 +3105,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     });
   }
   function onPieceClick(pieceId, ownerSeat){
+    Tut.onMove();   // 🧭 튜토리얼: 첫 이동 감지 → 개념 스텝으로
     if(ownerSeat==null) ownerSeat=mySeat();
     if(!S || S.phase!=='move' || mySeat()!==S.turn) return;
     const owner=S.players[ownerSeat]; if(!owner) return;
