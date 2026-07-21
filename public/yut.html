@@ -132,6 +132,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .statsbar{ display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;margin:4px 0 12px;font-size:12.5px;color:var(--muted) }
   .statsbar b{ color:var(--brass);font-weight:800 }
   .statsbar button{ margin-left:4px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit }
+  /* 레벨·타이틀 진행 — 아트 없이도 되는 실력 진행(메타). 셋업·결과 공용 */
+  .levelbar{ display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,color-mix(in srgb,var(--brass) 12%,var(--panel2)),var(--panel2));
+    border:1.5px solid color-mix(in srgb,var(--brass) 30%,var(--line));border-radius:13px;padding:9px 13px;margin:6px 0 10px }
+  .levelbar:empty{ display:none }
+  .levelbar .lv-badge{ flex:none;width:42px;height:42px;border-radius:11px;background:linear-gradient(160deg,var(--brass),var(--brass-d));color:var(--brass-ink);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.3) }
+  .levelbar .lv-badge .lvn{ font-size:16px } .levelbar .lv-badge .lvl{ font-size:8px;opacity:.85;margin-top:1px }
+  .levelbar .lv-mid{ flex:1;min-width:0;text-align:left }
+  .levelbar .lv-title{ font-size:13.5px;font-weight:900;color:var(--ink) }
+  .levelbar .lv-track{ height:8px;border-radius:999px;background:var(--panel);overflow:hidden;margin-top:5px;border:1px solid var(--line) }
+  .levelbar .lv-fill{ height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brass-d),var(--brass));transition:width .5s cubic-bezier(.2,.9,.3,1) }
+  .levelbar .lv-xp{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:3px }
+  .levelbar .lv-xp b{ color:var(--brass) }
   .achbar{ display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0 0 12px }
   .achbadge{ display:flex;flex-direction:column;align-items:center;gap:2px;font-size:18px;width:56px;padding:6px 2px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);opacity:.4;filter:grayscale(1) }
   .achbadge.on{ opacity:1;filter:none;border-color:var(--brass) }
@@ -581,6 +594,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .growth-ach .lbl{ font-size:12px;font-weight:800;color:var(--brass) }
   .growth-ach .ab{ font-size:13px;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;gap:3px }
   @keyframes achpop{ 0%{transform:scale(.92);opacity:0} 60%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
+  /* 결과 성장 박스의 XP·레벨 진행 */
+  .growth-xp{ background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 12px }
+  .growth-xp .gx-top{ display:flex;align-items:center;justify-content:space-between;margin-bottom:6px }
+  .growth-xp .gx-lv{ font-size:12.5px;font-weight:900;color:var(--ink) }
+  .growth-xp .gx-gain{ font-size:12.5px;font-weight:900;color:var(--brass) }
+  .growth-xp .gx-sub{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;text-align:right }
+  .growth-levelup{ font-size:13.5px;font-weight:900;color:var(--brass);text-align:center;background:color-mix(in srgb,var(--brass) 15%,transparent);border:1.5px solid var(--brass);border-radius:11px;padding:9px 12px;animation:achpop .5s ease }
+  .growth-levelup b{ color:var(--ink) }
   /* ==== 순위 확정 미니 알림 ==== */
   .rankconfirm{ position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:210;display:flex;align-items:center;gap:9px;padding:9px 12px 9px 16px;background:var(--panel);border:1.5px solid var(--brass);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:opacity .2s,transform .2s;max-width:92vw }
   .rankconfirm.on{ opacity:1;transform:translateX(-50%) translateY(0) }
@@ -932,6 +953,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <h3>윷놀이</h3>
       <p>윷을 던져 나온 만큼(도·개·걸·윷·모, 빽도는 뒤로) 말을 움직여. 지름길로 질러가고, 상대 말을 잡고, 내 말끼리는 업어서 함께 달려. 말을 모두 완주시키면 승리!</p>
       <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
+      <div class="levelbar" id="levelBar"></div>
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div></div>
@@ -1878,14 +1900,32 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
   ];
   let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('yut_ach'))||[];}catch(e){return[];}})();
-  const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,streak:0,bestStreak:0,bigCap:0},JSON.parse(localStorage.getItem('yut_stats'))||{});}catch(e){return{games:0,wins:0,streak:0,bestStreak:0,bigCap:0};}})(),
+  // 실력 진행(레벨·타이틀) — 아트 불필요한 메타. XP는 판마다 획득(승리·잡기 가산).
+  const LV_XP=[0,60,150,300,500,800,1200,1800,2600,3800];
+  const LV_TITLE=['윷 초심자','골목 새내기','윷꾼','판의 재주꾼','잡기 달인','윷 고수','골목 명인','윷판의 왕','윷 대가','전설의 윷神'];
+  const Stats={ d:(function(){const def={games:0,wins:0,streak:0,bestStreak:0,bigCap:0,xp:0};try{return Object.assign(def,JSON.parse(localStorage.getItem('yut_stats'))||{});}catch(e){return def;}})(),
     save(){try{localStorage.setItem('yut_stats',JSON.stringify(this.d));}catch(e){}},
-    record(won,caps){ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1; this.save(); this._lastGained=checkAch(); renderStats(); renderAch(); return this._lastGained; } };
+    level(){ const xp=this.d.xp||0; let i=0; while(i<LV_XP.length-1 && xp>=LV_XP[i+1]) i++;
+      const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
+      return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; },
+    record(won,caps){ const before=this.level().lv;
+      this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1;
+      const gain=15+(won?25:0)+Math.min(caps||0,5)*4; this.d.xp=(this.d.xp||0)+gain;
+      this.save(); this._lastGained=checkAch(); const after=this.level();
+      this._lastXp={ gain, leveled: after.lv>before ? after : null };
+      renderStats(); renderAch(); return this._lastGained; } };
+  function renderLevel(){ const el=$('levelBar'); if(!el)return; const L=Stats.level();
+    const pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
+    el.innerHTML=`<div class="lv-badge"><span class="lvn">${L.lv}</span><span class="lvl">LV</span></div>`
+      +`<div class="lv-mid"><div class="lv-title">${L.title}</div>`
+      +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+      +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+  }
   function checkAch(){ const gained=[]; ACH.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('yut_ach',JSON.stringify(achUnlocked));}catch(e){} gained.push(a); try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); return gained; }
-  function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
+  function renderStats(){ renderLevel(); const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
     const streak = d.streak>=2 ? ` · <b>🔥${d.streak}연승</b>` : '';
     el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b>${streak}<button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
-    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적과 도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,streak:0,bestStreak:0,bigCap:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('yut_ach','[]');}catch(e){} renderStats(); renderAch(); } };
+    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적·레벨·도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,streak:0,bestStreak:0,bigCap:0,xp:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('yut_ach','[]');}catch(e){} renderStats(); renderAch(); } };
   }
   function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   function buildCharPick(){
@@ -3287,11 +3327,17 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(g.won){ line=`이번 판 <b>승리</b>! 통산 <b>${g.wins}</b>승 / ${g.games}판`; if(g.streak>=2) line+=` · <b>🔥${g.streak}연승</b>`; }
     else { line=`아쉽게 패배 · 통산 <b>${g.wins}</b>승 / ${g.games}판 · 다음 판 설욕!`; }
     let html=`<div class="growth-line">${line}</div>`;
+    if(g.L){ const L=g.L, pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100)), gained=g.xp?g.xp.gain:0;
+      if(g.xp&&g.xp.leveled) html+=`<div class="growth-levelup">⭐ 레벨 업 — <b>Lv.${g.xp.leveled.lv} ${g.xp.leveled.title}</b> 달성!</div>`;
+      html+=`<div class="growth-xp"><div class="gx-top"><span class="gx-lv">Lv.${L.lv} · ${L.title}</span>${gained?`<span class="gx-gain">+${gained} XP</span>`:''}</div>`
+        +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+        +`<div class="gx-sub">${L.cap?`최고 레벨 · 누적 ${L.xp} XP`:`${L.into} / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+    }
     if(g.newAch && g.newAch.length){ html+=`<div class="growth-ach"><span class="lbl">🏅 새 도전과제</span>`+g.newAch.map(a=>`<span class="ab">${a.icon} ${esc(a.name)}</span>`).join('')+`</div>`; }
     box.innerHTML=html; box.style.display='flex';
   }
   function captureGrowth(iWon, spectator){
-    growthInfo = spectator ? null : { won:iWon, wins:Stats.d.wins, games:Stats.d.games, streak:Stats.d.streak, newAch:Stats._lastGained||[] };
+    growthInfo = spectator ? null : { won:iWon, wins:Stats.d.wins, games:Stats.d.games, streak:Stats.d.streak, newAch:Stats._lastGained||[], xp:Stats._lastXp||null, L:Stats.level() };
     renderGrowth();
   }
   /* 새 판(로컬/온라인 공통) 시작 시 판 단위 상태 전부 초기화 */
