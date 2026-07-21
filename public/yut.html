@@ -145,6 +145,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .levelbar .lv-fill{ height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brass-d),var(--brass));transition:width .5s cubic-bezier(.2,.9,.3,1) }
   .levelbar .lv-xp{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:3px }
   .levelbar .lv-xp b{ color:var(--brass) }
+  /* 칭호 장착 — 레벨로 해금한 타이틀을 골라 인게임 이름 옆에 표시(아트 불필요 꾸미기) */
+  .titlepick{ display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px }
+  .titlepick:empty{ display:none }
+  .titlepick .tp-lbl{ font-size:11px;font-weight:900;color:var(--muted) }
+  .titlepick .tp-chip{ font-size:11.5px;font-weight:800;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;cursor:pointer;font-family:inherit;transition:.12s }
+  .titlepick .tp-chip.on{ background:color-mix(in srgb,var(--brass) 20%,var(--panel2));border-color:var(--brass);color:var(--ink) }
+  /* 인게임 내 카드 칭호 배지 */
+  .ccard .cc-title{ font-size:10px;font-weight:900;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);border:1px solid color-mix(in srgb,var(--brass) 40%,transparent);border-radius:999px;padding:1px 8px;margin-bottom:1px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
   .achbar{ display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0 0 12px }
   .achbadge{ display:flex;flex-direction:column;align-items:center;gap:2px;font-size:18px;width:56px;padding:6px 2px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);opacity:.4;filter:grayscale(1) }
   .achbadge.on{ opacity:1;filter:none;border-color:var(--brass) }
@@ -954,6 +962,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <p>윷을 던져 나온 만큼(도·개·걸·윷·모, 빽도는 뒤로) 말을 움직여. 지름길로 질러가고, 상대 말을 잡고, 내 말끼리는 업어서 함께 달려. 말을 모두 완주시키면 승리!</p>
       <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
       <div class="levelbar" id="levelBar"></div>
+      <div class="titlepick" id="titlePick"></div>
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div></div>
@@ -1921,8 +1930,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
       +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
   }
+  // 칭호 장착: 레벨로 해금한 타이틀 중 하나를 골라 인게임 이름 옆에 표시(아트 불필요 꾸미기)
+  let equippedTitle=(function(){try{const v=localStorage.getItem('yut_title'); return v==null||v===''?null:+v;}catch(e){return null;}})();
+  function myTitleText(){ const L=Stats.level(); if(equippedTitle!=null && equippedTitle<L.lv) return LV_TITLE[equippedTitle]; return L.title; }
+  function renderTitlePick(){ const el=$('titlePick'); if(!el)return; const L=Stats.level();
+    if(L.lv<=1){ el.innerHTML=''; return; }   // 해금 칭호가 하나뿐이면 고를 게 없음
+    const sel=(equippedTitle==null?L.lv-1:equippedTitle);
+    let html='<span class="tp-lbl">🏷️ 칭호</span>';
+    for(let i=0;i<L.lv;i++) html+=`<button type="button" class="tp-chip${sel===i?' on':''}" data-ti="${i}">${LV_TITLE[i]}</button>`;
+    el.innerHTML=html;
+    el.querySelectorAll('.tp-chip').forEach(b=>b.onclick=()=>{ equippedTitle=+b.dataset.ti; try{localStorage.setItem('yut_title',equippedTitle);}catch(e){} renderTitlePick(); });
+  }
   function checkAch(){ const gained=[]; ACH.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('yut_ach',JSON.stringify(achUnlocked));}catch(e){} gained.push(a); try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); return gained; }
-  function renderStats(){ renderLevel(); const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
+  function renderStats(){ renderLevel(); renderTitlePick(); const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
     const streak = d.streak>=2 ? ` · <b>🔥${d.streak}연승</b>` : '';
     el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b>${streak}<button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
     const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적·레벨·도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,streak:0,bestStreak:0,bigCap:0,xp:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('yut_ach','[]');}catch(e){} renderStats(); renderAch(); } };
@@ -2663,6 +2683,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       d.dataset.pid=p.pid;
       d.innerHTML=`${(team||shielded)?`<span class="ccbadge">${team}${shielded?'🛡':''}</span>`:''}`
         +`<div class="ccav" style="--rim:${pieceColor(pi)}"><img src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)}"></div>`
+        +(p.pid===MYPID?`<span class="cc-title">${esc(myTitleText())}</span>`:'')
         +`<span class="ccname">${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}</span>`
         // 선 뽑기 중엔 완주 수(항상 0)가 의미 없다 → 그 사람이 던진 끗수를 보여준다
         +(orderMode
