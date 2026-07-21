@@ -45,6 +45,7 @@ class CDP {
       '--user-data-dir=' + udd,
       '--no-first-run', '--no-default-browser-check',
       '--disable-gpu', '--hide-scrollbars',
+      '--mute-audio',                       // 검증 중 소리 안 나게(SFX/BGM 음소거)
       '--force-device-scale-factor=2',      // 레티나 흉내
       '--autoplay-policy=no-user-gesture-required',
     ], { stdio: ['ignore', 'pipe', 'pipe'] });
