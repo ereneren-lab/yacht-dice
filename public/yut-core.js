@@ -40,7 +40,7 @@
   }
   function step(node, route, out, steps, dir) {
     if (!out) {
-      if (steps < 0) return { noMove: true };
+      if (steps < 0) return { node: SEQ.outer[0], route: 'outer', out: true };   // 빽도로 첫 진입: 출발점(node 0)에 선다(이후 도~모로 전진)
       if (steps >= SEQ.outer.length) return { done: true };
       return { node: SEQ.outer[steps], route: 'outer', out: true };
     }
@@ -68,7 +68,8 @@
     const path = [];
     if (!steps) return path;
     if (!out) {                                   // 대기 말이 판에 나옴: outer[1..steps]
-      if (steps < 0) return path;
+      if (steps < 0) return [{ node: SEQ.outer[0], route: 'outer' }];   // 빽도 첫 진입 → 출발점(node 0)
+
       for (let s = 1; s <= steps; s++) { if (s >= SEQ.outer.length) { path.push({ done: true }); return path; } path.push({ node: SEQ.outer[s], route: 'outer' }); }
       return path;
     }
