@@ -18,6 +18,22 @@
   body{background:transparent;color:var(--ink);
     font-family:var(--font);
     min-height:100%;display:flex;flex-direction:column;align-items:center;padding:12px;-webkit-tap-highlight-color:transparent}
+  /* 🎪 게임 중 무대감(윷과 동일 톤) — 위 등불+후광+상 반사+벽 비네트. 정적. 조크 테마(excel·photoshop) 제외. */
+  body.ingame::before{ content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+      radial-gradient(88% 60% at 50% 16%, rgba(255,226,168,.16), rgba(255,226,168,0) 54%),
+      radial-gradient(50% 46% at 50% 46%, rgba(255,214,150,.12), transparent 70%),
+      radial-gradient(120% 76% at 50% 94%, rgba(150,96,44,.16), transparent 60%),
+      radial-gradient(152% 128% at 50% 46%, transparent 42%, rgba(0,0,0,.42) 84%, rgba(0,0,0,.6) 100%); }
+  html[data-theme="sesame"] body.ingame::before{ background:
+      radial-gradient(88% 60% at 50% 16%, rgba(232,226,246,.10), transparent 54%),
+      radial-gradient(50% 46% at 50% 46%, rgba(214,204,234,.08), transparent 70%),
+      radial-gradient(120% 76% at 50% 94%, rgba(122,112,142,.13), transparent 60%),
+      radial-gradient(152% 128% at 50% 46%, transparent 42%, rgba(0,0,0,.44) 84%, rgba(0,0,0,.62) 100%); }
+  html[data-theme="hanji"] body.ingame::before{ background:
+      radial-gradient(92% 62% at 50% 18%, rgba(255,246,224,.7), transparent 54%),
+      radial-gradient(120% 78% at 50% 94%, rgba(150,120,80,.1), transparent 60%),
+      radial-gradient(152% 130% at 50% 50%, transparent 48%, rgba(80,66,44,.1) 84%, rgba(80,66,44,.18) 100%); }
+  html[data-theme="excel"] body.ingame::before, html[data-theme="photoshop"] body.ingame::before{ display:none; }
   #root{position:relative;opacity:var(--ui);transition:opacity .12s;width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center}
   .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(1200px 600px at 50% -10%, #2a2142 0%, transparent 60%), #15111f}
   .app{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:12px}
@@ -1893,6 +1909,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function onState(s){ const fills=computeFills(s); S=s; if(s.phase==='play')sawPlay=true;
     if(isOnline()&&s.players){ if(prevConn){ s.players.forEach(p=>{ if(!p.ai && p.pid!==myPid && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) toast((p.connected?'🔌 ':'⚠️ ')+(p.name||'상대')+(p.connected?' 재접속':' 연결 끊김')); }); } prevConn={}; s.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; }); }
     if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; $('leaveBtn').style.display='flex'; buildReactbar(); }
+    document.body.classList.toggle('ingame', s.phase==='play'||s.phase==='over');   // 🎪 무대 배경 on/off
     if(s.phase==='play'){ $('overlay').classList.remove('show'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f;
       const rpid=S.players[f.seat]&&S.players[f.seat].pid;   // ✨ 캐릭터 리액션: 대박 🤩 / 0점 😬
