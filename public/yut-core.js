@@ -156,10 +156,12 @@
       this.decideOrder = !!opt.decideOrder && this.N > 1 && !this.teamMode;
       this.orderStack = null; this.orderRound = {}; this.orderThrowIdx = 0;
       this.orderFinal = []; this.orderTie = false; this.orderSeq = 0; this.orderResult = null;
-      this._timer = null; this._dead = false;
+      this.orderResolving = false; this.orderRematch = false; this._orderHadRound = false;
+      this._timer = null; this._orderTimer = null; this._dead = false;
     }
     _emit() { try { this.onState(); } catch (e) { if(typeof console!=='undefined'&&console.error)console.error('onState/render error:', e && e.message, e && e.stack); } }
     _clear() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
+    _clearOrderTimer() { if (this._orderTimer) { clearTimeout(this._orderTimer); this._orderTimer = null; } }
 
     start() { if (this._dead) return; this.pending = []; this.gameStartTime = Date.now();
       if (this.decideOrder) { this._orderStart(); }
@@ -171,6 +173,8 @@
       this.phase = 'order';
       this.orderStack = [ this.players.map((_, i) => i) ];   // 스택: 각 원소는 경쟁 중인 seat 배열(같은 값이면 재대결)
       this.orderFinal = []; this.orderRound = {}; this.orderThrowIdx = 0; this.orderTie = false; this.orderResult = null;
+      this.orderResolving = false; this.orderRematch = false; this._orderHadRound = false;
+      this._clearOrderTimer();
       this._orderCollapse();
     }
     _orderCollapse() {
@@ -180,7 +184,10 @@
       }
       if (!this.orderStack.length) { this._orderFinish(); return; }
       this.orderRound = {}; this.orderThrowIdx = 0;
-      this.turn = this.orderStack[this.orderStack.length - 1][0];
+      const pool = this.orderStack[this.orderStack.length - 1];
+      this.turn = pool[0];
+      // 동점 재대결 풀 = 이미 한 라운드 돌았고(초기 전체 던지기 아님) 경쟁자가 2명 이상
+      this.orderRematch = this._orderHadRound && pool.length >= 2;
     }
     _orderThrow(pid, power) {
       if (this._dead || this.phase !== 'order' || !this.orderStack.length) return;
@@ -192,15 +199,26 @@
       this.orderRound[seat] = r.step; this.orderSeq++; this.orderTie = false;
       this.orderThrowIdx++;
       if (this.orderThrowIdx < pool.length) { this.turn = pool[this.orderThrowIdx]; this._emit(); this._maybeAI(); return; }
-      // 라운드 완료 → 값별 그룹으로 분해(동점 그룹만 재대결)
-      this.orderStack.pop();
+      // 라운드 완료 → 결과를 화면에 '남겨서 보여주고' 잠깐 멈춘 뒤 정리한다.
+      // (예전엔 결과 emit과 정리 emit이 같은 틱에 붙어, 브라우저가 결과를 칠하기도 전에
+      //  orderRound가 비워져 라운드 결과가 아예 안 보였다 → "너무 빨라서 순서를 모르겠다"의 원인)
       const byVal = {}; pool.forEach(s => { const v = this.orderRound[s]; (byVal[v] = byVal[v] || []).push(s); });
       const vals = Object.keys(byVal).map(Number).sort((a, b) => a - b);   // 오름차순
-      vals.forEach(v => this.orderStack.push(byVal[v]));                    // 오름차순 push → 최고값이 top
       this.orderTie = (vals.length === 1);                                 // 전원 동점 → 재대결
-      this._emit();               // 라운드 결과 노출(클라가 잠깐 보여줌)
-      this._orderCollapse();      // 확정자 정리 + 다음 라운드 준비
-      this._emit(); this._maybeAI();
+      this.orderResolving = true;                                          // 결과 노출 중(던지기 잠금·배너 표시)
+      this._orderHadRound = true;
+      this._emit();                                                        // 이 상태가 화면에 남는다(정리는 타이머로 미룸)
+      this._clearOrderTimer();
+      this._orderTimer = setTimeout(() => {
+        this._orderTimer = null;
+        if (this._dead || this.phase !== 'order') return;
+        this.orderResolving = false;
+        this.orderStack.pop();
+        vals.forEach(v => this.orderStack.push(byVal[v]));                 // 오름차순 push → 최고값이 top
+        this._orderCollapse();                                            // 확정자 정리 + 다음 라운드 준비
+        this._emit(); this._maybeAI();
+      }, this.orderTie ? 1900 : 1300);
+      return;
     }
     _orderFinish() {
       const old = this.players;
@@ -482,6 +500,7 @@
       return cands[0].mv;
     }
     _maybeAI() {
+      if (this.orderResolving) return;   // 선 뽑기 라운드 결과 노출 중엔 아무 것도 스케줄 안 함(_orderTimer가 이어감)
       this._clear();
       this.turnDeadline = 0;   // 현재 차례 사람 턴 제한시간(epoch ms). 아래 non-auto 분기에서만 설정.
       if (this._dead || this.phase === 'over') return;
@@ -538,7 +557,7 @@
           pool: (this.orderStack && this.orderStack.length) ? this.orderStack[this.orderStack.length - 1].slice() : [],
           round: Object.assign({}, this.orderRound),
           final: this.orderFinal.slice(),
-          tie: !!this.orderTie, seq: this.orderSeq
+          tie: !!this.orderTie, resolving: !!this.orderResolving, rematch: !!this.orderRematch, seq: this.orderSeq
         } : null,
         orderResult: this.orderResult || null,
         players: this.players.map((p, i) => ({
@@ -548,7 +567,7 @@
         }))
       };
     }
-    destroy() { this._dead = true; this._clear(); }
+    destroy() { this._dead = true; this._clear(); this._clearOrderTimer(); }
   }
 
   return { YutEngine, throwYut, SEQ };

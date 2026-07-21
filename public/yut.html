@@ -775,7 +775,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .op-comp.lead{ border-color:color-mix(in srgb,var(--brass) 55%,var(--line)) }
   .op-comp .opc-res .opc-num{ display:block;font-size:10px;font-weight:800;color:var(--muted);line-height:1.1 }
   .orderpanel .op-progress{ text-align:center;font-size:11.5px;font-weight:800;color:var(--brass);margin-bottom:8px }
+  .orderpanel .op-progress b{ color:var(--ink) }
   .orderpanel .op-sub b{ color:var(--ink) }
+  /* 라운드 정리 중 안내 — 무슨 일이 일어났는지 말로. 확정(초록)/동점(주황 op-tie 재사용) */
+  .orderpanel .op-advance{ text-align:center;font-size:12.5px;font-weight:800;color:#6fcf7f;margin:2px 0 9px }
+  .orderpanel .op-advance b{ color:var(--ink) }
+  .orderpanel .op-tie b{ color:var(--ink) }
+  /* 섹션 라벨(확정 순서 / 이번 판) — 두 목록의 정체를 분명히 */
+  .orderpanel .op-final-label, .orderpanel .op-pool-label{ font-size:10.5px;font-weight:900;color:var(--muted);text-transform:none;margin:2px 2px 5px;letter-spacing:.3px }
   /* ==== 순서 발표 오버레이 ==== */
   #orderReveal{ position:fixed;inset:0;z-index:9350;display:none;align-items:center;justify-content:center;padding:20px;
     background:radial-gradient(ellipse at center,rgba(24,14,4,.62),rgba(0,0,0,.8));opacity:0;transition:opacity .25s }
@@ -1217,10 +1224,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.decideOrder = !!opt.decideOrder && this.N > 1 && !this.teamMode;
       this.orderStack = null; this.orderRound = {}; this.orderThrowIdx = 0;
       this.orderFinal = []; this.orderTie = false; this.orderSeq = 0; this.orderResult = null;
-      this._timer = null; this._dead = false;
+      this.orderResolving = false; this.orderRematch = false; this._orderHadRound = false;
+      this._timer = null; this._orderTimer = null; this._dead = false;
     }
     _emit() { try { this.onState(); } catch (e) { if(typeof console!=='undefined'&&console.error)console.error('onState/render error:', e && e.message, e && e.stack); } }
     _clear() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
+    _clearOrderTimer() { if (this._orderTimer) { clearTimeout(this._orderTimer); this._orderTimer = null; } }
 
     start() { if (this._dead) return; this.pending = []; this.gameStartTime = Date.now();
       if (this.decideOrder) { this._orderStart(); }
@@ -1232,6 +1241,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.phase = 'order';
       this.orderStack = [ this.players.map((_, i) => i) ];   // 스택: 각 원소는 경쟁 중인 seat 배열(같은 값이면 재대결)
       this.orderFinal = []; this.orderRound = {}; this.orderThrowIdx = 0; this.orderTie = false; this.orderResult = null;
+      this.orderResolving = false; this.orderRematch = false; this._orderHadRound = false;
+      this._clearOrderTimer();
       this._orderCollapse();
     }
     _orderCollapse() {
@@ -1241,7 +1252,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       }
       if (!this.orderStack.length) { this._orderFinish(); return; }
       this.orderRound = {}; this.orderThrowIdx = 0;
-      this.turn = this.orderStack[this.orderStack.length - 1][0];
+      const pool = this.orderStack[this.orderStack.length - 1];
+      this.turn = pool[0];
+      // 동점 재대결 풀 = 이미 한 라운드 돌았고(초기 전체 던지기 아님) 경쟁자가 2명 이상
+      this.orderRematch = this._orderHadRound && pool.length >= 2;
     }
     _orderThrow(pid, power) {
       if (this._dead || this.phase !== 'order' || !this.orderStack.length) return;
@@ -1253,15 +1267,26 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.orderRound[seat] = r.step; this.orderSeq++; this.orderTie = false;
       this.orderThrowIdx++;
       if (this.orderThrowIdx < pool.length) { this.turn = pool[this.orderThrowIdx]; this._emit(); this._maybeAI(); return; }
-      // 라운드 완료 → 값별 그룹으로 분해(동점 그룹만 재대결)
-      this.orderStack.pop();
+      // 라운드 완료 → 결과를 화면에 '남겨서 보여주고' 잠깐 멈춘 뒤 정리한다.
+      // (예전엔 결과 emit과 정리 emit이 같은 틱에 붙어, 브라우저가 결과를 칠하기도 전에
+      //  orderRound가 비워져 라운드 결과가 아예 안 보였다 → "너무 빨라서 순서를 모르겠다"의 원인)
       const byVal = {}; pool.forEach(s => { const v = this.orderRound[s]; (byVal[v] = byVal[v] || []).push(s); });
       const vals = Object.keys(byVal).map(Number).sort((a, b) => a - b);   // 오름차순
-      vals.forEach(v => this.orderStack.push(byVal[v]));                    // 오름차순 push → 최고값이 top
       this.orderTie = (vals.length === 1);                                 // 전원 동점 → 재대결
-      this._emit();               // 라운드 결과 노출(클라가 잠깐 보여줌)
-      this._orderCollapse();      // 확정자 정리 + 다음 라운드 준비
-      this._emit(); this._maybeAI();
+      this.orderResolving = true;                                          // 결과 노출 중(던지기 잠금·배너 표시)
+      this._orderHadRound = true;
+      this._emit();                                                        // 이 상태가 화면에 남는다(정리는 타이머로 미룸)
+      this._clearOrderTimer();
+      this._orderTimer = setTimeout(() => {
+        this._orderTimer = null;
+        if (this._dead || this.phase !== 'order') return;
+        this.orderResolving = false;
+        this.orderStack.pop();
+        vals.forEach(v => this.orderStack.push(byVal[v]));                 // 오름차순 push → 최고값이 top
+        this._orderCollapse();                                            // 확정자 정리 + 다음 라운드 준비
+        this._emit(); this._maybeAI();
+      }, this.orderTie ? 1900 : 1300);
+      return;
     }
     _orderFinish() {
       const old = this.players;
@@ -1543,6 +1568,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       return cands[0].mv;
     }
     _maybeAI() {
+      if (this.orderResolving) return;   // 선 뽑기 라운드 결과 노출 중엔 아무 것도 스케줄 안 함(_orderTimer가 이어감)
       this._clear();
       this.turnDeadline = 0;   // 현재 차례 사람 턴 제한시간(epoch ms). 아래 non-auto 분기에서만 설정.
       if (this._dead || this.phase === 'over') return;
@@ -1599,7 +1625,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           pool: (this.orderStack && this.orderStack.length) ? this.orderStack[this.orderStack.length - 1].slice() : [],
           round: Object.assign({}, this.orderRound),
           final: this.orderFinal.slice(),
-          tie: !!this.orderTie, seq: this.orderSeq
+          tie: !!this.orderTie, resolving: !!this.orderResolving, rematch: !!this.orderRematch, seq: this.orderSeq
         } : null,
         orderResult: this.orderResult || null,
         players: this.players.map((p, i) => ({
@@ -1609,7 +1635,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         }))
       };
     }
-    destroy() { this._dead = true; this._clear(); }
+    destroy() { this._dead = true; this._clear(); this._clearOrderTimer(); }
   }
 
   return { YutEngine, throwYut, SEQ };
@@ -2819,9 +2845,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const el=$('orderPanel'); if(!el)return;
     if(!S || S.phase!=='order' || !S.order){ el.style.display='none'; el.innerHTML=''; return; }
     const o=S.order;
+    const nm=seat=>{ const p=S.players[seat]; return p?esc(p.name)+(p.pid===MYPID?'(나)':''):''; };
     // 확정된 순위(final): final[0]=1등
     const finalHtml=(o.final||[]).map((seat,i)=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
-      return `<span class="op-rankbadge"><span class="opr-no">${i+1}번</span><img src="${ANIMAL_IMG[av]}" alt=""><span class="opr-nm">${esc(p.name)}${p.pid===MYPID?'(나)':''}</span></span>`; }).join('');
+      const medal=['🥇','🥈','🥉'][i]||`${i+1}위`;
+      return `<span class="op-rankbadge"><span class="opr-no">${medal}</span><img src="${ANIMAL_IMG[av]}" alt=""><span class="opr-nm">${nm(seat)}</span></span>`; }).join('');
     // 경쟁 중인 풀 — 던진 사람은 '끗수 높은 순'으로 세운다.
     // 던진 순서대로 두면 누가 앞서는지 한눈에 안 보여 매번 "모>윷>걸>개>도"를 다시 읽어야 했다.
     const pool=(o.pool||[]).slice();
@@ -2829,26 +2857,42 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const thrownList=pool.filter(has).sort((a,b)=>o.round[b]-o.round[a]);   // 끗수 내림차순
     const waitList=pool.filter(s=>!has(s));                                  // 아직 안 던진 사람은 아래에
     const topStep=thrownList.length?o.round[thrownList[0]]:null;
+    const tiedTop=thrownList.filter(s=>o.round[s]===topStep);                // 최고 끗수 공동(=동점 재대결 후보)
+    const nextRank=(o.final||[]).length+1;                                   // 이번 판 승자가 가져갈 등수
     const rowOf=(seat, rank)=>{ const p=S.players[seat]; if(!p)return ''; const av=pieceAnimal(p,seat);
       const thrown=has(seat), step=thrown?o.round[seat]:null;
-      const isThrower=(o.thrower===seat);
-      const lead=thrown && step===topStep;                                   // 현재 선두(공동 포함)
+      const isThrower=(o.thrower===seat) && !o.resolving;                    // 정리 중엔 '지금' 태그 숨김(아무도 안 던짐)
+      const lead=thrown && step===topStep;
       const resHtml = thrown
         ? `<span class="opc-res">${YUT_NAME[step]||step}<b class="opc-num">${step<0?'꽝':step}</b></span>`
         : (isThrower ? `<span class="opc-res wait">던지는 중…</span>` : `<span class="opc-res wait">대기</span>`);
-      const tag=isThrower&&!thrown?`<span class="opc-throwtag">▶ 지금</span>`:'';
+      const tag=isThrower&&!thrown?`<span class="opc-throwtag">▶ 지금 던져!</span>`:'';
       const rk=thrown?`<span class="opc-rank">${lead?'👑':rank+'위'}</span>`:'';
-      return `<div class="op-comp${isThrower?' throwing':''}${lead?' lead':''}">${rk}<img src="${ANIMAL_IMG[av]}" alt=""><span class="opc-nm">${esc(p.name)}${p.pid===MYPID?'<span class="opc-you">(나)</span>':''}${p.ai?' 🤖':''}</span>${tag}${resHtml}</div>`; };
+      return `<div class="op-comp${isThrower?' throwing':''}${lead?' lead':''}">${rk}<img src="${ANIMAL_IMG[av]}" alt=""><span class="opc-nm">${nm(seat)}${p.ai?' 🤖':''}</span>${tag}${resHtml}</div>`; };
     let rank=0, prev=null;
     const poolHtml = thrownList.map((s,i)=>{ if(o.round[s]!==prev){ rank=i+1; prev=o.round[s]; } return rowOf(s, rank); }).join('')
                    + waitList.map(s=>rowOf(s,0)).join('');
     const done=thrownList.length, total=pool.length;
-    el.innerHTML=`<div class="op-head">🎲 선 뽑기 — 순서를 정합니다</div>`
+    // 헤더 — 재대결이면 대놓고 '동점 재대결'로 (초기 던지기와 구분)
+    const head = o.rematch
+      ? `🔁 동점 재대결 — 같은 끗수끼리 다시 던지기!`
+      : `🎲 선 뽑기 — 순서 정하기 (각자 한 번씩)`;
+    // 상태줄 — 정리 중이면 '무슨 일이 일어났는지'를 말로 설명(가장 헷갈리던 지점)
+    let statusHtml;
+    if(o.resolving){
+      statusHtml = (tiedTop.length>1)
+        ? `<div class="op-tie">🔁 동점! <b>${tiedTop.map(nm).join(' · ')}</b> 같은 끗수 — 잠시 후 다시 던져요</div>`
+        : `<div class="op-advance">✓ <b>${nextRank}등</b> 확정: <b>${nm(thrownList[0])}</b> — 잠시 후 다음 판</div>`;
+    } else if(waitList.length){
+      statusHtml = `<div class="op-progress">${done}/${total}명 던짐 — <b>${nm(o.thrower)}</b> 차례</div>`;
+    } else {
+      statusHtml = `<div class="op-progress">${done}/${total}명 던짐</div>`;
+    }
+    el.innerHTML=`<div class="op-head">${head}</div>`
       +`<div class="op-sub">끗수가 높을수록 먼저 <b>(모5 · 윷4 · 걸3 · 개2 · 도1)</b></div>`
-      +`<div class="op-progress">${done}/${total}명 던짐${done<total?' — 남은 사람을 기다리는 중':''}</div>`
-      +(o.tie?`<div class="op-tie">동점! 같은 끗수끼리 다시 던져요 🔁</div>`:'')
-      +`<div class="op-final">${finalHtml}</div>`
-      +`<div class="op-pool">${poolHtml}</div>`;
+      +statusHtml
+      +(finalHtml?`<div class="op-final-label">확정 순서</div><div class="op-final">${finalHtml}</div>`:'')
+      +(pool.length?`<div class="op-pool-label">${o.rematch?'재대결 중':'이번 판'} (${total}명)</div><div class="op-pool">${poolHtml}</div>`:'');
     el.style.display='';
   }
   /* 순서 확정(orderResult) → 발표 오버레이. order→throw 전환 순간 1회만. */
