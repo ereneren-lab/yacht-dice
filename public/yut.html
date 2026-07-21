@@ -1285,7 +1285,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         vals.forEach(v => this.orderStack.push(byVal[v]));                 // 오름차순 push → 최고값이 top
         this._orderCollapse();                                            // 확정자 정리 + 다음 라운드 준비
         this._emit(); this._maybeAI();
-      }, this.orderTie ? 1900 : 1300);
+      }, this.orderTie ? 2800 : 2000);   // 결과를 넉넉히 읽을 시간(동점 재대결은 더 길게)
       return;
     }
     _orderFinish() {
