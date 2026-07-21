@@ -1,91 +1,91 @@
 # 다음 작업 프롬프트 — 주사위 골목
 
-> 새 세션(VS Code의 Claude Code 등)에 아래 블록을 그대로 붙여넣어 이어가면 됩니다.
-> `CLAUDE.md`가 세션 시작 시 자동 로드되므로 아키텍처·함정은 거기서 참조됩니다.
+> 새 세션에 이 파일을 참조로 붙여 이어가면 됩니다. `CLAUDE.md`는 세션 시작 시 자동 로드(아키텍처·함정).
 
 ---
 
-## 붙여넣을 프롬프트
+## 현재 상태 (2026-07-21 기준)
 
-주사위 골목(`~/yacht-dice`) 프로젝트를 이어서 작업한다. 현재 `main` 브랜치, 버전 **v1.126.0**, GitHub(`ereneren-lab/yacht-dice`) 푸시·Render 배포 완료 상태.
+- 위치: **`~/yacht-dice`** 가 유일한 저장소. 버전 **v1.153.0**, `main` 푸시·Render 배포 완료.
+- ⚠️ **디렉토리 정리됨**: 예전에 있던 `~/Desktop/yacht-dice`(낡은 사본)는 **이번 세션에 삭제**했다. 이제 `~/yacht-dice` 하나뿐. (과거 핸드오프의 "Desktop 사본 주의"는 무효)
+- 미커밋: `scripts/online-test.js`(사용자 것) — **건드리지 말 것.**
 
-**⚠️ 작업 디렉토리 주의:** `~/Desktop/yacht-dice`에도 **낡은 사본(v1.84)** 이 있다. 실제 작업은 반드시 **`~/yacht-dice`** 에서 한다.
+## 이번 세션에 한 것 (v1.142 → v1.153)
 
-**지금까지 한 것 (v1.111~1.121):** 윷 이동연출 전면 재작성, 경로/목적지 스냅 근본수정(buildPath), 완주 게이트, 업힌 말 그룹 애니, 부스터/후퇴 잡기, 살아있는 캐릭터, 오디오 마스터 버스, 허브 메타(레벨/XP/일일목표/뱃지), 판 SVG 캐시 최적화, 잡힌 말 튕겨날기 + 리액션 이모지.
+윷·요트 "넷마블/한게임급 고도화" 방향으로 진행. 핵심은 **실제 3D 캐릭터 아트 도입**.
 
-**직전 세션 (v1.122~1.126):**
-- 윷 이동 잔상 + **브라우저 자동 검증 도구 신설**(`scripts/browser-test/`)
-- 캐릭터·모션 2탄 7종 — 윷(특수칸 반짝임·아이들 표정·선두 왕관·던지기 긴장) / 요트(주사위 착지 juice·아바타 긴장·비차례 숨쉬기)
-- **윷 캐릭터 카드**(좌측 3단 열에 한게임식 큰 캐릭터, 인원별 크기 자동, 5인↑ 2열) + 우측 아바타 정리해 캐릭터 연출을 좌측으로 일원화
-- **요트 큰 캐릭터**(좌측 조작부 위 턴 배너를 132px 이모지 카드로)
+| 버전 | 내용 |
+|------|------|
+| v1.142~143 | **선 뽑기 이해도** — 라운드 결과를 페이싱(엔진 setTimeout, 일반 2.0s/동점 2.8s)으로 화면에 남겨 보이게, "동점 재대결" 명시, 확정 순서/재대결 분리 |
+| v1.144 | 윷 **무대 배경** — 검은 void → 따뜻한 조명(등불·후광·상 반사·벽 비네트, 전부 정적) |
+| v1.145 | 던지기 결과 오버레이 톤다운(도·개·걸 작게) + 선 뽑기 우측 열 중복 정리 |
+| v1.146 | **첫 판 인터랙티브 튜토리얼**(코치마크 3스텝, 1회성 `yut_tut`) |
+| v1.147 | 결과 화면 **우승자 히어로**(실제 우승 캐릭터를 유광·왕관·컨페티로) |
+| v1.148 | **레벨·타이틀 진행**(XP=15+승25+잡기, 10단계, 셋업 레벨바 + 결과 성장박스 레벨업) — 아트 불필요 메타 |
+| v1.149 | **무대 배경 4종 확산**(kb·ld·lcr·yacht, 조크 테마 excel·photoshop 제외) |
+| — | **`ART_BRIEF.md`** 추가(발주 브리프 + AI 프롬프트) |
+| v1.150 | **캐릭터 3D 아트 교체 5종** — 평면 PNG → 소프트 3D 마스코트(돼지·개·양·소·말). 파일명 동일(`img/{동물}.png`)이라 코드 변경 0 |
+| v1.151 | **칭호 장착**(레벨 해금 타이틀 선택 → 인게임 카드 표시, `yut_title`) |
+| v1.152 | 윷 **빽도 첫 진입 규칙** — 판에 말 없을 때 빽도 → 낙 대신 **출발점(node 0)에 서기**, 이후 도~모로 전진 |
+| v1.153 | 요트 UX 3건 — 반응/말풍선 위치(점수판 꼭대기 → 큰 턴카드), 내 차례 박스 축소(244→178px), 채팅 씹힘(throttle·드롭 제거 → 즉시 표시·전송) |
 
-### 🔑 브라우저 자동 검증 (`scripts/browser-test/`)
+또: `cdp.js`에 **`--mute-audio`** 추가(검증 중 소리 안 나게).
 
-**"브라우저가 없어 시각 검증 불가"는 옛말이다.** Playwright가 받아둔 크로미움 캐시를 `ws`로 CDP 직접 제어한다(새 의존성 0).
+## 🔴 다음 최우선 — 캐릭터 표정 시트 (사용자가 생성 중)
 
+**v1.150에서 캐릭터를 3D로 교체했고, 코드에 표정 리액션 훅이 이미 있다**(잡음/완주/늪 등). 사용자가 **표정 변형 6종 × 5동물 = 30장**을 같은 스타일로 생성해서 줄 예정. 오면:
+
+1. **처리**: `python3 scripts/process-char-art.py <생성본> public/img/pig_happy.png` (배경 자동 제거 + 리사이즈 + 양자화). ← 이번 세션에 만든 재사용 스크립트.
+2. **연결**: 리액션 발생 지점에서 `ANIMAL_IMG[type]` 대신 표정 이미지로 스왑. 표정↔상황 매핑:
+   - `happy` 잡음·완주 / `sad` 잡힘·패배 / `surprise` 늪·빽도 / `angry` 당함 / `star` 윷·모·승리 / `cheer` 최종 우승 히어로
+   - 파일명 규칙: `pig_idle.png`(=현재 pig.png), `pig_happy.png`, `pig_sad.png` …
+3. 리액션 훅 위치: yut.html의 `reactPiece`/`_emote`(판 위 말), `renderResHero`(우승), 캐릭터 카드(`renderCharCards`), floatReaction 등. **표정 이미지 스왑 + 원위치 복귀** 방식이 깔끔.
+
+> 스타일/프레이밍/배경 프롬프트는 `ART_BRIEF.md`에 다 있음.
+
+## 그 밖의 대기/다음 후보
+
+1. **말(horse) bust 재생성** — 5종 중 말만 원본이 전신이라 자동 크롭(상단 60%)으로 얼굴이 조금 작다. 사용자가 상반신으로 재생성하면 `process-char-art.py`로 교체(이번엔 `--bust` 없이). 지금도 무난.
+2. **캐릭터 스킨/상점** — 스킨 아트(한복·왕관 등 코스튬)가 오면 상점 UI + 장착 + 레벨 해금 붙이기. 레벨/칭호 시스템(v1.148·1.151)에 연결. 아트 없이는 칭호 장착까지가 한계(이미 함).
+3. **채팅 2인 실측** — 송신 씹힘은 고쳐 단일 클라 검증됨. 실제 2명 주고받기 라이브 확인 권장(수신 경로는 원래 정상).
+4. **kb·ld·lcr 캐릭터 업그레이드** — 이들은 자체 아바타(이모지 등) 사용. 윷·요트가 화려해진 만큼 상대적으로 밋밋. 3D 캐릭터/폴리시 확산 여지.
+5. **인게임 메타 연동 5종** — 레벨/XP 연출을 윷 외 게임에도.
+
+## 🎨 아트 후처리 파이프라인 (이번 세션 신설)
+
+`scripts/process-char-art.py` — 생성본을 게임 PNG로. **핵심 교훈:**
+- ChatGPT/DALL·E "투명"은 **거짓**(RGB에 밝은 체커보드가 구워짐). 코너 flood-fill로 제거.
+- 배경 체커 = 무채색(`max-min<8`), 캐릭터 밝은 부위(양털·소흰색) = 따뜻한 색조(`max-min≥15`) → `isbg = min>225 and max-min<8`로 정확히 구분.
+- 트림→정사각(여백 14%)→400px→FASTOCTREE 256색 양자화(엣지 alpha 보존, ~25KB, 원본 평면 수준 무게).
+- 전신 소스는 `--bust 0.60`으로 상반신 크롭.
+
+## 🔑 브라우저 자동 검증 (`scripts/browser-test/`)
+
+Playwright 크로미움 캐시를 `ws`로 CDP 직접 제어(새 의존성 0). **연출·레이아웃은 반드시 눈으로.**
 ```bash
-npm run test:fx          # 자동 단언(출발칸 잔상·reduced-motion·콘솔 예외). 서버는 알아서 띄운다
-npm run capture hold     # 연출을 눈으로 → scripts/browser-test/out/*.png
-npm run capture film     # 이동 구간 스크린캐스트 몽타주
-npm run capture alpha    # 색·농도 후보 비교
+node server.js                                   # 먼저 서버(또는 ensureServer가 알아서)
+node scripts/browser-test/verify-fx.js           # 자동 단언
+node scripts/browser-test/capture.js hold        # 연출 눈으로 → out/*.png
 ```
+- **`cdp.js`에 `--mute-audio`·`page.setMotion(true)` 있음.** 헤드리스 기본 `prefers-reduced-motion:reduce`라 안 켜면 연출 전부 생략된 화면을 본다(오진 주의, CLAUDE.md #7).
+- 게임 상태 `S`는 IIFE 스코프 → DOM으로 판정. 윷 던지기는 `mousedown`→대기→`window` `mouseup`.
+- **closure 함수 검증 팁**: 임시 시임 `try{window.__x=fn}catch(_){}` `/* TEMP-... */` 넣고 테스트, **커밋 전 `perl -0pi -e` 로 제거**(이번 세션에 여러 번 씀).
+- yut 외 게임 조작은 헬퍼가 없어 CDP 직접(`page.eval`로 버튼 클릭). yacht: `#tabOnline`→`#createRoom`→`#addAiBtn`→`#startOnline`.
 
-**연출 작업 전 `scripts/browser-test/README.md`를 반드시 읽을 것.** 특히:
-- **헤드리스는 `prefers-reduced-motion` 기본이 `reduce`** — 안 켜주면 연출이 전부 생략된 화면을 보고 "코드가 안 돈다"고 오진한다.
-- **연출은 수백 ms 만에 사라진다** — 복제본을 남기거나 스크린캐스트로 받아야 한다.
-- **축소 몽타주로는 옅은 연출을 판정할 수 없다** — 농도 판정은 원본 해상도로.
-- **페이지를 2개 이상 순차로 쓸 땐 `page.close()`로 닫을 것** — 안 닫으면 `Session with given id not found`로 죽는다.
-- 게임 상태 `S`는 IIFE 스코프라 `window.S`로 못 읽는다 → DOM으로 판정.
-- 윷 던지기는 `click()`이 안 먹는다 → `mousedown` → 대기 → `window`에 `mouseup`.
+## 반드시 지킬 규칙
 
-> 다른 게임(kb·ld·lcr)으로 넓히려면 `yut-drive.js`를 본떠 조작 헬퍼를 만들고 `cdp.js`는 그대로 재사용.
-
-### ⚠️ 직전 세션 최대 교훈 — "있지만 작동하지 않는" CSS
-
-직전 세션에 넣은 스타일 중 **5건이 화면에 전혀 나타나지 않는 것**이었다. 전부 문법 오류도 콘솔 에러도 없어서 **눈으로 보지 않으면 "넣었다"고 잘못 보고하게 된다.**
-
-| 유형 | 실제 사례 |
-|------|-----------|
-| 너무 옅어서 비가시 | 잔상 `α.14` → `.22`로 |
-| 배경과 명도가 같아 비가시 | `rgba(150,120,80)`(밝은 갈색)은 나무판에서 안 보임 → `rgba(90,66,40)` |
-| 너무 작아서 비가시 | twinkle `r=1` → `r=2.1` |
-| 셀렉터가 절대 매치 안 됨 | `.turnbanner:not(.big)` — `big`은 항상 붙고 미디어쿼리로 배치만 갈리는 구조였다 |
-| 남이 만든 죽은 스타일 | 요트 `.d2.rolling`/`.d2.land` — JS에서 붙이는 곳이 없었다(실제 연출은 `.d2.toss`) |
-
-→ **새 연출·스타일은 넣은 뒤 반드시 `npm run capture`로 눈으로 확인.** DOM에 생성됐다는 계측만으로는 "보인다"를 증명하지 못한다.
-→ **기존 스타일을 "개선"하기 전에 그 클래스를 JS가 실제로 붙이는지 먼저 grep할 것.**
-
-### 이번 작업 후보 (하나 골라서 지시)
-
-1. **나머지 3종 폴리시** — 너클본즈(kb)·라이어(ld)·좌중우(lcr)에 살아있는 캐릭터 + 큰 캐릭터 + 오디오 마스터 버스를 적용해 윷/요트와 일관성 맞추기. (윷·요트가 화려해진 만큼 셋이 상대적으로 밋밋해졌다)
-2. **온라인 랭킹 (C-2)** — server.js에 리더보드 저장/API + 허브·게임에 순위 노출. 서버·동시성 설계 필요.
-3. **인게임 메타 연동** — 게임 종료 시 +XP/레벨업 연출을 5종에 추가(허브 메타를 게임 속으로).
-4. **검증 도구 안정화** — 아래 '미해결'의 연속 실행 타임아웃 근본 수정 + 다른 게임용 조작 헬퍼 추가.
-
-### 반드시 지킬 규칙
-
-- **엔진 이중구조**: 엔진 로직은 `public/*-core.js`만 고치고 `npm run build`. HTML의 `<!-- CORE:x -->` 마커 블록은 직접 수정 금지(빌드가 덮어씀). UI·렌더·CSS·연출은 마커 바깥에서 HTML 직접 수정.
-- **모든 모션은 `prefers-reduced-motion`에서 자동 생략**되게. **주의: `FX_REDUCED()`는 yut에만 있다.** 다른 게임은 `matchMedia`를 직접 쓸 것(요트에서 그냥 썼다가 `ReferenceError` 낼 뻔했다).
-- **과하지 않게.** 화면이 번잡해지면 실패.
-- **검증 순서:** `npm run check:drift` → 각 `<script>` 블록 `new Function()` 파싱 → jsdom 로드(5종 런타임 무에러) → `npm run test:fx` → 연출이면 `npm run capture`로 눈으로.
-- **엔진 바꿨으면** `buildPath↔step`, `simStep↔step` 일치(전조합)와 100판 시뮬 0에러를 반드시 재확인.
-- **레이아웃을 바꿨으면 인원수·화면폭 양쪽 극단을 실측할 것.** 윷 카드가 6인에서 화면을 73px 넘겼고, 요트 배너는 AI 태그 유무로 높이가 22px 흔들렸다. 둘 다 캡처 전엔 몰랐다.
-- 응답·주석 한국어. 정확성 우선(재성은 틀리면 바로 지적함).
-- 작업 단위마다 `package.json` 버전 올리고, 커밋 전 드리프트 OK 확인. 커밋 메시지 끝에 `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
-- **푸시는 배포로 이어지므로 확인받고 할 것.**
-
----
-
-## 미해결 / 확인 대기
-
-- **검증 도구 연속 실행 타임아웃** — `npm run test:fx`를 연달아 돌리면 `Runtime.evaluate` 타임아웃. 단독 실행은 정상이라 `pkill -f chrome-headless-shell` 후 재실행으로 회피 중. (세션 크래시 `Session with given id not found`는 v1.126에서 `page.close()`로 **해결됨** — 원인이 다르다)
-- **캐릭터 크기 피드백 대기** — 윷 2인 150px / 3인 120px / 4인 96px / 5~6인 72px(2열), 요트 132px. 윷 좌측 열이 210px라 180~200px까지 여유 있음(원본 128px PNG인데 평면 일러스트라 확대에 강함). 요트 이모지는 벡터라 제한 없음.
-- 윷 잔상이 정지 화면으로는 "칸에 묻은 얼룩"처럼 보이는 면이 있음 — 재생 중엔 0.5초 안에 사라져 다르게 읽힐 것으로 보이나 실사용 피드백 필요.
+- **엔진 이중구조**: 엔진 로직은 `public/*-core.js`만 고치고 `npm run build`. HTML `<!-- CORE:x -->` 마커 안은 직접 수정 금지. UI·CSS·연출은 마커 바깥 HTML 직접 수정.
+- 엔진 바꿨으면 `buildPath↔step`, `simStep↔step` 일치 확인(v1.152 빽도가 이 3곳 동시 수정 사례).
+- **모션은 reduced-motion에서 생략.** `FX_REDUCED()`는 yut에만 있음 — 다른 게임은 `matchMedia` 직접.
+- **정적 연출(무대·볼륨·그림자)은 reduced에서도 유지**(모션 아님).
+- **과하지 않게.** v1.127에서 "정신없다" 피드백으로 연출을 걷어낸 이력 존중 — 표현은 판에 흩뿌리지 말고 큰 카드/캐릭터에 집중.
+- 검증: `npm run check:drift` → `<script>` 파싱 → 연출이면 캡처로 눈으로.
+- 응답·주석 한국어, 정확성 우선(재성은 틀리면 바로 지적). 작업마다 `package.json` 버전↑, 커밋 끝에 `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
+- **푸시=배포. 사용자 확인받고.** (이번 세션은 각 기능마다 확인 후 푸시)
 
 ## 프로젝트 빠른 참조
 
-- 로컬 실행: `node server.js` → http://localhost:3000
-- 배포: `git push` → Render 자동 빌드(`https://yacht-dice-jxva.onrender.com`) → Electron은 그 URL 로드
-- 게임 파일: yut/yacht/kb/ld/lcr `.html` + 각 `*-core.js`(엔진) + `index.html`(허브)
-- 상세 아키텍처·함정: `CLAUDE.md` (특히 함정 #6 애니 경로≠최종위치=스냅, #7 헤드리스 모션 검증)
-- 브라우저 검증: `scripts/browser-test/README.md`
+- 로컬: `node server.js` → localhost:3000 · 배포: `git push` → Render(`yacht-dice-jxva.onrender.com`) → Electron이 그 URL 로드
+- 게임: yut/yacht/kb/ld/lcr `.html` + 각 `*-core.js`(엔진) + `index.html`(허브)
+- 문서: `CLAUDE.md`(아키텍처·함정), `ART_BRIEF.md`(아트 발주), `scripts/browser-test/README.md`(검증)
+- 상태 키(localStorage, yut): `yut_stats`(games/wins/xp…), `yut_title`(칭호), `yut_tut`(튜토리얼 봄), `yut_char`, `alley_theme`
