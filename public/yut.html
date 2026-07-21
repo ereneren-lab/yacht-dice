@@ -708,6 +708,20 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .res-trophy{ position:absolute; top:-40px; z-index:5; pointer-events:none; font-size:30px; will-change:transform,opacity; filter:drop-shadow(0 4px 6px rgba(0,0,0,.4)); }
   .res-trophy.on{ animation:resTrophyDrop 1.4s cubic-bezier(.3,.7,.4,1) forwards; }
   @keyframes resTrophyDrop{ 0%{opacity:0;transform:translateY(-40px) rotate(0)} 10%{opacity:1} 100%{opacity:0;transform:translateY(var(--drop,320px)) rotate(var(--spin,220deg))} }
+  /* 🏆 우승자 히어로 — 이모지 대신 실제 우승 캐릭터를 큼직·유광으로(왕관+점프). 결과 화면의 주인공. */
+  .res-hero{ position:relative; display:flex; flex-direction:column; align-items:center; margin:4px 0 8px; }
+  .res-hero .rh-av{ position:relative; width:clamp(96px,26vw,124px); height:clamp(96px,26vw,124px); border-radius:50%;
+    filter:saturate(1.08) contrast(1.03) drop-shadow(0 9px 11px rgba(0,0,0,.42)) drop-shadow(0 0 5px var(--rim,transparent));
+    animation:rhJump 1.2s cubic-bezier(.2,1.3,.4,1) both; }
+  .res-hero .rh-av img{ width:100%; height:100%; border-radius:50%; object-fit:cover; border:4px solid var(--brass); background:#f3ece0; display:block; }
+  .res-hero .rh-av::before{ content:''; position:absolute; inset:4px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle at 50% 33%, transparent 40%, rgba(45,28,8,.34) 100%); mix-blend-mode:multiply; }
+  .res-hero .rh-av::after{ content:''; position:absolute; inset:4px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(ellipse 44% 32% at 35% 22%, rgba(255,255,255,.6), transparent 66%); mix-blend-mode:screen; }
+  .res-hero .rh-crown{ position:absolute; top:-20px; font-size:clamp(28px,7vw,36px); z-index:2; filter:drop-shadow(0 3px 4px rgba(0,0,0,.5));
+    animation:rhCrown 1.4s ease-in-out .3s infinite; }
+  @keyframes rhJump{ 0%{opacity:0;transform:translateY(-32px) scale(.5)} 45%{opacity:1;transform:translateY(0) scale(1.13)} 66%{transform:translateY(-9px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
+  @keyframes rhCrown{ 0%,100%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-5px) rotate(5deg)} }
 
   /* ===================== VS 인트로 (판 시작 연출) ===================== */
   #vsIntro{ position:fixed; inset:0; z-index:9400; pointer-events:none; opacity:0; visibility:hidden; overflow:hidden;
@@ -1033,6 +1047,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   <!-- RESULT -->
   <div class="ov" id="resultOv">
     <div class="sheet">
+      <div class="res-hero" id="resHero" style="display:none"></div>
       <div class="resbig" id="resBig">🏆</div>
       <div class="restitle" id="resTitle"></div>
       <div class="ressub" id="resSub"></div>
@@ -2372,6 +2387,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       t.style.fontSize=(22+Math.random()*16).toFixed(0)+'px'; ov.appendChild(t); void t.offsetWidth; t.classList.add('on');
       setTimeout(()=>{try{t.remove();}catch(e){}},2200); }
   }
+  // 🏆 우승자 히어로: 이모지 대신 실제 우승 캐릭터를 큼직·유광으로. 승패 무관 '우승자'를 축하.
+  function renderResHero(w){
+    const hero=$('resHero'), rb=$('resBig'); if(!hero) return;
+    if(!w){ hero.style.display='none'; hero.innerHTML=''; if(rb) rb.style.display=''; return; }
+    const seat=(w.seat!=null)?w.seat:0; const av=pieceAnimal(w, seat);
+    hero.style.display=''; hero.className='res-hero';
+    hero.innerHTML=`<div class="rh-crown">👑</div><div class="rh-av" style="--rim:${pieceColor(seat)}"><img src="${ANIMAL_IMG[av]}" alt="${esc(w.name)}"></div>`;
+    if(rb) rb.style.display='none';   // 히어로가 focal → 이모지 숨김
+  }
   function confettiBurst(){
     const box=$('resultOv'); if(!box)return;
     const colors=['#ff5470','#ffcc4d','#4fd6ff','#6fe0a0','#ff7a8a','#c9a0ff','#ffa14e'];
@@ -3301,6 +3325,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       }).join('');
       const myRank=S.rankings.indexOf(MYPID); const myPlace=myRank>=0?myRank+1:0; const iWon=myPlace===1;
       $('resBig').textContent = myPlace===1?'🏆':(myPlace===S.rankings.length&&myPlace>0)?'💩':'🎲';
+      renderResHero(w);   // 우승자 히어로 캐릭터
       $('resTitle').textContent = (S.timedOut?'⏱ 시간 종료 · ':'') + (w ? esc(w.name)+' 우승! 🎉' : '게임 종료');
       // 종합 = 게임점수(순위 기준) + 미션 보너스 → 미션이 공허하지 않게 눈에 띄게 강조
       const myP=myRank>=0?S.players.find(x=>x.pid===MYPID):null;
@@ -3321,6 +3346,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const myTeam = spectator?-1:S.players[mySeat()].team;
     const iWon = S.teamMode ? (myTeam===S.winnerTeam) : (S.winner===MYPID);
     $('resBig').textContent=iWon?'🏆':'🎲';
+    renderResHero(w);   // 우승자(팀 대표) 히어로 캐릭터
     $('resTitle').textContent = (S.timedOut?'⏱ 시간 종료 · ':'') + (w ? (S.teamMode ? TEAM_NAME[S.winnerTeam]+' 승리!' : esc(w.name)+' 승리!') : '게임 종료');
     $('resSub').innerHTML = `<div class="res-summary">` + (w ? `<span class="rs-line">목표 ${S.goal||S.markers}개 완주 달성! 🎉</span>` : '') + (missionScore>0 ? `<span class="rs-mission">🎯 미션 보너스 <b>+${missionScore}</b>점</span>` : '') + `</div>`;
     $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
