@@ -617,6 +617,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #yutFx{ position:fixed; inset:0; z-index:9000; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; visibility:hidden; overflow:hidden; }
   #yutFx.on{ opacity:1; visibility:visible; }
   #yutFx .yf-dim{ position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(0,0,0,.26), rgba(0,0,0,.5)); animation:yfDim var(--yf-dur,1.35s) ease-out forwards; }
+  /* 흔한 결과(도·개·걸)는 매 턴 떠서 판을 덮으므로 화면 어둡힘을 확 줄인다(축하는 모·윷만) */
+  #yutFx.small .yf-dim{ background:radial-gradient(ellipse at center, rgba(0,0,0,.08), rgba(0,0,0,.16)); }
   #yutFx.backdo .yf-dim{ background:radial-gradient(ellipse at center, rgba(12,5,0,.42), rgba(0,0,0,.6)); }
   #yutFx .yf-rays{ position:absolute; left:50%; top:50%; width:160vmax; height:160vmax; margin-left:-80vmax; margin-top:-80vmax; mix-blend-mode:screen;
     background:repeating-conic-gradient(from 0deg, rgba(242,206,104,0) 0deg, rgba(242,206,104,.26) 4deg, rgba(224,162,60,.05) 9deg, rgba(242,206,104,0) 15deg, rgba(242,206,104,0) 22deg);
@@ -625,7 +627,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     background:linear-gradient(178deg,#fff6d8 0%,#f2ce68 32%,#e0a23c 66%,#b9781f 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:#f2ce68;
     -webkit-text-stroke:6px #3a2410; paint-order:stroke fill; animation:yfWordIn var(--yf-dur,1.35s) cubic-bezier(.16,.9,.28,1) forwards; }
   #yutFx.big .yf-word{ font-size:clamp(90px,24vw,260px); -webkit-text-stroke-width:7px; }
-  #yutFx.small .yf-word{ font-size:clamp(54px,13vw,118px); }
+  #yutFx.small .yf-word{ font-size:clamp(38px,8vw,72px); -webkit-text-stroke-width:4.5px; }
   #yutFx.backdo .yf-word{ background:linear-gradient(178deg,#d8cbb2,#8a7a5c 58%,#574828); -webkit-text-stroke-color:#241606; }
   #yutFx .yf-sub{ position:absolute; left:50%; top:calc(50% + clamp(66px,15.5vw,182px)); transform:translateX(-50%); font-weight:900; letter-spacing:3px;
     font-size:clamp(22px,5vw,44px); color:#fff3cf; -webkit-text-stroke:3.5px #3a2410; paint-order:stroke fill; animation:yfSubIn var(--yf-dur,1.35s) ease-out forwards; }
@@ -763,6 +765,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* ==== 선 뽑기 진행 화면 ==== */
   #game.orderphase .board{ opacity:.42;filter:saturate(.7);transition:opacity .3s,filter .3s }
   #game.orderphase #pieceTray, #game.orderphase #pendingRow{ display:none }
+  /* 선 뽑기 중엔 우측 turnInfo("X의 차례")를 숨긴다 — 중앙 순서 패널이 차례·상태를 이미 말해줘 중복. */
+  #game.orderphase .turninfo{ display:none }
   .orderpanel{ background:var(--panel);border:1.5px solid var(--brass);border-radius:15px;padding:13px 13px 14px;margin-bottom:8px;
     box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass) 16%,transparent),0 4px 14px rgba(0,0,0,.28) }
   .orderpanel .op-head{ text-align:center;font-size:14px;font-weight:900;color:var(--ink);margin-bottom:3px }
@@ -2197,7 +2201,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const map={5:['모야!','mo',true],4:['윷이야!','yut',true],3:['걸','geol',false],2:['개','gae',false],1:['도','do',false],'-1':['빽도…','backdo',false]};
     const m=map[String(step)]; if(!m)return; const [text,kind,big]=m;
     const fx=_fxEl('yutFx'); const reduced=FX_REDUCED();
-    const dur=big?1500:1000;
+    const dur=big?1500:800;   // 흔한 결과는 짧게 스치듯
     fx.style.setProperty('--yf-dur',(dur/1000)+'s');
     fx.className='yutfx '+kind+(big?' big':' small')+(reduced?' reduced':'');
     let html='<div class="yf-dim"></div>';
