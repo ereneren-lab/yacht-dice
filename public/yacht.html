@@ -233,11 +233,11 @@
   .turnbanner .tstate::before{content:'— '}
   /* 🎭 현재 차례 캐릭터를 크게 (좌측 조작부 위). 좁은 폭(≤700px)에서는 기존 가로 배치 유지 */
   @media(min-width:701px){
-    /* min-height 고정: AI 태그가 있고 없고에 따라 220↔242px로 흔들려 아래 조작부가 턴마다 들썩였다 */
-    .turnbanner.big{flex-direction:column;justify-content:center;gap:6px;padding:17px 14px 14px;text-align:center;min-height:244px}
-    .turnbanner.big .av{width:132px;height:132px;font-size:82px;border-radius:50%}
-    .turnbanner.big .av.cur{box-shadow:0 0 0 3px var(--ring),0 0 22px var(--ring)}
-    .turnbanner.big .nm{font-size:19px;font-weight:800}
+    /* min-height 고정: AI 태그가 있고 없고에 따라 흔들려 아래 조작부가 턴마다 들썩였다 → 고정 */
+    .turnbanner.big{flex-direction:column;justify-content:center;gap:5px;padding:13px 14px 12px;text-align:center;min-height:178px}
+    .turnbanner.big .av{width:100px;height:100px;font-size:62px;border-radius:50%}
+    .turnbanner.big .av.cur{box-shadow:0 0 0 3px var(--ring),0 0 18px var(--ring)}
+    .turnbanner.big .nm{font-size:17px;font-weight:800}
     .turnbanner.big .aitag{font-size:11px}
     .turnbanner.big .tstate::before{content:none}
   }
@@ -1826,9 +1826,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function chatMyName(){ let m=((lobby&&lobby.members)||[]).find(x=>x.pid===myPid); if(!m&&S&&S.players)m=S.players.find(x=>x.pid===myPid); return m?m.name:'나'; }
   function setupChat(){ if(chatBound)return; chatBound=true;
     const el=$('chatInput');
-    let queue=[], timer=null;
-    const flush=()=>{ if(!queue.length){ timer=null; return; } const t=queue.shift(); try{wsSend({t:'chat',text:t});}catch(e){} addChat(myPid, chatMyName(), t); timer=setTimeout(flush, 320); };
-    const send=()=>{ const t=(el.value||'').trim(); if(!t)return; if(queue.length>=8)return; queue.push(t.slice(0,200)); el.value=''; el.focus(); if(!timer)flush(); };
+    // 즉시 로컬 표시 + 즉시 전송(큐·throttle·드롭 제거 → "씹힘" 방지). 전송 후 입력이 비워지므로
+    // 더블 엔터로 빈 메시지가 나가지 않아 별도 throttle 불필요.
+    const send=()=>{ const t=(el.value||'').trim(); if(!t)return; el.value=''; el.focus();
+      addChat(myPid, chatMyName(), t.slice(0,200));
+      try{ wsSend({t:'chat',text:t.slice(0,200)}); }catch(e){}
+    };
     $('chatSend').onclick=send;
     el.addEventListener('keydown',e=>{
       // 한글 등 IME 조합 확정용 Enter는 전송으로 처리하지 않음
@@ -1844,7 +1847,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     while(log.children.length>60) log.removeChild(log.firstChild);
     if(nearBottom || pid===myPid) log.scrollTop=log.scrollHeight;               // 맨 아래거나 내 메시지일 때만 자동 스크롤
   }
-  function floatReaction(pid,emoji){ let anchor=$('sheet').querySelector(`.av[data-pid="${pid}"]`)||$('turnBanner');
+  // 앵커: 현재 차례면 큰 턴 카드(prominent)에서, 아니면 점수판 컬럼 헤더에서 띄운다.
+  // (예전엔 무조건 점수판 헤더 av라 반응/말풍선이 표 꼭대기 '엉뚱한 곳'에서 떴다)
+  function reactAnchor(pid){ return document.querySelector(`#turnBanner .av[data-pid="${pid}"]`) || $('sheet').querySelector(`.av[data-pid="${pid}"]`) || $('turnBanner'); }
+  function floatReaction(pid,emoji){ let anchor=reactAnchor(pid);
     const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.]/.test(emoji);
     if(isText){ el.classList.add('txt'); el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top-12)+'px'; }
@@ -1863,7 +1869,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     bonus:{big:['보너스 간다','상단 채운다','+35 확보','보너스는 내 거'],zero:['상단이 중요해','흠…','계산 중'],mid:['천천히','상단부터','빌드업']},
     gambler:{big:['올인 성공! 🎲','운빨 ㅋㅋ','대박','이게 주사위지','감 살아있네'],zero:['에이 꽝','한 방 노렸는데','다음 판 각오해'],mid:['가보자고','감으로!','직감이다']},
   };
-  function bubble(pid,text){ const a=$('sheet').querySelector(`.av[data-pid="${pid}"]`)||$('turnBanner'); if(!a)return; const r=a.getBoundingClientRect(); const el=document.createElement('div'); el.className='bubble'; el.textContent=text; el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top-8)+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),1800); }
+  function bubble(pid,text){ const a=reactAnchor(pid); if(!a)return; const r=a.getBoundingClientRect(); const el=document.createElement('div'); el.className='bubble'; el.textContent=text; el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top-8)+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),1800); }
   function aiSpeak(p,catId,val){ if(!p||!p.ai||!p.persona)return; const L=LINES[p.persona]||LINES.safe; const big=val>=30; const pool=big?L.big:(val===0?L.zero:L.mid); if(pool===L.mid&&Math.random()>0.4)return; bubble(p.pid,pool[Math.floor(Math.random()*pool.length)]); }
   const BIGLBL={yacht:'요트',yahtzee:'야찌',lStraight:'라지 스트레이트'};
   function isBig(f){ return f.val>0 && (f.catId==='yacht'||f.catId==='yahtzee'||f.catId==='lStraight'); }
