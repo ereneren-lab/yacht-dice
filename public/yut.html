@@ -154,19 +154,31 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     /* 우측은 '액션 전용'으로 비운다 — 캐릭터는 좌측 카드가 크게 보여주므로 48px 아바타는 중복.
        던지기 연출(긴장·던짐)도 아래처럼 좌측 큰 카드로 옮겨 효과를 키웠다. */
     body.ingame .thrower{ display:none }
-    #charCards.charging .ccard.turn img{ animation:avTense .5s ease-in-out infinite }
+    #charCards.charging .ccard.turn .ccav{ animation:avTense .5s ease-in-out infinite }
   }
   .ccard{ position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
     padding:9px 8px 8px;border-radius:15px;background:var(--panel);border:2px solid var(--line);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 2px 6px rgba(0,0,0,.24);transition:border-color .18s,box-shadow .18s,transform .18s }
   .ccard img{ width:var(--cardav,110px);height:var(--cardav,110px);border-radius:50%;object-fit:cover;
     border:3px solid var(--line);background:#f3ece0;display:block;transition:width .18s,height .18s }
+  /* ── 🧊 평면 일러스트에 입체감 입히기(넷마블식): 볼륨 음영 + 광택 + 부양 그림자.
+     아바타 img를 .ccav로 감싸고 그 위에 CSS 레이어를 얹는다. 애니(avBob·포즈·throwmo)는
+     .ccav에 걸어 오버레이가 캐릭터와 함께 움직이게 한다(빛이 오브젝트에 baked된 피규어 느낌). */
+  .ccav{ position:relative;display:inline-block;border-radius:50%;line-height:0;
+    filter:saturate(1.07) contrast(1.03) drop-shadow(0 7px 7px rgba(0,0,0,.34)) }
+  /* 구형 볼륨: 가장자리로 갈수록 어둡게(multiply) → 평면 이미지가 둥글게 부풀어 보인다 */
+  .ccav::before{ content:'';position:absolute;inset:3px;border-radius:50%;pointer-events:none;z-index:2;
+    background:radial-gradient(circle at 50% 33%, transparent 40%, rgba(45,28,8,.38) 100%);mix-blend-mode:multiply }
+  /* 광택: 좌상단 큰 하이라이트 + 상단 얇은 반짝(screen) → 유리구슬/코팅 피규어 질감 */
+  .ccav::after{ content:'';position:absolute;inset:3px;border-radius:50%;pointer-events:none;z-index:3;
+    background:radial-gradient(ellipse 44% 32% at 35% 22%, rgba(255,255,255,.6), transparent 66%),
+              radial-gradient(circle at 50% 7%, rgba(255,255,255,.32), transparent 30%);mix-blend-mode:screen }
   .ccard .ccname{ font-size:12.5px;font-weight:800;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
   .ccard .ccdone{ font-size:11.5px;font-weight:800;color:var(--muted) }
   .ccard .ccdone b{ color:var(--brass);font-size:13px }
   /* 현재 차례 = 테두리 발광 + 캐릭터가 살랑 (기존 avBob 재사용) */
   .ccard.turn{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 26%,transparent),0 4px 14px rgba(0,0,0,.3);transform:translateY(-2px) }
-  .ccard.turn img{ animation:avBob 1.35s ease-in-out infinite }
+  .ccard.turn .ccav{ animation:avBob 1.35s ease-in-out infinite }
   /* 결과별 큰 캐릭터 포즈 — img에 인라인 애니로 1회 재생(재렌더 시 저절로 사라짐, throwmo와 같은 방식).
      오직 '현재 차례 카드' 하나에만 건다(잡음·완주·윷/모·빽도 전부 현재 차례 이벤트) → 배경 소음 0. */
   @keyframes cardJoy{ 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 42%{transform:translateY(0) scale(.97)} 62%{transform:translateY(-6px) scale(1.03)} 82%{transform:translateY(0) scale(1)} 100%{transform:translateY(0) scale(1)} }
@@ -177,6 +189,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .ccard.lead::after{ content:'👑';position:absolute;top:-9px;right:8px;font-size:19px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)) }
   .ccard .ccbadge{ position:absolute;top:6px;left:7px;font-size:14px }
   .ccard.me{ background:color-mix(in srgb,var(--brass) 8%,var(--panel)) }
+  /* 현재 차례 = 무대 스포트라이트: 캐릭터 뒤로 따뜻한 발광(정적, 배경 소음 아님).
+     .me와 겹쳐도 이기도록 .ccard.me.turn까지 명시 + 소스 순서 뒤에 둔다. */
+  .ccard.turn, .ccard.me.turn{ background:radial-gradient(circle at 50% 30%, color-mix(in srgb,var(--brass) 17%,var(--panel)), var(--panel) 68%) }
   .mission-panel{ background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 11px;margin-bottom:10px }
   .speech-bubble{ position:fixed;top:64px;left:50%;z-index:60;display:flex;align-items:center;gap:9px;padding:7px 16px 7px 7px;background:#fff;color:#1a1a1a;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;pointer-events:none;transform:translateX(-50%) scale(.7);transition:opacity .18s ease,transform .18s ease;max-width:82vw }
   .speech-bubble.show{ opacity:1;transform:translateX(-50%) scale(1);animation:sbpop .35s ease }
@@ -554,7 +569,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important }
     .stick.tossing, .thrower.throwing img, #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:none !important }
-    #charCards .ccard img, #charCards.charging .ccard.turn img{ animation:none !important }
+    #charCards .ccard .ccav, #charCards.charging .ccard.turn .ccav{ animation:none !important }
     #pieceLayer .pcpiece.mv .ring{ animation:none !important }
     .bigbtn.ready{ animation:none !important }
     #pieceLayer .pcpiece, #pieceLayer .pcpiece.pitfall{ transition:none !important }
@@ -2510,7 +2525,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       d.className='ccard'+(isTurn?' turn':'')+(isLead?' lead':'')+(p.pid===MYPID?' me':'');
       d.dataset.pid=p.pid;
       d.innerHTML=`${(team||shielded)?`<span class="ccbadge">${team}${shielded?'🛡':''}</span>`:''}`
-        +`<img src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)}">`
+        +`<div class="ccav"><img src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)}"></div>`
         +`<span class="ccname">${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}</span>`
         // 선 뽑기 중엔 완주 수(항상 0)가 의미 없다 → 그 사람이 던진 끗수를 보여준다
         +(orderMode
@@ -2523,7 +2538,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   // 카드가 재렌더되면 저절로 끝난다(1회성). reduced-motion은 CSS !important가 덮고 여기서도 가드.
   function reactCard(pid, anim, dur, ease){
     if(FX_REDUCED()) return;
-    const im=document.querySelector('#charCards .ccard[data-pid="'+pid+'"] img');
+    const im=document.querySelector('#charCards .ccard[data-pid="'+pid+'"] .ccav');
     if(!im) return;
     im.style.animation='none'; void im.offsetWidth;
     im.style.animation=anim+' '+dur+'s '+(ease||'cubic-bezier(.25,.9,.3,1.3)')+' 1';
@@ -2865,7 +2880,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       // 좌측 큰 카드도 같이 던지는 모션. 컨테이너 클래스로 걸면 render가 반복될 때
       // 애니가 되풀이되므로, 현재 차례 카드의 img에 인라인으로 직접 건다.
       // (카드가 다시 그려지면 인라인 스타일도 함께 사라져 저절로 1회로 끝난다)
-      const im=document.querySelector('#charCards .ccard.turn img');
+      const im=document.querySelector('#charCards .ccard.turn .ccav');
       if(im){ im.style.animation='none'; void im.offsetWidth; im.style.animation='throwmo .68s cubic-bezier(.3,.55,.4,1)'; }
     }
     const throwLabel=t=>{ const ex=(t.step===4||t.step===5?' <span class="big">한 번 더!</span>':t.step===-1?' <span class="big">뒤로!</span>':''); return t.name+ex; };
