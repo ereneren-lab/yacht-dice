@@ -962,7 +962,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* ===== 로컬 ===== */
   function startLocal(){
     teardownNet(); online=false; MYPID='me';
-    try{ localStorage.removeItem('lcr_room'); localStorage.removeItem('lcr_pid'); }catch(e){}
+    try{ seatDel('lcr_room'); seatDel('lcr_pid'); }catch(e){}
     if(engine){ engine.destroy(); engine=null; }
     const players=[{pid:MYPID,name:'나',avatar:'😎',ai:false}];
     const av=[...AV].sort(()=>Math.random()-.5), nm=[...NM].sort(()=>Math.random()-.5);
@@ -1025,7 +1025,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } avatarSynced=false; }
   let reconnects=0, reconnecting=false, bootReconnect=false;
   function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
-  function tryReconnect(){ const room=lsGet('lcr_room'), pid=lsGet('lcr_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
+  /* 자리(방코드·pid)는 '탭 단위' 소유물이다.
+     localStorage에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써서,
+     먼저 있던 탭이 새로고침(=모바일 복귀)할 때 남의 자리로 rejoin해 서로 끊는 루프에 빠진다.
+     → 읽기·쓰기는 sessionStorage(탭 전용) 우선, localStorage에는 허브 '이어하기' 배너용으로 함께 남긴다.
+     (함수 선언이라 호이스팅됨 — 위쪽 코드에서 먼저 불려도 안전) */
+  function seatGet(k){ try{ const v=sessionStorage.getItem(k); if(v!=null) return v; }catch(e){} try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function seatSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} try{ localStorage.setItem(k,v); }catch(e){} }
+  function seatDel(k){ try{ sessionStorage.removeItem(k); }catch(e){} try{ localStorage.removeItem(k); }catch(e){} }
+  function tryReconnect(){ const room=seatGet('lcr_room'), pid=seatGet('lcr_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
   // 콜드스타트 안내 배너 (논블로킹). Render 무료 인스턴스는 첫 접속에 최대 1분 걸림.
   let coldT=null, failT=null;
   function showWakeBanner(msg, onRetry){
@@ -1049,7 +1057,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     ws.onclose=()=>{ clearColdTimers(); reconnecting=false; if(online && (bootReconnect || (S && S.phase!=='over') || lobby)){ if(reconnects<30){ reconnects++; if(reconnects===1 && S&&S.phase!=='over')showToast('서버 연결 끊김 — 재접속 시도 중… (최대 1분)'); setTimeout(tryReconnect,2000); } else { showWakeBanner('🔌 재접속 실패 — 새로고침하거나 다시 시도해줘', ()=>{ hideWakeBanner(); reconnects=0; reconnecting=true; tryReconnect(); }); } } else { hideWakeBanner(); } };
   }
   function onNet(m){
-    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{localStorage.setItem('lcr_room',roomCode);localStorage.setItem('lcr_pid',MYPID);}catch(e){} }
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{seatSet('lcr_room',roomCode);seatSet('lcr_pid',MYPID);}catch(e){} }
     else if(m.t==='lobby'){
       const cur=m.room.members;
       const hadPrev = prevMembers!==null;
@@ -1085,7 +1093,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(m.code || !lobby){
         $('onErr').textContent=msg; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
         lobby=null; prevMembers=null;
-        try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){}
+        try{seatDel('lcr_room');seatDel('lcr_pid');}catch(e){}
       }
     }
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
@@ -1175,7 +1183,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); };
-  $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); };
+  $('lobbyLeave').onclick=()=>{ teardownNet(); try{seatDel('lcr_room');seatDel('lcr_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   // 재경기 대기 카운트다운(30초) — 방치되면 자동 취소해 결과창에 갇히지 않게
   let rematchTimer=null, rematchLeft=30;
@@ -1199,12 +1207,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }).join('');
   }
   function resetRematchUI(){ stopRematchCountdown(); const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; }
-  function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('lcr_room');localStorage.removeItem('lcr_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); }
+  function rematchLeave(){ teardownNet(); online=false; try{seatDel('lcr_room');seatDel('lcr_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; startRematchCountdown(); };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; startRematchCountdown(); };
   $('rmCancel').onclick=()=>{ stopRematchCountdown(); wsSend({t:'rematchCancel'}); resetRematchUI(); showToast('재경기를 취소했어요'); };
   // 골목 이탈 시 방 세션 정리 — 버려진 방에 자동 재접속(부트 rejoin)되는 걸 막는다
-  function clearRoomSession(){ try{ localStorage.removeItem('lcr_room'); localStorage.removeItem('lcr_pid'); }catch(e){} teardownNet(); online=false; }
+  function clearRoomSession(){ try{ seatDel('lcr_room'); seatDel('lcr_pid'); }catch(e){} teardownNet(); online=false; }
   // 진행 중(로비/게임/재경기 대기)이면 나가기 전에 한 번 확인
   function inActiveSession(){ return online && (!!lobby || (S && S.phase!=='over') || $('game').style.display==='block'); }
   $('toHub').onclick=()=>{ clearRoomSession(); location.href='./'; };
@@ -1327,7 +1335,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   (function boot(){
     renderStats(); renderAch();
     const savedName=lsGet('alley_name'); if(savedName){ const el=$('onName'); if(el&&!el.value) el.value=savedName; }
-    const savedRoom=lsGet('lcr_room'), savedPid=lsGet('lcr_pid');
+    const savedRoom=seatGet('lcr_room'), savedPid=seatGet('lcr_pid');
     if(savedRoom&&savedPid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; online=true; connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid})); return; }
     const params=new URLSearchParams(location.search);
     const room=params.get('room');

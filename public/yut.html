@@ -3444,7 +3444,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
   function startLocal(){
     teardownNet(); online=false; MYPID='me';
-    try{ localStorage.removeItem('yut_room'); localStorage.removeItem('yut_pid'); }catch(e){}
+    try{ seatDel('yut_room'); seatDel('yut_pid'); }catch(e){}
     if(engine){ engine.destroy(); engine=null; }
     if(cfg.team)cfg.n=4;
     const players=[{pid:MYPID,name:'나',avatar:cfg.character,ai:false}];
@@ -3466,7 +3466,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function teardownNet(){ try{BGM.leave();}catch(e){} try{clearWake&&clearWake();}catch(e){} try{stopTurnTimer();}catch(e){} try{hideReconnFail();}catch(e){} if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
   let reconnects=0, reconnecting=false, bootReconnect=false;
   function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
-  function tryReconnect(){ const room=lsGet('yut_room'), pid=lsGet('yut_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
+  /* 자리(방코드·pid)는 '탭 단위' 소유물이다.
+     localStorage에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써서,
+     먼저 있던 탭이 새로고침(=모바일 복귀)할 때 남의 자리로 rejoin해 서로 끊는 루프에 빠진다.
+     → 읽기·쓰기는 sessionStorage(탭 전용) 우선, localStorage에는 허브 '이어하기' 배너용으로 함께 남긴다.
+     (함수 선언이라 호이스팅됨 — 위쪽 코드에서 먼저 불려도 안전) */
+  function seatGet(k){ try{ const v=sessionStorage.getItem(k); if(v!=null) return v; }catch(e){} try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function seatSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} try{ localStorage.setItem(k,v); }catch(e){} }
+  function seatDel(k){ try{ sessionStorage.removeItem(k); }catch(e){} try{ localStorage.removeItem(k); }catch(e){} }
+  function tryReconnect(){ const room=seatGet('yut_room'), pid=seatGet('yut_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
   let wakeTimers=[];
   function clearWake(){ wakeTimers.forEach(t=>clearTimeout(t)); wakeTimers=[]; const w=$('wakeMsg'); if(w){ w.className='wakemsg'; w.textContent=''; } }
   function showWake(msg){ const w=$('wakeMsg'); if(!w)return; w.className='wakemsg on'; w.textContent=msg; }
@@ -3500,7 +3508,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function showReconnFail(){ const el=$('reconnFail'); if(el)el.style.display='flex'; }
   function hideReconnFail(){ const el=$('reconnFail'); if(el)el.style.display='none'; }
   function onNet(m){
-    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; hideReconnFail(); try{localStorage.setItem('yut_room',roomCode);localStorage.setItem('yut_pid',MYPID);}catch(e){} }
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; hideReconnFail(); try{seatSet('yut_room',roomCode);seatSet('yut_pid',MYPID);}catch(e){} }
     else if(m.t==='lobby'){
       const cur=m.room.members; const hadPrev=prevMembers!==null;
       if(prevMembers){ cur.forEach(x=>{ if(x.pid!==MYPID && !prevMembers.some(p=>p.pid===x.pid)) showToast('🚪 '+x.name+' 입장'); }); prevMembers.forEach(p=>{ if(p.pid!==MYPID && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); }); }
@@ -3534,7 +3542,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if(isNewRound && S.phase!=='over'){ try{vsIntro();}catch(e){} try{scheduleDailyBanner();}catch(e){} }   // ★ VS 인트로 + 오늘의 규칙(새 판 진입 시)
     }
     else if(m.t==='error'){ reconnecting=false; bootReconnect=false;
-      if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} }
+      if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); try{seatDel('yut_room');seatDel('yut_pid');}catch(e){} }
       else showToast(m.msg||'오류'); }   // 비치명 경고(예: 인원 부족)는 세션 유지, 안내만
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
@@ -3601,11 +3609,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function resetRematchUI(){ stopRematchCountdown(); rematchDeadline=0; rematchProposerSeen=null;
     const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block';
     const wb=$('rematchWaitBtns'); if(wb)wb.style.display='none'; }
-  function rematchLeave(){ teardownNet(); online=false; try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); try{updateDailyBadge();}catch(e){} }
+  function rematchLeave(){ teardownNet(); online=false; try{seatDel('yut_room');seatDel('yut_pid');}catch(e){} lobby=null; prevMembers=null; resetRematchUI(); $('resultOv').classList.remove('on'); $('game').style.display='none'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); try{updateDailyBadge();}catch(e){} }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmCancel').onclick=()=>{ wsSend({t:'rematchCancel'}); };   // 제안자/방장이 재경기 제안 취소
-  $('rmLeaveHub').onclick=()=>{ try{teardownNet();}catch(e){} online=false; try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} location.href='./'; };  // 대기 중에도 골목 이탈 허용
+  $('rmLeaveHub').onclick=()=>{ try{teardownNet();}catch(e){} online=false; try{seatDel('yut_room');seatDel('yut_pid');}catch(e){} location.href='./'; };  // 대기 중에도 골목 이탈 허용
 
   /* ===== UI 바인딩 ===== */
   $('tabLocal').onclick=()=>{ $('tabLocal').classList.add('on'); $('tabOnline').classList.remove('on'); $('localBox').style.display='block'; $('onlineBox').style.display='none'; };
@@ -3658,7 +3666,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('lobbyCopy').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
   (function(){ const lc=$('lobbyCode'); if(!lc)return; lc.style.cursor='pointer'; lc.title='탭하면 방 코드 복사'; lc.onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); }; })();
-  $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('yut_room');localStorage.removeItem('yut_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
+  $('lobbyLeave').onclick=()=>{ teardownNet(); try{seatDel('yut_room');seatDel('yut_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   $('toHub').onclick=()=>location.href='./';
   /* 하단 고정 조작바(모바일)의 실제 높이를 재서 .app 하단 패딩에 반영 — 4~6인 트레이가 바에 안 가리게 */
@@ -3758,7 +3766,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   (function boot(){
     renderStats(); renderAch(); buildCharPick(); refreshGoal('optGoal',cfg.markers,'goal'); refreshGoal('optGoalOn',cfg.onMarkers,'onGoal');
     try{ const sn=lsGet('alley_name'); if(sn && $('onName')) $('onName').value=sn; }catch(e){}
-    const savedRoom=lsGet('yut_room'), savedPid=lsGet('yut_pid');
+    const savedRoom=seatGet('yut_room'), savedPid=seatGet('yut_pid');
     if(savedRoom&&savedPid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; online=true; connect(()=>wsSend({t:'rejoin',code:savedRoom,pid:savedPid})); return; }
     const params=new URLSearchParams(location.search); const room=params.get('room');
     if(room){ const code=room.toUpperCase(); $('tabOnline').click(); $('joinCode').value=code; if(lsGet('alley_name')){ $('joinBtn').click(); } else { $('onName').focus(); } }

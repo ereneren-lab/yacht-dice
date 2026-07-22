@@ -19,7 +19,10 @@ npm run test:fx              # 자동 단언 (통과/실패)
 npm run capture hold         # 잔상 고정 캡처 → out/trail-hold.png
 npm run capture film         # 이동 구간 몽타주 → out/trail-film.png
 npm run capture alpha        # 색·농도 비교 → out/trail-alpha.png
+npm run test:online2p        # 탭 2개 = 사람 2명. 채팅 왕복 + 5종 자리/재접속
 ```
+
+`test:online2p`는 **서버를 직접 띄워둔 뒤** 실행한다(`node server.js`).
 
 서버는 **안 떠 있으면 알아서 띄우고 끝나면 정리한다**(직접 띄워둔 서버는 건드리지 않는다).
 `YUT_URL` 로 대상 주소를 바꿀 수 있다(기본 `http://localhost:3000/yut.html`).
@@ -49,6 +52,10 @@ npm run capture alpha        # 색·농도 비교 → out/trail-alpha.png
 - **타이밍에 의존하는 단언은 넣지 말 것.** 잔상 opacity를 `450ms에 <0.15`로 단언했더니
   `setTimeout` 지터와 "측정 시점엔 이미 remove된 표본" 탓에 실행마다 통과/실패가 갈렸다.
   플래키한 단언은 없느니만 못하므로 수치는 **보고만** 하고 판단은 사람이 한다.
+- **같은 브라우저의 두 탭은 localStorage를 공유한다.** 두 탭으로 2인을 흉내 낼 때
+  뒤에 join한 탭이 방/pid를 덮어써, 먼저 있던 탭이 새로고침하면 **남의 자리로 rejoin**한다.
+  실제 사용자도 겪는 버그였고 v1.154에서 sessionStorage 우선으로 고쳤다(`seatGet/Set/Del`).
+  탭을 정말 격리하고 싶으면 `Target.createBrowserContext`로 컨텍스트를 나눠 페이지를 만들면 된다.
 - **업힌 말 그룹은 좌표가 ±13px씩 벌어진다.** 잔상 위치를 말 하나의 transform으로 잡으면
   그룹 이동에서 어긋난다 — 칸 중심(그룹 평균)을 기준으로 할 것.
 
@@ -60,6 +67,7 @@ npm run capture alpha        # 색·농도 비교 → out/trail-alpha.png
 | `yut-drive.js` | 윷 조작 (게이지 던지기·말 선택·방향 선택·DOM 상태 판정) |
 | `verify-fx.js` | 자동 단언 — 출발칸 잔상·reduced-motion·콘솔 예외 (페이드 수치는 보고만) |
 | `capture.js` | 눈으로 볼 캡처 (hold / film / alpha) |
+| `verify-online.js` | 탭 2개로 온라인 2인 실측 — 채팅 왕복·자리 소유권·새로고침 rejoin (5종) |
 
 다른 게임(요트·너클본즈·라이어·좌중우)으로 넓히려면 `yut-drive.js`를 본떠
 게임별 조작 헬퍼를 만들고 `cdp.js`는 그대로 재사용하면 된다.

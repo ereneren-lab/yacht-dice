@@ -1002,10 +1002,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function resetRematchUI(){ stopRematchCountdown(); const b=$('rematchBox'); if(b)b.style.display='none'; const rb=$('resultBtns'); if(rb)rb.style.display='block'; const ab=$('againBtn'); if(ab)ab.disabled=false; }
   $('rmCancel').onclick=()=>{ wsSend({t:'rematchCancel'}); stopRematchCountdown(); };
-  function rematchLeave(){ try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} location.reload(); }
+  function rematchLeave(){ try{seatDel('kb_room');seatDel('kb_pid');}catch(e){} location.reload(); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
-  function clearSession(){ try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){} }
+  function clearSession(){ try{ seatDel('kb_room'); seatDel('kb_pid'); }catch(e){} }
   $('toHub2').onclick = ()=>{ clearSession(); location.href='./'; };
   // 게임 중 좌상단 ← : 진행 중이면 이탈 확인. 나가면(또는 로비/결과 화면이면) 방 세션 정리.
   (function(){ const back=document.querySelector('.hubx'); if(!back) return;
@@ -1119,7 +1119,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ---------- LOCAL start ----------
   function startLocal(){
     teardownNet();
-    try{ localStorage.removeItem('kb_room'); localStorage.removeItem('kb_pid'); }catch(e){}
+    try{ seatDel('kb_room'); seatDel('kb_pid'); }catch(e){}
     mode = mode==='online' ? 'ai' : mode; // safety
     if(engine){ engine.destroy(); engine=null; }
     // 매치 중이면 상대 아바타 고정(같은 상대와 붙는 느낌), 아니면 매판 랜덤
@@ -1143,7 +1143,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 자동 재접속 (yacht/yut 패턴): 세션(kb_room/kb_pid)이 있으면 1.5초 간격으로 최대 6회 재시도
   let reconnects=0, reconnecting=false, bootReconnect=false;
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-  function tryReconnect(){ const room=lsGet('kb_room'), pid=lsGet('kb_pid');
+  /* 자리(방코드·pid)는 '탭 단위' 소유물이다.
+     localStorage에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써서,
+     먼저 있던 탭이 새로고침(=모바일 복귀)할 때 남의 자리로 rejoin해 서로 끊는 루프에 빠진다.
+     → 읽기·쓰기는 sessionStorage(탭 전용) 우선, localStorage에는 허브 '이어하기' 배너용으로 함께 남긴다.
+     (함수 선언이라 호이스팅됨 — 위쪽 코드에서 먼저 불려도 안전) */
+  function seatGet(k){ try{ const v=sessionStorage.getItem(k); if(v!=null) return v; }catch(e){} try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function seatSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} try{ localStorage.setItem(k,v); }catch(e){} }
+  function seatDel(k){ try{ sessionStorage.removeItem(k); }catch(e){} try{ localStorage.removeItem(k); }catch(e){} }
+  function tryReconnect(){ const room=seatGet('kb_room'), pid=seatGet('kb_pid');
     if(room && pid && (!ws || ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
   function showReconnectFail(){ let e=document.getElementById('coldstart');
     if(!e){ e=document.createElement('div'); e.id='coldstart'; document.body.appendChild(e); }
@@ -1181,7 +1189,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function onNet(m){
     if(m.t==='me'){ myPid=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false;
       const cf=document.getElementById('coldstart'); if(cf)cf.remove();
-      try{localStorage.setItem('kb_room',roomCode);localStorage.setItem('kb_pid',myPid);}catch(e){} }
+      try{seatSet('kb_room',roomCode);seatSet('kb_pid',myPid);}catch(e){} }
     else if(m.t==='lobby'){ const cur=m.room.members;
       const hadPrev = prevMembers!==null;
       if(prevMembers){
@@ -1209,7 +1217,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on');
         reconnects=30; bootReconnect=false;   // 치명 오류(자리 없음 등) → 재접속 루프 중단
         const cf=document.getElementById('coldstart'); if(cf)cf.remove();
-        try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} }
+        try{seatDel('kb_room');seatDel('kb_pid');}catch(e){} }
       else showToast(m.msg||'오류'); }   // 비치명 경고는 세션 유지
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==myPid) addChat(m.pid,m.name,m.text); }
@@ -1314,7 +1322,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>fb()); }
     else fb(); };
   $('lobbyCode').onclick = ()=>{ const c=roomCode||(lobby&&lobby.code)||''; if(!c)return; copyText(c); showToast('📋 방 코드 복사됨'); };
-  $('lobbyLeave').onclick = ()=>{ teardownNet(); try{localStorage.removeItem('kb_room');localStorage.removeItem('kb_pid');}catch(e){} $('lobbyOv').classList.remove('on'); mode='ai'; resetSetup(); openSetup(); };
+  $('lobbyLeave').onclick = ()=>{ teardownNet(); try{seatDel('kb_room');seatDel('kb_pid');}catch(e){} $('lobbyOv').classList.remove('on'); mode='ai'; resetSetup(); openSetup(); };
   function requestRematch(){ wsSend({t:'endGame'}); /* 호스트가 endGame하면 로비로; 양쪽 로비에서 재시작 */ }
 
   // ---------- unified state pipeline ----------
@@ -1786,7 +1794,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const params=new URLSearchParams(location.search);
     const room=params.get('room');
     let savedRoom=null, savedPid=null, savedName='';
-    try{ savedRoom=localStorage.getItem('kb_room'); savedPid=localStorage.getItem('kb_pid'); }catch(e){}
+    try{ savedRoom=seatGet('kb_room'); savedPid=seatGet('kb_pid'); }catch(e){}
     try{ savedName=(localStorage.getItem('alley_name')||'').trim(); }catch(e){}
     if(savedName) $('onName').value=savedName;
     if(savedRoom && savedPid && location.protocol!=='file:'){

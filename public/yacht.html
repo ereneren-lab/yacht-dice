@@ -1475,6 +1475,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const esc=s=>(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   const hexA=(hex,a)=>{const h=(hex||'#888').replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;};
   const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+  /* 자리(방코드·pid)는 '탭 단위' 소유물이다.
+     localStorage에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써서,
+     먼저 있던 탭이 새로고침(=모바일 복귀)할 때 남의 자리로 rejoin해 서로 끊는 루프에 빠진다.
+     → 읽기·쓰기는 sessionStorage(탭 전용) 우선, localStorage에는 허브 '이어하기' 배너용으로 함께 남긴다. */
+  const SEAT={
+    get(k,d){ try{const v=sessionStorage.getItem(k); if(v!=null) return JSON.parse(v);}catch(e){} return LS.get(k,d); },
+    set(k,v){ try{sessionStorage.setItem(k,JSON.stringify(v));}catch(e){} LS.set(k,v); },
+    del(k){ try{sessionStorage.removeItem(k);}catch(e){} LS.del(k); },
+  };
   const avatar=p=>(p&&p.avatar)?p.avatar:AVATARS[((p&&p.seat)||0)%AVATARS.length];
   // 공유 아바타 기본값: 골목 공용 키(alley_avatar, 원시 이모지 문자열). 온라인 기본 아바타·피커 초기값으로 씀.
   const getStoredAvatar=()=>{try{return localStorage.getItem('alley_avatar')||null;}catch(e){return null;}};
@@ -1501,7 +1510,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
   ];
   let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('yd_ach'))||[];}catch(e){return[];}})();
-  const Stats={ data:LS.get('yd_stats',{games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0}), save(){LS.set('yd_stats',this.data);},
+  const Stats={ data:SEAT.get('yd_stats',{games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0}), save(){SEAT.set('yd_stats',this.data);},
     record(s,mine){ const me=s.players.filter(p=>mine.includes(p.pid)); if(!me.length)return false;
       const myTop=Math.max.apply(null,me.map(p=>p.total)); const beat=myTop>this.data.best;
       this.data.games++; this.data.best=Math.max(this.data.best,myTop);
@@ -1545,7 +1554,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let rematchTimer=null, rematchEndAt=0;  // P5 재경기 대기 카운트다운
   const isOnline=()=>MODE==='online';
   // P5 공유 딥링크: 온라인·연결 유지 중이면 방 코드 반환(받은 사람이 내 방으로 참가)
-  function roomCode(){ if(!isOnline())return ''; if(ws&&ws.readyState!==1)return ''; return LS.get('yd_room','')||(lobby&&lobby.code)||''; }
+  function roomCode(){ if(!isOnline())return ''; if(ws&&ws.readyState!==1)return ''; return SEAT.get('yd_room','')||(lobby&&lobby.code)||''; }
   const curPlayer=()=>S&&S.players[S.current];
   const spectating=()=>isOnline()&&S&&!S.players.some(p=>p.pid===myPid);
   function isMyTurn(){ if(!S||S.phase!=='play')return false; const c=curPlayer(); if(!c)return false; return isOnline()?c.pid===myPid:!c.ai; }
@@ -2058,8 +2067,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   $('newGame').onclick=()=>leave();
   // P5 결과창 '골목으로' — 세션 정리 후 허브(다른 게임)로 이동
-  const toHubBtn=$('toHubBtn'); if(toHubBtn)toHubBtn.onclick=()=>{ stopBlink(); if(isOnline()){LS.del('yd_room');LS.del('yd_pid');try{ws&&ws.close();}catch(e){}} location.href='./'; };
-  function leave(){ stopBlink(); if(isOnline()){LS.del('yd_room');LS.del('yd_pid');try{ws&&ws.close();}catch(e){}} location.reload(); }
+  const toHubBtn=$('toHubBtn'); if(toHubBtn)toHubBtn.onclick=()=>{ stopBlink(); if(isOnline()){SEAT.del('yd_room');SEAT.del('yd_pid');try{ws&&ws.close();}catch(e){}} location.href='./'; };
+  function leave(){ stopBlink(); if(isOnline()){SEAT.del('yd_room');SEAT.del('yd_pid');try{ws&&ws.close();}catch(e){}} location.reload(); }
 
   // ========== LOCAL setup ==========
   let modeLocal='yacht_kr', diffLocal='normal', playerCount=2;
@@ -2083,8 +2092,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   renderNames();
   const soundToggle=$('soundToggle'); soundToggle.classList.toggle('on',soundOn);
   soundToggle.onclick=()=>{soundOn=!soundOn;try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){}soundToggle.classList.toggle('on',soundOn);syncMute();};
-  let aiFastLocal=LS.get('yd_fast',false);
-  const fastL=$('fastToggleL'); if(fastL){ fastL.classList.toggle('on',aiFastLocal); fastL.onclick=()=>{aiFastLocal=!aiFastLocal;LS.set('yd_fast',aiFastLocal);fastL.classList.toggle('on',aiFastLocal);}; }
+  let aiFastLocal=SEAT.get('yd_fast',false);
+  const fastL=$('fastToggleL'); if(fastL){ fastL.classList.toggle('on',aiFastLocal); fastL.onclick=()=>{aiFastLocal=!aiFastLocal;SEAT.set('yd_fast',aiFastLocal);fastL.classList.toggle('on',aiFastLocal);}; }
   $('startLocal').onclick=()=>{ SFX.ensure(); MODE='local'; recorded=false; prevSnap=null; gameShown=false; lastMyTurn=false; sawPlay=false; const players=[]; localPids=[];
     for(let i=0;i<playerCount;i++){const nm=(nameVals[i]||'').trim()||((typeVals[i]==='ai'?'AI ':'플레이어 ')+(i+1));const pid='p'+i;players.push({pid,name:nm,color:COLORS[i],avatar:avatarVals[i],ai:typeVals[i]==='ai'});if(typeVals[i]!=='ai')localPids.push(pid);}
     if(!players.some(p=>!p.ai)){players[0].ai=false; toast('최소 1명은 사람으로 진행해요');}
@@ -2126,7 +2135,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function hideReconnFail(){ const el=$('reconnFail'); if(el)el.classList.remove('on'); }
   (function(){ const rr=$('reconnRetry'); if(rr)rr.onclick=()=>{ hideReconnFail(); reconnects=0; if(S&&S.phase==='play')$('hint').textContent='서버에 다시 연결하는 중…'; tryReconnect(); }; })();
   function onNet(m){
-    if(m.t==='me'){ myPid=m.pid; MODE='online'; reconnects=0; reconnecting=false; lastMyTurn=false; avatarPushed=false; LS.set('yd_pid',m.pid); LS.set('yd_room',m.code); $('netErr').textContent=''; hideReconnFail(); }
+    if(m.t==='me'){ myPid=m.pid; MODE='online'; reconnects=0; reconnecting=false; lastMyTurn=false; avatarPushed=false; SEAT.set('yd_pid',m.pid); SEAT.set('yd_room',m.code); $('netErr').textContent=''; hideReconnFail(); }
     else if(m.t==='lobby'){ lobby=m.room; if(bootReconnect){switchTab(false);bootReconnect=false;}
       if(m.room.phase==='lobby'){
         const cur=(m.room.members||[]).filter(x=>!x.ai);
@@ -2150,17 +2159,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(m.t==='roll'){ onRoll(m.indices); }
     else if(m.t==='reaction'){ floatReaction(m.pid,m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==myPid) addChat(m.pid,m.name,m.text); }
-    else if(m.t==='error'){ if(m.code==='no-room'||m.code==='no-seat'){LS.del('yd_room');LS.del('yd_pid');} reconnecting=false;
+    else if(m.t==='error'){ if(m.code==='no-room'||m.code==='no-seat'){SEAT.del('yd_room');SEAT.del('yd_pid');} reconnecting=false;
       if(bootReconnect){ bootReconnect=false; switchTab(true); $('netErr').textContent=''; const ur=(new URLSearchParams(location.search)).get('room'); if(ur){ switchTab(false); $('joinBox').style.display='block'; $('joinCode').value=ur.toUpperCase(); } } else { $('netErr').textContent=m.msg||'오류'; showJoinUI(); } }
   }
-  function tryReconnect(){ const room=LS.get('yd_room'),pid=LS.get('yd_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
+  function tryReconnect(){ const room=SEAT.get('yd_room'),pid=SEAT.get('yd_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
   $('createRoom').onclick=()=>{ SFX.ensure(); const raw=($('onlineName').value||'').trim(); rememberName(raw); const name=raw||'호스트'; reconnects=0; gameShown=false; connect(()=>wsSend({t:'create',name})); };
   $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
   $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinRoom').onclick(); } });
   $('joinRoom').onclick=()=>{ SFX.ensure(); const raw=($('onlineName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){$('netErr').textContent='방 코드 4자리를 입력해';return;} rememberName(raw); const name=raw||'게스트'; reconnects=0; gameShown=false; connect(()=>wsSend({t:'join',code,name})); };
   function showJoinUI(){ $('onlineJoin').style.display='block'; $('lobby').style.display='none'; }
   // 로비에서 방 나가기 → 연결 끊고 세션 지운 뒤 방 만들기/참가 화면으로 복귀 (자동 재접속에 갇히지 않게)
-  function leaveLobby(){ LS.del('yd_room'); LS.del('yd_pid'); reconnects=99; reconnecting=false;
+  function leaveLobby(){ SEAT.del('yd_room'); SEAT.del('yd_pid'); reconnects=99; reconnecting=false;
     try{ if(ws){ ws.onclose=null; ws.close(); } }catch(e){} ws=null; MODE=null; lobby=null; S=null; prevSnap=null;
     showJoinUI(); switchTab(false); $('netErr').textContent=''; }
   $('lobbyLeave').onclick=leaveLobby;
@@ -2288,7 +2297,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     document.body.appendChild(d); setTimeout(function(){d.remove();},4500); }
   (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>{applyTheme(id); if(DISGUISE.includes(id))disguiseHint(id);};box.appendChild(b);}); })();
   renderStats(); renderAch();
-  (function(){ const room=LS.get('yd_room'),pid=LS.get('yd_pid');
+  (function(){ const room=SEAT.get('yd_room'),pid=SEAT.get('yd_pid');
     if(room&&pid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; connect(()=>wsSend({t:'rejoin',code:room,pid})); return; }
     let savedName=''; try{ savedName=(localStorage.getItem('alley_name')||'').trim(); }catch(e){}
     if(savedName) $('onlineName').value=savedName;

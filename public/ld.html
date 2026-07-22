@@ -807,7 +807,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   let online=false, ws=null, roomCode=null, lobby=null, amHost=false;
   let reconnects=0, reconnecting=false, bootReconnect=false;   // onclose 자동 재접속용
   function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
-  function tryReconnect(){ const room=lsGet('ld_room'), pid=lsGet('ld_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
+  /* 자리(방코드·pid)는 '탭 단위' 소유물이다.
+     localStorage에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써서,
+     먼저 있던 탭이 새로고침(=모바일 복귀)할 때 남의 자리로 rejoin해 서로 끊는 루프에 빠진다.
+     → 읽기·쓰기는 sessionStorage(탭 전용) 우선, localStorage에는 허브 '이어하기' 배너용으로 함께 남긴다.
+     (함수 선언이라 호이스팅됨 — 위쪽 코드에서 먼저 불려도 안전) */
+  function seatGet(k){ try{ const v=sessionStorage.getItem(k); if(v!=null) return v; }catch(e){} try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function seatSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} try{ localStorage.setItem(k,v); }catch(e){} }
+  function seatDel(k){ try{ sessionStorage.removeItem(k); }catch(e){} try{ localStorage.removeItem(k); }catch(e){} }
+  function tryReconnect(){ const room=seatGet('ld_room'), pid=seatGet('ld_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
 
   let engine=null, S=null, cfg={n:3, diff:'normal', spotOn:true, dice:5, wild:true};
   try{ const d=+localStorage.getItem('ld_dice'); if(d===3||d===5) cfg.dice=d; }catch(e){}
@@ -914,17 +922,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     paint();
     if(!rematchCountTimer){ rematchCountTimer=setInterval(()=>{ rematchCountLeft=Math.max(0,rematchCountLeft-1); paint(); if(rematchCountLeft<=0) stopRematchCountdown(); },1000); }
   }
-  function rematchLeave(){ try{teardownNet();}catch(e){} try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.reload(); }
+  function rematchLeave(){ try{teardownNet();}catch(e){} try{seatDel('ld_room');seatDel('ld_pid');}catch(e){} location.reload(); }
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
-  $('toHub').onclick=()=>{ try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} location.href='./'; };   // 골목으로 나가면 방 복귀 정보도 정리
+  $('toHub').onclick=()=>{ try{seatDel('ld_room');seatDel('ld_pid');}catch(e){} location.href='./'; };   // 골목으로 나가면 방 복귀 정보도 정리
   $('endBtn').onclick=()=>{ if(online && amHost && confirm('이 판을 끝내고 모두 로비로 돌아갈까요?')) wsSend({t:'endGame'}); };
   // ← (골목으로): 게임 진행 중이면 실수로 나가지 않도록 확인창
   $('backHub').onclick=(e)=>{
     const inGame = $('game').style.display==='block' && !$('resultOv').classList.contains('on');
     if(inGame){
       if(!confirm('게임을 나가고 골목으로 돌아갈까요?')){ e.preventDefault(); return; }
-      try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(_){}   // 확인 후 나가면 자동 재접속 안 되게 세션 정리
+      try{seatDel('ld_room');seatDel('ld_pid');}catch(_){}   // 확인 후 나가면 자동 재접속 안 되게 세션 정리
     }
   };
   // 방 유지 중이면 딥링크(?room=CODE)로 — 친구가 링크를 열면 바로 같은 방에 참가
@@ -1047,7 +1055,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   function start(){
     teardownNet(); online=false; MYPID='me'; ffActive=false; localDiff=cfg.diff||'normal';
-    try{ localStorage.removeItem('ld_room'); localStorage.removeItem('ld_pid'); }catch(e){}
+    try{ seatDel('ld_room'); seatDel('ld_pid'); }catch(e){}
     if(engine){ engine.destroy(); engine=null; }
     const players=[{pid:MYPID,name:'나',avatar:loadAvatar()||'😎',ai:false}];
     const av=[...OPP_AV].sort(()=>Math.random()-.5), nm=[...OPP_NM].sort(()=>Math.random()-.5);
@@ -1092,7 +1100,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
   function onNet(m){
-    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{localStorage.setItem('ld_room',roomCode);localStorage.setItem('ld_pid',MYPID);}catch(e){}
+    if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; reconnecting=false; bootReconnect=false; try{seatSet('ld_room',roomCode);seatSet('ld_pid',MYPID);}catch(e){}
       const _av=loadAvatar(); if(_av) wsSend({t:'setAvatar',emoji:_av}); }   // 저장된 공유 아바타를 온라인 기본값으로 적용
     else if(m.t==='lobby'){
       const cur=m.room.members;
@@ -1118,7 +1126,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       render();
     }
     else if(m.t==='error'){ reconnecting=false; bootReconnect=false;
-      if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} }
+      if(m.code){ $('onErr').textContent=m.msg||'오류'; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); try{seatDel('ld_room');seatDel('ld_pid');}catch(e){} }
       else showToast(m.msg||'오류'); }   // 비치명 경고는 세션 유지
     else if(m.t==='reaction'){ floatReaction(m.pid, m.emoji); }
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
@@ -1179,7 +1187,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else fb(); };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ const code=(lobby&&lobby.code)||roomCode||''; if(!code)return; copyText(code); showToast('방 코드 복사됨'); };
-  $('lobbyLeave').onclick=()=>{ teardownNet(); try{localStorage.removeItem('ld_room');localStorage.removeItem('ld_pid');}catch(e){} lobby=null; online=false; $('lobbyOv').classList.remove('on'); resetSetupMode(); openSetup(); };
+  $('lobbyLeave').onclick=()=>{ teardownNet(); try{seatDel('ld_room');seatDel('ld_pid');}catch(e){} lobby=null; online=false; $('lobbyOv').classList.remove('on'); resetSetupMode(); openSetup(); };
 
   // ---------- render ----------
   function mySeat(){ return S.players.findIndex(p=>p.pid===MYPID); }
@@ -1692,7 +1700,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   (function boot(){
     const room=new URLSearchParams(location.search).get('room');
-    let sr=null,sp=null; try{sr=localStorage.getItem('ld_room');sp=localStorage.getItem('ld_pid');}catch(e){}
+    let sr=null,sp=null; try{sr=seatGet('ld_room');sp=seatGet('ld_pid');}catch(e){}
     const nm=loadName(); if(nm && $('onName')) $('onName').value=nm;   // 이름 프리필
     // 저장 세션 rejoin 우선
     if(sr && sp && location.protocol!=='file:'){ online=true; bootReconnect=true; connect(()=>wsSend({t:'rejoin',code:sr,pid:sp})); return; }
