@@ -137,8 +137,10 @@
       this.moveSeq = 0; this.lastMovePath = null;  // 말 이동 경로(연출용)
       this.skipSeq = 0; this.lastSkip = null;  // 이동 불가 턴 넘김(연출용)
       this.rng = opt.rng || Math.random;
-      // 구렁텅이: 매판 랜덤으로 순수 outer 칸(지름길·합류칸 제외) 하나에 함정
-      { const pitCand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]; this.pitNode = pitCand[Math.floor(this.rng() * pitCand.length)]; }
+      // 구렁텅이(늪): 매판 랜덤으로 순수 outer 칸(지름길·합류칸 제외) 하나에 함정. 옵션으로 끌 수 있다(pit:false → -1).
+      this.pitOn = opt.pit !== false;
+      if (this.pitOn) { const pitCand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]; this.pitNode = pitCand[Math.floor(this.rng() * pitCand.length)]; }
+      else this.pitNode = -1;
       this.pitSeq = 0; this.pitFall = null;  // 구렁텅이 연출용
       // 오늘의 규칙: 매 판 랜덤 변형(null=평범). 팀전 포함.
       this.dailyOn = opt.dailyRule !== false;
@@ -147,13 +149,19 @@
       // 일반 모드로 시작했는데 말이 먼저 나와 있으면 모드 선택과 충돌해 헷갈린다.
       if (this.dailyOn) { const rr = [null, null, 'catchfest', 'bigbackdo', 'goldrain']; this.dailyRule = rr[Math.floor(this.rng() * rr.length)]; }
       // 이벤트 칸: 늪 외 랜덤 outer 칸에 특수 효과(부스터/보너스/후퇴/황금). 황금비 규칙이면 더 많이.
-      this.eventOn = opt.eventTiles !== false;
+      // 종류별로 켜고 끌 수 있다(opt.eventTypes). 지정 안 하면 4종 전부.
+      const ALL_EV = ['boost', 'bonus', 'back', 'gold'];
+      this.eventTypes = Array.isArray(opt.eventTypes) ? opt.eventTypes.filter(t => ALL_EV.includes(t)) : ALL_EV.slice();
+      this.eventOn = opt.eventTiles !== false && this.eventTypes.length > 0;
       this.eventTiles = {};  // node → 'boost'|'bonus'|'back'|'gold'
       if (this.eventOn) {
         const cand = [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14].filter(n => n !== this.pitNode);
         for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(this.rng() * (k + 1)); const t = cand[k]; cand[k] = cand[j]; cand[j] = t; }
-        const types = (this.dailyRule === 'goldrain') ? ['gold', 'gold', 'boost', 'bonus', 'gold'] : ['boost', 'bonus', 'back', 'gold'];
-        const nT = (this.dailyRule === 'goldrain') ? 5 : 3;
+        // 황금비(오늘의 규칙)는 황금을 켰을 때만 의미가 있다 — 껐으면 평소 배치로 돌아간다
+        const gold = this.eventTypes.includes('gold');
+        const rain = this.dailyRule === 'goldrain' && gold;
+        const types = rain ? ['gold', 'gold'].concat(this.eventTypes.filter(t => t !== 'gold'), ['gold']) : this.eventTypes;
+        const nT = rain ? 5 : 3;   // 칸 수는 늘 3개 — 종류를 하나만 켜면 그 종류로 3칸(types를 순환)
         for (let k = 0; k < nT && k < cand.length; k++) this.eventTiles[cand[k]] = types[k % types.length];
       }
       this.eventSeq = 0; this.eventFx = null;  // 이벤트 발동 연출용
@@ -561,7 +569,7 @@
         lastThrow: this.lastThrow ? { ...this.lastThrow } : null, throwSeq: this.throwSeq,
         winner: this.winner, rankings: this.rankings.slice(), captured: this.captured ? { ...this.captured } : null, lastMovePath: this.lastMovePath, lastSkip: this.lastSkip,
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
-        eventTiles: Object.assign({}, this.eventTiles), dailyRule: this.dailyRule,
+        eventTiles: Object.assign({}, this.eventTiles), eventTypes: this.eventTypes.slice(), pitOn: this.pitOn, dailyRule: this.dailyRule,
         eventFx: this.eventFx ? { ...this.eventFx } : null,
         itemBattle: this.itemBattle, speedStart: this.speedStart, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
