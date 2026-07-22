@@ -40,7 +40,7 @@
   }
   function step(node, route, out, steps, dir) {
     if (!out) {
-      if (steps < 0) return { node: SEQ.outer[0], route: 'outer', out: true };   // 빽도로 첫 진입: 출발점(node 0)에 선다(이후 도~모로 전진)
+      if (steps < 0) return { node: 29, route: 'outer', out: true };   // 빽도로 첫 진입: 출발점 자리(=완주 게이트 29)에 선다 → 다음 도~모면 바로 완주
       if (steps >= SEQ.outer.length) return { done: true };
       return { node: SEQ.outer[steps], route: 'outer', out: true };
     }
@@ -54,7 +54,12 @@
     const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
     if (steps < 0) {
       if (i <= 0) return { noMove: true };
-      return { node: seq[i - 1], route: rname, out: true };   // 빽도: 뒤로 한 칸(출발점에 서면 그대로 머무름, 자동으로 나가지 않음)
+      // 빽도: 뒤로 한 칸. 첫 칸(1)에서 물러나면 출발점 자리 = 완주 게이트(29)다 → 다음 도~모면 완주.
+      // (0과 29는 같은 칸에 렌더된다. 물러선 말을 0이 아니라 29로 두면 '한 바퀴 다 돈 자리'가 되어 정통 규칙과 맞는다.)
+      // ⚠️ 빽도(-1)에만 적용한다. 후퇴 이벤트(-2)까지 29로 보내면 '뒤로 2칸' 페널티가
+      //    오히려 완주 직전 보너스가 되어 규칙이 뒤집힌다(실제로 그렇게 터졌다).
+      const back = seq[i - 1];
+      return { node: (steps === -1 && rname === 'outer' && back === 0) ? 29 : back, route: rname, out: true };
     }
     const ni = i + steps;
     if (ni >= seq.length) return { done: true };
@@ -68,7 +73,7 @@
     const path = [];
     if (!steps) return path;
     if (!out) {                                   // 대기 말이 판에 나옴: outer[1..steps]
-      if (steps < 0) return [{ node: SEQ.outer[0], route: 'outer' }];   // 빽도 첫 진입 → 출발점(node 0)
+      if (steps < 0) return [{ node: 29, route: 'outer' }];   // 빽도 첫 진입 → 출발점 자리(완주 게이트 29)
 
       for (let s = 1; s <= steps; s++) { if (s >= SEQ.outer.length) { path.push({ done: true }); return path; } path.push({ node: SEQ.outer[s], route: 'outer' }); }
       return path;
@@ -82,7 +87,10 @@
     if (i < 0) return path;
     const rname = (seq === SEQ.sc5) ? 'sc5' : (seq === SEQ.sc10) ? 'sc10' : 'outer';
     if (steps < 0) {                              // 후퇴(빽도 등): 같은 route에서 한 칸씩 뒤로
-      for (let s = 1; s <= -steps; s++) { const ni = i - s; if (ni < 0) break; path.push({ node: seq[ni], route: rname }); }
+      // step()과 동일하게, 빽도(-1)일 때만 outer의 0을 완주 게이트(29)로 둔다
+      // (경로 마지막 칸 ≡ step() 최종 위치 보장 / 후퇴 -2는 그대로 0에 세워 페널티 유지)
+      for (let s = 1; s <= -steps; s++) { const ni = i - s; if (ni < 0) break;
+        const nd = seq[ni]; path.push({ node: (steps === -1 && rname === 'outer' && nd === 0) ? 29 : nd, route: rname }); }
       return path;
     }
     for (let s = 1; s <= steps; s++) { const ni = i + s; if (ni >= seq.length) { path.push({ done: true }); return path; } path.push({ node: seq[ni], route: rname }); }
