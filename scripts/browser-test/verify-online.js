@@ -113,6 +113,18 @@ async function seatOwnership(cdp, g, cfg) {
       (await visible(A, cfg.game)) && (await A.eval(`return sessionStorage.getItem('${key}_pid');`)) === pA, 15000));
     ok(`[${g}] 상대 자리 안 뺏김`, (await B.eval(`return sessionStorage.getItem('${key}_pid');`)) === pB);
     ok(`[${g}] 허브 '이어하기'용 localStorage 유지`, !!(await A.eval(`return localStorage.getItem('${key}_room');`)));
+
+    // 초대 링크를 같은 브라우저의 '새 탭'으로 연 경우: sessionStorage가 비어 localStorage로 폴백하는데,
+    // 그 자리는 A/B가 쓰는 중이다 → BroadcastChannel로 물어보고 자동 rejoin을 포기해야 한다(v1.154).
+    const C = await cdp.newPage();
+    try {
+      await C.goto(`${url}?room=${code}`);
+      await wait(2500);
+      const pC = await C.eval(`return sessionStorage.getItem('${key}_pid');`);
+      ok(`[${g}] 새 탭이 남의 자리 안 뺏음`, pC !== pA && pC !== pB, 'C=' + pC);
+      ok(`[${g}] 새 탭 때문에 기존 탭이 안 끊김`,
+        (await visible(A, cfg.game)) && (await A.eval(`return sessionStorage.getItem('${key}_pid');`)) === pA);
+    } finally { await C.close(); }
   } finally { await A.close(); await B.close(); }
 }
 

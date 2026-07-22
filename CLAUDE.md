@@ -97,7 +97,7 @@ git add -A && git commit -m "..." && git push
    - **판을 축소한 몽타주로는 옅은 연출을 판정할 수 없다** — 지름 2px짜리 α.22 점은 뭉개져 "안 보인다"로 오판한다. 농도 판정은 원본 해상도로.
    - **나무판 위에서 밝은 갈색은 안 보인다.** `rgba(150,120,80,.14)`로 넣었다가 사실상 비가시였고, `rgba(90,66,40,.22)`(어두운 갈색)로 바꿔서야 은은하게 보였다. 새 연출 색은 `capture.js alpha`로 후보를 늘어놓고 고를 것.
 
-8. **방/자리(pid)는 탭 단위다** — 방 코드·pid를 `localStorage`에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써, 먼저 있던 탭이 새로고침(모바일 복귀)할 때 **남의 자리로 rejoin**해 서로 끊는 루프에 빠진다. → 5종 모두 `sessionStorage`(탭 전용) 우선 읽기/쓰기(`seatGet/seatSet/seatDel`, 요트는 `SEAT`)를 쓰고, `localStorage`에는 허브 '이어하기' 배너용으로 함께 남긴다. 회귀 테스트: `npm run test:online2p`.
+8. **방/자리(pid)는 탭 단위다** — 방 코드·pid를 `localStorage`에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써, 먼저 있던 탭이 새로고침(모바일 복귀)할 때 **남의 자리로 rejoin**해 서로 끊는 루프에 빠진다. → 5종 모두 `sessionStorage`(탭 전용) 우선 읽기/쓰기(`seatGet/seatSet/seatDel`, 요트는 `SEAT`)를 쓰고, `localStorage`에는 허브 '이어하기' 배너용으로 함께 남긴다. **새 탭(초대 링크로 방금 연 탭)은 sessionStorage가 비어 localStorage로 폴백**하므로 여기서도 자리를 뺏을 수 있다 → 부트에서 `BroadcastChannel('alley_seat')`로 "이 자리 쓰는 탭 있냐"를 묻고(250ms) 있으면 자동 rejoin을 포기한다(v1.155). 회귀 테스트: `npm run test:online2p`.
 
 ## 코딩 규칙
 

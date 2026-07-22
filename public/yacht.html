@@ -1484,6 +1484,27 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     set(k,v){ try{sessionStorage.setItem(k,JSON.stringify(v));}catch(e){} LS.set(k,v); },
     del(k){ try{sessionStorage.removeItem(k);}catch(e){} LS.del(k); },
   };
+  /* 다른 탭이 이 자리를 쓰는 중인지 물어본다(BroadcastChannel, 5종 공용 채널).
+     sessionStorage가 빈 '새 탭'(초대 링크로 방금 연 탭)만 localStorage로 폴백하는데,
+     그 자리를 이미 쓰는 탭이 있으면 폴백이 남의 자리를 빼앗는다 → 부트에서만 확인하고 폴백을 포기한다.
+     응답이 없으면(구형 브라우저·다른 탭 없음) 250ms 뒤 '없음'으로 진행한다. */
+  const SEAT_NS='yd';
+  let seatBC=null; try{ seatBC=new BroadcastChannel('alley_seat'); }catch(e){}
+  if(seatBC) seatBC.addEventListener('message',ev=>{ const d=ev.data||{};
+    if(d.t!=='seat?'||d.ns!==SEAT_NS) return;
+    let r=null,p=null; try{ const a=sessionStorage.getItem('yd_room'),b=sessionStorage.getItem('yd_pid'); if(a!=null)r=JSON.parse(a); if(b!=null)p=JSON.parse(b); }catch(e){}
+    if(r&&p&&r===d.room&&p===d.pid){ try{ seatBC.postMessage({t:'seat!',ns:SEAT_NS,room:r,pid:p}); }catch(e){} }
+  });
+  function seatFromThisTab(){ try{ return sessionStorage.getItem(SEAT_NS+'_room')!=null; }catch(e){ return false; } }
+  function seatHeldByOtherTab(room,pid){
+    return new Promise(res=>{ if(!seatBC) return res(false);
+      let done=false; const fin=v=>{ if(done)return; done=true; try{seatBC.removeEventListener('message',on);}catch(e){} res(v); };
+      const on=ev=>{ const d=ev.data||{}; if(d.t==='seat!'&&d.ns===SEAT_NS&&d.room===room&&d.pid===pid) fin(true); };
+      seatBC.addEventListener('message',on);
+      try{ seatBC.postMessage({t:'seat?',ns:SEAT_NS,room,pid}); }catch(e){ return fin(false); }
+      setTimeout(()=>fin(false),250);
+    });
+  }
   const avatar=p=>(p&&p.avatar)?p.avatar:AVATARS[((p&&p.seat)||0)%AVATARS.length];
   // 공유 아바타 기본값: 골목 공용 키(alley_avatar, 원시 이모지 문자열). 온라인 기본 아바타·피커 초기값으로 씀.
   const getStoredAvatar=()=>{try{return localStorage.getItem('alley_avatar')||null;}catch(e){return null;}};
@@ -2297,8 +2318,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     document.body.appendChild(d); setTimeout(function(){d.remove();},4500); }
   (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>{applyTheme(id); if(DISGUISE.includes(id))disguiseHint(id);};box.appendChild(b);}); })();
   renderStats(); renderAch();
-  (function(){ const room=SEAT.get('yd_room'),pid=SEAT.get('yd_pid');
-    if(room&&pid&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; connect(()=>wsSend({t:'rejoin',code:room,pid})); return; }
+  (async function(){ const room=SEAT.get('yd_room'),pid=SEAT.get('yd_pid');
+    // 다른 탭이 쓰는 자리면 자동 rejoin을 건너뛴다(초대 링크를 같은 브라우저 새 탭으로 연 경우).
+    const stealing = room&&pid&&!seatFromThisTab() && await seatHeldByOtherTab(room,pid);
+    if(room&&pid&&!stealing&&location.protocol!=='file:'){ bootReconnect=true; reconnecting=true; reconnects=0; connect(()=>wsSend({t:'rejoin',code:room,pid})); return; }
     let savedName=''; try{ savedName=(localStorage.getItem('alley_name')||'').trim(); }catch(e){}
     if(savedName) $('onlineName').value=savedName;
     const ur=(new URLSearchParams(location.search)).get('room');

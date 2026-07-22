@@ -1151,6 +1151,27 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function seatGet(k){ try{ const v=sessionStorage.getItem(k); if(v!=null) return v; }catch(e){} try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function seatSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} try{ localStorage.setItem(k,v); }catch(e){} }
   function seatDel(k){ try{ sessionStorage.removeItem(k); }catch(e){} try{ localStorage.removeItem(k); }catch(e){} }
+  /* 다른 탭이 이 자리를 쓰는 중인지 물어본다(BroadcastChannel, 5종 공용 채널).
+     sessionStorage가 빈 '새 탭'(초대 링크로 방금 연 탭)만 localStorage로 폴백하는데,
+     그 자리를 이미 쓰는 탭이 있으면 폴백이 남의 자리를 빼앗는다 → 부트에서만 확인하고 폴백을 포기한다.
+     응답이 없으면(구형 브라우저·다른 탭 없음) 250ms 뒤 '없음'으로 진행한다. */
+  const SEAT_NS='kb';
+  let seatBC=null; try{ seatBC=new BroadcastChannel('alley_seat'); }catch(e){}
+  if(seatBC) seatBC.addEventListener('message',ev=>{ const d=ev.data||{};
+    if(d.t!=='seat?'||d.ns!==SEAT_NS) return;
+    let r=null,p=null; try{ r=sessionStorage.getItem(SEAT_NS+'_room'); p=sessionStorage.getItem(SEAT_NS+'_pid'); }catch(e){}
+    if(r&&p&&r===d.room&&p===d.pid){ try{ seatBC.postMessage({t:'seat!',ns:SEAT_NS,room:r,pid:p}); }catch(e){} }
+  });
+  function seatFromThisTab(){ try{ return sessionStorage.getItem(SEAT_NS+'_room')!=null; }catch(e){ return false; } }
+  function seatHeldByOtherTab(room,pid){
+    return new Promise(res=>{ if(!seatBC) return res(false);
+      let done=false; const fin=v=>{ if(done)return; done=true; try{seatBC.removeEventListener('message',on);}catch(e){} res(v); };
+      const on=ev=>{ const d=ev.data||{}; if(d.t==='seat!'&&d.ns===SEAT_NS&&d.room===room&&d.pid===pid) fin(true); };
+      seatBC.addEventListener('message',on);
+      try{ seatBC.postMessage({t:'seat?',ns:SEAT_NS,room,pid}); }catch(e){ return fin(false); }
+      setTimeout(()=>fin(false),250);
+    });
+  }
   function tryReconnect(){ const room=seatGet('kb_room'), pid=seatGet('kb_pid');
     if(room && pid && (!ws || ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
   function showReconnectFail(){ let e=document.getElementById('coldstart');
@@ -1790,11 +1811,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function resetSetup(){ mode='ai'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('diffWrap').style.display='block'; $('matchWrap').style.display='block'; $('onlineBox').style.display='none'; $('startBtn').style.display='block'; $('onErr').textContent=''; }
 
   // ---------- boot ----------
-  (function boot(){
+  (async function boot(){
     const params=new URLSearchParams(location.search);
     const room=params.get('room');
     let savedRoom=null, savedPid=null, savedName='';
     try{ savedRoom=seatGet('kb_room'); savedPid=seatGet('kb_pid'); }catch(e){}
+    // 다른 탭이 쓰는 자리면 폴백 포기(초대 링크를 같은 브라우저 새 탭으로 연 경우)
+    if(savedRoom&&savedPid&&!seatFromThisTab()&&await seatHeldByOtherTab(savedRoom,savedPid)){ savedRoom=savedPid=null; }
     try{ savedName=(localStorage.getItem('alley_name')||'').trim(); }catch(e){}
     if(savedName) $('onName').value=savedName;
     if(savedRoom && savedPid && location.protocol!=='file:'){
