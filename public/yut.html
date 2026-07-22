@@ -915,6 +915,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* 대전 방식 3택 칩 — 설명 한 줄을 칩 안에 넣는다 */
   .opts.bmode .opt{ display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.25;padding:9px 6px }
   .opts.bmode .opt small{ font-size:9.5px;font-weight:700;opacity:.72;white-space:nowrap }
+  /* 채팅·반응은 판 바로 아래(가운데 컬럼) — 예전엔 왼쪽 컬럼 맨 아래라 모바일에서 한참 스크롤해야 했다 */
+  .game-center .chatbox, .game-center .reactzone{ width:100%; max-width:600px; align-self:center }
+  .game-center .chatbox{ margin-top:8px }
+  @media (min-width:1100px) and (min-height:760px){
+    /* 채팅이 붙는 온라인 판에선 판을 조금 낮춰 판+채팅이 한 화면에 들어오게 */
+    body.ingame.haschat .game-center .board{ max-width:min(520px, calc(100vh - 470px)) }
+  }
 </style>
 </head>
 <body>
@@ -953,6 +960,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <div class="game-col game-left">
         <div class="charcards" id="charCards"></div>
         <div class="mission-panel" id="missionPanel"></div>
+      </div>
+      <div class="game-col game-center">
+        <div class="players-strip" id="playersStrip"></div>
+        <div class="orderpanel" id="orderPanel" style="display:none"></div>
+        <div class="speech-bubble" id="speechBubble"></div>
+        <svg class="board" id="board" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="윷놀이 게임판"><g id="boardLayer"></g><g id="fxLayer"></g><g id="pieceLayer"></g></svg>
+        <div class="reactzone" id="reactzone" style="display:none">
+          <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
+          <div class="reactbar" id="reactbar"></div>
+        </div>
         <div class="chatbox" id="chatBox" style="display:none">
           <div class="chatlog" id="chatLog"></div>
           <div class="chatrow">
@@ -960,16 +977,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
             <button id="chatSend">보내기</button>
           </div>
         </div>
-        <div class="reactzone" id="reactzone" style="display:none">
-          <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
-          <div class="reactbar" id="reactbar"></div>
-        </div>
-      </div>
-      <div class="game-col game-center">
-        <div class="players-strip" id="playersStrip"></div>
-        <div class="orderpanel" id="orderPanel" style="display:none"></div>
-        <div class="speech-bubble" id="speechBubble"></div>
-        <svg class="board" id="board" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="윷놀이 게임판"><g id="boardLayer"></g><g id="fxLayer"></g><g id="pieceLayer"></g></svg>
+
       </div>
       <div class="game-col game-right">
         <div class="turninfo" id="turnInfo" role="status" aria-live="polite"></div>
@@ -2068,7 +2076,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         setupReactToggle();
       }
       $('chatBox').style.display='block'; setupChat();
-    } else { $('reactzone').style.display='none'; $('chatBox').style.display='none'; }
+      document.body.classList.add('haschat');
+    } else { $('reactzone').style.display='none'; $('chatBox').style.display='none'; document.body.classList.remove('haschat'); }
   }
   function setupReactToggle(){ const tog=$('reactToggle'), bar=$('reactbar');
     tog.onclick=(e)=>{ e.stopPropagation(); const open=bar.classList.toggle('open'); tog.classList.toggle('open',open); };
