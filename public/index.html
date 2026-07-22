@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>주사위 골목 — Dice Alley</title>
+<!-- 계측(쿠키리스) — 퍼널: 진입 → 게임시작 → 1판완료 → 재방문. 상세: public/analytics.js -->
+<script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
+<script src="analytics.js"></script>
 <meta name="description" content="주사위 골목 — 설치 없이 링크 하나로 친구와 즐기는 다섯 가지 주사위·보드게임. 윷놀이, 요트 다이스, 너클본즈, 라이어 다이스, 좌·중·우.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/">
@@ -309,7 +312,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic" style="font-size:23px;letter-spacing:-3px">🎲🎲</div>
         <div><h2>요트 다이스</h2><div class="sub">상단 보너스·콤보·온라인 멀티까지. 친구들과 방 잡고 점수 대결.</div></div>
       </div>
-      <div class="meta"><span class="pill">2~6인</span><span class="pill">AI</span><span class="pill">온라인</span></div>
+      <div class="meta"><span class="pill">2~6인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">🫥 위장 모드</span></div>
     </a>
 
     <a class="gcard" href="ld.html">
@@ -336,7 +339,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
   </div>
 
-  <p class="foot">주사위 골목 · 다섯 가지 주사위 게임이 모였다 🎲</p>
+  <p class="foot">주사위 골목 · 다섯 가지 주사위 게임이 모였다 🎲<br>
+    <a href="privacy.html" style="color:inherit;opacity:.75;font-size:12px">개인정보 처리방침</a></p>
 </div>
 <div class="metatoast" id="metaToast"><span class="me">🏅</span><div class="mt"><b>도전과제 달성!</b><span id="metaToastTxt"></span></div></div>
 <div class="installbar" id="installBar">
@@ -665,6 +669,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     if(v){ curAv=v; set('alley_avatar',v); } else { curAv=''; set('alley_avatar',''); }
     refreshPreview(); markChips();
   });
+})();</script>
+<script>(function(){
+  // 계측 — 허브에서 어느 게임으로 갔는지(퍼널: 진입 → 게임 선택)
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest && e.target.closest('a.gcard[href]');
+    if (!a) return;
+    var name = (a.querySelector('h2') || {}).textContent || a.getAttribute('href');
+    try { window.AL && AL.ev('허브_카드클릭', { 게임: name.trim() }); } catch(err){}
+  }, true);
 })();</script>
 </body>
 </html>

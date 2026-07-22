@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>너클본즈 — 주사위 골목</title>
+<!-- 계측(쿠키리스) — 퍼널: 진입 → 게임시작 → 1판완료 → 재방문. 상세: public/analytics.js -->
+<script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
+<script src="analytics.js"></script>
 <meta name="description" content="너클본즈 — 같은 눈을 겹쳐 점수를 키우고 상대 주사위를 부수는 전략 주사위 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/kb.html">
@@ -442,6 +445,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
   .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
   .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
+  /* 레벨·XP (윷 v1.148과 같은 체계) — 셋업 진행 바 + 결과창 XP 블록 */
+  .levelbar{ display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,color-mix(in srgb,var(--brass) 12%,var(--panel2)),var(--panel2));
+    border:1.5px solid color-mix(in srgb,var(--brass) 30%,var(--line));border-radius:13px;padding:9px 13px;margin:6px 0 10px }
+  .levelbar .lv-badge{ flex:none;width:42px;height:42px;border-radius:11px;background:linear-gradient(160deg,var(--brass),color-mix(in srgb,var(--brass) 70%,#000));color:#241606;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.3) }
+  .levelbar .lv-badge .lvn{ font-size:16px } .levelbar .lv-badge .lvl{ font-size:8px;opacity:.85;margin-top:1px }
+  .levelbar .lv-mid{ flex:1;min-width:0;text-align:left }
+  .levelbar .lv-title{ font-size:13.5px;font-weight:900;color:var(--ink) }
+  .lv-track{ height:8px;border-radius:999px;background:var(--panel);overflow:hidden;margin-top:5px;border:1px solid var(--line) }
+  .lv-fill{ height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--brass) 70%,#000),var(--brass));transition:width .5s cubic-bezier(.2,.9,.3,1) }
+  .levelbar .lv-xp{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:3px }
+  .levelbar .lv-xp b{ color:var(--brass) }
+  .growth-xp{ background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-top:6px }
+  .growth-xp .gx-top{ display:flex;align-items:center;justify-content:space-between;margin-bottom:6px }
+  .growth-xp .gx-lv{ font-size:12.5px;font-weight:900;color:var(--ink) }
+  .growth-xp .gx-gain{ font-size:12.5px;font-weight:900;color:var(--brass) }
+  .growth-xp .gx-sub{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;text-align:right }
+  .growth-levelup{ font-size:13.5px;font-weight:900;color:var(--brass);text-align:center;background:color-mix(in srgb,var(--brass) 15%,transparent);border:1.5px solid var(--brass);border-radius:11px;padding:9px 12px;margin-top:6px }
+  .growth-levelup b{ color:var(--ink) }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -523,6 +545,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   <div class="sheet">
     <h3>너클본즈</h3>
     <p>주사위를 굴려 내 격자에 놓고, 같은 줄에 같은 수를 모아 점수를 폭증시켜. 내가 놓은 수는 상대 같은 줄의 같은 수를 부숴버려.</p>
+    <div class="levelbar" id="levelBar"></div>
     <div class="statsbar" id="statsbar"></div>
     <div class="achbar" id="achbar"></div>
     <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
@@ -1416,7 +1439,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function alreadyRecorded(){ try{ return localStorage.getItem('kb_lastres')===resultKey(); }catch(e){ return false; } }
   function markRecorded(){ try{ localStorage.setItem('kb_lastres', resultKey()); }catch(e){} }
         if(!alreadyRecorded()){ Stats.record(my>op, my); markRecorded(); }
-        growthInfo={ won:my>op, tie:my===op, wins:Stats.d.wins, streak:Stats.d.streak, score:my,
+        growthInfo={ won:my>op, tie:my===op, wins:Stats.d.wins, streak:Stats.d.streak, score:my, L:levelOf(Stats.d.xp), xp:Stats._lastXp,
           newBest:(my>beforeBest && my>0),
           newAch: ACH_KB.filter(a=>achUnlocked.includes(a.id) && !beforeAch.includes(a.id)) };
         // 로컬 선승제: 판 승자에 승수 누적(동점 판은 변화 없음), 먼저 2승이면 매치 종료
@@ -1812,6 +1835,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     if(g.newBest) line+=`<br>내 점수 <span class="hl">${g.score}점</span> — 최고 기록 경신! 🏆`;
     let html=`<div class="growth-line">${line}</div>`;
+    if(g.L){ const L=g.L, pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100)), gained=g.xp?g.xp.gain:0;
+      if(g.xp&&g.xp.leveled) html+=`<div class="growth-levelup">⭐ 레벨 업 — <b>Lv.${g.xp.leveled.lv} ${g.xp.leveled.title}</b> 달성!</div>`;
+      html+=`<div class="growth-xp"><div class="gx-top"><span class="gx-lv">Lv.${L.lv} · ${L.title}</span>${gained?`<span class="gx-gain">+${gained} XP</span>`:''}</div>`
+        +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+        +`<div class="gx-sub">${L.cap?`최고 레벨 · 누적 ${L.xp} XP`:`${L.into} / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+    }
     if(g.newAch && g.newAch.length){
       html+=`<div class="growth-ach"><span class="lbl">🏅 새 도전과제</span>`
         + g.newAch.map(a=>`<span class="ab">${a.icon} ${esc(a.name)}</span>`).join('') + `</div>`;
@@ -1849,18 +1878,37 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
   ];
   let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('kb_ach'))||[];}catch(e){return[];}})();
+  /* 실력 진행(레벨) — 아트 불필요 메타. 판마다 XP: 기본 15 + 승리 25 + 활약 보너스.
+     윷(v1.148)과 같은 구간 체계, 칭호만 게임에 맞게. */
+  const LV_XP=[0,60,150,300,500,800,1200,1800,2600,3800];
+  const LV_TITLE=['뼈 굴리기 초보','골목 도박꾼','격자 설계자','곱셈의 눈','파괴자','너클 사냥꾼','판 읽는 자','격자 지배자','너클 대가','전설의 뼈다귀神'];
+  function levelOf(xp){ xp=xp||0; let i=0; while(i<LV_XP.length-1 && xp>=LV_XP[i+1]) i++;
+    const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
+    return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; }
+  function renderLevel(){ const el=$('levelBar'); if(!el)return; const L=levelOf(Stats.d.xp);
+    const pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
+    el.innerHTML=`<div class="lv-badge"><span class="lvn">${L.lv}</span><span class="lvl">LV</span></div>`
+      +`<div class="lv-mid"><div class="lv-title">${L.title}</div>`
+      +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+      +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+  }
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,best:0,streak:0,bestStreak:0},JSON.parse(localStorage.getItem('kb_stats'))||{});}catch(e){return{games:0,wins:0,best:0,streak:0,bestStreak:0};}})(),
     save(){try{localStorage.setItem('kb_stats',JSON.stringify(this.d));}catch(e){}},
-    record(won,score){ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(score>this.d.best)this.d.best=score; this.save(); checkAch(); renderStats(); renderAch(); } };
+    record(won,score){ const beforeLv=levelOf(this.d.xp).lv;
+      try{window.AL&&AL.done(won);}catch(e){} this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(score>this.d.best)this.d.best=score;
+      const gain=15+(won?25:0)+Math.min(Math.floor((score||0)/25),5)*4;   // 점수 반영(25점당 +4, 최대 +20)
+      this.d.xp=(this.d.xp||0)+gain; const after=levelOf(this.d.xp);
+      this._lastXp={ gain, leveled: after.lv>beforeLv ? after : null };
+      this.save(); checkAch(); renderStats(); renderAch(); renderLevel(); } };
   function checkAch(){ ACH_KB.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('kb_ach',JSON.stringify(achUnlocked));}catch(e){} try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); }
   function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
     const streak = d.streak>=2 ? ` · <b>🔥${d.streak}연승</b>` : '';
     el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b> · 최고 <b>${d.best}</b>점${streak}<button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
-    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적과 도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,best:0,streak:0,bestStreak:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('kb_ach','[]');}catch(e){} renderStats(); renderAch(); } };
+    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적과 도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,best:0,streak:0,bestStreak:0,xp:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('kb_ach','[]');}catch(e){} renderStats(); renderAch(); renderLevel(); } };
   }
   function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH_KB.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   let recorded=false;
-  renderStats(); renderAch();
+  renderStats(); renderAch(); renderLevel();
   function copyText(t){ try{ navigator.clipboard.writeText(t); }catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){} ta.remove(); } }
   function resetSetup(){ mode='ai'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='ai')); $('diffWrap').style.display='block'; $('matchWrap').style.display='block'; $('onlineBox').style.display='none'; $('startBtn').style.display='block'; $('onErr').textContent=''; }
 

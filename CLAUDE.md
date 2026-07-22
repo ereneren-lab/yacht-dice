@@ -64,6 +64,7 @@ node server.js                                  # 먼저 서버
 node scripts/browser-test/verify-fx.js          # 자동 단언(출발칸 잔상·페이드·reduced-motion·예외)
 node scripts/browser-test/capture.js hold       # 연출을 눈으로 — out/*.png
 node scripts/browser-test/verify-online.js      # 탭 2개 = 사람 2명(채팅 왕복·자리 소유권·재접속)
+node scripts/browser-test/verify-analytics.js   # 계측 퍼널(빠름) · --full 붙이면 윷 한 판을 실제로 끝까지
 ```
 
 **연출을 검증할 땐 `scripts/browser-test/README.md`를 먼저 읽을 것.** 특히 아래 #7.
@@ -76,6 +77,32 @@ npm run check:drift   # 5종 OK 확인 (드리프트면 커밋 금지)
 git add -A && git commit -m "..." && git push
 # → Render 자동 빌드 (몇 분) → Electron 재시작 시 반영
 ```
+
+## 📊 계측 (Plausible · 2026-07-22 도입)
+
+**왜 있나.** 22일 넘게 라이브였는데 방문자 수를 한 번도 모른 적이 없었다.
+"게임이 별로인가"와 "아무도 온 적이 없나"를 구분하려고 넣었다.
+목적·실험 설계는 `유입실험_계획.md`.
+
+| 이벤트 | 언제 | 어디에 박혔나 |
+|---|---|---|
+| pageview | 자동 (UTM 자동 수집) | 각 HTML `<head>` |
+| `허브_카드클릭` | 허브에서 게임 카드 클릭 | `index.html` 하단 위임 리스너 |
+| `게임시작` | 판이 깔린 순간 · **페이지당 1회** | 아래 참고 |
+| `1판완료` | 전적이 오르는 그 자리 | 5종 `Stats.record`의 `games++` 직전 |
+
+- 구현: **`public/analytics.js`** (`window.AL`). 쿠키·localStorage 미사용 → **동의 배너 불필요**.
+- **`게임시작`은 게임 로직을 안 건드린다.** 윷·너클본즈·라이어·좌중우는 판이 깔릴 때
+  `body`에 `ingame`이 붙는데, analytics.js가 그걸 MutationObserver로 관찰한다.
+  **요트만 `ingame`을 안 써서** `yacht.html`에서 `AL.start()`를 직접 부른다.
+  → 새 게임을 추가하면 `ingame`을 붙이거나 `AL.start()`를 직접 부를 것.
+- `AL.start()`는 **멱등**이다. 로비 복귀 후 재시작해도 페이지당 1회만 센다.
+- 호출부는 전부 `try{window.AL&&AL...}catch(e){}`로 감쌌다.
+  **계측이 게임을 죽이면 안 된다** — Plausible이 차단돼도 게임은 정상 동작한다.
+- 로컬(localhost)에선 Plausible이 이벤트를 버리므로 analytics.js가 콘솔에 `[AL] ...`을 찍는다.
+  `verify-analytics.js`가 그 줄을 읽어 단언한다.
+- ⚠️ `{게임}` 같은 커스텀 속성은 Plausible 요금제에 따라 대시보드에서 안 보일 수 있다.
+  **게임별 구분은 페이지 주소로도 나오므로** 속성은 보너스다.
 
 ## 🕳️ 반복해서 터진 함정 (같은 실수 금지)
 

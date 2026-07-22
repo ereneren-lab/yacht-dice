@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>윷놀이 — 주사위 골목</title>
+<!-- 계측(쿠키리스) — 퍼널: 진입 → 게임시작 → 1판완료 → 재방문. 상세: public/analytics.js -->
+<script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
+<script src="analytics.js"></script>
 <meta name="description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로 즐기세요.">
 <meta property="og:title" content="윷놀이 — 주사위 골목">
 <meta property="og:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로.">
@@ -1974,7 +1977,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
       return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; },
     record(won,caps){ const before=this.level().lv;
-      this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1;
+      try{window.AL&&AL.done(won);}catch(e){} this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1;
       const gain=15+(won?25:0)+Math.min(caps||0,5)*4; this.d.xp=(this.d.xp||0)+gain;
       this.save(); this._lastGained=checkAch(); const after=this.level();
       this._lastXp={ gain, leveled: after.lv>before ? after : null };

@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>요트 다이스 — 주사위 골목</title>
+<!-- 계측(쿠키리스) — 퍼널: 진입 → 게임시작 → 1판완료 → 재방문. 상세: public/analytics.js -->
+<script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
+<script src="analytics.js"></script>
 <meta name="description" content="요트 다이스 — 주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yacht.html">
@@ -887,6 +890,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
   .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
   .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
+  /* 레벨·XP (윷 v1.148과 같은 체계) — 셋업의 진행 바 + 결과창 XP 블록 */
+  .levelbar{ display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,color-mix(in srgb,var(--gold,#e0a23c) 12%,var(--panel2)),var(--panel2));
+    border:1.5px solid color-mix(in srgb,var(--gold,#e0a23c) 30%,var(--line));border-radius:13px;padding:9px 13px;margin:6px 0 10px }
+  .levelbar .lv-badge{ flex:none;width:42px;height:42px;border-radius:11px;background:linear-gradient(160deg,var(--gold,#e0a23c),#b9791f);color:#241606;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.3) }
+  .levelbar .lv-badge .lvn{ font-size:16px } .levelbar .lv-badge .lvl{ font-size:8px;opacity:.85;margin-top:1px }
+  .levelbar .lv-mid{ flex:1;min-width:0;text-align:left }
+  .levelbar .lv-title{ font-size:13.5px;font-weight:900;color:var(--ink) }
+  .lv-track{ height:8px;border-radius:999px;background:var(--panel);overflow:hidden;margin-top:5px;border:1px solid var(--line) }
+  .lv-fill{ height:100%;border-radius:999px;background:linear-gradient(90deg,#b9791f,var(--gold,#e0a23c));transition:width .5s cubic-bezier(.2,.9,.3,1) }
+  .levelbar .lv-xp{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:3px }
+  .levelbar .lv-xp b{ color:var(--gold,#e0a23c) }
+  .growth-xp{ background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 12px }
+  .growth-xp .gx-top{ display:flex;align-items:center;justify-content:space-between;margin-bottom:6px }
+  .growth-xp .gx-lv{ font-size:12.5px;font-weight:900;color:var(--ink) }
+  .growth-xp .gx-gain{ font-size:12.5px;font-weight:900;color:var(--gold,#e0a23c) }
+  .growth-xp .gx-sub{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;text-align:right }
+  .growth-levelup{ font-size:13.5px;font-weight:900;color:var(--gold,#e0a23c);text-align:center;background:color-mix(in srgb,var(--gold,#e0a23c) 15%,transparent);border:1.5px solid var(--gold,#e0a23c);border-radius:11px;padding:9px 12px }
+  .growth-levelup b{ color:var(--ink) }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -981,6 +1003,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <!-- SETUP -->
     <div class="card" id="setup">
       <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
+      <div class="levelbar" id="levelBar"></div>
       <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
@@ -1549,15 +1572,34 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
   ];
   let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('yd_ach'))||[];}catch(e){return[];}})();
-  const Stats={ data:SEAT.get('yd_stats',{games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0}), save(){SEAT.set('yd_stats',this.data);},
+  /* 실력 진행(레벨) — 아트 불필요 메타. 판마다 XP: 기본 15 + 승리 25 + 점수 보너스.
+     윷(v1.148)과 같은 구간/문구 체계를 쓰되 칭호만 요트답게. */
+  const LV_XP=[0,60,150,300,500,800,1200,1800,2600,3800];
+  const LV_TITLE=['주사위 새내기','컵 잡은 손','족보 사냥꾼','상단 보너스러','풀하우스 장인','요트 사냥꾼','확률의 독자','주사위 지배자','요트 대가','전설의 다이스神'];
+  function levelOf(xp){ xp=xp||0; let i=0; while(i<LV_XP.length-1 && xp>=LV_XP[i+1]) i++;
+    const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
+    return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; }
+  function renderLevel(){ const el=$('levelBar'); if(!el)return; const L=levelOf(Stats.data.xp);
+    const pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
+    el.innerHTML=`<div class="lv-badge"><span class="lvn">${L.lv}</span><span class="lvl">LV</span></div>`
+      +`<div class="lv-mid"><div class="lv-title">${L.title}</div>`
+      +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+      +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+  }
+  const Stats={ data:SEAT.get('yd_stats',{games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0,xp:0}), save(){SEAT.set('yd_stats',this.data);},
     record(s,mine){ const me=s.players.filter(p=>mine.includes(p.pid)); if(!me.length)return false;
       const myTop=Math.max.apply(null,me.map(p=>p.total)); const beat=myTop>this.data.best;
-      this.data.games++; this.data.best=Math.max(this.data.best,myTop);
+      try{window.AL&&AL.done(iWon);}catch(e){} this.data.games++; this.data.best=Math.max(this.data.best,myTop);
       const wp=new Set((s.winners&&s.winners.pids)||[]); const iWon=me.some(p=>wp.has(p.pid));
       if(iWon){this.data.wins++; this.data.streak=(this.data.streak||0)+1; if(this.data.streak>(this.data.bestStreak||0))this.data.bestStreak=this.data.streak;} else this.data.streak=0;
       me.forEach(p=>{if((p.scores.yacht||0)>0)this.data.yachts++;if((p.scores.yahtzee||0)>0)this.data.yachts++;});
-      this.save(); checkAch(); renderStats(); renderAch(); return beat; },
-    reset(){ this.data={games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0}; this.save(); achUnlocked=[]; try{localStorage.setItem('yd_ach','[]');}catch(e){} renderStats(); renderAch(); } };
+      const beforeLv=levelOf(this.data.xp).lv;
+      const gain=15+(iWon?25:0)+Math.min(Math.floor(myTop/60),5)*4;   // 점수도 조금 반영(60점당 +4, 최대 +20)
+      this.data.xp=(this.data.xp||0)+gain;
+      const after=levelOf(this.data.xp);
+      this._lastXp={ gain, leveled: after.lv>beforeLv ? after : null };
+      this.save(); checkAch(); renderStats(); renderAch(); renderLevel(); return beat; },
+    reset(){ this.data={games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0,xp:0}; this.save(); achUnlocked=[]; try{localStorage.setItem('yd_ach','[]');}catch(e){} renderStats(); renderAch(); renderLevel(); } };
   function checkAch(){ ACH_YT.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.data)){ achUnlocked.push(a.id); try{localStorage.setItem('yd_ach',JSON.stringify(achUnlocked));}catch(e){} try{toast('🏅 도전과제: '+a.name);}catch(e){} } }); }
   function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH_YT.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.data;
@@ -1962,7 +2004,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ---------- snapshot entry ----------
   function onState(s){ const fills=computeFills(s); S=s; if(s.phase==='play')sawPlay=true;
     if(isOnline()&&s.players){ if(prevConn){ s.players.forEach(p=>{ if(!p.ai && p.pid!==myPid && prevConn[p.pid]!==undefined && prevConn[p.pid]!==p.connected) toast((p.connected?'🔌 ':'⚠️ ')+(p.name||'상대')+(p.connected?' 재접속':' 연결 끊김')); }); } prevConn={}; s.players.forEach(p=>{ if(!p.ai) prevConn[p.pid]=p.connected; }); }
-    if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; $('leaveBtn').style.display='flex'; buildReactbar(); }
+    if(s.phase==='play'||s.phase==='over'){ $('setup').style.display='none'; $('game').style.display='block'; gameShown=true; try{window.AL&&AL.start();}catch(e){} $('leaveBtn').style.display='flex'; buildReactbar(); }
     document.body.classList.toggle('ingame', s.phase==='play'||s.phase==='over');   // 🎪 무대 배경 on/off
     if(s.phase==='play'){ $('overlay').classList.remove('show'); resetRematchUI(); }   // 재시작 시 결과창·투표 UI 정리
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f;
@@ -1984,7 +2026,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const wpids=(s.winners&&s.winners.pids)||[]; const iWon = isOnline() ? wpids.includes(myPid) : localPids.some(pid=>wpids.includes(pid));
       // P5: 결과창 성장 한 줄(연승·통산·최고점·새 도전과제) — sawPlay(실제로 판을 봤을 때)만
       const _mine=isOnline()?[myPid]:localPids; const _me=s.players.filter(p=>_mine.includes(p.pid)); const _myTop=_me.length?Math.max.apply(null,_me.map(p=>p.total)):0;
-      growthInfo=sawPlay?{ won:iWon, wins:Stats.data.wins, streak:Stats.data.streak, newBest:beat, score:_myTop,
+      growthInfo=sawPlay?{ won:iWon, wins:Stats.data.wins, streak:Stats.data.streak, newBest:beat, score:_myTop, L:levelOf(Stats.data.xp), xp:Stats._lastXp,
         newAch: ACH_YT.filter(a=>achUnlocked.includes(a.id) && !beforeAch.includes(a.id)) }:null;
       showResult(s,beat,iWon); if(iWon){ SFX.win(); if(!isDisguise()) confetti(); } } }   // 이겼을 때(공동승 포함)만 축포·승리음, 졌을 땐 차분히. 위장(엑셀·포토샵) 중엔 축포 없음
     else recorded=false;
@@ -2015,6 +2057,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else { line=`아쉽게 패배 · 통산 <span class="hl">${g.wins}승</span> · 다음 판 설욕!`; }
     if(g.newBest) line+=`<br>내 점수 <span class="hl">${g.score}점</span> — 최고 기록 경신! 🏆`;
     let html=`<div class="growth-line">${line}</div>`;
+    if(g.L){ const L=g.L, pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100)), gained=g.xp?g.xp.gain:0;
+      if(g.xp&&g.xp.leveled) html+=`<div class="growth-levelup">⭐ 레벨 업 — <b>Lv.${g.xp.leveled.lv} ${g.xp.leveled.title}</b> 달성!</div>`;
+      html+=`<div class="growth-xp"><div class="gx-top"><span class="gx-lv">Lv.${L.lv} · ${L.title}</span>${gained?`<span class="gx-gain">+${gained} XP</span>`:''}</div>`
+        +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+        +`<div class="gx-sub">${L.cap?`최고 레벨 · 누적 ${L.xp} XP`:`${L.into} / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+    }
     if(g.newAch&&g.newAch.length){ html+=`<div class="growth-ach"><span class="lbl">🏅 새 도전과제</span>`+g.newAch.map(a=>`<span class="ab">${a.icon} ${esc(a.name)}</span>`).join('')+`</div>`; }
     box.innerHTML=html; box.style.display='flex';
   }
@@ -2346,7 +2394,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     d.style.cssText='position:fixed;left:50%;top:64px;transform:translateX(-50%);background:'+col+';color:#fff;padding:10px 16px;border-radius:6px;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:12.5px;font-weight:600;font-family:"Segoe UI","맑은 고딕","Malgun Gothic",sans-serif;max-width:92vw;text-align:center';
     document.body.appendChild(d); setTimeout(function(){d.remove();},4500); }
   (function(){ const box=$('themeChips'); if(!box)return; THEMES.forEach(([id,label,col])=>{const b=document.createElement('button');b.innerHTML='<i class="tcdot" style="background:'+col+'"></i>'+label;b.dataset.t=id;if(id===theme)b.classList.add('on');b.onclick=()=>{applyTheme(id); if(DISGUISE.includes(id))disguiseHint(id);};box.appendChild(b);}); })();
-  renderStats(); renderAch();
+  renderStats(); renderAch(); renderLevel();
   (async function(){ const room=SEAT.get('yd_room'),pid=SEAT.get('yd_pid');
     // 다른 탭이 쓰는 자리면 자동 rejoin을 건너뛴다(초대 링크를 같은 브라우저 새 탭으로 연 경우).
     const stealing = room&&pid&&!seatFromThisTab() && await seatHeldByOtherTab(room,pid);

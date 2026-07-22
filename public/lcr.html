@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>좌·중·우 — 주사위 골목</title>
+<!-- 계측(쿠키리스) — 퍼널: 진입 → 게임시작 → 1판완료 → 재방문. 상세: public/analytics.js -->
+<script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
+<script src="analytics.js"></script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -302,6 +305,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
   .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
   .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
+  /* 레벨·XP (윷 v1.148과 같은 체계) — 셋업 진행 바 + 결과창 XP 블록 */
+  .levelbar{ display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,color-mix(in srgb,var(--brass) 12%,var(--panel2)),var(--panel2));
+    border:1.5px solid color-mix(in srgb,var(--brass) 30%,var(--line));border-radius:13px;padding:9px 13px;margin:6px 0 10px }
+  .levelbar .lv-badge{ flex:none;width:42px;height:42px;border-radius:11px;background:linear-gradient(160deg,var(--brass),color-mix(in srgb,var(--brass) 70%,#000));color:#241606;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.3) }
+  .levelbar .lv-badge .lvn{ font-size:16px } .levelbar .lv-badge .lvl{ font-size:8px;opacity:.85;margin-top:1px }
+  .levelbar .lv-mid{ flex:1;min-width:0;text-align:left }
+  .levelbar .lv-title{ font-size:13.5px;font-weight:900;color:var(--ink) }
+  .lv-track{ height:8px;border-radius:999px;background:var(--panel);overflow:hidden;margin-top:5px;border:1px solid var(--line) }
+  .lv-fill{ height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--brass) 70%,#000),var(--brass));transition:width .5s cubic-bezier(.2,.9,.3,1) }
+  .levelbar .lv-xp{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:3px }
+  .levelbar .lv-xp b{ color:var(--brass) }
+  .growth-xp{ background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-top:6px }
+  .growth-xp .gx-top{ display:flex;align-items:center;justify-content:space-between;margin-bottom:6px }
+  .growth-xp .gx-lv{ font-size:12.5px;font-weight:900;color:var(--ink) }
+  .growth-xp .gx-gain{ font-size:12.5px;font-weight:900;color:var(--brass) }
+  .growth-xp .gx-sub{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;text-align:right }
+  .growth-levelup{ font-size:13.5px;font-weight:900;color:var(--brass);text-align:center;background:color-mix(in srgb,var(--brass) 15%,transparent);border:1.5px solid var(--brass);border-radius:11px;padding:9px 12px;margin-top:6px }
+  .growth-levelup b{ color:var(--ink) }
 </style>
 </head>
 <body>
@@ -359,7 +381,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <p>칩 3개로 시작. 차례마다 가진 칩 수만큼(최대 3개) 주사위를 굴려, 나온 면대로 칩을 왼쪽(L)·오른쪽(R) 사람에게 주거나 가운데 팟(C)에 넣어. 점(•)은 그대로 유지. 마지막까지 칩이 남은 사람이 팟까지 싹 쓸어가!</p>
       <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
       <button class="rules-link" id="setupTut" style="margin-left:12px">▶ 튜토리얼</button>
-      <div class="statsbar" id="statsbar"></div>
+      <div class="levelbar" id="levelBar"></div>
+    <div class="statsbar" id="statsbar"></div>
       <div class="achbar" id="achbar"></div>
       <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div></div>
       <div class="tabs">
@@ -424,6 +447,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="restitle" id="resTitle"></div>
       <div class="ressub" id="resSub"></div>
       <div class="ressub" id="resStats" style="margin-top:-10px;display:none"></div>
+      <div id="resLevel" style="margin:8px 0 2px"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
         <button class="btn ghost" id="toLobbyBtn" style="display:none;margin-top:10px">🏛 대기실로</button>
@@ -689,14 +713,33 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     {id:'games10',icon:'🎖️',name:'베테랑',desc:'10판 플레이',ck:d=>d.games>=10},
   ];
   let achUnlocked=(function(){try{return JSON.parse(localStorage.getItem('lcr_ach'))||[];}catch(e){return[];}})();
+  /* 실력 진행(레벨) — 아트 불필요 메타. 판마다 XP: 기본 15 + 승리 25 + 활약 보너스.
+     윷(v1.148)과 같은 구간 체계, 칭호만 게임에 맞게. */
+  const LV_XP=[0,60,150,300,500,800,1200,1800,2600,3800];
+  const LV_TITLE=['칩 쥔 새내기','운빨 견습','왼쪽 오른쪽','팟의 친구','생존 전문가','칩 수집가','운명의 총아','판의 마지막','LCR 대가','전설의 운빨神'];
+  function levelOf(xp){ xp=xp||0; let i=0; while(i<LV_XP.length-1 && xp>=LV_XP[i+1]) i++;
+    const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
+    return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; }
+  function renderLevel(){ const el=$('levelBar'); if(!el)return; const L=levelOf(Stats.d.xp);
+    const pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
+    el.innerHTML=`<div class="lv-badge"><span class="lvn">${L.lv}</span><span class="lvl">LV</span></div>`
+      +`<div class="lv-mid"><div class="lv-title">${L.title}</div>`
+      +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+      +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+  }
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,streak:0,bestStreak:0,bigPot:0},JSON.parse(localStorage.getItem('lcr_stats'))||{});}catch(e){return{games:0,wins:0,streak:0,bestStreak:0,bigPot:0};}})(),
     save(){try{localStorage.setItem('lcr_stats',JSON.stringify(this.d));}catch(e){}},
-    record(won,maxPot){ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak; if(maxPot>=6)this.d.bigPot=(this.d.bigPot||0)+1;} else this.d.streak=0; this.save(); checkAch(); renderStats(); renderAch(); } };
+    record(won,maxPot){ const beforeLv=levelOf(this.d.xp).lv;
+      try{window.AL&&AL.done(won);}catch(e){} this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak; if(maxPot>=6)this.d.bigPot=(this.d.bigPot||0)+1;} else this.d.streak=0;
+      const gain=15+(won?25:0)+((maxPot||0)>=6?8:0);   // 큰 팟이 걸린 판은 조금 더
+      this.d.xp=(this.d.xp||0)+gain; const after=levelOf(this.d.xp);
+      this._lastXp={ gain, leveled: after.lv>beforeLv ? after : null };
+      this.save(); checkAch(); renderStats(); renderAch(); renderLevel(); } };
   function checkAch(){ ACH_LCR.forEach(a=>{ if(!achUnlocked.includes(a.id) && a.ck(Stats.d)){ achUnlocked.push(a.id); try{localStorage.setItem('lcr_ach',JSON.stringify(achUnlocked));}catch(e){} try{showToast('🏅 도전과제: '+a.name);}catch(e){} } }); }
   function renderStats(){ const el=$('statsbar'); if(!el)return; const d=Stats.d, wr=d.games?Math.round(d.wins/d.games*100):0;
     const streak = d.streak>=2 ? ` · <b>🔥${d.streak}연승</b>` : '';
     el.innerHTML = d.games ? `전적 <b>${d.games}</b>판 · <b>${d.wins}</b>승 · 승률 <b>${wr}%</b>${streak}<button id="statReset">초기화</button>` : '<span>아직 전적이 없어 — 첫 판을 해봐!</span>';
-    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적과 도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,streak:0,bestStreak:0,bigPot:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('lcr_ach','[]');}catch(e){} renderStats(); renderAch(); } };
+    const rb=$('statReset'); if(rb)rb.onclick=()=>{ if(confirm('전적과 도전과제를 초기화할까?')){ Stats.d={games:0,wins:0,streak:0,bestStreak:0,bigPot:0,xp:0}; Stats.save(); achUnlocked=[]; try{localStorage.setItem('lcr_ach','[]');}catch(e){} renderStats(); renderAch(); renderLevel(); } };
   }
   function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH_LCR.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
 
@@ -982,6 +1025,19 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         rs.style.display='block';
       } else rs.style.display='none';
     }
+    // 레벨·XP (지금까지 LCR엔 성장 피드백이 아예 없어 판이 끝나도 남는 게 없었다)
+    { const lb=$('resLevel');
+      if(lb){
+        if(spectator){ lb.innerHTML=''; }
+        else{
+          const L=levelOf(Stats.d.xp), xpInfo=Stats._lastXp, pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
+          lb.innerHTML=(xpInfo&&xpInfo.leveled?`<div class="growth-levelup">⭐ 레벨 업 — <b>Lv.${xpInfo.leveled.lv} ${xpInfo.leveled.title}</b> 달성!</div>`:'')
+            +(iWon?'':'<div class="growth-line" style="margin-bottom:6px">아깝다! 운은 돌아온다 — 다음 판 설욕 🔥</div>')
+            +`<div class="growth-xp"><div class="gx-top"><span class="gx-lv">Lv.${L.lv} · ${L.title}</span>${xpInfo&&xpInfo.gain?`<span class="gx-gain">+${xpInfo.gain} XP</span>`:''}</div>`
+            +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+            +`<div class="gx-sub">${L.cap?`최고 레벨 · 누적 ${L.xp} XP`:`${L.into} / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+        }
+      } }
     // 승리/패배 SFX는 playPotSweep(스윕 타이밍)에서 이미 재생됨
     $('resultOv').classList.add('on');
     if(iWon) fireConfetti();   // 내가 우승 → 가벼운 축하 confetti (reduced-motion은 CSS로 숨김)
@@ -1411,7 +1467,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   /* 부트: ?room= 자동 참가 */
   (async function boot(){
-    renderStats(); renderAch();
+    renderStats(); renderAch(); renderLevel();
     const savedName=lsGet('alley_name'); if(savedName){ const el=$('onName'); if(el&&!el.value) el.value=savedName; }
     let savedRoom=seatGet('lcr_room'), savedPid=seatGet('lcr_pid');
     // 다른 탭이 쓰는 자리면 폴백 포기(초대 링크를 같은 브라우저 새 탭으로 연 경우)
