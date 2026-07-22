@@ -904,6 +904,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
   .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
   .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
+  /* 목적지 고스트 — 여러 끗수 중 어디로 갈지 판에서 직접 고르게 한다(칩 먼저 누르기 몰라도 됨) */
+  #pieceLayer .stepghost{ cursor:pointer; pointer-events:auto; animation:pcpulse 1.1s ease-in-out infinite }
+  #pieceLayer .stepghost:hover circle:nth-child(2){ fill:rgba(232,161,58,.3) }
+  #pieceLayer .stepghost:focus-visible circle:nth-child(2){ stroke-width:4.5 }
+  .turninfo.picking{ border-color:var(--brass); background:color-mix(in srgb,var(--brass) 15%,var(--panel)); color:var(--ink) }
 </style>
 </head>
 <body>
@@ -2823,7 +2828,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   // 로컬 AI 첫 판(games===0)에서만. 던지기→이동→개념 3스텝을 스포트라이트로 안내. 스킵/1회성.
   const TUT_STEPS=[
     { sel:'#ctrlBar', label:'STEP 1 · 던지기', text:'버튼을 <b>꾹 눌렀다 떼서</b> 윷을 던져요. 세게(초록 <b>찬스칸</b>)에서 떼면 윷·모 확률이 올라가요!', adv:'throw' },
-    { sel:'#board',    label:'STEP 2 · 말 이동', text:'나온 끗수만큼 <b>움직일 말을 탭</b>하세요. 대각선 <b>지름길</b>로 질러갈 수도 있어요.', adv:'move' },
+    { sel:'#board',    label:'STEP 2 · 말 이동', text:'<b>움직일 말을 탭</b>하세요. 끗수가 여러 개면 <b>갈 수 있는 칸</b>이 표시되니 원하는 칸을 고르면 돼요.', adv:'move' },
     { sel:null,        label:'STEP 3 · 이기는 법', text:'상대 말을 밟으면 <b>잡고 한 번 더!</b> 내 말끼리는 업어서 함께 달려요. 말을 <b>모두 완주</b>시키면 승리 🎉', adv:'next' }
   ];
   const Tut={
@@ -2952,8 +2957,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(Tut.active){ const _ts=TUT_STEPS[Tut.i]; if(_ts&&_ts.adv==='throw'&&S.phase==='move') Tut.onThrow(); Tut.place(); }
     // pending
     const _pend=S.pending||[]; if(selStep!=null && selStep>=_pend.length) selStep=null;
+    if(!(S.phase==='move' && mySeat()===S.turn) || !_pend.length) clearStepGhosts();   // 내 이동 차례가 아니면 목적지 고스트 정리
     $('pendingRow').innerHTML=_pend.map((st,i)=>{ const steps=st>0?st+'칸':'뒤로'; const pickable=canAct()&&_pend.length>1; return `<span class="pchipm${i===selStep?' sel':''}${pickable?' pick':''}" data-pi="${i}"><b class="pcm-nm">${YUT_NAME[st]}</b><span class="pcm-st">${steps}</span></span>`; }).join('');
-    if(canAct() && _pend.length>1) $('pendingRow').querySelectorAll('.pchipm').forEach(c=>{ const act=()=>{ const pi=+c.dataset.pi; selStep=(selStep===pi)?null:pi; render(); }; c.onclick=act; c.setAttribute('tabindex','0'); c.setAttribute('role','button'); c.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
+    if(canAct() && _pend.length>1) $('pendingRow').querySelectorAll('.pchipm').forEach(c=>{ const act=()=>{ const pi=+c.dataset.pi; clearStepGhosts(); selStep=(selStep===pi)?null:pi; render(); }; c.onclick=act; c.setAttribute('tabindex','0'); c.setAttribute('role','button'); c.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
     // 던지기 버튼 / 턴 정보
     const ms=mySeat();
     // 내 차례 알림: 온라인에서 내 차례로 막 바뀌면 알림, 아니면 깜빡임 정리
@@ -2983,8 +2989,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         if(_onb===0){ // 첫 말 꺼내기: 우리 말이 전부 아래 트레이에 있음 → 어디를 눌러야 하는지 명확히
           ti.innerHTML='🚩 <b>아래 '+_ownWord+' 말</b>을 탭해 출발! (반짝이는 말) · 남은 이동 <b>'+_pt+'</b>'+_gateHint;
         } else ti.innerHTML = (_p.length>1
-          ? (S.teamMode?'<b>'+_myTeamLbl+'</b> 차례 · ':'')+'남은 이동 <b>'+_pt+'</b> · 위 칸을 탭해 <b>먼저 쓸 이동</b>을 고르거나, 바로 '+_ownWord+' 말 선택'
+          ? (S.teamMode?'<b>'+_myTeamLbl+'</b> 차례 · ':'')+'남은 이동 <b>'+_pt+'</b> · '+_ownWord+' <b>말을 누르면</b> 갈 수 있는 칸이 표시돼요'
           : (S.teamMode?'<b>'+_myTeamLbl+'</b> 차례 · ':'')+_ownWord+' 말 선택 · 남은 이동 <b>'+_pt+'</b>')+_gateHint; }
+      if(stepPick){ ti.classList.add('picking'); ti.innerHTML='👉 <b>어디로 갈지</b> 판에서 골라주세요 · 말을 다시 누르면 취소'; }
+      else ti.classList.remove('picking');
     } else {
       btn.disabled=true; const who=S.players[S.turn]; const _oTeam=(S.teamMode&&who)?TEAM_NAME[who.team]+' · ':''; btn.textContent=_oTeam+(who?esc(who.name):'상대')+' 차례…';
       if(online && who && !who.ai && who.connected===false){
@@ -3249,6 +3257,62 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.setAttribute('aria-label','이 말 밀치기'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } };
     });
   }
+  /* ===== 여러 끗수가 남았을 때: 말 → '어디로 갈지' 고르기 =====
+     예전엔 '먼저 쓸 끗수 칩'을 누른 뒤 말을 눌러야 했고, 안 누르면 목록의 첫 끗수로 그냥 움직였다.
+     (모+도에서 도부터 쓰려면 칩을 먼저 눌러야 한다는 걸 처음 하는 사람은 모른다 — 실제 피드백)
+     → 말을 누르면 갈 수 있는 칸을 끗수 라벨과 함께 판에 띄우고, 그 칸을 눌러 고르게 한다.
+       칸이 하나뿐이거나 이미 칩을 골라뒀으면 예전처럼 한 번에 움직인다(익숙한 사람 손해 없음). */
+  let stepPick=null;   // {pieceId, ownerSeat}
+  function clearStepGhosts(){
+    const layer=$('pieceLayer'); if(layer)[...layer.querySelectorAll('.stepghost')].forEach(e=>e.remove());
+    if(stepPick){ stepPick=null; const ti=$('turnInfo'); if(ti) ti.classList.remove('picking'); }
+  }
+  function destKeyOf(r){ return !r||!r.ok ? 'x' : (r.done ? 'done' : r.node+':'+r.route); }
+  function showStepGhosts(pc, ownerSeat, opts){
+    clearStepGhosts();
+    const layer=$('pieceLayer'); if(!layer) return false;
+    const seen={}; let drawn=0;
+    opts.forEach(o=>{
+      const r=simStep(pc.node,pc.route,pc.out,o.st,'shortcut');
+      const key=destKeyOf(r); if(!r||!r.ok||seen[key]) return; seen[key]=1;
+      // 완주는 도착 노드가 없으므로 완주 게이트(29=출발점 자리)에 🏁로 표시한다
+      const [x,y]=nodeXY(r.done?29:r.node);
+      const g=document.createElementNS(NS,'g'); g.setAttribute('class','stepghost');
+      const hit=document.createElementNS(NS,'circle');   // 손가락으로 누르기 쉬운 넓은 히트 영역
+      hit.setAttribute('cx',x.toFixed(1)); hit.setAttribute('cy',y.toFixed(1)); hit.setAttribute('r','22');
+      hit.setAttribute('fill','rgba(0,0,0,0.001)'); g.appendChild(hit);
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',x.toFixed(1)); c.setAttribute('cy',y.toFixed(1)); c.setAttribute('r','15');
+      c.setAttribute('fill','rgba(232,161,58,.16)'); c.setAttribute('stroke','#ffcf5a'); c.setAttribute('stroke-width','3.5');
+      c.setAttribute('stroke-dasharray','5 3.5'); g.appendChild(c);
+      const t=document.createElementNS(NS,'text');
+      // 맨 윗줄 칸에선 라벨이 판 밖으로 나가 잘린다 → 그럴 땐 칸 아래에 붙인다
+      const ly = (y-21 < 14) ? (y+27) : (y-21);
+      t.setAttribute('x',x.toFixed(1)); t.setAttribute('y',ly.toFixed(1)); t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','11.5'); t.setAttribute('font-weight','900'); t.setAttribute('fill','#ffcf5a');
+      t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','#1c110a'); t.setAttribute('stroke-width','2.8'); t.setAttribute('stroke-linejoin','round');
+      t.textContent = YUT_NAME[o.st] + (r.done ? ' 완주🏁' : (o.st>0 ? ' '+o.st+'칸' : ' 뒤로'));
+      g.appendChild(t);
+      const go=()=>{ clearStepGhosts(); performPieceMove(pc, o.pi, ownerSeat); };
+      g.onclick=go; g.setAttribute('tabindex','0'); g.setAttribute('role','button');
+      g.setAttribute('aria-label', t.textContent+'로 이동');
+      g.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); go(); } };
+      layer.appendChild(g); drawn++;
+    });
+    if(!drawn) return false;
+    stepPick={ pieceId:pc.id, ownerSeat };
+    const ti=$('turnInfo'); if(ti){ ti.classList.add('picking'); ti.innerHTML='👉 <b>어디로 갈지</b> 판에서 골라주세요 · 말을 다시 누르면 취소'; }
+    return true;
+  }
+  function performPieceMove(pc, pi, ownerSeat){
+    const owner=S.players[ownerSeat]; if(!owner) return;
+    selStep=null;
+    // 꺾기 강제·업기 항상 같이 → 가기/꺾기·따로/같이 선택 없이 바로 이동(엔진이 자동 꺾기+업은 말 함께 처리)
+    const carried = (pc.out && !pc.done) && ((S.teamMode ? S.players.filter(p=>p.team===owner.team) : [owner])
+      .reduce((a,tp)=>a.concat(tp.pieces.filter(x=>!x.done&&x.out&&x.node===pc.node&&x.route===pc.route)),[]).length>=2);
+    if(carried) trackMission('carry');
+    doMoveAction(pc.id,pi,'shortcut',true,ownerSeat);
+  }
   function onPieceClick(pieceId, ownerSeat){
     Tut.onMove();   // 🧭 튜토리얼: 첫 이동 감지 → 개념 스텝으로
     if(ownerSeat==null) ownerSeat=mySeat();
@@ -3256,16 +3320,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const owner=S.players[ownerSeat]; if(!owner) return;
     const pc=owner.pieces.find(p=>p.id===pieceId);
     if(!pc || pc.done) return;
-    let pi=-1;
-    if(selStep!=null && S.pending[selStep]!=null && canMove(pc, S.pending[selStep])) pi=selStep;
-    else for(let k=0;k<S.pending.length;k++){ if(canMove(pc, S.pending[k])){ pi=k; break; } }
-    if(pi<0){ showToast('그 말은 지금 움직일 수 없어'); return; }
-    selStep=null;
-    // 꺾기 강제·업기 항상 같이 → 가기/꺾기·따로/같이 선택 없이 바로 이동(엔진이 자동 꺾기+업은 말 함께 처리)
-    const carried = (pc.out && !pc.done) && ((S.teamMode ? S.players.filter(p=>p.team===owner.team) : [owner])
-      .reduce((a,tp)=>a.concat(tp.pieces.filter(x=>!x.done&&x.out&&x.node===pc.node&&x.route===pc.route)),[]).length>=2);
-    if(carried) trackMission('carry');
-    doMoveAction(pieceId,pi,'shortcut',true,ownerSeat);
+    if(stepPick && stepPick.pieceId===pieceId){ clearStepGhosts(); return; }   // 같은 말 재탭 = 취소
+    clearStepGhosts();
+    const legal=[]; (S.pending||[]).forEach((st,i)=>{ if(canMove(pc,st)) legal.push({pi:i,st}); });
+    if(!legal.length){ showToast('그 말은 지금 움직일 수 없어'); return; }
+    if(selStep!=null && legal.some(o=>o.pi===selStep)){ performPieceMove(pc, selStep, ownerSeat); return; }   // 칩을 미리 골라둔 경우
+    // 도착 칸이 하나로 모이면(같은 칸이거나 끗수 하나) 물어볼 게 없다
+    const dests={}; legal.forEach(o=>{ dests[destKeyOf(simStep(pc.node,pc.route,pc.out,o.st,'shortcut'))]=o; });
+    const keys=Object.keys(dests);
+    if(keys.length<=1){ performPieceMove(pc, legal[0].pi, ownerSeat); return; }
+    if(!showStepGhosts(pc, ownerSeat, legal)) performPieceMove(pc, legal[0].pi, ownerSeat);
   }
   // 선택 모달 닫기(취소 안전) — 두 모달 모두 확정 버튼 전까지 서버 전송/상태변경이 없으므로 그냥 닫기만 하면 원래 말 선택 화면으로 복귀됨
   function closeStackChoice(){ $('stackChoice').classList.remove('on'); }
