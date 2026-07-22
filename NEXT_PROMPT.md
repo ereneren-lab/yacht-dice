@@ -6,7 +6,7 @@
 
 ## 현재 상태 (2026-07-22 기준)
 
-- 위치: **`~/yacht-dice`** 가 유일한 저장소. 버전 **v1.161.0**.
+- 위치: **`~/yacht-dice`** 가 유일한 저장소. 버전 **v1.162.0**.
 - ⚠️ **디렉토리 정리됨**: 예전에 있던 `~/Desktop/yacht-dice`(낡은 사본)는 **이번 세션에 삭제**했다. 이제 `~/yacht-dice` 하나뿐. (과거 핸드오프의 "Desktop 사본 주의"는 무효)
 - 미커밋: `scripts/online-test.js`(사용자 것) — **건드리지 말 것.**
 
@@ -17,7 +17,7 @@
 - 엔진: `opt.speedStart` 추가 — `_applyDailyStart()` 조건을 `dailyRule==='speed' || speedStart`로. serialize에도 노출.
 - 서버: create 옵션·lobby 페이로드·startEngine에 `speedStart` 전달.
 - 클라: `cfg.battleMode`('normal'|'speed'|'item', `yut_bmode`)로 통합. **예전 `yut_items='1'`는 자동으로 item으로 이어받는다.** 로컬/온라인 셋업 모두 3택 칩, 로비 규칙 요약에도 모드 표시.
-- 오늘의 규칙에는 여전히 `speed`가 있어 **일반 모드에서도 랜덤으로 스피드가 걸릴 수 있다**(뱃지로 안내됨). 빼고 싶으면 `yut-core.js`의 `rr` 배열에서 'speed' 제거.
+- **오늘의 규칙에서 `speed`는 뺐다(v1.162)** — 모드로 직접 고르게 된 뒤엔 '일반인데 말이 먼저 나와 있는' 충돌이 생겨서다. 남은 규칙: `catchfest`·`bigbackdo`·`goldrain`(+ 절반은 규칙 없음). 클라의 `speed` 뱃지 정의는 남겨뒀다(옛 판 재현·되돌리기 대비).
 - 검증: 엔진 단위(일반 0개 / 스피드 편당 1개 node3 / 아이템 2장) · 3모드 × 12판 풀시뮬 정상 종료 · 로컬 UI·온라인 서버 경유 e2e.
 
 ## 2026-07-22 세션 (v1.160) — 윷 '어디로 갈지' 고르기 (초보 혼란 해소)

@@ -141,7 +141,9 @@
       // 오늘의 규칙: 매 판 랜덤 변형(null=평범). 팀전 포함.
       this.dailyOn = opt.dailyRule !== false;
       this.dailyRule = null;
-      if (this.dailyOn) { const rr = [null, null, 'catchfest', 'bigbackdo', 'goldrain', 'speed']; this.dailyRule = rr[Math.floor(this.rng() * rr.length)]; }
+      // 'speed'는 뺐다 — v1.161부터 스피드전이 셋업에서 고르는 '대전 방식'이 됐다.
+      // 일반 모드로 시작했는데 말이 먼저 나와 있으면 모드 선택과 충돌해 헷갈린다.
+      if (this.dailyOn) { const rr = [null, null, 'catchfest', 'bigbackdo', 'goldrain']; this.dailyRule = rr[Math.floor(this.rng() * rr.length)]; }
       // 이벤트 칸: 늪 외 랜덤 outer 칸에 특수 효과(부스터/보너스/후퇴/황금). 황금비 규칙이면 더 많이.
       this.eventOn = opt.eventTiles !== false;
       this.eventTiles = {};  // node → 'boost'|'bonus'|'back'|'gold'
