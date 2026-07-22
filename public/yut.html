@@ -1071,6 +1071,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
           <span class="osw-tog" aria-hidden="true"></span>
         </button>
+        <button type="button" class="orderswitch" id="dailySwitchLocal" role="switch" aria-checked="true">
+          <span class="osw-txt">🔥 오늘의 규칙<small>판마다 랜덤 변형(잡기 축제·대박 빽도·황금비) · 끄면 평범한 규칙</small></span>
+          <span class="osw-tog" aria-hidden="true"></span>
+        </button>
         <div class="lbl">대전 방식</div>
         <div class="opts bmode" id="optBModeLocal">
           <button class="opt on" data-bm="normal">🎲 일반<small>기본 규칙</small></button>
@@ -1110,6 +1114,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         </div>
         <button type="button" class="orderswitch" id="orderSwitchOn" role="switch" aria-checked="true">
           <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
+          <span class="osw-tog" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="orderswitch" id="dailySwitchOn" role="switch" aria-checked="true">
+          <span class="osw-txt">🔥 오늘의 규칙<small>판마다 랜덤 변형(잡기 축제·대박 빽도·황금비) · 끄면 평범한 규칙</small></span>
           <span class="osw-tog" aria-hidden="true"></span>
         </button>
         <div class="lbl">대전 방식</div>
@@ -1862,6 +1870,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   cfg.itemBattle = cfg.battleMode==='item'; cfg.speedStart = cfg.battleMode==='speed';
   /* 판 특수 칸: 늪(pit) + 이벤트 칸 종류(boost/bonus/back/gold). 기본은 전부 켜짐(지금까지의 동작). */
   cfg.pit = true; cfg.eventTypes = ['boost','bonus','back','gold'];
+  /* 오늘의 규칙(판마다 랜덤 변형) 사용 여부 — 기본 켜짐(지금까지의 동작) */
+  cfg.dailyOn = true; try{ const v=localStorage.getItem('yut_daily'); if(v!=null) cfg.dailyOn = v==='1'; }catch(e){}
   try{ const raw=localStorage.getItem('yut_tiles');
     if(raw){ const t=JSON.parse(raw);
       if(typeof t.pit==='boolean') cfg.pit=t.pit;
@@ -3657,7 +3667,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
-    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, speedStart:!!cfg.speedStart, pit:!!cfg.pit, eventTypes:cfg.eventTypes.slice(), limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
+    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, speedStart:!!cfg.speedStart, pit:!!cfg.pit, eventTypes:cfg.eventTypes.slice(), dailyRule:(cfg.dailyOn?undefined:false), limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
     try{vsIntro();}catch(e){}      // ★ VS 인트로
@@ -3792,7 +3802,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         const evNames={boost:'⚡',bonus:'🎁',back:'💨',gold:'✨'};
         const evList=(lobby.eventTypes==null?['boost','bonus','back','gold']:lobby.eventTypes);
         const tileTxt=[(lobby.pit!==false?'🕳️':null)].concat(evList.map(t=>evNames[t])).filter(Boolean).join('') || '특수 칸 없음';
-        const parts=[bmLabel, tileTxt, '말 '+mk+'개', (gl>=mk?'전부 완주':'먼저 '+gl+'개 완주'), lobby.teamMode?'팀전 2:2':'개인전'];
+        const parts=[bmLabel, tileTxt].concat(lobby.dailyOn===false?['오늘의 규칙 없음']:[]).concat(['말 '+mk+'개', (gl>=mk?'전부 완주':'먼저 '+gl+'개 완주'), lobby.teamMode?'팀전 2:2':'개인전']);
         if(lobby.timer>0) parts.push(lobby.timer+'분');
         lr.textContent='📋 '+parts.join(' · '); } }
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
@@ -3870,6 +3880,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     });
   }
   function toggleOrder(){ cfg.decideOrder=!cfg.decideOrder; try{localStorage.setItem('yut_order', cfg.decideOrder?'1':'0');}catch(e){} syncOrderToggles(); }
+  /* 오늘의 규칙 토글 — '일반'을 골랐는데 잡기 축제 같은 변형이 붙어 헷갈린다는 피드백으로 추가 */
+  function syncDailyToggles(){ ['dailySwitchLocal','dailySwitchOn'].forEach(id=>{ const el=$(id); if(!el)return;
+    el.classList.toggle('on', !!cfg.dailyOn); el.setAttribute('aria-checked', cfg.dailyOn?'true':'false'); }); }
+  function toggleDaily(){ cfg.dailyOn=!cfg.dailyOn; try{localStorage.setItem('yut_daily', cfg.dailyOn?'1':'0');}catch(e){} syncDailyToggles(); }
+  { const a=$('dailySwitchLocal'), b=$('dailySwitchOn'); if(a)a.onclick=toggleDaily; if(b)b.onclick=toggleDaily; }
+  syncDailyToggles();
   { const a=$('orderSwitchLocal'), b=$('orderSwitchOn'); if(a)a.onclick=toggleOrder; if(b)b.onclick=toggleOrder; }
   syncOrderToggles();
   /* 대전 방식 3택(일반·스피드전·아이템전). 로컬/온라인 셋업이 같은 값을 쓴다. */
@@ -3912,7 +3928,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let g=2; g<=markers; g++){ const b=document.createElement('button'); b.type='button'; b.className='opt'+(g===cfg[key]?' on':''); b.dataset.g=g; b.textContent=g+(g===markers?'개(전부)':'개'); b.onclick=()=>{ cfg[key]=g; refreshGoal(elId,markers,key); }; el.appendChild(b); }
   }
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,speedStart:cfg.speedStart,pit:cfg.pit,eventTypes:cfg.eventTypes,avatar:cfg.character})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,speedStart:cfg.speedStart,pit:cfg.pit,eventTypes:cfg.eventTypes,dailyOn:cfg.dailyOn,avatar:cfg.character})); };
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
   (function(){ const jc=$('joinCode'); if(!jc)return;
     jc.addEventListener('input',()=>{ const v=jc.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(v!==jc.value) jc.value=v; });
