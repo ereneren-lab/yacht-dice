@@ -467,6 +467,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .growth-xp .gx-sub{ font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;text-align:right }
   .growth-levelup{ font-size:13.5px;font-weight:900;color:var(--brass);text-align:center;background:color-mix(in srgb,var(--brass) 15%,transparent);border:1.5px solid var(--brass);border-radius:11px;padding:9px 12px;margin-top:6px }
   .growth-levelup b{ color:var(--ink) }
+  .meta-chip{ display:none;font-size:10.5px;font-weight:900;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);border:1px solid color-mix(in srgb,var(--brass) 40%,transparent);border-radius:999px;padding:2px 9px;margin-left:6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle }
+  body.ingame .meta-chip{ display:inline-flex;align-items:center }
+  @media (max-width:480px){ .meta-chip{ max-width:110px;font-size:9.5px } }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -485,6 +488,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <a class="iconbtn hubx" href="./" title="골목으로">←</a>
     <h2>너클본즈</h2>
     <span class="mode-pill" id="kbMode" style="display:none"></span>
+    <span class="meta-chip" id="myMetaChip"></span>
     <button class="iconbtn" id="lightBtn" title="다크/라이트 모드">☀️</button>
       <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기">🔊</button>
     <button class="iconbtn" id="endBtn" title="판 종료 → 로비(호스트)" style="display:none">🏁</button>
@@ -1888,12 +1892,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function levelOf(xp){ xp=xp||0; let i=0; while(i<LV_XP.length-1 && xp>=LV_XP[i+1]) i++;
     const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
     return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; }
-  function renderLevel(){ const el=$('levelBar'); if(!el)return; const L=levelOf(Stats.d.xp);
-    const pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
-    el.innerHTML=`<div class="lv-badge"><span class="lvn">${L.lv}</span><span class="lvl">LV</span></div>`
-      +`<div class="lv-mid"><div class="lv-title">${L.title}</div>`
-      +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
-      +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+  function renderLevel(){ const L=levelOf(Stats.d.xp);
+    const el=$('levelBar');
+    if(el){ const pct=L.cap?100:Math.max(3,Math.round(L.into/L.need*100));
+      el.innerHTML=`<div class="lv-badge"><span class="lvn">${L.lv}</span><span class="lvl">LV</span></div>`
+        +`<div class="lv-mid"><div class="lv-title">${L.title}</div>`
+        +`<div class="lv-track"><div class="lv-fill" style="width:${pct}%"></div></div>`
+        +`<div class="lv-xp">${L.cap?`최고 레벨 · 누적 <b>${L.xp}</b> XP`:`<b>${L.into}</b> / ${L.need} XP · 다음까지 ${L.need-L.into}`}</div></div>`;
+    }
+    const chip=$('myMetaChip'); if(chip) chip.textContent='Lv.'+L.lv+' · '+L.title;
   }
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,best:0,streak:0,bestStreak:0},JSON.parse(localStorage.getItem('kb_stats'))||{});}catch(e){return{games:0,wins:0,best:0,streak:0,bestStreak:0};}})(),
     save(){try{localStorage.setItem('kb_stats',JSON.stringify(this.d));}catch(e){}},

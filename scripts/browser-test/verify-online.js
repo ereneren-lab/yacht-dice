@@ -73,11 +73,12 @@ async function chatRoundTrip(cdp) {
 
 /* 게임별 셀렉터. 시작 버튼(#lobbyStart)·코드(#lobbyCode)·참가(#joinBtn)는 요트만 이름이 다르다. */
 const GAMES = {
-  yut:   { online: '#tabOnline', game: '#game' },
-  kb:    { online: '[data-m="online"]', game: '#arena' },
-  ld:    { online: '[data-m="online"]', game: '#game' },
-  lcr:   { online: '#tabOnline', game: '#game', ai: 1 },   // 3명부터 시작 가능
-  yacht: { online: '#tabOnline', game: '#game', yacht: true },
+  yut:     { online: '#tabOnline', game: '#game' },
+  kb:      { online: '[data-m="online"]', game: '#arena' },
+  ld:      { online: '[data-m="online"]', game: '#game' },
+  lcr:     { online: '#tabOnline', game: '#game', ai: 1 },   // 3명부터 시작 가능
+  yacht:   { online: '#tabOnline', game: '#game', yacht: true },
+  alkkagi: { online: '#tabOnline', game: '#game' },
 };
 
 /** 5종 — 두 탭 자리 격리 + 게임 중 새로고침 rejoin */

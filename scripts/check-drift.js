@@ -15,11 +15,12 @@ const PUBLIC = path.join(__dirname, '..', 'public');
 
 // [게임, core 파일, HTML 파일]
 const CASES = [
-  ['yut',   'yut-core.js',  'yut.html'],
-  ['kb',    'kb-core.js',   'kb.html'],
-  ['ld',    'ld-core.js',   'ld.html'],
-  ['lcr',   'lcr-core.js',  'lcr.html'],
-  ['yacht', 'game-core.js', 'yacht.html'],
+  ['yut',     'yut-core.js',     'yut.html'],
+  ['kb',      'kb-core.js',      'kb.html'],
+  ['ld',      'ld-core.js',      'ld.html'],
+  ['lcr',     'lcr-core.js',     'lcr.html'],
+  ['yacht',   'game-core.js',    'yacht.html'],
+  ['alkkagi', 'alkkagi-core.js', 'alkkagi.html'],
 ];
 
 // 블록/라인 주석과 모든 공백 제거
