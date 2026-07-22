@@ -155,6 +155,8 @@
       this.eventSeq = 0; this.eventFx = null;  // 이벤트 발동 연출용
       // 아이템전: 각 편이 아이템 카드(방어막🛡/재던지기🔄/밀치기👊)로 시작, 황금 칸으로 추가 획득.
       this.itemBattle = !!opt.itemBattle;
+      // 스피드전(모드로 고른 경우) — '오늘의 규칙'의 speed와 같은 효과를 항상 적용한다
+      this.speedStart = !!opt.speedStart;
       this.shieldSide = null; this.itemSeq = 0; this.itemFx = null;
       this.limitMs = opt.limitMs || 0; this.gameStartTime = null; this.timedOut = false;
       this.onState = opt.onState || function () {};
@@ -325,7 +327,7 @@
     }
     // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
     _applyDailyStart() {
-      if (this.dailyRule !== 'speed') return;
+      if (this.dailyRule !== 'speed' && !this.speedStart) return;
       const sides = this.teamMode ? Object.keys(this.teamHolder).map(k => this.teamHolder[k]) : this.players.map((_, i) => i);
       sides.forEach(si => { const p = this.players[si]; if (p && p.pieces[0]) { p.pieces[0].out = true; p.pieces[0].node = 3; p.pieces[0].route = 'outer'; } });
     }
@@ -557,7 +559,7 @@
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
         eventTiles: Object.assign({}, this.eventTiles), dailyRule: this.dailyRule,
         eventFx: this.eventFx ? { ...this.eventFx } : null,
-        itemBattle: this.itemBattle, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
+        itemBattle: this.itemBattle, speedStart: this.speedStart, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         decideOrder: this.decideOrder,

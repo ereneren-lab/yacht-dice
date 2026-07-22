@@ -909,6 +909,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #pieceLayer .stepghost:hover circle:nth-child(2){ fill:rgba(232,161,58,.3) }
   #pieceLayer .stepghost:focus-visible circle:nth-child(2){ stroke-width:4.5 }
   .turninfo.picking{ border-color:var(--brass); background:color-mix(in srgb,var(--brass) 15%,var(--panel)); color:var(--ink) }
+  /* 대전 방식 3택 칩 — 설명 한 줄을 칩 안에 넣는다 */
+  .opts.bmode .opt{ display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.25;padding:9px 6px }
+  .opts.bmode .opt small{ font-size:9.5px;font-weight:700;opacity:.72;white-space:nowrap }
 </style>
 </head>
 <body>
@@ -1044,10 +1047,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
           <span class="osw-tog" aria-hidden="true"></span>
         </button>
-        <button type="button" class="orderswitch" id="itemSwitchLocal" role="switch" aria-checked="false">
-          <span class="osw-txt">🃏 아이템전 (방어막·재던지기·밀치기)<small>각 편이 아이템 카드로 시작 · 황금 칸에서 추가 획득</small></span>
-          <span class="osw-tog" aria-hidden="true"></span>
-        </button>
+        <div class="lbl">대전 방식</div>
+        <div class="opts bmode" id="optBModeLocal">
+          <button class="opt on" data-bm="normal">🎲 일반<small>기본 규칙</small></button>
+          <button class="opt" data-bm="speed">⚡ 스피드전<small>말 하나 먼저 출발</small></button>
+          <button class="opt" data-bm="item">🃏 아이템전<small>방어막·재던지기·밀치기</small></button>
+        </div>
         <button class="btn" id="startBtn" style="margin-top:14px">시작</button>
       </div>
       <div id="onlineBox" style="display:none">
@@ -1075,10 +1080,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
           <span class="osw-txt">🎲 선 뽑기로 순서 정하기<small>시작 전 각자 던져 높은 끗수 순으로 순서 결정</small></span>
           <span class="osw-tog" aria-hidden="true"></span>
         </button>
-        <button type="button" class="orderswitch" id="itemSwitchOn" role="switch" aria-checked="false">
-          <span class="osw-txt">🃏 아이템전 (방어막·재던지기·밀치기)<small>각 편이 아이템 카드로 시작 · 황금 칸에서 추가 획득</small></span>
-          <span class="osw-tog" aria-hidden="true"></span>
-        </button>
+        <div class="lbl">대전 방식</div>
+        <div class="opts bmode" id="optBModeOn">
+          <button class="opt on" data-bm="normal">🎲 일반<small>기본 규칙</small></button>
+          <button class="opt" data-bm="speed">⚡ 스피드전<small>말 하나 먼저 출발</small></button>
+          <button class="opt" data-bm="item">🃏 아이템전<small>방어막·재던지기·밀치기</small></button>
+        </div>
         <button class="btn" id="createBtn" style="margin-top:10px">방 만들기</button>
         <div style="display:flex;gap:6px;margin-top:8px">
           <input class="field" id="joinCode" placeholder="방 코드" maxlength="4" autocapitalize="characters" autocomplete="off" inputmode="text" style="margin-bottom:0;text-transform:uppercase">
@@ -1337,6 +1344,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.eventSeq = 0; this.eventFx = null;  // 이벤트 발동 연출용
       // 아이템전: 각 편이 아이템 카드(방어막🛡/재던지기🔄/밀치기👊)로 시작, 황금 칸으로 추가 획득.
       this.itemBattle = !!opt.itemBattle;
+      // 스피드전(모드로 고른 경우) — '오늘의 규칙'의 speed와 같은 효과를 항상 적용한다
+      this.speedStart = !!opt.speedStart;
       this.shieldSide = null; this.itemSeq = 0; this.itemFx = null;
       this.limitMs = opt.limitMs || 0; this.gameStartTime = null; this.timedOut = false;
       this.onState = opt.onState || function () {};
@@ -1507,7 +1516,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     }
     // 오늘의 규칙 '스피드전': 판 시작 시 각 편 말 하나를 미리 판 위(node 3)에
     _applyDailyStart() {
-      if (this.dailyRule !== 'speed') return;
+      if (this.dailyRule !== 'speed' && !this.speedStart) return;
       const sides = this.teamMode ? Object.keys(this.teamHolder).map(k => this.teamHolder[k]) : this.players.map((_, i) => i);
       sides.forEach(si => { const p = this.players[si]; if (p && p.pieces[0]) { p.pieces[0].out = true; p.pieces[0].node = 3; p.pieces[0].route = 'outer'; } });
     }
@@ -1739,7 +1748,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         pitNode: this.pitNode, pitFall: this.pitFall ? { ...this.pitFall } : null,
         eventTiles: Object.assign({}, this.eventTiles), dailyRule: this.dailyRule,
         eventFx: this.eventFx ? { ...this.eventFx } : null,
-        itemBattle: this.itemBattle, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
+        itemBattle: this.itemBattle, speedStart: this.speedStart, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         decideOrder: this.decideOrder,
@@ -1795,7 +1804,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   let lastMyTurn=false; // 내 차례 알림: 직전 렌더의 내 차례 여부(에지 감지용)
   let cfg={ n:2, markers:4, onMarkers:4, goal:4, onGoal:4, character:'pig', team:0, onTeam:0, timer:0, onTimer:0, aiDiff:'normal', aiFast:false, decideOrder:true, itemBattle:false };
   try{ cfg.decideOrder = localStorage.getItem('yut_order')!=='0'; }catch(e){}
-  try{ cfg.itemBattle = localStorage.getItem('yut_items')==='1'; }catch(e){}
+  /* 대전 방식: 'normal' | 'speed'(말 하나 먼저 출발) | 'item'(아이템전). 예전 yut_items 값은 그대로 이어받는다. */
+  try{ const bm=localStorage.getItem('yut_bmode'); cfg.battleMode = ['normal','speed','item'].includes(bm) ? bm
+        : (localStorage.getItem('yut_items')==='1' ? 'item' : 'normal'); }catch(e){ cfg.battleMode='normal'; }
+  cfg.itemBattle = cfg.battleMode==='item'; cfg.speedStart = cfg.battleMode==='speed';
   const TEAM_COL=['#4a90d9','#e0683c']; const TEAM_NAME=['🔵 청팀','🔴 홍팀'];
   try{ const sc=localStorage.getItem('yut_char'); if(sc && ['pig','dog','sheep','cow','horse'].includes(sc)) cfg.character=sc; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
@@ -3586,7 +3598,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
-    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
+    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, speedStart:!!cfg.speedStart, limitMs:(cfg.timer||0)*60000, aiMs:900, aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
     try{vsIntro();}catch(e){}      // ★ VS 인트로
@@ -3717,7 +3729,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('setupOv').classList.remove('on'); $('game').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on'); try{updateDailyBadge();}catch(e){}
     $('lobbyCode').textContent=lobby.code;
     { const lr=$('lobbyRules'); if(lr){ const mk=lobby.markers||4; const gl=lobby.goal||mk;
-        const parts=['말 '+mk+'개', (gl>=mk?'전부 완주':'먼저 '+gl+'개 완주'), lobby.teamMode?'팀전 2:2':'개인전'];
+        const bmLabel = lobby.itemBattle ? '🃏 아이템전' : (lobby.speedStart ? '⚡ 스피드전' : '🎲 일반');
+        const parts=[bmLabel, '말 '+mk+'개', (gl>=mk?'전부 완주':'먼저 '+gl+'개 완주'), lobby.teamMode?'팀전 2:2':'개인전'];
         if(lobby.timer>0) parts.push(lobby.timer+'분');
         lr.textContent='📋 '+parts.join(' · '); } }
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
@@ -3797,14 +3810,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function toggleOrder(){ cfg.decideOrder=!cfg.decideOrder; try{localStorage.setItem('yut_order', cfg.decideOrder?'1':'0');}catch(e){} syncOrderToggles(); }
   { const a=$('orderSwitchLocal'), b=$('orderSwitchOn'); if(a)a.onclick=toggleOrder; if(b)b.onclick=toggleOrder; }
   syncOrderToggles();
-  /* 아이템전 토글: cfg.itemBattle + localStorage yut_items. 기본 꺼짐(특수 모드). */
-  function syncItemToggles(){
-    ['itemSwitchLocal','itemSwitchOn'].forEach(id=>{ const el=$(id); if(!el)return;
-      el.classList.toggle('on', !!cfg.itemBattle); el.setAttribute('aria-checked', cfg.itemBattle?'true':'false'); });
+  /* 대전 방식 3택(일반·스피드전·아이템전). 로컬/온라인 셋업이 같은 값을 쓴다. */
+  function syncBModeChips(){
+    cfg.itemBattle = cfg.battleMode==='item'; cfg.speedStart = cfg.battleMode==='speed';
+    ['optBModeLocal','optBModeOn'].forEach(id=>{ const box=$(id); if(!box)return;
+      box.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.bm===cfg.battleMode)); });
   }
-  function toggleItems(){ cfg.itemBattle=!cfg.itemBattle; try{localStorage.setItem('yut_items', cfg.itemBattle?'1':'0');}catch(e){} syncItemToggles(); }
-  { const a=$('itemSwitchLocal'), b=$('itemSwitchOn'); if(a)a.onclick=toggleItems; if(b)b.onclick=toggleItems; }
-  syncItemToggles();
+  function setBMode(bm){ cfg.battleMode=bm; try{localStorage.setItem('yut_bmode',bm);}catch(e){} syncBModeChips(); }
+  ['optBModeLocal','optBModeOn'].forEach(id=>{ const box=$(id); if(!box)return;
+    box.querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>setBMode(o.dataset.bm); }); });
+  syncBModeChips();
   function pieceColor(pi){ return (S && S.teamMode && S.players[pi]) ? TEAM_COL[S.players[pi].team] : PCOL[pi]; }
   $('optMarkers').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optMarkers').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.markers=+o.dataset.m; refreshGoal('optGoal',cfg.markers,'goal'); });
   $('optTimer')&&$('optTimer').querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ $('optTimer').querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.timer=+o.dataset.tm; });
@@ -3819,7 +3834,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let g=2; g<=markers; g++){ const b=document.createElement('button'); b.type='button'; b.className='opt'+(g===cfg[key]?' on':''); b.dataset.g=g; b.textContent=g+(g===markers?'개(전부)':'개'); b.onclick=()=>{ cfg[key]=g; refreshGoal(elId,markers,key); }; el.appendChild(b); }
   }
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,avatar:cfg.character})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,speedStart:cfg.speedStart,avatar:cfg.character})); };
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
   (function(){ const jc=$('joinCode'); if(!jc)return;
     jc.addEventListener('input',()=>{ const v=jc.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(v!==jc.value) jc.value=v; });
