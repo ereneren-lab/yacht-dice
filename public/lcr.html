@@ -65,7 +65,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .loghist{ max-height:340px }
   }
   .topbar{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
-  .title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; }
+  /* 제목은 절대 줄바꿈하지 않는다(좁은 화면 인게임에서 세로로 쪼개짐 방지) */
+  .title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; white-space:nowrap; min-width:0; overflow:hidden; }
+  @media (max-width:480px){
+    .topbar{ gap:6px }
+    .title{ font-size:15px }
+    .iconbtn{ width:36px;height:36px;border-radius:9px;font-size:14px }
+    #modePill{ display:none }
+  }
   .title .dot{ width:9px;height:9px;border-radius:50%;background:var(--brass); }
   .iconbtn{ width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;flex:none }
   /* 터치 영역만 44px로 넓힌다(WCAG 2.5.5). 시각 크기는 40px 그대로라 레이아웃은 안 바뀐다.
@@ -746,13 +753,34 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     while(log.children.length>60) log.removeChild(log.firstChild);
     if(nearBottom || pid===MYPID) log.scrollTop=log.scrollHeight;
   }
+  /* 떠오르는 말풍선의 '읽히는 구간' 최고점 — floatuptxt 70% 지점(-58px)에 여유를 더한 값.
+     이만큼은 시작 위치에서 위로 올라가므로, 상단바를 덮지 않으려면 시작 top이 이보다 아래여야 한다. */
+  const EMO_RISE=64;
+  const liveEmos=[];   // 화면에 떠 있는 말풍선들 — 서로 포개져 글자가 겹치는 걸 막는다
   function floatReaction(pid,emoji){
     let anchor = document.querySelector('.pcard[data-pid="'+pid+'"]') || $('potBox') || document.body;
     const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.~]/.test(emoji);
     const el=document.createElement('div'); el.className='floatemo'+(isText?' txt':''); el.textContent=emoji;
-    if(isText){ el.style.left=cx+'px'; el.style.top=(r.top-8)+'px'; }
-    else { const dx=Math.random()*70-35; el.style.left=(cx-20+dx)+'px'; el.style.top=(r.top-10+Math.random()*8)+'px'; }
+    // 모바일에선 플레이어 카드가 상단바 바로 아래라, 그냥 카드 위에 띄우면 헤더를 덮는다(제목·버튼 가림).
+    const bar=document.querySelector('.topbar');
+    const floor=(bar?bar.getBoundingClientRect().bottom:0)+8+EMO_RISE;
+    let top=Math.max(floor, r.top-(isText?8:10)+(isText?0:Math.random()*8));
+    if(isText){
+      // 같은 시각에 여러 AI가 떠들면 같은 높이에서 글자가 겹친다 → 겹치는 만큼 아래로 계단식 배치
+      // 말풍선 높이(약 34px)보다 큰 간격으로 밀어야 실제로 안 겹친다 — 42px씩 최대 4단
+      for(let i=0;i<4;i++){
+        const clash=liveEmos.some(o=>Math.abs(o.top-top)<40 && Math.abs(o.cx-cx)<170);
+        if(!clash) break;
+        top+=42;
+      }
+      const rec={top,cx}; liveEmos.push(rec);
+      setTimeout(()=>{ const k=liveEmos.indexOf(rec); if(k>=0) liveEmos.splice(k,1); },2900);
+      el.style.left=cx+'px';
+    } else {
+      el.style.left=(cx-20+(Math.random()*70-35))+'px';
+    }
+    el.style.top=top+'px';
     document.body.appendChild(el); setTimeout(()=>el.remove(),2900);
     try{ SFX.pop(); }catch(e){}
     const now=Date.now();

@@ -42,7 +42,8 @@
   .topbar button,.topbar input,.topbar a{-webkit-app-region:no-drag}
   .topbar .spacer{flex:1}
   .rules-link{ background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0;margin-bottom:12px;align-self:flex-start }
-  .title{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+  /* 제목은 절대 줄바꿈하지 않는다 — 390px 인게임에서 '요트 다이/스'로 깨졌었다 */
+  .title{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:9px;white-space:nowrap;min-width:0;overflow:hidden}
   .title .dot{width:11px;height:11px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
   .title small{font-size:12px;color:var(--muted);font-weight:600}
 
@@ -362,6 +363,11 @@
   .tbctrls{flex-wrap:wrap;justify-content:flex-end}
   /* P4: 좁은 화면 왕복 스크롤 완화 — 트레이·던지기 영역을 납작하게 해 점수판 상단을 한 화면에 (base .tray 뒤에 와야 오버라이드됨) */
   @media(max-width:480px){
+    /* 좁은 화면 상단바 압축 — 제목 한 줄 유지 */
+    .topbar{gap:6px}
+    .title{font-size:17px;gap:7px}
+    .title #modeName{display:none}
+    .iconbtn{width:36px;height:36px;border-radius:8px;font-size:14px}
     .gamewrap{gap:9px}
     .dicepane{padding:10px 12px 12px;gap:8px}
     .tray{height:auto;max-width:300px;padding:10px 12px}

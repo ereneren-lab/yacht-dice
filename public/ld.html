@@ -69,7 +69,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .iconbtn::after{ content:'';position:absolute;inset:-3px }
 
   .iconbtn:hover{background:var(--panel2)}
-  .topbar h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1}
+  .topbar h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1;white-space:nowrap;min-width:0;overflow:hidden}
+  @media (max-width:480px){
+    .topbar{ gap:6px }
+    .topbar h2{ font-size:17px }
+    .iconbtn{ width:36px;height:36px;border-radius:9px;font-size:15px }
+  }
 
   /* opponents */
   .opps{display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}

@@ -408,6 +408,33 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 튜토리얼용 CSS pip 주사위 (유니코드 ⚂ tofu 방지 — 규칙 모달의 .minidie와 동일 방식) */
   .minidie.tutdie{width:44px;height:44px;border-radius:9px;padding:6px}
   .minidie.inl{display:inline-grid;width:22px;height:22px;padding:3px;border-radius:5px;vertical-align:-5px}
+
+/* 좁은 화면 세로 압축 — '굴린 뒤 놓을 내 판'이 첫 화면에 들어오게 한다.
+   (390×844에서 내 판이 화면 밖이라 매 턴 스크롤해야 했다)
+   상대 판은 보기만 하는 정보라 더 작게, 내 판은 탭 대상이라 크게 유지한다.
+   ⚠️ 이 블록은 반드시 스타일 끝에 둔다 — 위쪽에 두면 뒤따르는 .tray/.arena/.side 기본 규칙이 덮어쓴다. */
+@media (max-width:480px){
+  .kbtop{ margin-bottom:8px }
+  .arena{ gap:5px }
+  .side{ gap:11px; padding:5px }
+  .side.opp .board{ max-width:172px }
+  .side.you .board{ max-width:300px }
+  .tray{ margin:4px auto 0; gap:6px }
+  .rollzone{ min-height:60px }
+  .nameplate .av{ width:26px;height:26px;font-size:15px }
+  .nameplate .tot{ font-size:18px }
+}
+/* 더 짧은 폰(SE·미니 등 세로 800px 미만)은 위 압축만으로는 굴리기 버튼까지 못 담는다.
+   sticky로 띄워봤더니 내 판의 탭 영역을 가려서 더 나빴다 → 판과 주사위를 한 단계 더 줄인다.
+   규칙 버튼은 상단바 '?'로도 열 수 있어 여기선 감춘다. */
+@media (max-width:480px) and (max-height:800px){
+  .side.opp .board{ max-width:142px }
+  .side.you .board{ max-width:252px }
+  .rollzone{ min-height:52px }
+  .bigdie{ width:54px;height:54px;border-radius:11px;padding:7px }
+  .scorehelp{ display:none }
+  .kbvs{ font-size:12px }
+}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
