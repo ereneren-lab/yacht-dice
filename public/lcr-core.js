@@ -41,6 +41,7 @@
 
     start() {
       if (this._dead) return;
+      this.gameStartTime = Date.now();
       this.turn = this._firstAlive(0);
       this._emit();
       this._maybeAI();
@@ -101,6 +102,7 @@
     setConnected(pid, v) { const p = this.players.find(x => x.pid === pid); if (p) p.connected = v; this._maybeAI(); }
     serialize(viewer) {
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game: 'lcr', phase: this.phase, turn: this.turn, pot: this.pot, maxPot: this.maxPot, winner: this.winner,
         startChips: this.startChips, rollSeq: this.rollSeq,
         lastRoll: this.lastRoll ? { seat: this.lastRoll.seat, name: this.lastRoll.name, dice: this.lastRoll.dice.slice(), moves: this.lastRoll.moves.map(m => ({ ...m })) } : null,

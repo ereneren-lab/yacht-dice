@@ -376,6 +376,14 @@ wss.on('connection', (ws) => {
     } else if (m.t === 'skip') {
       if (ws.meta.pid === hostPid(room) && room.engine) room.engine.skipNow();
 
+    } else if (m.t === 'closeRoom') {
+      // 방 파하기 — 호스트만. 모두에게 알린 뒤 방을 없앤다(재접속용 자리도 사라진다).
+      // destroyRoom이 소켓 meta까지 비우므로, 알림은 반드시 파괴 '전에' 보내야 한다.
+      if (ws.meta.pid === hostPid(room)) {
+        broadcast(room, { t: 'roomClosed' });
+        destroyRoom(room);
+      }
+
     } else if (m.t === 'endGame') {
       // 호스트는 언제든 판을 끝내 로비로. 그 외 참가자는 '이미 끝난 판'일 때만 허용
       // (진행 중인 게임을 게스트가 중단시키는 건 막고, 승부가 난 뒤 로비 복귀는 누구나 가능).

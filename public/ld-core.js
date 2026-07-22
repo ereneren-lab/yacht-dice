@@ -101,7 +101,7 @@
     _totalDice(){ return this.players.reduce((a,p)=>a+(p.alive?p.dice.length:0),0); }
     _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
 
-    start(){ this._dead=false; this._newRound(this.turn||0); }
+    start(){ this._dead=false; this.gameStartTime=Date.now(); this._newRound(this.turn||0); }
 
     _newRound(starter){
       this._clear();
@@ -230,6 +230,7 @@
     serialize(viewerPid){
       const reveal = this.phase==='reveal' || this.phase==='over';
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'ld', phase:this.phase, turn:this.turn, bid:this.bid?{...this.bid}:null,
         wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),
         lastResult:this.lastResult?{...this.lastResult}:null,

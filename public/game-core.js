@@ -142,7 +142,7 @@
       this.deadline=0; this._timer=null; this._busy=false; this._dead=false;
       this._aiGen=0;   // AI 대행(자동 진행) 세대 토큰 — 재접속 등으로 무효화할 때 증가
     }
-    start(){ this.phase='play'; this.current=0; this.players.forEach(p=>{ p.scores=emptyScores(this.rule); p.yBonus=0; }); this._beginTurn(); }
+    start(){ this.phase='play'; this.gameStartTime=Date.now(); this.current=0; this.players.forEach(p=>{ p.scores=emptyScores(this.rule); p.yBonus=0; }); this._beginTurn(); }
     destroy(){ this._dead=true; if(this._timer){clearTimeout(this._timer);this._timer=null;} }
     _d6(){ return 1+Math.floor(this.rng()*6); }
     _seat(pid){ return this.players.findIndex(p=>p.pid===pid); }
@@ -299,6 +299,7 @@
     }
     serialize(){
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         phase:this.phase, mode:this.mode, modeName:this.rule.name,
         cats:this.rule.cats.map(c=>({id:c.id,label:c.label,sec:c.sec})),
         bonus:this.rule.bonus, lowBonus:this.rule.lowBonus||null,

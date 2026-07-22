@@ -299,6 +299,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .avgrid button{ aspect-ratio:1;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit }
   .avgrid button.on{ border-color:var(--brass);background:var(--panel2) }
   .avgrid button:hover{ background:var(--panel2) }
+  /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
+  .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
+  .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
 </style>
 </head>
 <body>
@@ -410,6 +413,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="waiting-line" id="lobbyWait">상대를 기다리는 중… (3~6인)</div>
       <button class="btn" id="lobbyStart" style="display:none">시작</button>
       <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
+      <button class="btn ghost danger" id="lobbyClose" style="display:none;margin-top:8px">💥 방 파하기</button>
     </div>
   </div>
 
@@ -422,9 +426,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="ressub" id="resStats" style="margin-top:-10px;display:none"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
+        <button class="btn ghost" id="toLobbyBtn" style="display:none;margin-top:10px">🏛 대기실로</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="shareImgBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
+        <button class="btn ghost danger" id="closeRoomBtn" style="display:none;margin-top:10px">💥 방 파하기</button>
       </div>
       <div id="rematchBox" style="display:none">
         <div id="rematchMsg" class="rematch-msg"></div>
@@ -529,6 +535,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
     start() {
       if (this._dead) return;
+      this.gameStartTime = Date.now();
       this.turn = this._firstAlive(0);
       this._emit();
       this._maybeAI();
@@ -589,6 +596,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     setConnected(pid, v) { const p = this.players.find(x => x.pid === pid); if (p) p.connected = v; this._maybeAI(); }
     serialize(viewer) {
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game: 'lcr', phase: this.phase, turn: this.turn, pot: this.pot, maxPot: this.maxPot, winner: this.winner,
         startChips: this.startChips, rollSeq: this.rollSeq,
         lastRoll: this.lastRoll ? { seat: this.lastRoll.seat, name: this.lastRoll.name, dice: this.lastRoll.dice.slice(), moves: this.lastRoll.moves.map(m => ({ ...m })) } : null,
@@ -955,7 +963,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       $('resSub').innerHTML = `${potPart}총 <b style="color:var(--brass)">${w.chips}칩</b> 독식 🎉`;
     } else $('resSub').innerHTML='';
     $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
-    if(!spectator){ Stats.record(iWon, S.maxPot||0); }
+    { const tl=$('toLobbyBtn'); if(tl){ tl.style.display = online ? 'block' : 'none';
+      tl.textContent = amHost ? '🏛 판 끝내고 대기실로 (모두)' : '🏛 대기실로'; } }
+      { const cb=$('closeRoomBtn'); if(cb) cb.style.display = (online && amHost) ? 'block' : 'none'; }   // 방 파하기: 호스트만
+  /* 같은 판 결과는 한 번만 기록한다 — 결과 화면에서 나갔다 다시 들어오면
+     서버가 '끝난 판' 상태를 다시 줘서 기록 함수가 또 불린다(메모리 플래그는 새로고침을 못 견딘다). */
+  function resultKey(){ return ((online)?(roomCode||'on'):'local')+':'+((S&&S.gameStartTime)||0); }
+  function alreadyRecorded(){ try{ return localStorage.getItem('lcr_lastres')===resultKey(); }catch(e){ return false; } }
+  function markRecorded(){ try{ localStorage.setItem('lcr_lastres', resultKey()); }catch(e){} }
+    if(!spectator && !alreadyRecorded()){ Stats.record(iWon, S.maxPot||0); markRecorded(); }
     // 방금 갱신된 통산 전적/연승을 결과창에 노출 (record 이후라 최신값)
     const rs=$('resStats');
     if(rs){
@@ -1149,6 +1165,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }
     else if(m.t==='rematchKicked'){ showToast('재경기에서 빠졌어요'); rematchLeave(); }
+    else if(m.t==='roomClosed'){   // 방장이 방을 파함 → 재접속 정보까지 지우고 셋업으로
+      teardownNet(); online=false; lobby=null; prevMembers=null; S=null;
+      try{seatDel('lcr_room');seatDel('lcr_pid');}catch(e){}
+      $('resultOv').classList.remove('on'); $('lobbyOv').classList.remove('on');
+      $('game').style.display='none'; document.body.classList.remove('ingame');
+      $('setupOv').classList.add('on'); showToast('💥 방장이 방을 파했어요');
+    }
     else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
   }
   function renderLobby(){
@@ -1157,6 +1180,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
+    { const lc=$('lobbyClose'); if(lc) lc.style.display = amHost ? 'block' : 'none'; }   // 방 파하기: 호스트만
     // 저장된 아바타(alley_avatar)를 온라인 기본값으로 1회 적용
     const meMem=lobby.members.find(x=>x.pid===MYPID);
     if(meMem && !avatarSynced){ avatarSynced=true; const savedAv=lsGet('alley_avatar'); if(savedAv && meMem.avatar!==savedAv){ wsSend({t:'setAvatar',emoji:savedAv}); } }
@@ -1232,6 +1256,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); };
+  // 판이 끝난 뒤엔 누구나 방 전체를 대기실로 되돌릴 수 있다(서버가 종료 상태에서 허용)
+  $('toLobbyBtn').onclick=()=>{ if(online) wsSend({t:'endGame'}); };
+  // 방 파하기: 호스트가 방 자체를 없앤다(되돌릴 수 없음)
+  $('closeRoomBtn').onclick=()=>{ if(online && amHost && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
+  $('lobbyClose').onclick=()=>{ if(online && amHost && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{seatDel('lcr_room');seatDel('lcr_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
   // 재경기 대기 카운트다운(30초) — 방치되면 자동 취소해 결과창에 갇히지 않게

@@ -901,6 +901,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @media (prefers-reduced-motion: reduce){
     #orderReveal .orv-box{ transition:none;transform:none !important } #orderReveal .orv-row{ animation:none;opacity:1;transform:none }
   }
+  /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
+  .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
+  .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
 </style>
 </head>
 <body>
@@ -1094,6 +1097,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <div class="waiting-line" id="lobbyWait">상대를 기다리는 중… (2~6인)</div>
       <button class="btn" id="lobbyStart" style="display:none">시작</button>
       <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
+      <button class="btn ghost danger" id="lobbyClose" style="display:none;margin-top:8px">💥 방 파하기</button>
     </div>
   </div>
 
@@ -1108,9 +1112,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <div class="rank-list" id="rankList"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
+        <button class="btn ghost" id="toLobbyBtn" style="display:none;margin-top:10px">🏛 대기실로</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="shareImgBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
+        <button class="btn ghost danger" id="closeRoomBtn" style="display:none;margin-top:10px">💥 방 파하기</button>
       </div>
       <div id="rematchBox" style="display:none">
         <div id="rematchMsg" class="rematch-msg"></div>
@@ -3423,6 +3429,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     growthInfo=null; { const rg=$('resGrowth'); if(rg){ rg.style.display='none'; rg.innerHTML=''; } }
     initMissions();
   }
+  /* 같은 판 결과는 한 번만 기록한다.
+     결과 화면에서 나갔다가 다시 들어오면 서버가 '끝난 판' 상태를 다시 주므로 showResult가 또 불린다.
+     메모리 플래그로는 새로고침을 못 견디니 판 고유키(방코드:판시작시각)를 저장소에 남긴다. */
+  function resultKey(){ return (online?(roomCode||'on'):'local')+':'+((S&&S.gameStartTime)||0); }
+  function alreadyRecorded(){ try{ return localStorage.getItem('yut_lastres')===resultKey(); }catch(e){ return false; } }
+  function markRecorded(){ try{ localStorage.setItem('yut_lastres', resultKey()); }catch(e){} }
   function showResult(){
     if(resultShown)return; resultShown=true;
     try{BGM.leave();}catch(e){}   // 판 종료 → BGM 정지(승리 SFX와 겹치지 않게)
@@ -3457,7 +3469,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
             + `</div>`
           : '관전 종료');
       $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
-      if(!spectator) Stats.record(iWon, capCount);
+      { const tl=$('toLobbyBtn'); if(tl){ tl.style.display = online ? 'block' : 'none';
+        tl.textContent = amHost ? '🏛 판 끝내고 대기실로 (모두)' : '🏛 대기실로'; } }
+        { const cb=$('closeRoomBtn'); if(cb) cb.style.display = (online && amHost) ? 'block' : 'none'; }   // 방 파하기: 호스트만
+      if(!spectator && !alreadyRecorded()){ Stats.record(iWon, capCount); markRecorded(); }
       captureGrowth(iWon, spectator);
       try{ iWon?SFX.win():SFX.lose(); }catch(e){}
       $('resultOv').classList.add('on'); if(iWon){ winCelebrate(); setTimeout(confettiBurst,150); }
@@ -3471,7 +3486,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('resTitle').textContent = (S.timedOut?'⏱ 시간 종료 · ':'') + (w ? (S.teamMode ? TEAM_NAME[S.winnerTeam]+' 승리!' : esc(w.name)+' 승리!') : '게임 종료');
     $('resSub').innerHTML = `<div class="res-summary">` + (w ? `<span class="rs-line">목표 ${S.goal||S.markers}개 완주 달성! 🎉</span>` : '') + (missionScore>0 ? `<span class="rs-mission">🎯 미션 보너스 <b>+${missionScore}</b>점</span>` : '') + `</div>`;
     $('againBtn').textContent = online ? '🔄 다시 하기' : '다시 한 판';
-    if(!spectator){ Stats.record(iWon, capCount); }
+    { const tl=$('toLobbyBtn'); if(tl){ tl.style.display = online ? 'block' : 'none';
+      tl.textContent = amHost ? '🏛 판 끝내고 대기실로 (모두)' : '🏛 대기실로'; } }
+    if(!spectator && !alreadyRecorded()){ Stats.record(iWon, capCount); markRecorded(); }
     captureGrowth(iWon, spectator);
     try{ iWon?SFX.win():SFX.lose(); }catch(e){}
     $('resultOv').classList.add('on'); if(iWon){ winCelebrate(); setTimeout(confettiBurst,150); }
@@ -3622,6 +3639,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }
     else if(m.t==='rematchKicked'){ showToast('재경기에서 빠졌어요'); rematchLeave(); }
+    else if(m.t==='roomClosed'){   // 방장이 방을 파함 → 자동 재접속 정보까지 지우고 셋업으로
+      teardownNet(); online=false; lobby=null; prevMembers=null; S=null;
+      try{seatDel('yut_room');seatDel('yut_pid');}catch(e){}
+      $('resultOv').classList.remove('on'); $('lobbyOv').classList.remove('on');
+      $('game').style.display='none'; document.body.classList.remove('ingame');
+      $('setupOv').classList.add('on'); showToast('💥 방장이 방을 파했어요');
+    }
     else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
   }
   function renderLobby(){
@@ -3633,6 +3657,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         if(lobby.timer>0) parts.push(lobby.timer+'분');
         lr.textContent='📋 '+parts.join(' · '); } }
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
+    { const lc=$('lobbyClose'); if(lc) lc.style.display = amHost ? 'block' : 'none'; }   // 방 파하기: 호스트만
     const host=$('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{ const d=document.createElement('div'); d.className='member';
       const tBadge=(lobby.teamMode&&!mem.spectator)?`<span class="mteam mteam${mem.team}">${mem.team===0?'🔵 청팀':'🔴 홍팀'}</span>`:'';
@@ -3740,9 +3765,18 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('lobbyCopy').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
   (function(){ const lc=$('lobbyCode'); if(!lc)return; lc.style.cursor='pointer'; lc.title='탭하면 방 코드 복사'; lc.onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); }; })();
+  // 판이 끝난 뒤엔 누구나 방 전체를 대기실로 되돌릴 수 있다(서버가 종료 상태에서 허용).
+  // 서버가 lobby를 브로드캐스트하면 각 클라의 lobby 핸들러가 게임 화면을 정리하고 대기실로 전환한다.
+  $('toLobbyBtn').onclick=()=>{ if(online) wsSend({t:'endGame'}); };
+  // 방 파하기: 호스트가 방 자체를 없앤다(자리·재접속 정보까지 사라짐) — 되돌릴 수 없어 확인받는다
+  $('closeRoomBtn').onclick=()=>{ if(online && amHost && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
+  $('lobbyClose').onclick=()=>{ if(online && amHost && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{seatDel('yut_room');seatDel('yut_pid');}catch(e){} lobby=null; online=false; prevMembers=null; $('lobbyOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
   $('againBtn').onclick=()=>{ if(online){ wsSend({t:'rematchPropose'}); } else { $('resultOv').classList.remove('on'); startLocal(); } };
-  $('toHub').onclick=()=>location.href='./';
+  // ⚠️ 자리 정보를 지우고 나가야 한다. 안 지우면 허브에서 다시 들어올 때 '끝난 판'으로 자동 재접속돼
+  //    결과 화면이 다시 뜨고(내가 1등한 판이 반복), 통계까지 다시 기록됐다.
+  $('toHub').onclick=()=>{ try{teardownNet();}catch(e){} online=false;
+    try{seatDel('yut_room');seatDel('yut_pid');}catch(e){} location.href='./'; };
   /* 하단 고정 조작바(모바일)의 실제 높이를 재서 .app 하단 패딩에 반영 — 4~6인 트레이가 바에 안 가리게 */
   (function(){ var bar=$('ctrlBar'); if(!bar) return;
     function upd(){ if(getComputedStyle(bar).position==='fixed') document.documentElement.style.setProperty('--ctrlbar-h', Math.ceil(bar.getBoundingClientRect().height)+'px'); }

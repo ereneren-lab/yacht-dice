@@ -499,6 +499,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
     <button class="btn" id="lobbyStart" style="display:none">시작</button>
     <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
+    <button class="btn ghost danger" id="lobbyClose" style="display:none;margin-top:8px">💥 방 파하기</button>
   </div>
 </div>
 
@@ -517,6 +518,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="shareImgBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="btn ghost" id="toHub" style="margin-top:10px">골목으로</button>
+        <button class="btn ghost danger" id="closeRoomBtn" style="display:none;margin-top:10px">💥 방 파하기</button>
       </div>
       <div id="rematchBox" style="display:none">
         <div id="rematchMsg" class="rematch-msg"></div>
@@ -646,7 +648,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     _totalDice(){ return this.players.reduce((a,p)=>a+(p.alive?p.dice.length:0),0); }
     _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
 
-    start(){ this._dead=false; this._newRound(this.turn||0); }
+    start(){ this._dead=false; this.gameStartTime=Date.now(); this._newRound(this.turn||0); }
 
     _newRound(starter){
       this._clear();
@@ -775,6 +777,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     serialize(viewerPid){
       const reveal = this.phase==='reveal' || this.phase==='over';
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'ld', phase:this.phase, turn:this.turn, bid:this.bid?{...this.bid}:null,
         wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),
         lastResult:this.lastResult?{...this.lastResult}:null,
@@ -1158,6 +1161,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(m.t==='chat'){ if(m.pid!==MYPID) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }
     else if(m.t==='rematchKicked'){ showToast('재경기에서 빠졌어요'); rematchLeave(); }
+    else if(m.t==='roomClosed'){   // 방장이 방을 파함 → 자동 재접속 정보까지 지우고 셋업으로
+      teardownNet(); lobby=null; online=false; S=null;
+      try{seatDel('ld_room');seatDel('ld_pid');}catch(e){}
+      $('resultOv').classList.remove('on'); $('lobbyOv').classList.remove('on');
+      $('game').style.display='none'; document.body.classList.remove('ingame');
+      resetSetupMode(); openSetup(); showToast('💥 방장이 방을 파했어요');
+    }
     else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
   }
   function renderLobby(){
@@ -1165,6 +1175,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on'); stopTurnTimer();
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
+    { const lc=$('lobbyClose'); if(lc) lc.style.display = amHost ? 'block' : 'none'; }   // 방 파하기: 호스트만
     $('lobbySpot').classList.toggle('on', lobby.spotOn!==false);
     $('lobbySpot').style.opacity = amHost?'1':'.55';
     // 방 규칙 요약 (호스트가 방 만들 때 고른 값 — 서버 lobby 필드 사용)
@@ -1213,6 +1224,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else fb(); };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ const code=(lobby&&lobby.code)||roomCode||''; if(!code)return; copyText(code); showToast('방 코드 복사됨'); };
+  // 방 파하기: 호스트가 방 자체를 없앤다(자리·재접속 정보까지 사라짐) — 되돌릴 수 없어 확인받는다
+  $('closeRoomBtn').onclick=()=>{ if(online && amHost && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
+  $('lobbyClose').onclick=()=>{ if(online && amHost && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
   $('lobbyLeave').onclick=()=>{ teardownNet(); try{seatDel('ld_room');seatDel('ld_pid');}catch(e){} lobby=null; online=false; $('lobbyOv').classList.remove('on'); resetSetupMode(); openSetup(); };
 
   // ---------- render ----------
@@ -1629,8 +1643,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('againBtn').disabled = false;
     $('toLobbyBtn').style.display = online?'block':'none';
     $('toLobbyBtn').textContent = (online && amHost) ? '🏛 판 끝내고 로비로 (모두)' : '🏛 로비로';
+    { const cb=$('closeRoomBtn'); if(cb) cb.style.display = (online && amHost) ? 'block' : 'none'; }   // 방 파하기: 호스트만
     // ld_room/ld_pid는 유지 — 방에 남아있는 동안 새로고침해도 재접속돼야 한다
-    if(!spectator) Stats.record(iWon);
+  /* 같은 판 결과는 한 번만 기록한다 — 결과 화면에서 나갔다 다시 들어오면
+     서버가 '끝난 판' 상태를 다시 줘서 기록 함수가 또 불린다(메모리 플래그는 새로고침을 못 견딘다). */
+  function resultKey(){ return ((online)?(roomCode||'on'):'local')+':'+((S&&S.gameStartTime)||0); }
+  function alreadyRecorded(){ try{ return localStorage.getItem('ld_lastres')===resultKey(); }catch(e){ return false; } }
+  function markRecorded(){ try{ localStorage.setItem('ld_lastres', resultKey()); }catch(e){} }
+    if(!spectator && !alreadyRecorded()){ Stats.record(iWon); markRecorded(); }
     // 성장 피드백(통산 전적·연승)
     const rg=$('resGrowth');
     if(rg){

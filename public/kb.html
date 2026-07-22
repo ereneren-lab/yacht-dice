@@ -439,6 +439,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .scorehelp{ display:none }
   .kbvs{ font-size:12px }
 }
+  /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
+  .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
+  .btn.ghost.danger:hover{ background:color-mix(in srgb,var(--danger,#e8696b) 12%,transparent) }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -576,6 +579,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
     <button class="btn" id="lobbyStart" style="display:none">시작</button>
     <button class="btn ghost" id="lobbyLeave" style="margin-top:10px">나가기</button>
+    <button class="btn ghost danger" id="lobbyClose" style="display:none;margin-top:8px">💥 방 파하기</button>
   </div>
 </div>
 
@@ -661,6 +665,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="imgShareBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
         <button class="iconbtn" style="width:100%;margin-top:10px;border-radius:14px;padding:14px" id="toHub2"><span style="font-weight:800">골목으로</span></button>
+        <button class="btn ghost danger" id="closeRoomBtn" style="display:none;margin-top:10px">💥 방 파하기</button>
       </div>
       <div id="rematchBox" style="display:none">
         <div id="rematchMsg" class="rematch-msg"></div>
@@ -767,7 +772,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     _emit(){ if(!this._dead) this.onState(this.serialize()); }
     _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
 
-    start(){ this._dead=false; this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
+    start(){ this._dead=false; this.gameStartTime=Date.now(); this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
 
     _beginTurn(){
       this._clearTimer();
@@ -861,6 +866,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     serialize(){
       const totals=[boardScore(this.boards[0]), boardScore(this.boards[1])];
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'kb',
         phase:this.phase, turn:this.turn, die:this.die,
         deadline:this.deadline, turnMs:this.TURN_MS,
@@ -1275,6 +1281,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(m.t==='chat'){ if(m.pid!==myPid) addChat(m.pid,m.name,m.text); }
     else if(m.t==='rematchAsk'){ renderRematch(m); }
     else if(m.t==='rematchKicked'){ showToast('재경기에서 빠졌어요'); rematchLeave(); }
+    else if(m.t==='roomClosed'){   // 방장이 방을 파함 → 자동 재접속 정보까지 지우고 셋업으로
+      teardownNet(); lobby=null; S=null;
+      try{seatDel('kb_room');seatDel('kb_pid');}catch(e){}
+      $('resultOv').classList.remove('on'); $('lobbyOv').classList.remove('on');
+      $('arena').style.display='none'; $('rollWrap').style.display='none'; document.body.classList.remove('ingame');
+      mode='ai'; resetSetup(); openSetup(); showToast('💥 방장이 방을 파했어요');
+    }
     else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('🔄 재경기 제안이 취소됐어요'); }
   }
 
@@ -1315,6 +1328,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       lr.innerHTML=`📋 방 규칙 · 🤖 AI 난이도 <b>${dn}</b> · 단판제 · 최대 <b>${lobby.cap||2}</b>인`;
       lr.style.display='block'; }
     amHostFlag = lobby.members.some(x=>x.host && x.pid===myPid);
+    { const lc=$('lobbyClose'); if(lc) lc.style.display = amHostFlag ? 'block' : 'none'; }   // 방 파하기: 호스트만
     const host = $('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{
       const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
@@ -1374,6 +1388,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>fb()); }
     else fb(); };
   $('lobbyCode').onclick = ()=>{ const c=roomCode||(lobby&&lobby.code)||''; if(!c)return; copyText(c); showToast('📋 방 코드 복사됨'); };
+  // 방 파하기: 호스트가 방 자체를 없앤다(자리·재접속 정보까지 사라짐) — 되돌릴 수 없어 확인받는다
+  $('closeRoomBtn').onclick=()=>{ if(online() && amHostFlag && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
+  $('lobbyClose').onclick=()=>{ if(online() && amHostFlag && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
   $('lobbyLeave').onclick = ()=>{ teardownNet(); try{seatDel('kb_room');seatDel('kb_pid');}catch(e){} $('lobbyOv').classList.remove('on'); mode='ai'; resetSetup(); openSetup(); };
   function requestRematch(){ wsSend({t:'endGame'}); /* 호스트가 endGame하면 로비로; 양쪽 로비에서 재시작 */ }
 
@@ -1393,7 +1410,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(isOver(s)){
       if(!recorded){ recorded=true; const b=bottomSeat(); const my=boardScore(s.boards[b]), op=boardScore(s.boards[1-b]);
         const beforeAch=achUnlocked.slice(), beforeBest=Stats.d.best;   // P4: 기록 직전 스냅샷
-        Stats.record(my>op, my);
+  /* 같은 판 결과는 한 번만 기록한다 — 결과 화면에서 나갔다 다시 들어오면
+     서버가 '끝난 판' 상태를 다시 줘서 기록 함수가 또 불린다(메모리 플래그는 새로고침을 못 견딘다). */
+  function resultKey(){ return ((online())?(roomCode||'on'):'local')+':'+((S&&S.gameStartTime)||0); }
+  function alreadyRecorded(){ try{ return localStorage.getItem('kb_lastres')===resultKey(); }catch(e){ return false; } }
+  function markRecorded(){ try{ localStorage.setItem('kb_lastres', resultKey()); }catch(e){} }
+        if(!alreadyRecorded()){ Stats.record(my>op, my); markRecorded(); }
         growthInfo={ won:my>op, tie:my===op, wins:Stats.d.wins, streak:Stats.d.streak, score:my,
           newBest:(my>beforeBest && my>0),
           newAch: ACH_KB.filter(a=>achUnlocked.includes(a.id) && !beforeAch.includes(a.id)) };
@@ -1772,6 +1794,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('againBtn').disabled = false;
     $('toLobbyBtn').style.display = online() ? 'block' : 'none';
     $('toLobbyBtn').textContent = (online() && amHostFlag) ? '🏛 판 끝내고 로비로 (모두)' : '🏛 로비로';
+    { const cb=$('closeRoomBtn'); if(cb) cb.style.display = (online() && amHostFlag) ? 'block' : 'none'; }   // 방 파하기: 호스트만
     $('resultOv').classList.add('on');
   }
   // P4 결과피드백: Stats.record 직후 캡처한 growthInfo로 이번 판 성장 요약을 그린다.

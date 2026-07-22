@@ -75,7 +75,7 @@
     _emit(){ if(!this._dead) this.onState(this.serialize()); }
     _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
 
-    start(){ this._dead=false; this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
+    start(){ this._dead=false; this.gameStartTime=Date.now(); this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
 
     _beginTurn(){
       this._clearTimer();
@@ -169,6 +169,7 @@
     serialize(){
       const totals=[boardScore(this.boards[0]), boardScore(this.boards[1])];
       return {
+        gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'kb',
         phase:this.phase, turn:this.turn, die:this.die,
         deadline:this.deadline, turnMs:this.TURN_MS,
