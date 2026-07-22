@@ -40,7 +40,9 @@
   }
   function step(node, route, out, steps, dir) {
     if (!out) {
-      if (steps < 0) return { node: 29, route: 'outer', out: true };   // 빽도로 첫 진입: 출발점 자리(=완주 게이트 29)에 선다 → 다음 도~모면 바로 완주
+      // 판에 안 나온 말은 빽도로 나올 수 없다 — 아무 일도 일어나지 않는다(그 끗수는 못 쓴다).
+      // 말이 전부 대기 중이면 _anyMovable이 false가 되어 턴이 스킵된다.
+      if (steps < 0) return { noMove: true };
       if (steps >= SEQ.outer.length) return { done: true };
       return { node: SEQ.outer[steps], route: 'outer', out: true };
     }
@@ -73,7 +75,7 @@
     const path = [];
     if (!steps) return path;
     if (!out) {                                   // 대기 말이 판에 나옴: outer[1..steps]
-      if (steps < 0) return [{ node: 29, route: 'outer' }];   // 빽도 첫 진입 → 출발점 자리(완주 게이트 29)
+      if (steps < 0) return path;   // 대기 말은 빽도로 나올 수 없다(경로 없음) — step()의 noMove와 짝
 
       for (let s = 1; s <= steps; s++) { if (s >= SEQ.outer.length) { path.push({ done: true }); return path; } path.push({ node: SEQ.outer[s], route: 'outer' }); }
       return path;
