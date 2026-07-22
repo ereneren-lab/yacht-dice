@@ -278,7 +278,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .online-note b{color:var(--ink);font-weight:800}
 
   /* illustrated guide */
-  .sheet.guide{max-height:84vh;overflow-y:auto}
+  .sheet.guide{max-height:84vh;overflow-y:auto;overscroll-behavior:contain;position:relative}
+  /* 규칙이 길어 시트 안에서 스크롤된다 → 확인 버튼을 시트 하단에 붙여 언제든 닫을 수 있게.
+     (모바일에선 버튼이 화면 밖 897px 지점에 있어 끝까지 스크롤해야 닫혔다) */
+  .sheet.guide #helpClose{position:sticky;bottom:0;margin-top:14px;
+    box-shadow:0 -14px 20px 6px var(--bg2), 0 0 0 1px color-mix(in srgb,var(--brass) 30%,transparent)}
   .guide>p{margin-bottom:6px}
   .gstep{display:flex;gap:12px;padding:14px 0;border-top:1px solid var(--line);text-align:left}
   .gstep:first-of-type{border-top:none;padding-top:6px}

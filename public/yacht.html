@@ -169,7 +169,13 @@
 
   .overlay{position:fixed;inset:0;background:rgba(13,10,20,.86);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;z-index:30}
   .overlay.show{display:flex}
-  .result{background:var(--panel);border-radius:20px;padding:26px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  /* 세로가 짧은 폰에선 규칙·결과 내용이 화면보다 길어 위아래가 잘렸다(가운데 정렬이라 양쪽 다 잘림)
+     → 시트 자체를 스크롤 가능하게. dvh는 모바일 주소창 높이 변화까지 반영한다. */
+  .result{background:var(--panel);border-radius:20px;padding:26px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.5);
+    max-height:calc(100dvh - 48px);overflow-y:auto;overscroll-behavior:contain;position:relative}
+  /* 내용이 길어 스크롤될 때도 닫기 버튼은 항상 손에 닿게(끝까지 스크롤해야 닫히던 문제) */
+  /* 버튼이 .btns 래퍼 안에 있어 버튼만 sticky를 걸면 래퍼 높이에 갇힌다 → 래퍼를 고정한다 */
+  #helpOv .btns{position:sticky;bottom:0;background:var(--panel);padding-top:10px;box-shadow:0 -14px 18px 8px var(--panel)}
   .result h2{font-size:23px;font-weight:800;text-align:center;margin-bottom:4px}
   .result .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px}
   .rank{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;background:var(--panel2);margin-bottom:8px}
