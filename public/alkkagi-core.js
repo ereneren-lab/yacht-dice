@@ -290,6 +290,9 @@
       }
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
+      // 눈덩이 완화: "한 번 더"를 무한 연쇄가 아니라 턴당 최대 N번으로 제한(선공 이점·판 길이 조절).
+      this.extraFlickCap = opt.extraFlickCap != null ? opt.extraFlickCap : 1;
+      this.extraFlickCount = 0;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
       this.turn = 0;                    // 0 or 1
       this.winner = null; this.winnerTeam = null;
@@ -367,7 +370,9 @@
       const actorTeam = this.teamOf(actor);
       const oppOffCount = result.events.filter(e => e.type === 'off' && e.team === 1 - actorTeam).length;
       const myOffCount = result.events.filter(e => e.type === 'off' && e.team === actorTeam).length;
-      const extraFlick = this.extraFlickOnKnockoff && oppOffCount > 0;
+      // 한 번 더 — 단, 이번 턴에 이미 캡만큼 받았으면 더 안 준다(눈덩이 차단).
+      const knocked = this.extraFlickOnKnockoff && oppOffCount > 0;
+      const extraFlick = knocked && (this.extraFlickCount || 0) < this.extraFlickCap;
       // 더블샷: 낙사를 못 시켜도 이번 턴 2발까지는 같은 사람이 이어 던진다.
       this.shotsThisTurn = (this.shotsThisTurn || 0) + 1;
       const doubleShotContinue = this.rule === 'doubleShot' && !extraFlick && this.shotsThisTurn < 2;
@@ -383,12 +388,14 @@
         this.winnerTeam = w;
         if (w >= 0) { const wp = this.players.find(p => this.teamOf(p.seat) === w); this.winner = wp ? wp.pid : null; }
       } else if (extraFlick) {
+        this.extraFlickCount = (this.extraFlickCount || 0) + 1;
         this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
       } else if (doubleShotContinue) {
         // 턴 유지(2발째) — 카운터 그대로
       } else {
         this.turn = (actor + 1) % this.players.length;   // 다음 좌석(2v2면 0→1→2→3→0)
         this.shotsThisTurn = 0;
+        this.extraFlickCount = 0;   // 턴 넘어가면 한 번 더 카운터 리셋
       }
       // 턴 유지(extraFlick 또는 더블샷 2발째)면 같은 사람이 다시 aim
       this._emit();

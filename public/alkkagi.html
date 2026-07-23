@@ -72,6 +72,16 @@
   @keyframes alkShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
   .stagewrap.shake{animation:alkShake .5s cubic-bezier(.36,.07,.19,.97)}
   @media (prefers-reduced-motion:reduce){ .stagewrap.shake{animation:none} }
+  /* 다중 낙사 축하 배너 — 판 중앙에 팡 터졌다 사라짐 */
+  #bigfx{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:6;opacity:0}
+  #bigfx.on{animation:bigfxPop 1.15s cubic-bezier(.2,1.4,.3,1) forwards}
+  #bigfx .txt{font-weight:900;font-size:clamp(26px,7vw,52px);letter-spacing:.02em;color:var(--gold);
+    text-shadow:0 2px 0 #5a3d18,0 0 20px color-mix(in srgb,var(--gold) 60%,transparent),0 4px 14px rgba(0,0,0,.5);
+    text-align:center;line-height:1.05;white-space:nowrap}
+  #bigfx .txt small{display:block;font-size:.42em;color:var(--ink);text-shadow:0 1px 3px rgba(0,0,0,.6);margin-top:4px;letter-spacing:.08em}
+  @keyframes bigfxPop{0%{opacity:0;transform:scale(.4) rotate(-6deg)}18%{opacity:1;transform:scale(1.12) rotate(2deg)}
+    32%{transform:scale(1) rotate(0)}72%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
+  @media (prefers-reduced-motion:reduce){ #bigfx.on{animation:none;opacity:1} }
   .stagehead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:900;color:var(--muted);margin-bottom:8px}
   .stagehead .turn0{color:var(--team0)} .stagehead .turn1{color:var(--team1)}
   .stagehead .who{font-size:13px}
@@ -243,6 +253,7 @@
       </div>
       <canvas id="board" class="boardcanvas" aria-label="알까기 판"></canvas>
       <div class="stagenote" id="stageNote">돌을 눌러 조준</div>
+      <div id="bigfx" aria-hidden="true"></div>
     </div>
   </div>
 
@@ -569,6 +580,9 @@
       }
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
+      // 눈덩이 완화: "한 번 더"를 무한 연쇄가 아니라 턴당 최대 N번으로 제한(선공 이점·판 길이 조절).
+      this.extraFlickCap = opt.extraFlickCap != null ? opt.extraFlickCap : 1;
+      this.extraFlickCount = 0;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
       this.turn = 0;                    // 0 or 1
       this.winner = null; this.winnerTeam = null;
@@ -646,7 +660,9 @@
       const actorTeam = this.teamOf(actor);
       const oppOffCount = result.events.filter(e => e.type === 'off' && e.team === 1 - actorTeam).length;
       const myOffCount = result.events.filter(e => e.type === 'off' && e.team === actorTeam).length;
-      const extraFlick = this.extraFlickOnKnockoff && oppOffCount > 0;
+      // 한 번 더 — 단, 이번 턴에 이미 캡만큼 받았으면 더 안 준다(눈덩이 차단).
+      const knocked = this.extraFlickOnKnockoff && oppOffCount > 0;
+      const extraFlick = knocked && (this.extraFlickCount || 0) < this.extraFlickCap;
       // 더블샷: 낙사를 못 시켜도 이번 턴 2발까지는 같은 사람이 이어 던진다.
       this.shotsThisTurn = (this.shotsThisTurn || 0) + 1;
       const doubleShotContinue = this.rule === 'doubleShot' && !extraFlick && this.shotsThisTurn < 2;
@@ -662,12 +678,14 @@
         this.winnerTeam = w;
         if (w >= 0) { const wp = this.players.find(p => this.teamOf(p.seat) === w); this.winner = wp ? wp.pid : null; }
       } else if (extraFlick) {
+        this.extraFlickCount = (this.extraFlickCount || 0) + 1;
         this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
       } else if (doubleShotContinue) {
         // 턴 유지(2발째) — 카운터 그대로
       } else {
         this.turn = (actor + 1) % this.players.length;   // 다음 좌석(2v2면 0→1→2→3→0)
         this.shotsThisTurn = 0;
+        this.extraFlickCount = 0;   // 턴 넘어가면 한 번 더 카운터 리셋
       }
       // 턴 유지(extraFlick 또는 더블샷 2발째)면 같은 사람이 다시 aim
       this._emit();
@@ -844,6 +862,21 @@
 'use strict';
 const $ = id => document.getElementById(id);
 function toast(t, ms){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('on'), ms||1400); }
+// 다중 낙사(한 방에 상대 2+) 축하 — 판 중앙에 큰 배너 팡.
+function celebrate(n, mine){
+  const NAMES = {2:'더블 낙사!', 3:'트리플 낙사!', 4:'쿼드 낙사!'};
+  const label = NAMES[n] || (n+'연속 낙사!');
+  const sub = mine ? '한 방에 '+n+'개!' : '상대가 '+n+'개…';
+  const el = $('bigfx');
+  if(!el) return;
+  el.innerHTML = '<div class="txt">'+label+'<small>'+sub+'</small></div>';
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  clearTimeout(celebrate._t); celebrate._t = setTimeout(()=>el.classList.remove('on'), 1200);
+  try{ if(mine){ (SFX.boom||SFX.knock||SFX.click).call(SFX); } }catch(e){}
+  try{ if(mine && navigator.vibrate) navigator.vibrate([25,30,25,30,45]); }catch(e){}
+  // 낙사 지점들에 추가 파편 튀김(있으면)
+  try{ const sw=document.querySelector('.stagewrap'); if(sw){ sw.classList.remove('shake'); void sw.offsetWidth; sw.classList.add('shake'); } }catch(e){}
+}
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // 테마
@@ -1675,11 +1708,23 @@ function finishPlay(){
   if(S){ for(const s of S.stones){ s.__falling=false; s.__fallStart=0; } }
   render();
   updateNote();
-  if(S && S.phase==='over'){ showResult(); return; }
-  if(S && S.lastSim && S.lastSim.extraFlick){
-    const actorPid = S.players[S.lastSim.actorSeat] && S.players[S.lastSim.actorSeat].pid;
-    if(actorPid === MYPID || !online) toast('🔥 상대 낙사! 한 번 더 튕겨!');
-    else toast('🔥 상대가 한 번 더!');
+  if(S && S.lastSim){
+    const ls = S.lastSim;
+    const actorPid = S.players[ls.actorSeat] && S.players[ls.actorSeat].pid;
+    const mine = (actorPid === MYPID) || !online;
+    // 다중 낙사 축하 — 한 방에 상대 2+ 밀어내면 판 중앙에 큰 연출
+    const n = ls.oppOffCount || 0;
+    if(n >= 2){ celebrate(n, mine); }
+    else if(S.phase!=='over' && ls.extraFlick){
+      toast(mine ? '🔥 상대 낙사! 한 번 더 튕겨!' : '🔥 상대가 한 번 더!');
+    }
+  }
+  if(S && S.phase==='over'){
+    // 마지막 한 방이 다중 낙사면 축하 연출을 잠깐 보여주고 결과창을 띄운다.
+    const finale = S.lastSim && (S.lastSim.oppOffCount||0) >= 2;
+    if(finale) setTimeout(()=>{ if(S && S.phase==='over') showResult(); }, 950);
+    else showResult();
+    return;
   }
   // 로컬 AI: 리플레이가 끝난 뒤에야 AI가 다음 수를 둔다(겹침 방지). 잠깐 쉬어 결과를 눈에 담게.
   scheduleAiTurn();
