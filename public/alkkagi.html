@@ -153,6 +153,12 @@
         <div class="opt" data-sp="giant">🪨 거대</div>
         <div class="opt" data-sp="magnet">🧲 자석</div>
       </div>
+      <div class="lbl">오늘의 규칙</div>
+      <div class="row" id="optRule">
+        <div class="opt on" data-r="none">없음</div>
+        <div class="opt" data-r="doubleShot">⚡ 더블샷</div>
+        <div class="opt" data-r="wind">🌬️ 바람</div>
+      </div>
       <div class="lbl">보조</div>
       <div class="row" id="optGuide">
         <div class="opt on" data-g="1">궤적 프리뷰 · 켜짐</div>
@@ -187,6 +193,12 @@
         <div class="opt" data-sp="bomb">💣 폭탄</div>
         <div class="opt" data-sp="giant">🪨 거대</div>
         <div class="opt" data-sp="magnet">🧲 자석</div>
+      </div>
+      <div class="lbl">오늘의 규칙 (호스트)</div>
+      <div class="row" id="optRuleOnline">
+        <div class="opt on" data-r="none">없음</div>
+        <div class="opt" data-r="doubleShot">⚡ 더블샷</div>
+        <div class="opt" data-r="wind">🌬️ 바람</div>
       </div>
       <div class="row" style="margin-top:14px">
         <button class="btn" id="createBtn">방 만들기</button>
@@ -301,6 +313,7 @@
   function clone(state) {
     return {
       W: state.W, H: state.H, r: state.r, friction: state.friction,
+      windX: state.windX || 0, windY: state.windY || 0,
       stones: state.stones.map(s => ({ ...s })),
     };
   }
@@ -380,6 +393,8 @@
         s.y += s.vy * DT;
         s.vx *= st.friction;
         s.vy *= st.friction;
+        // 바람: 움직이는 돌에만 일정 가속(정지한 돌은 안 밀림 — 판이 어수선해지지 않게)
+        if (st.windX && (s.vx * s.vx + s.vy * s.vy > 1)) { s.vx += st.windX * DT; s.vy += st.windY * DT; }
       }
       // 자석돌: 움직이는 자석이 반경 내 '아군' alive 돌을 자기 쪽으로 살짝 끌어당김(따라오게). 결정론(위치 기반).
       for (const m of st.stones) {
@@ -525,6 +540,20 @@
       this.perTeam = preset.perTeam;
       this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb', 'giant', 'magnet'].includes(t)) : [];
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r, this.specials);
+      // 오늘의 규칙(선택식): doubleShot=턴당 2발, wind=일정 방향 가속. null=없음.
+      this.rule = ['doubleShot', 'wind'].includes(opt.rule) ? opt.rule : null;
+      this.shotsThisTurn = 0;
+      // 바람 벡터 — 판 시작 시 한 번 결정(시뮬 입력값이라 이후 결정론에 영향 없음).
+      this.windX = 0; this.windY = 0;
+      if (this.rule === 'wind') {
+        // 바람은 '가로(좌↔우)'로만 분다. 팀 대결축이 세로라, 세로 성분이 있으면 한쪽에 유리(87% 편향)했다.
+        // 가로 바람은 양쪽 발사를 똑같이 옆으로 밀어 공정하고, 조준을 비틀어 재미만 준다.
+        const WIND_MAG = 9;
+        const dir = opt.windDir != null ? opt.windDir : (Math.random() < 0.5 ? -1 : 1);
+        this.windDir = dir;
+        this.windX = dir * WIND_MAG;
+        this.windY = 0;
+      }
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
@@ -586,7 +615,7 @@
     }
 
     _runSim(flick) {
-      const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones };
+      const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones, windX: this.windX, windY: this.windY };
       const result = simulate(state, flick);
       // 최종 결과 반영
       this.stones = result.final.map((f, i) => {
@@ -598,18 +627,27 @@
       const oppOffCount = result.events.filter(e => e.type === 'off' && e.team === 1 - actor).length;
       const myOffCount = result.events.filter(e => e.type === 'off' && e.team === actor).length;
       const extraFlick = this.extraFlickOnKnockoff && oppOffCount > 0;
+      // 더블샷: 낙사를 못 시켜도 이번 턴 2발까지는 같은 사람이 이어 던진다.
+      this.shotsThisTurn = (this.shotsThisTurn || 0) + 1;
+      const doubleShotContinue = this.rule === 'doubleShot' && !extraFlick && this.shotsThisTurn < 2;
       this.lastSim = {
         frames: result.frames, events: result.events, actorSeat: actor, flick,
         seq: ++this.simSeq, extraFlick, oppOffCount, myOffCount,
+        doubleShot: doubleShotContinue, shotsThisTurn: this.shotsThisTurn,
       };
       const w = this._checkWinner();
       if (w != null) {
         this.phase = 'over';
         if (w >= 0) this.winner = this.players[w].pid;
-      } else if (!extraFlick) {
+      } else if (extraFlick) {
+        this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
+      } else if (doubleShotContinue) {
+        // 턴 유지(2발째) — 카운터 그대로
+      } else {
         this.turn = 1 - actor;
+        this.shotsThisTurn = 0;
       }
-      // extraFlick이면 turn 유지 → 같은 사람이 다시 aim
+      // 턴 유지(extraFlick 또는 더블샷 2발째)면 같은 사람이 다시 aim
       this._emit();
       this._maybeAI();
     }
@@ -721,7 +759,7 @@
         turn: this.turn,
         winner: this.winner,
         W: this.W, H: this.H, r: this.r,
-        friction: this.friction, surface: this.surface, specials: this.specials.slice(),
+        friction: this.friction, surface: this.surface, specials: this.specials.slice(), rule: this.rule, shotsThisTurn: this.shotsThisTurn, windX: this.windX, windY: this.windY,
         stones: this.stones.map(s => ({
           id: s.id, team: s.team, x: s.x, y: s.y,
           alive: s.alive, type: s.type, r: s.r, mass: s.mass,
@@ -838,7 +876,7 @@ function renderLevel(){
 renderLevel();
 
 // 셋업 옵션 상태
-const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), special:(function(){try{const v=localStorage.getItem('alk_special'); if(['none','bomb','giant','magnet'].includes(v))return v; return localStorage.getItem('alk_bomb')==='1'?'bomb':'none';}catch(e){return 'none';}})(), myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
+const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), special:(function(){try{const v=localStorage.getItem('alk_special'); if(['none','bomb','giant','magnet'].includes(v))return v; return localStorage.getItem('alk_bomb')==='1'?'bomb':'none';}catch(e){return 'none';}})(), rule:(function(){try{const v=localStorage.getItem('alk_rule'); return ['none','doubleShot','wind'].includes(v)?v:'none';}catch(e){return 'none';}})(), myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
 function bindOpts(rootId, key, cb){
   const root=$(rootId); if(!root) return;
   root.querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>{
@@ -854,6 +892,10 @@ bindOpts('optSurface','surface',()=>{ try{localStorage.setItem('alk_surface',cfg
   r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.sp===cfg.special));
   r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
     cfg.special = o.dataset.sp; try{localStorage.setItem('alk_special', cfg.special);}catch(e){} }); })();
+(function(){ const r=$('optRule'); if(!r) return;
+  r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.r===cfg.rule));
+  r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
+    cfg.rule = o.dataset.r; try{localStorage.setItem('alk_rule', cfg.rule);}catch(e){} }); })();
 (function(){ const r=$('optSurface'); if(r) r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.s===cfg.surface)); })();
 // 궤적 프리뷰 토글 — guideOn 전역과 sync
 (function(){
@@ -888,6 +930,10 @@ onlineCfg.special=cfg.special;
 (function(){ const r=$('optBombOnline'); if(!r) return;
   r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.sp===onlineCfg.special));
   r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); onlineCfg.special=o.dataset.sp; }); })();
+onlineCfg.rule=cfg.rule;
+(function(){ const r=$('optRuleOnline'); if(!r) return;
+  r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.r===onlineCfg.rule));
+  r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); onlineCfg.rule=o.dataset.r; }); })();
 
 // 로컬/온라인 탭 전환
 $('tabLocal').onclick=()=>{ $('tabLocal').classList.add('on'); $('tabOnline').classList.remove('on'); $('localCfg').style.display='block'; $('onlineCfg').style.display='none'; };
@@ -987,7 +1033,9 @@ function renderLobby(){
   const spMap = {bomb:'💣 폭탄돌', giant:'🪨 거대돌', magnet:'🧲 자석돌'};
   const sp = (lobby.specials||[]).find(t=>spMap[t]);
   const bombOn = sp ? (' · '+spMap[sp]) : '';
-  $('lobbyRules').textContent = `판: ${preset==='mini'?'미니':preset==='battle'?'대전':'표준'} · 각자 ${stoneN}돌 · ${surfName}${bombOn} · 낙사 시 한 번 더`;
+  const ruleMap = {doubleShot:'⚡ 더블샷', wind:'🌬️ 바람'};
+  const ruleOn = ruleMap[lobby.rule] ? (' · '+ruleMap[lobby.rule]) : '';
+  $('lobbyRules').textContent = `판: ${preset==='mini'?'미니':preset==='battle'?'대전':'표준'} · 각자 ${stoneN}돌 · ${surfName}${bombOn}${ruleOn} · 낙사 시 한 번 더`;
   const host = $('members'); host.innerHTML='';
   lobby.members.forEach(mm=>{
     const d=document.createElement('div');
@@ -1024,7 +1072,7 @@ $('createBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'호스트';
   cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
   online=true; $('onErr').textContent='';
-  connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface, specials:(onlineCfg.special&&onlineCfg.special!=='none'?[onlineCfg.special]:[])}));
+  connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface, specials:(onlineCfg.special&&onlineCfg.special!=='none'?[onlineCfg.special]:[]), rule:(onlineCfg.rule!=='none'?onlineCfg.rule:null)}));
 };
 $('joinBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'게스트';
@@ -1043,7 +1091,7 @@ function startGame(){
     : [{pid:MYPID,name:name+' 🅐'}, {pid:OPPPID,name:'상대 🅑'}];
   const Core = window.AlkkagiCore;
   engine = new Core.AlkkagiEngine({
-    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.special&&cfg.special!=='none'?[cfg.special]:[]), manualAI:true,
+    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.special&&cfg.special!=='none'?[cfg.special]:[]), rule:(cfg.rule!=='none'?cfg.rule:null), manualAI:true,
     aiFast:false, aiMs:900,
     onState(){ S=engine.serialize(MYPID); onEngineState(); },
   });
@@ -1147,6 +1195,15 @@ function drawBoard(){
   ctx.strokeStyle = line;
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, cssW-5, cssH-7);
+  // 바람 규칙: 상단에 방향 화살표(정적 안내)
+  if(S && S.rule==='wind' && S.windX){
+    const dir = S.windX>0?1:-1;
+    const y=16, cxm=cssW*0.5, len=26;
+    ctx.strokeStyle='rgba(180,220,255,.75)'; ctx.fillStyle='rgba(180,220,255,.85)'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(cxm-dir*len, y); ctx.lineTo(cxm+dir*len, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cxm+dir*len, y); ctx.lineTo(cxm+dir*(len-8), y-5); ctx.lineTo(cxm+dir*(len-8), y+5); ctx.closePath(); ctx.fill();
+    ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.fillText('🌬️ 바람', cxm, y+18);
+  }
   ctx.restore();
 }
 
@@ -1616,7 +1673,9 @@ function updateNote(){
     n.textContent = (cur?cur.name:'상대')+'가 조준 중…';
     return;
   }
-  n.textContent='자기 돌을 눌러 반대 방향으로 당기면 튕겨져';
+  let base="자기 돌을 눌러 반대 방향으로 당기면 튕겨져";
+  if(S.rule==="doubleShot"){ const shot=(S.shotsThisTurn||0)+1; base="⚡ 더블샷 — "+shot+"/2발째 · "+base; }
+  n.textContent=base;
 }
 
 // ===== 결과 =====

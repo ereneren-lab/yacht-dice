@@ -38,6 +38,7 @@
   function clone(state) {
     return {
       W: state.W, H: state.H, r: state.r, friction: state.friction,
+      windX: state.windX || 0, windY: state.windY || 0,
       stones: state.stones.map(s => ({ ...s })),
     };
   }
@@ -117,6 +118,8 @@
         s.y += s.vy * DT;
         s.vx *= st.friction;
         s.vy *= st.friction;
+        // 바람: 움직이는 돌에만 일정 가속(정지한 돌은 안 밀림 — 판이 어수선해지지 않게)
+        if (st.windX && (s.vx * s.vx + s.vy * s.vy > 1)) { s.vx += st.windX * DT; s.vy += st.windY * DT; }
       }
       // 자석돌: 움직이는 자석이 반경 내 '아군' alive 돌을 자기 쪽으로 살짝 끌어당김(따라오게). 결정론(위치 기반).
       for (const m of st.stones) {
@@ -262,6 +265,20 @@
       this.perTeam = preset.perTeam;
       this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb', 'giant', 'magnet'].includes(t)) : [];
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r, this.specials);
+      // 오늘의 규칙(선택식): doubleShot=턴당 2발, wind=일정 방향 가속. null=없음.
+      this.rule = ['doubleShot', 'wind'].includes(opt.rule) ? opt.rule : null;
+      this.shotsThisTurn = 0;
+      // 바람 벡터 — 판 시작 시 한 번 결정(시뮬 입력값이라 이후 결정론에 영향 없음).
+      this.windX = 0; this.windY = 0;
+      if (this.rule === 'wind') {
+        // 바람은 '가로(좌↔우)'로만 분다. 팀 대결축이 세로라, 세로 성분이 있으면 한쪽에 유리(87% 편향)했다.
+        // 가로 바람은 양쪽 발사를 똑같이 옆으로 밀어 공정하고, 조준을 비틀어 재미만 준다.
+        const WIND_MAG = 9;
+        const dir = opt.windDir != null ? opt.windDir : (Math.random() < 0.5 ? -1 : 1);
+        this.windDir = dir;
+        this.windX = dir * WIND_MAG;
+        this.windY = 0;
+      }
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
@@ -323,7 +340,7 @@
     }
 
     _runSim(flick) {
-      const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones };
+      const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones, windX: this.windX, windY: this.windY };
       const result = simulate(state, flick);
       // 최종 결과 반영
       this.stones = result.final.map((f, i) => {
@@ -335,18 +352,27 @@
       const oppOffCount = result.events.filter(e => e.type === 'off' && e.team === 1 - actor).length;
       const myOffCount = result.events.filter(e => e.type === 'off' && e.team === actor).length;
       const extraFlick = this.extraFlickOnKnockoff && oppOffCount > 0;
+      // 더블샷: 낙사를 못 시켜도 이번 턴 2발까지는 같은 사람이 이어 던진다.
+      this.shotsThisTurn = (this.shotsThisTurn || 0) + 1;
+      const doubleShotContinue = this.rule === 'doubleShot' && !extraFlick && this.shotsThisTurn < 2;
       this.lastSim = {
         frames: result.frames, events: result.events, actorSeat: actor, flick,
         seq: ++this.simSeq, extraFlick, oppOffCount, myOffCount,
+        doubleShot: doubleShotContinue, shotsThisTurn: this.shotsThisTurn,
       };
       const w = this._checkWinner();
       if (w != null) {
         this.phase = 'over';
         if (w >= 0) this.winner = this.players[w].pid;
-      } else if (!extraFlick) {
+      } else if (extraFlick) {
+        this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
+      } else if (doubleShotContinue) {
+        // 턴 유지(2발째) — 카운터 그대로
+      } else {
         this.turn = 1 - actor;
+        this.shotsThisTurn = 0;
       }
-      // extraFlick이면 turn 유지 → 같은 사람이 다시 aim
+      // 턴 유지(extraFlick 또는 더블샷 2발째)면 같은 사람이 다시 aim
       this._emit();
       this._maybeAI();
     }
@@ -458,7 +484,7 @@
         turn: this.turn,
         winner: this.winner,
         W: this.W, H: this.H, r: this.r,
-        friction: this.friction, surface: this.surface, specials: this.specials.slice(),
+        friction: this.friction, surface: this.surface, specials: this.specials.slice(), rule: this.rule, shotsThisTurn: this.shotsThisTurn, windX: this.windX, windY: this.windY,
         stones: this.stones.map(s => ({
           id: s.id, team: s.team, x: s.x, y: s.y,
           alive: s.alive, type: s.type, r: s.r, mass: s.mass,
