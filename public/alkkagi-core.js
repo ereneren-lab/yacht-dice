@@ -34,9 +34,9 @@
 
   // 판/돌 기본 사양 (셋업 옵션이 오면 덮어씀)
   const PRESETS = {
-    mini:     { W: 80,  H: 80,  perTeam: 4, r: 3.5, friction: 0.98 },
-    standard: { W: 100, H: 100, perTeam: 6, r: 3.5, friction: 0.98 },
-    battle:   { W: 120, H: 120, perTeam: 8, r: 3.5, friction: 0.98 },
+    mini:     { W: 90,  H: 90,  perTeam: 3, r: 3.5, friction: 0.98 },   // 넓고 빠른 한 판
+    standard: { W: 100, H: 100, perTeam: 5, r: 3.2, friction: 0.98 },   // 넉넉한 기본
+    battle:   { W: 120, H: 120, perTeam: 7, r: 3.1, friction: 0.98 },   // 북적이는 난전
   };
   // 판 재질 → 마찰(스텝당 감쇠). 격차를 뚜렷이: 잔디=금방 멈춤, 얼음=쭉 미끄러짐.
   // (0.98 vs 0.988은 충돌 난무 중엔 체감이 안 돼 "다 똑같다"는 피드백 → 벌림)
@@ -223,20 +223,31 @@
     let id = 1;
     const back = Math.ceil(perTeam / 2);   // 뒷줄(가장자리) 수
     const front = perTeam - back;           // 앞줄(가운데 쪽) 수
-    const yBack = 12, yFront = 24;           // team 0 기준(위). team 1은 미러.
-    const rowX = (n, shift) => {             // n개를 가로로 고르게, shift로 엇갈림
-      const margin = W * 0.15;
-      const step = (W - margin * 2) / Math.max(1, n - 1);
-      return Array.from({ length: n }, (_, i) => margin + step * i + shift);
+    const yBack = 13, yFront = 26;           // team 0 기준(위). team 1은 미러.
+    const margin = W * 0.16;
+    const rowPos = (n) => {                  // n개를 판폭에 고르게(항상 판 안). n=1이면 정중앙.
+      if (n <= 1) return [W / 2];
+      const step = (W - margin * 2) / (n - 1);
+      return Array.from({ length: n }, (_, i) => margin + step * i);
     };
-    const halfStep = (W - W * 0.3) / Math.max(1, back - 1) / 2;
+    const backPos = rowPos(back);
+    // 앞줄: 뒷줄 사이 '틈(중점)'에 끼워 엇갈림. 틈이 부족하면 고르게. 수가 같으면 같은 열.
+    let frontPos;
+    if (front === 0) frontPos = [];
+    else if (front === back) frontPos = backPos.slice();
+    else {
+      const gaps = [];
+      for (let i = 0; i < backPos.length - 1; i++) gaps.push((backPos[i] + backPos[i + 1]) / 2);
+      if (front <= gaps.length) { const start = Math.floor((gaps.length - front) / 2); frontPos = gaps.slice(start, start + front); }
+      else frontPos = rowPos(front);
+    }
     const push = (team, x, y) => stones.push({ id: id++, team, x, y, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
     // team 0 (위)
-    rowX(back, 0).forEach(x => push(0, x, yBack));
-    rowX(front, front < back ? halfStep : 0).forEach(x => push(0, x, yFront));
+    backPos.forEach(x => push(0, x, yBack));
+    frontPos.forEach(x => push(0, x, yFront));
     // team 1 (아래) — 상하 미러
-    rowX(back, 0).forEach(x => push(1, x, H - yBack));
-    rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
+    backPos.forEach(x => push(1, x, H - yBack));
+    frontPos.forEach(x => push(1, x, H - yFront));
     // 특수 돌 — 각 팀 '앞줄 가운데' 한 개를 특수 돌로(대칭). 한 종류만(단일 선택).
     const specType = specials && specials.find(t => ['bomb', 'giant', 'magnet'].includes(t));
     if (specType) {

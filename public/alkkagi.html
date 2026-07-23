@@ -39,16 +39,20 @@
   body.ingame .meta-chip{display:inline-flex;align-items:center}
   @media (max-width:480px){ .meta-chip{max-width:110px;font-size:9.5px} }
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .card h3{margin:0 0 10px;font-size:14px;font-weight:900;color:var(--brass);letter-spacing:.02em}
-  .btn{background:var(--brass);color:#1a140e;border:none;border-radius:11px;padding:13px 18px;font-size:15px;font-weight:900;cursor:pointer;width:100%;letter-spacing:.02em}
-  .btn:hover{filter:brightness(1.08)}
-  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
-  .btn.ghost:hover{background:var(--panel2)}
+  .card{background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 92%,#fff 8%),var(--panel));border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 8px 26px rgba(0,0,0,.28)}
+  .card h3{margin:0 0 12px;font-size:14px;font-weight:900;color:var(--brass);letter-spacing:.02em}
+  .btn{background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 82%,#fff 18%),var(--brass));color:#1a140e;border:none;border-radius:12px;padding:14px 18px;font-size:15px;font-weight:900;cursor:pointer;width:100%;letter-spacing:.02em;box-shadow:0 5px 14px color-mix(in srgb,var(--brass) 34%,transparent),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .08s,filter .15s}
+  .btn:hover{filter:brightness(1.06)}
+  .btn:active{transform:translateY(1px);box-shadow:0 2px 7px color-mix(in srgb,var(--brass) 28%,transparent),inset 0 1px 0 rgba(255,255,255,.3)}
+  .btn.ghost{background:var(--panel2);color:var(--ink);border:1.5px solid var(--line);box-shadow:none}
+  .btn.ghost:hover{background:color-mix(in srgb,var(--panel2) 80%,var(--brass) 8%)}
   .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .opt{flex:1;min-width:100px;background:var(--panel2);border:1.5px solid var(--line);border-radius:11px;padding:10px;text-align:center;font-weight:800;font-size:12.5px;color:var(--muted);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-  .opt.on{border-color:var(--brass);color:var(--brass);background:color-mix(in srgb,var(--brass) 12%,var(--panel2))}
-  .lbl{font-size:11px;font-weight:800;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+  .opt{flex:1;min-width:100px;background:linear-gradient(180deg,color-mix(in srgb,var(--panel2) 90%,#fff 4%),var(--panel2));border:1.5px solid var(--line);border-radius:12px;padding:11px 10px;text-align:center;font-weight:800;font-size:12.5px;color:var(--muted);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:border-color .15s,color .15s,background .15s,box-shadow .15s,transform .08s}
+  .opt:hover{border-color:color-mix(in srgb,var(--brass) 45%,var(--line))}
+  .opt:active{transform:translateY(1px)}
+  .opt.on{border-color:var(--brass);color:var(--brass);background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 22%,var(--panel2)),color-mix(in srgb,var(--brass) 11%,var(--panel2)));box-shadow:0 4px 12px color-mix(in srgb,var(--brass) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.12)}
+  .lbl{font-size:11px;font-weight:900;color:color-mix(in srgb,var(--brass) 78%,var(--muted));margin:14px 0 5px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:6px}
+  .lbl::before{content:'';width:3px;height:11px;background:var(--brass);border-radius:2px;opacity:.75;flex:none}
   input[type="text"]{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;width:100%;font-family:inherit}
 
   /* 레벨바 (5종과 톤 통일) */
@@ -82,10 +86,15 @@
   @keyframes bigfxPop{0%{opacity:0;transform:scale(.4) rotate(-6deg)}18%{opacity:1;transform:scale(1.12) rotate(2deg)}
     32%{transform:scale(1) rotate(0)}72%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
   @media (prefers-reduced-motion:reduce){ #bigfx.on{animation:none;opacity:1} }
-  .stagehead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:900;color:var(--muted);margin-bottom:8px}
-  .stagehead .turn0{color:var(--team0)} .stagehead .turn1{color:var(--team1)}
-  .stagehead .who{font-size:13px}
-  .stagehead .who b{color:var(--ink)}
+  .stagehead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:900;color:var(--muted);margin-bottom:10px}
+  .stagehead .who{display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 10px;border-radius:999px;font-size:13px;background:var(--panel2);border:1px solid var(--line);transition:background .25s,border-color .25s,color .25s}
+  .stagehead .who .dot2{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;flex:none}
+  .stagehead .who b{color:var(--ink);margin-left:1px}
+  .stagehead .who.turn0{color:var(--team0);border-color:color-mix(in srgb,var(--team0) 50%,var(--line));background:color-mix(in srgb,var(--team0) 15%,var(--panel2))}
+  .stagehead .who.turn1{color:var(--team1);border-color:color-mix(in srgb,var(--team1) 50%,var(--line));background:color-mix(in srgb,var(--team1) 15%,var(--panel2))}
+  #scoreLbl{display:inline-flex;gap:6px}
+  .scorechip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-weight:900;font-size:12.5px;background:var(--panel2);border:1px solid var(--line);color:var(--ink)}
+  .scorechip .pip{width:10px;height:10px;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.4);flex:none}
   .boardcanvas{width:100%;height:auto;display:block;background:transparent;border-radius:11px;touch-action:none;cursor:grab}
   .boardcanvas.aiming{cursor:grabbing}
   .stagenote{font-size:11.5px;font-weight:700;color:var(--muted);margin-top:6px;text-align:center;min-height:18px}
@@ -150,9 +159,9 @@
       </div>
       <div class="lbl">판 크기</div>
       <div class="row" id="optPreset">
-        <div class="opt" data-p="mini">미니 · 4돌</div>
-        <div class="opt on" data-p="standard">표준 · 6돌</div>
-        <div class="opt" data-p="battle">대전 · 8돌</div>
+        <div class="opt" data-p="mini">미니 · 3돌</div>
+        <div class="opt on" data-p="standard">표준 · 5돌</div>
+        <div class="opt" data-p="battle">대전 · 7돌</div>
       </div>
       <div class="lbl">판 재질</div>
       <div class="row" id="optSurface">
@@ -191,9 +200,9 @@
       <input type="text" id="onName" maxlength="12" placeholder="너의 별명">
       <div class="lbl">판 크기 (호스트)</div>
       <div class="row" id="optPresetOnline">
-        <div class="opt" data-p="mini">미니 · 4돌</div>
-        <div class="opt on" data-p="standard">표준 · 6돌</div>
-        <div class="opt" data-p="battle">대전 · 8돌</div>
+        <div class="opt" data-p="mini">미니 · 3돌</div>
+        <div class="opt on" data-p="standard">표준 · 5돌</div>
+        <div class="opt" data-p="battle">대전 · 7돌</div>
       </div>
       <div class="lbl">판 재질 (호스트)</div>
       <div class="row" id="optSurfaceOnline">
@@ -324,9 +333,9 @@
 
   // 판/돌 기본 사양 (셋업 옵션이 오면 덮어씀)
   const PRESETS = {
-    mini:     { W: 80,  H: 80,  perTeam: 4, r: 3.5, friction: 0.98 },
-    standard: { W: 100, H: 100, perTeam: 6, r: 3.5, friction: 0.98 },
-    battle:   { W: 120, H: 120, perTeam: 8, r: 3.5, friction: 0.98 },
+    mini:     { W: 90,  H: 90,  perTeam: 3, r: 3.5, friction: 0.98 },   // 넓고 빠른 한 판
+    standard: { W: 100, H: 100, perTeam: 5, r: 3.2, friction: 0.98 },   // 넉넉한 기본
+    battle:   { W: 120, H: 120, perTeam: 7, r: 3.1, friction: 0.98 },   // 북적이는 난전
   };
   // 판 재질 → 마찰(스텝당 감쇠). 격차를 뚜렷이: 잔디=금방 멈춤, 얼음=쭉 미끄러짐.
   // (0.98 vs 0.988은 충돌 난무 중엔 체감이 안 돼 "다 똑같다"는 피드백 → 벌림)
@@ -513,20 +522,31 @@
     let id = 1;
     const back = Math.ceil(perTeam / 2);   // 뒷줄(가장자리) 수
     const front = perTeam - back;           // 앞줄(가운데 쪽) 수
-    const yBack = 12, yFront = 24;           // team 0 기준(위). team 1은 미러.
-    const rowX = (n, shift) => {             // n개를 가로로 고르게, shift로 엇갈림
-      const margin = W * 0.15;
-      const step = (W - margin * 2) / Math.max(1, n - 1);
-      return Array.from({ length: n }, (_, i) => margin + step * i + shift);
+    const yBack = 13, yFront = 26;           // team 0 기준(위). team 1은 미러.
+    const margin = W * 0.16;
+    const rowPos = (n) => {                  // n개를 판폭에 고르게(항상 판 안). n=1이면 정중앙.
+      if (n <= 1) return [W / 2];
+      const step = (W - margin * 2) / (n - 1);
+      return Array.from({ length: n }, (_, i) => margin + step * i);
     };
-    const halfStep = (W - W * 0.3) / Math.max(1, back - 1) / 2;
+    const backPos = rowPos(back);
+    // 앞줄: 뒷줄 사이 '틈(중점)'에 끼워 엇갈림. 틈이 부족하면 고르게. 수가 같으면 같은 열.
+    let frontPos;
+    if (front === 0) frontPos = [];
+    else if (front === back) frontPos = backPos.slice();
+    else {
+      const gaps = [];
+      for (let i = 0; i < backPos.length - 1; i++) gaps.push((backPos[i] + backPos[i + 1]) / 2);
+      if (front <= gaps.length) { const start = Math.floor((gaps.length - front) / 2); frontPos = gaps.slice(start, start + front); }
+      else frontPos = rowPos(front);
+    }
     const push = (team, x, y) => stones.push({ id: id++, team, x, y, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
     // team 0 (위)
-    rowX(back, 0).forEach(x => push(0, x, yBack));
-    rowX(front, front < back ? halfStep : 0).forEach(x => push(0, x, yFront));
+    backPos.forEach(x => push(0, x, yBack));
+    frontPos.forEach(x => push(0, x, yFront));
     // team 1 (아래) — 상하 미러
-    rowX(back, 0).forEach(x => push(1, x, H - yBack));
-    rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
+    backPos.forEach(x => push(1, x, H - yBack));
+    frontPos.forEach(x => push(1, x, H - yFront));
     // 특수 돌 — 각 팀 '앞줄 가운데' 한 개를 특수 돌로(대칭). 한 종류만(단일 선택).
     const specType = specials && specials.find(t => ['bomb', 'giant', 'magnet'].includes(t));
     if (specType) {
@@ -1840,18 +1860,18 @@ function onEngineState(){ onStateChange(); }
 function updateWho(){
   const who = $('whoTurn');
   if(!S){ who.textContent=''; return; }
-  const turnClass = S.turn===0?'turn0':'turn1';
   const cur = S.players[S.turn];
-  who.className = 'who ' + turnClass;
   if(S.phase==='over'){
-    who.innerHTML = '판 종료';
+    who.className = 'who';
+    who.innerHTML = '🏁 판 종료';
   } else {
-    who.innerHTML = `<b>${esc(cur?cur.name:'?')}</b> 차례`;
+    who.className = 'who ' + (S.turn===0?'turn0':'turn1');
+    who.innerHTML = `<span class="dot2"></span><b>${esc(cur?cur.name:'?')}</b> 차례`;
   }
   const score = $('scoreLbl');
   const c0=S.stones.filter(s=>s.alive&&s.team===0).length;
   const c1=S.stones.filter(s=>s.alive&&s.team===1).length;
-  score.innerHTML = `🔵 ${c0} · 🔴 ${c1}`;
+  score.innerHTML = `<span class="scorechip"><span class="pip" style="background:var(--team0)"></span>${c0}</span><span class="scorechip"><span class="pip" style="background:var(--team1)"></span>${c1}</span>`;
 }
 function updateNote(){
   const n = $('stageNote');
