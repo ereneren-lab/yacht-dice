@@ -2448,6 +2448,41 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   let _shakeT=null;
   function screenFlash(){ if(FX_REDUCED())return; const f=_fxEl('yutFlash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); setTimeout(()=>f.classList.remove('on'),200); }
   function screenShake(){ if(FX_REDUCED())return; const a=document.querySelector('.app'); if(!a)return; a.classList.remove('scrshake'); void a.offsetWidth; a.classList.add('scrshake'); clearTimeout(_shakeT); _shakeT=setTimeout(()=>a.classList.remove('scrshake'),380); }
+  // 늪: 갈색 진흙 화면 플래시(짜증 유발)
+  function mudFlash(){
+    if(FX_REDUCED())return;
+    const d=document.createElement('div');
+    d.style.cssText='position:fixed;inset:0;z-index:9030;pointer-events:none;opacity:0;transition:opacity .12s ease-out;background:radial-gradient(125% 95% at 50% 62%, rgba(48,30,12,0) 38%, rgba(40,26,10,.6) 100%)';
+    document.body.appendChild(d);
+    requestAnimationFrame(()=>{ d.style.opacity='1'; setTimeout(()=>{ d.style.transition='opacity .55s ease-in'; d.style.opacity='0'; setTimeout(()=>{try{d.remove();}catch(e){}},580); }, 140); });
+  }
+  // 늪: 진흙 방울 폭발 + 수축하는 소용돌이 링(판 좌표, fxLayer)
+  function mudSplash(px,py){
+    const layer=$('fxLayer'); if(!layer||FX_REDUCED())return;
+    // 수축 소용돌이 링(빨려드는 느낌)
+    const ring=document.createElementNS(NS,'circle');
+    ring.setAttribute('cx',px.toFixed(1)); ring.setAttribute('cy',py.toFixed(1)); ring.setAttribute('r','16');
+    ring.setAttribute('fill','none'); ring.setAttribute('stroke','rgba(60,42,20,.85)'); ring.setAttribute('stroke-width','3.5');
+    layer.appendChild(ring);
+    (function shrink(){ let t0=null; function fr(ts){ if(!ring.isConnected)return; if(t0==null)t0=ts; const e=(ts-t0)/500; if(e>=1){try{ring.remove();}catch(_){}return;} ring.setAttribute('r',(16*(1-e)+1).toFixed(1)); ring.setAttribute('stroke-width',(3.5*(1-e)+0.5).toFixed(1)); ring.setAttribute('opacity',(1-e*0.5).toFixed(2)); requestAnimationFrame(fr);} requestAnimationFrame(fr); })();
+    // 진흙 방울 위로 튀며 중력 낙하
+    const n=16;
+    for(let i=0;i<n;i++){
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',px.toFixed(1)); c.setAttribute('cy',py.toFixed(1));
+      c.setAttribute('r',(1.5+Math.random()*2.7).toFixed(1));
+      c.setAttribute('fill', i%3? 'rgba(74,52,26,.92)' : 'rgba(50,34,15,.96)');
+      layer.appendChild(c);
+      const ang=-Math.PI/2 + (Math.random()-0.5)*2.5;   // 위로 부채꼴
+      const sp=11+Math.random()*24, vx=Math.cos(ang)*sp, vy=Math.sin(ang)*sp;
+      let t0=null;
+      function frame(ts){ if(!c.isConnected)return; if(t0==null)t0=ts; const e=(ts-t0)/580;
+        if(e>=1){ try{c.remove();}catch(_){}return; }
+        c.setAttribute('cx',(px+vx*e).toFixed(1)); c.setAttribute('cy',(py+vy*e+64*e*e).toFixed(1));
+        c.setAttribute('opacity',(1-e).toFixed(2)); requestAnimationFrame(frame); }
+      requestAnimationFrame(frame);
+    }
+  }
   function spawnCoins(nd){
     if(FX_REDUCED())return; const pos=nodeScreenXY(nd); if(!pos)return; const [cx,cy]=pos;
     for(let i=0;i<6;i++){ const c=document.createElement('div'); c.className='yf-coin'; c.textContent='🪙';
@@ -2805,19 +2840,51 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       finish();
     }, tok);
   }
-  const pitAnimatingIds=new Set();
+  const pitAnimatingIds=new Set();   // (호환용 · 현재 미사용)
+  // 늪 연출(강화): 소용돌이에 빙글빙글 빨려 사라짐 → 진흙 폭발·화면 진동 → 출발점에서 뿅.
+  // ⚠️ 늪에 빠진 말은 out=false가 되어 renderPieces가 판 토큰을 지운다(그래서 예전엔 말 애니가
+  //    사실상 안 돌았다). 그래서 flyCapturedHome처럼 '임시 요소'를 만들어 토큰 수명과 무관하게 애니한다.
   function animatePitFall(pf){
     if(!pf || !pf.pieceIds || !pf.pieceIds.length) return;
-    const [px,py]=nodeXY(pf.node);
-    pf.pieceIds.forEach(pid=>{
-      const id='pc-'+pf.seat+'-'+pid; const g=document.getElementById(id); if(!g)return;
-      const end=pieceSettledXY(pf.seat, pid)||nodeXY(0);   // 처음(출발점) 정착 좌표
-      pitAnimatingIds.add(id);
-      g.setAttribute('transform',`translate(${px.toFixed(1)},${py.toFixed(1)})`); // 늪 위치에서 출발
-      void g.getBoundingClientRect(); // 리플로우 강제(transition 시작점 고정)
-      g.classList.add('pitfall');
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(g.isConnected) g.setAttribute('transform',`translate(${end[0].toFixed(1)},${end[1].toFixed(1)})`); }));
-      setTimeout(()=>{ g.classList.remove('pitfall'); pitAnimatingIds.delete(id); if(S) renderPieces(); }, 1080);
+    const [pbx,pby]=nodeXY(pf.node);
+    const owner=S&&S.players[pf.seat];
+    // 짜증 유발 연출: 진흙 폭발 + 소용돌이 + 진흙 화면 플래시 + 강한 진동(2연타) + 😱
+    try{ mudSplash(pbx,pby); mudFlash(); screenShake(); setTimeout(screenShake,130); cameraPunch(); }catch(e){}
+    if(owner){ try{ floatReaction(owner.pid,'😱'); }catch(e){} }
+    if(FX_REDUCED() || !owner) return;                 // 접근성: 진흙/토스트만
+    const pit=nodeScreenXY(pf.node), home=nodeScreenXY(0);
+    if(!pit || !home) return;
+    const type=pieceAnimal(owner, pf.seat), col=pieceColor(pf.seat);
+    const [hbx,hby]=nodeXY(0);
+    pf.pieceIds.forEach((pid,i)=>{
+      const el=document.createElement('div'); el.className='flyhome';
+      el.style.left='0px'; el.style.top='0px'; el.style.transition='none'; el.style.borderColor=col;
+      el.innerHTML='<img src="'+(ANIMAL_IMG[type]||'')+'" alt="">';
+      document.body.appendChild(el);
+      const jx=(i-(pf.pieceIds.length-1)/2)*12;
+      const setT=(x,y,rot,sc)=>{ el.style.transform='translate(-50%,-50%) translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+rot.toFixed(0)+'deg) scale('+Math.max(0,sc).toFixed(3)+')'; };
+      setT(pit[0], pit[1], 0, 1);
+      const suckDur=580, popDur=460;
+      setTimeout(()=>{
+        let t0=null;
+        function suck(ts){ if(!el.isConnected)return; if(t0==null)t0=ts; let e=(ts-t0)/suckDur; if(e>1)e=1;
+          setT(pit[0], pit[1]+e*12, 1240*e, 1-e);                   // ① 소용돌이에 빨려 회전·축소
+          el.style.opacity=(e<0.82?1:(1-(e-0.82)/0.18)).toFixed(2);
+          if(e<1) requestAnimationFrame(suck); else pop();
+        }
+        function pop(){                                            // ② 출발점에서 뿅(바운스)
+          el.style.opacity='1'; let t1=null;
+          function grow(ts){ if(!el.isConnected)return; if(t1==null)t1=ts; let e=(ts-t1)/popDur; if(e>1)e=1;
+            const sc = e<0.55 ? (e/0.55)*1.3 : 1.3-((e-0.55)/0.45)*0.3;
+            setT(home[0]+jx, home[1], 0, sc);
+            if(e<1) requestAnimationFrame(grow);
+            else { try{ spawnPuff(hbx,hby); }catch(_){}
+              setTimeout(()=>{ try{el.remove();}catch(_){}}, 110); }
+          }
+          requestAnimationFrame(grow);
+        }
+        requestAnimationFrame(suck);
+      }, i*90);
     });
   }
   // 인원이 늘수록 카드가 세로로 쌓이므로 캐릭터를 줄여 화면 밖으로 밀리지 않게 한다(좌측 열은 210px).
