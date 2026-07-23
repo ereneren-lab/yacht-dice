@@ -2569,7 +2569,61 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     _drT.forEach(t=>clearTimeout(t)); _drT=[];
     _drT.push(setTimeout(()=>{ try{dailyRuleBanner();}catch(e){} }, FX_REDUCED()?250:1150));
   }
-  // ★ 이벤트 칸 발동 연출 — eventFx.seq가 바뀔 때 해당 노드에서 팝
+  // 이벤트 이동 방향(부스터=앞, 후퇴=뒤). fx.path 첫 칸으로 계산. 없으면(보너스·황금) null.
+  function evDir(fx){
+    if(!fx || !fx.path || !fx.path.length) return null;
+    const [nx,ny]=nodeXY(fx.node);
+    let target=null; for(const c of fx.path){ if(c&&c.node!=null){ target=c.node; break; } }
+    if(target==null) return null;
+    const [tx,ty]=nodeXY(target); const dx=tx-nx, dy=ty-ny; const L=Math.hypot(dx,dy)||1;
+    return [dx/L, dy/L];
+  }
+  // 타입별 파티클(판 좌표 fxLayer). 부스터=스피드 스트릭 / 후퇴=바람 소용돌이 / 보너스=콘페티 / 황금=금빛 충격파.
+  function eventParticles(type, node, dir){
+    const layer=$('fxLayer'); if(!layer||FX_REDUCED())return;
+    const [px,py]=nodeXY(node); const NSc=NS;
+    const mk=t=>document.createElementNS(NSc,t);
+    const anim=(el,dur,fn)=>{ let t0=null; function f(ts){ if(!el.isConnected)return; if(t0==null)t0=ts; let e=(ts-t0)/dur; if(e>1)e=1; fn(e); if(e<1)requestAnimationFrame(f); else{try{el.remove();}catch(_){}} } requestAnimationFrame(f); };
+    if(type==='boost' && dir){                                   // ⚡ 진행 방향 스피드 스트릭
+      const perp=[-dir[1],dir[0]];
+      for(let i=0;i<7;i++){ const l=mk('line'); const off=(i-3)*3.6;
+        const bx=px+perp[0]*off, by=py+perp[1]*off;
+        l.setAttribute('stroke', i%2?'#8fd4ff':'#eaf7ff'); l.setAttribute('stroke-width',(2.2-Math.abs(i-3)*0.28).toFixed(1)); l.setAttribute('stroke-linecap','round');
+        layer.appendChild(l); const len=8+Math.random()*7, sp=28+Math.random()*16;
+        setTimeout(()=>anim(l,440,e=>{ const head=sp*e; const x1=bx+dir[0]*head, y1=by+dir[1]*head;
+          l.setAttribute('x1',x1.toFixed(1)); l.setAttribute('y1',y1.toFixed(1));
+          l.setAttribute('x2',(x1-dir[0]*len).toFixed(1)); l.setAttribute('y2',(y1-dir[1]*len).toFixed(1));
+          l.setAttribute('opacity',(1-e).toFixed(2)); }), i*20);
+      }
+    } else if(type==='back' && dir){                             // 💨 뒤로 부는 바람 소용돌이 + 먼지
+      const perp=[-dir[1],dir[0]];
+      for(let i=0;i<10;i++){ const c=mk('circle'); c.setAttribute('r',(1.3+Math.random()*2.1).toFixed(1));
+        c.setAttribute('fill', i%2?'rgba(150,168,184,.82)':'rgba(108,124,143,.86)'); layer.appendChild(c);
+        const spread=(Math.random()-0.5)*11, sp=18+Math.random()*22, amp=6+Math.random()*5;
+        anim(c,580,e=>{ const d=sp*e; c.setAttribute('cx',(px+dir[0]*d+perp[0]*spread).toFixed(1));
+          c.setAttribute('cy',(py+dir[1]*d+perp[1]*spread + Math.sin(e*4)*amp*(1-e)).toFixed(1));
+          c.setAttribute('opacity',(1-e).toFixed(2)); }); }
+      for(let k=0;k<2;k++){ const pth=mk('path'); pth.setAttribute('fill','none'); pth.setAttribute('stroke','rgba(184,200,214,.75)'); pth.setAttribute('stroke-width','2'); pth.setAttribute('stroke-linecap','round'); layer.appendChild(pth);
+        anim(pth,520,e=>{ const d=24*e, cx0=px+dir[0]*d, cy0=py+dir[1]*d, amp=(k?-1:1)*8;
+          pth.setAttribute('d',`M ${px} ${py} Q ${(cx0+perp[0]*amp).toFixed(1)} ${(cy0+perp[1]*amp).toFixed(1)} ${cx0.toFixed(1)} ${cy0.toFixed(1)}`);
+          pth.setAttribute('opacity',(1-e).toFixed(2)); }); }
+    } else if(type==='bonus'){                                   // 🎁 색종이 콘페티
+      const cols=['#ff6b8a','#ffd24d','#5ac8ff','#8fe36a','#c98fff','#ffa64d'];
+      for(let i=0;i<15;i++){ const r=mk('rect'); const s=2.2+Math.random()*2.2;
+        r.setAttribute('width',s.toFixed(1)); r.setAttribute('height',(s*0.6).toFixed(1)); r.setAttribute('rx','0.6'); r.setAttribute('fill',cols[i%cols.length]); layer.appendChild(r);
+        const ang=-Math.PI/2+(Math.random()-0.5)*1.9, sp=16+Math.random()*24, vx=Math.cos(ang)*sp, vy=Math.sin(ang)*sp, rot0=Math.random()*360, rspd=(Math.random()-0.5)*760;
+        anim(r,760,e=>{ const x=px+vx*e, y=py+vy*e+74*e*e;
+          r.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(rot0+rspd*e).toFixed(0)})`);
+          r.setAttribute('opacity',(1-e*0.85).toFixed(2)); }); }
+    } else if(type==='gold'){                                    // ⭐ 금빛 충격파 링 + ✦ 반짝이
+      const ring=mk('circle'); ring.setAttribute('cx',px.toFixed(1)); ring.setAttribute('cy',py.toFixed(1)); ring.setAttribute('fill','none'); ring.setAttribute('stroke','#ffe07a'); ring.setAttribute('stroke-width','3'); layer.appendChild(ring);
+      anim(ring,580,e=>{ ring.setAttribute('r',(4+e*28).toFixed(1)); ring.setAttribute('stroke-width',(3*(1-e)+0.4).toFixed(1)); ring.setAttribute('opacity',(1-e).toFixed(2)); });
+      for(let i=0;i<11;i++){ const t=mk('text'); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size',(6+Math.random()*4).toFixed(1)); t.setAttribute('fill', i%2?'#fff6d8':'#ffcf3a'); t.textContent='✦'; layer.appendChild(t);
+        const ang=(i/11)*Math.PI*2, sp=15+Math.random()*17;
+        anim(t,660,e=>{ const d=sp*e; t.setAttribute('x',(px+Math.cos(ang)*d).toFixed(1)); t.setAttribute('y',(py+Math.sin(ang)*d+3).toFixed(1)); t.setAttribute('opacity',(1-e).toFixed(2)); }); }
+    }
+  }
+  // ★ 이벤트 칸 발동 연출 — eventFx.seq가 바뀔 때 해당 노드에서 팝 + 타입별 파티클
   function eventFxBurst(fx){
     const info=fx&&EVT_FX[fx.type]; if(!info) return;
     const reduced=FX_REDUCED();
@@ -2579,17 +2633,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(pos){ el.style.left=pos[0]+'px'; el.style.top=(pos[1]-6)+'px'; }
     else { el.style.left='50%'; el.style.top='42%'; }
     document.body.appendChild(el); void el.offsetWidth; el.classList.add('on');
-    if(!reduced && pos){
-      for(let i=0;i<8;i++){ const sp=document.createElement('div'); sp.className='evtspark'; sp.textContent=fx.type==='gold'?'✦':'✧';
-        sp.style.left=pos[0]+'px'; sp.style.top=pos[1]+'px'; sp.style.color=info.glow;
-        const ang=(i/8)*Math.PI*2, d=24+Math.random()*30;
-        sp.style.setProperty('--dx',(Math.cos(ang)*d).toFixed(0)+'px'); sp.style.setProperty('--dy',(Math.sin(ang)*d).toFixed(0)+'px');
-        document.body.appendChild(sp); void sp.offsetWidth; sp.classList.add('on');
-        setTimeout(()=>{try{sp.remove();}catch(e){}},820); }
-    }
+    try{ eventParticles(fx.type, fx.node, evDir(fx)); }catch(e){}   // 타입별 파티클
     setTimeout(()=>{try{el.remove();}catch(e){}}, reduced?900:1250);
-    try{ if(fx.type==='gold'){ SFX.finish&&SFX.finish(); spawnCoins(fx.node); }
+    try{ if(fx.type==='gold'){ SFX.finish&&SFX.finish(); spawnCoins(fx.node); spawnCoins(fx.node); }
          else if(fx.type==='back'){ SFX.backdo&&SFX.backdo(); }
+         else if(fx.type==='bonus'){ SFX.finish&&SFX.finish(); }
          else { SFX.pop&&SFX.pop(); } }catch(e){}
   }
   // ★ 멀티 잡기 배너 (2개 이상 동시 잡기 — 기존 잡기 연출 위에)
