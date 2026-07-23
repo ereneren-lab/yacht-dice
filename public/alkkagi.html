@@ -125,6 +125,7 @@
       <div class="row" id="optMode">
         <div class="opt on" data-m="ai">AI 대전</div>
         <div class="opt" data-m="two">1대1(같은 기기)</div>
+        <div class="opt" data-m="team">🤝 팀전 2v2</div>
       </div>
       <div id="aiBox">
         <div class="lbl">AI 난이도</div>
@@ -558,7 +559,7 @@
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
       this.turn = 0;                    // 0 or 1
-      this.winner = null;
+      this.winner = null; this.winnerTeam = null;
       this.lastSim = null;              // { frames, events, final, actorSeat, flick }
       this.simSeq = 0;
       this.onState = opt.onState || function () {};
@@ -580,6 +581,8 @@
       this._maybeAI();
     }
 
+    // 좌석 → 팀. 2인이면 seat===team, 2v2(4인)면 seat 0,2=팀0 / seat 1,3=팀1.
+    teamOf(seat) { return seat % 2; }
     _aliveOfTeam(team) { return this.stones.filter(s => s.alive && s.team === team); }
     _checkWinner() {
       const a0 = this._aliveOfTeam(0).length;
@@ -594,7 +597,7 @@
       if (!flick || typeof flick !== 'object') return null;
       const stone = this.stones.find(s => s.id === flick.stoneId);
       if (!stone || !stone.alive) return null;
-      if (stone.team !== seat) return null; // 남의 돌은 못 튕김
+      if (stone.team !== this.teamOf(seat)) return null; // 자기 팀 돌만 튕김(2v2 포함)
       const power = Math.max(0, Math.min(1, +flick.power || 0));
       if (power < MIN_POWER) return null;
       const angle = +flick.angle;
@@ -624,8 +627,9 @@
       });
       // 규칙: 상대 돌을 낙사시키면 한 번 더 (선공 밸런싱 · 실제 알까기 규칙과 일치)
       const actor = this.turn;
-      const oppOffCount = result.events.filter(e => e.type === 'off' && e.team === 1 - actor).length;
-      const myOffCount = result.events.filter(e => e.type === 'off' && e.team === actor).length;
+      const actorTeam = this.teamOf(actor);
+      const oppOffCount = result.events.filter(e => e.type === 'off' && e.team === 1 - actorTeam).length;
+      const myOffCount = result.events.filter(e => e.type === 'off' && e.team === actorTeam).length;
       const extraFlick = this.extraFlickOnKnockoff && oppOffCount > 0;
       // 더블샷: 낙사를 못 시켜도 이번 턴 2발까지는 같은 사람이 이어 던진다.
       this.shotsThisTurn = (this.shotsThisTurn || 0) + 1;
@@ -635,16 +639,17 @@
         seq: ++this.simSeq, extraFlick, oppOffCount, myOffCount,
         doubleShot: doubleShotContinue, shotsThisTurn: this.shotsThisTurn,
       };
-      const w = this._checkWinner();
+      const w = this._checkWinner();   // 이기는 '팀'(0/1) 또는 -1(무) 또는 null
       if (w != null) {
         this.phase = 'over';
-        if (w >= 0) this.winner = this.players[w].pid;
+        this.winnerTeam = w;
+        if (w >= 0) { const wp = this.players.find(p => this.teamOf(p.seat) === w); this.winner = wp ? wp.pid : null; }
       } else if (extraFlick) {
         this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
       } else if (doubleShotContinue) {
         // 턴 유지(2발째) — 카운터 그대로
       } else {
-        this.turn = 1 - actor;
+        this.turn = (actor + 1) % this.players.length;   // 다음 좌석(2v2면 0→1→2→3→0)
         this.shotsThisTurn = 0;
       }
       // 턴 유지(extraFlick 또는 더블샷 2발째)면 같은 사람이 다시 aim
@@ -684,7 +689,7 @@
     // 낡은 AI(무작위 돌 → 가까운 상대로 대충): 보통 상대로도 6:0으로 지던 수준이라 교체.
     // 새 AI는 simulate()가 순수 함수인 걸 이용해 후보 샷을 실제로 돌려보고 결과로 점수를 매긴다.
     _naiveFlick(seat) {   // easy가 가끔 섞어 쓰는 옛 방식(초보에게 이길 여지 남김)
-      const mine = this._aliveOfTeam(seat), opps = this._aliveOfTeam(1 - seat);
+      const mine = this._aliveOfTeam(this.teamOf(seat)), opps = this._aliveOfTeam(1 - this.teamOf(seat));
       if (!mine.length || !opps.length) return null;
       const me = mine[Math.floor(Math.random() * mine.length)];
       let best = opps[0], bestD = Infinity;
@@ -694,25 +699,27 @@
     }
     // 샷 결과 점수: 상대 낙사 +100 / 내 낙사 −140(자멸 회피) + 위치 보너스(내 돌 안전·상대 돌 가장자리로).
     _scoreShot(result, seat) {
+      const myTeam = this.teamOf(seat);
       let score = 0;
       for (const e of result.events) {
-        if (e.type === 'off') score += (e.team === seat ? -140 : 100);
+        if (e.type === 'off') score += (e.team === myTeam ? -140 : 100);
         // 폭탄 소멸: 내 폭탄이 터지면 내 돌 하나를 잃는 셈(단, 그 폭발로 상대를 날렸으면 위 off 보상이 상쇄).
-        else if (e.type === 'boom' && e.team === seat) score -= 95;
+        else if (e.type === 'boom' && e.team === myTeam) score -= 95;
       }
-      const teamOf = {}; for (const s of this.stones) teamOf[s.id] = s.team;
+      const stoneTeam = {}; for (const s of this.stones) stoneTeam[s.id] = s.team;
       const W = this.W, H = this.H;
       for (const f of result.final) {
         if (!f.alive) continue;
         const edge = Math.min(f.x, W - f.x, f.y, H - f.y);   // 가장자리까지 거리(작을수록 위험)
         const clamped = Math.min(edge, 20);
-        score += (teamOf[f.id] === seat ? clamped : -clamped) * 0.35;   // 내 돌 안쪽 = +, 상대 돌 가장자리 = +
+        score += (stoneTeam[f.id] === myTeam ? clamped : -clamped) * 0.35;   // 내 팀 돌 안쪽 = +, 상대 돌 가장자리 = +
       }
       return score;
     }
     _pickAiFlick(seat, diff) {
-      const mine = this._aliveOfTeam(seat);
-      const opps = this._aliveOfTeam(1 - seat);
+      const myTeam = this.teamOf(seat);
+      const mine = this._aliveOfTeam(myTeam);
+      const opps = this._aliveOfTeam(1 - myTeam);
       if (!mine.length || !opps.length) return null;
       // easy는 절반 확률로 옛 방식 → 실수 여지 남겨 초보도 이길 수 있게
       if (diff === 'easy' && Math.random() < 0.5) return this._naiveFlick(seat);
@@ -757,7 +764,7 @@
         game: 'alkkagi',
         phase: this.phase,
         turn: this.turn,
-        winner: this.winner,
+        winner: this.winner, winnerTeam: (this.winnerTeam != null ? this.winnerTeam : null), teamMode: this.players.length > 2,
         W: this.W, H: this.H, r: this.r,
         friction: this.friction, surface: this.surface, specials: this.specials.slice(), rule: this.rule, shotsThisTurn: this.shotsThisTurn, windX: this.windX, windY: this.windY,
         stones: this.stones.map(s => ({
@@ -775,7 +782,7 @@
           myOffCount: this.lastSim.myOffCount || 0,
         } : null,
         players: this.players.map((p, i) => ({
-          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i,
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: i % 2,
         })),
       };
     }
@@ -884,7 +891,7 @@ function bindOpts(rootId, key, cb){
     const k=Object.keys(o.dataset)[0]; cfg[key]=o.dataset[k]; if(cb) cb();
   }; });
 }
-bindOpts('optMode','mode',()=>{ $('aiBox').style.display=(cfg.mode==='ai'?'block':'none'); });
+bindOpts('optMode','mode',()=>{ $('aiBox').style.display=(cfg.mode==='ai'||cfg.mode==='team'?'block':'none'); });
 bindOpts('optDiff','diff');
 bindOpts('optPreset','preset');
 bindOpts('optSurface','surface',()=>{ try{localStorage.setItem('alk_surface',cfg.surface);}catch(e){} });
@@ -1086,9 +1093,20 @@ $('joinBtn').onclick=()=>{
 function startGame(){
   const name=($('myName').value||'').trim()||'나';
   cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
-  const players = (cfg.mode==='ai')
-    ? [{pid:MYPID,name}, {pid:OPPPID,name:'컴퓨터',ai:true,aiDiff:cfg.diff}]
-    : [{pid:MYPID,name:name+' 🅐'}, {pid:OPPPID,name:'상대 🅑'}];
+  let players;
+  if(cfg.mode==='team'){
+    // 2v2: 좌석 0,2=우리 팀(나+AI 파트너) / 1,3=상대(AI 둘). 턴 0→1→2→3.
+    players = [
+      {pid:MYPID, name:name+' 🔵'},
+      {pid:'op1', name:'상대A 🔴', ai:true, aiDiff:cfg.diff},
+      {pid:'ally', name:'파트너 🔵', ai:true, aiDiff:cfg.diff},
+      {pid:'op2', name:'상대B 🔴', ai:true, aiDiff:cfg.diff},
+    ];
+  } else if(cfg.mode==='ai'){
+    players = [{pid:MYPID,name}, {pid:OPPPID,name:'컴퓨터',ai:true,aiDiff:cfg.diff}];
+  } else {
+    players = [{pid:MYPID,name:name+' 🅐'}, {pid:OPPPID,name:'상대 🅑'}];
+  }
   const Core = window.AlkkagiCore;
   engine = new Core.AlkkagiEngine({
     players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.special&&cfg.special!=='none'?[cfg.special]:[]), rule:(cfg.rule!=='none'?cfg.rule:null), manualAI:true,
@@ -1473,7 +1491,7 @@ function render(){
 function mySeat(){
   if(online && S && S.players){ const p=S.players.find(p=>p.pid===MYPID); return p?p.seat:-1; }
   if(cfg.mode==='two') return S.turn;   // 로컬 1대1: 현재 턴 사람이 나
-  return 0;                              // 로컬 AI: 항상 seat 0
+  return 0;                              // 로컬 AI/팀전: 나는 seat 0                              // 로컬 AI: 항상 seat 0
 }
 function canControlNow(){
   if(!S || S.phase!=='aim') return false;
@@ -1487,7 +1505,7 @@ function stoneAt(cx, cy){
   const rr = (S.r / S.W) * cssW + 3;
   for(const s of S.stones){
     if(!s.alive) continue;
-    if(s.team !== S.turn) continue;
+    if(s.team !== S.turn % 2) continue;   // 현재 좌석의 팀 돌만
     const p = toCanvas(s.x, s.y);
     const dx = cx-p.cx, dy = cy-p.cy;
     if(dx*dx+dy*dy <= rr*rr) return s;
@@ -1680,9 +1698,10 @@ function updateNote(){
 
 // ===== 결과 =====
 function showResult(){
-  const won = (S.winner===MYPID) || (cfg.mode==='two' && !online && !!S.winner);
+  const myTeam = (online && S.players) ? (S.players.find(p=>p.pid===MYPID)||{}).team : 0;
+  const won = (cfg.mode==='team') ? (S.winnerTeam===myTeam) : ((S.winner===MYPID) || (cfg.mode==='two' && !online && !!S.winner));
   const offCount = S.lastSim ? S.lastSim.events.filter(e=>e.type==='off').length : 0;
-  const isRealMatch = online || cfg.mode==='ai';
+  const isRealMatch = online || cfg.mode==='ai' || cfg.mode==='team';
   const xp = Stats.record(isRealMatch ? won : true, offCount);
   try{ won ? SFX.win() : SFX.lose(); }catch(e){}
   $('resTitle').textContent = won ? '이겼다! 🎉' : '아쉽다';
