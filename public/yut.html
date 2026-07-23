@@ -1648,9 +1648,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       this.captured = null;
 
       // 업기: 같은 칸의 말들. 팀전이면 같은 팀 전체, 아니면 자기 말만. carry===false면 이 말만
+      // ⚠️ 같은 칸 판정은 node만 본다(route는 제외). 중앙칸(22)은 sc5·sc10이, 15~19·29칸은
+      //    outer·sc5가 겹쳐서, 지름길로 온 말과 바깥길로 온 말이 '같은 칸에 업혔는데' route가 다르다.
+      //    route까지 같아야 묶으면 다른 route 말이 낙오된다(실제로 터짐). 업힌 말은 캐리어 route를 따라간다.
       const mates = this.teamMode ? this.players.filter(p => p.team === pl.team) : [pl];
       const sameCell = (pc.out && !pc.done)
-        ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node && x.route === pc.route)), [])
+        ? mates.reduce((a, tp) => a.concat(tp.pieces.filter(x => !x.done && x.out && x.node === pc.node)), [])
         : [pc];
       const group = sameCell;   // 업으면 무조건 같이 이동(따로 가기 선택 없음)
       this.lastMovePath.group = group.map(g => g.id);   // 업힌 말 전체 id — 클라가 함께 애니(스택 유지)
