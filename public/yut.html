@@ -2171,6 +2171,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const now=Date.now(); if(!isText && emoji===lastComboEmoji && now-lastComboT<1300) comboN++; else comboN=1;
     lastComboEmoji=emoji; lastComboT=now;
   }
+  // 화면 좌표(sx,sy)에서 이모지를 띄운다 — 잡기처럼 '보드의 그 칸'에서 나가야 자연스러운 경우.
+  function floatEmojiAt(sx, sy, emoji){
+    const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
+    el.style.left=sx+'px'; el.style.top=sy+'px';
+    document.body.appendChild(el); setTimeout(()=>{try{el.remove();}catch(e){}},2900); try{SFX.pop();}catch(e){}
+  }
   function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
 
   /* ===== 렌더 ===== */
@@ -2726,30 +2732,48 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if(body){ body.classList.remove('hit'); void capEl.getBoundingClientRect(); body.classList.add('hit');
         setTimeout(()=>{ try{body.classList.remove('hit');}catch(e){} }, 480); }
     }
-    if(who) floatReaction(who.pid, '😆');
-    const vseats=[...new Set(cap.victims||[])];
-    vseats.forEach(vs=>{ const vp=S.players[vs]; if(vp&&vp.pid!==(who&&who.pid)) floatReaction(vp.pid, '😵'); });
+    // 반응 이모지는 '잡은 칸' 바로 위에서 띄운다(예전엔 없는 셀렉터 탓에 보드 중앙에서 나갔다).
+    const cpos=nodeScreenXY(cap.node);
+    if(cpos){ floatEmojiAt(cpos[0]-16, cpos[1]-16, '😵'); if(who) floatEmojiAt(cpos[0]+18, cpos[1]-30, '😆'); }
+    else if(who){ floatReaction(who.pid, '😆'); }
     if(cn>=2) multiCatchBanner(cn);
     const bd=$('board'); bd.classList.remove('shake'); void bd.offsetWidth; bd.classList.add('shake');
     const msNow=mySeat(); if(cap.seat===msNow){ capCount++; trackMission('catch'); }
   }
-  function flyCapturedHome(node, seats){
+  // 잡힌 말 '유령'을 그 칸에 정지 상태로 미리 띄운다 — 판 토큰이 지워져도 자리에 남아,
+  //   잡는 말이 슬라이드로 도착할 때까지 '없어졌다가'가 아니라 계속 보이게 한다. 착지 때 flyCapturedHome이 날린다.
+  let _capGhosts=[];
+  function clearCapGhosts(){ _capGhosts.forEach(g=>{ try{g.el.remove();}catch(e){} }); _capGhosts=[]; }
+  function spawnCapturedGhosts(node, seats){
+    clearCapGhosts();
     if(FX_REDUCED() || !seats || !seats.length) return;
-    const from=nodeScreenXY(node), home=nodeScreenXY(0); if(!from||!home) return;
-    const [hbx,hby]=nodeXY(0);   // 착지 먼지용 판 좌표
-    const dir=captureDir(node);
-    seats.forEach((seat, si)=>{
+    const pos=nodeScreenXY(node); if(!pos) return;
+    seats.forEach((seat,i)=>{
       const p=S&&S.players[seat]; if(!p) return;
-      const type=pieceAnimal(p, seat);
-      const el=document.createElement('div'); el.className='flyhome';
+      const type=pieceAnimal(p,seat);
+      const el=document.createElement('div'); el.className='flyhome'; el.style.zIndex='9038';   // 슬라이드 말보다 아래로 살짝
       el.style.left='0px'; el.style.top='0px'; el.style.transition='none'; el.style.borderColor=pieceColor(seat);
       el.innerHTML='<img src="'+(ANIMAL_IMG[type]||'')+'" alt="">';
       document.body.appendChild(el);
-      const jx=(si-(seats.length-1)/2)*11;
-      const x0=from[0], y0=from[1], hx=home[0]+jx, hy=home[1];
+      const jx=(i-(seats.length-1)/2)*11;
+      el.style.transform='translate(-50%,-50%) translate('+(pos[0]+jx).toFixed(1)+'px,'+pos[1].toFixed(1)+'px) scale(1)';
+      _capGhosts.push({ el, node, jx });
+    });
+  }
+  function flyCapturedHome(node, seats){
+    if(FX_REDUCED() || !seats || !seats.length){ clearCapGhosts(); return; }
+    if(!_capGhosts.length) spawnCapturedGhosts(node, seats);   // 폴백(선-스폰 없이 바로 날리는 경우)
+    const home=nodeScreenXY(0); if(!home){ clearCapGhosts(); return; }
+    const [hbx,hby]=nodeXY(0);   // 착지 먼지용 판 좌표
+    const dir=captureDir(node);
+    const ghosts=_capGhosts; _capGhosts=[];   // 소유권 이전(다음 잡기와 안 섞이게)
+    ghosts.forEach((gh, si)=>{
+      const el=gh.el; el.style.zIndex='9040';
+      const from=nodeScreenXY(gh.node)||home; const jx=gh.jx||0;
+      const x0=from[0]+jx, y0=from[1], hx=home[0]+jx, hy=home[1];
       // 제어점: 부딪힌 방향으로 확 튕긴 뒤 위로 솟구쳤다 집으로 낙하(포물선)
-      const cx=x0+dir[0]*78+jx, cy=y0+dir[1]*54-160;
-      const rot=(Math.random()<0.5?-1:1)*(560+Math.random()*200);
+      const cx=x0+dir[0]*78, cy=y0+dir[1]*54-160;
+      const rot=(si%2?-1:1)*(560+si*70+Math.random()*160);
       const dur=760; let t0=null;
       function frame(ts){
         if(!el.isConnected) return;
@@ -3266,7 +3290,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const _pit=(S.pitFall && S.pitFall.seq!==pitSeen)?S.pitFall:null; if(_pit)pitSeen=S.pitFall.seq;
       const _ev=(S.eventFx && S.eventFx.seq!==eventFxSeen)?S.eventFx:null; if(_ev)eventFxSeen=S.eventFx.seq;
       // 잡기도 이 이동에 딸린 것 → 미리 소비해서 즉시 블록을 막고, '착지 순간'에 연출한다.
-      const _cap=(S.captured && JSON.stringify(S.captured)!==JSON.stringify(prevCaptured))?S.captured:null; if(_cap)prevCaptured=S.captured;
+      const _cap=(S.captured && JSON.stringify(S.captured)!==JSON.stringify(prevCaptured))?S.captured:null;
+      if(_cap){ prevCaptured=S.captured; try{ spawnCapturedGhosts(_cap.node, _cap.victims); }catch(e){} }   // 판 토큰 지워지기 전에 '유령'을 그 자리에
       if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); if(who) floatReaction(who.pid,'😱'); }
       animatingId='pc-'+S.lastMovePath.seat+'-'+S.lastMovePath.pieceId;
       animGroup=new Set((S.lastMovePath.group||[S.lastMovePath.pieceId]).map(pid=>'pc-'+S.lastMovePath.seat+'-'+pid)); // 업힌 말 전체를 렌더 스냅에서 보호
