@@ -162,19 +162,27 @@
 
   // 시작 배치 — 각 팀 한 줄로 나열. 팀0 아래(y=15), 팀1 위(y=H-15).
   function initialLayout(W, H, perTeam, r) {
+    // 예전엔 각 팀이 판 가장자리에 '한 줄'로만 늘어서 밋밋했다(가운데는 텅, 세게 치면 빈 공간으로 자멸).
+    // → 2줄 엇갈림 대형(뒷줄=가장자리, 앞줄=가운데 쪽, 앞줄이 뒷줄 틈에 위치)으로 깊이를 준다.
+    // 팀 대칭 유지(team1은 y를 H-y로 미러) → AI 대칭성/공정성 보존.
     const stones = [];
-    const yBottom = 15, yTop = H - 15;
-    const margin = W * 0.15;
-    const step = (W - margin * 2) / Math.max(1, perTeam - 1);
     let id = 1;
-    for (let i = 0; i < perTeam; i++) {
-      const x = margin + step * i;
-      stones.push({ id: id++, team: 0, x, y: yBottom, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
-    }
-    for (let i = 0; i < perTeam; i++) {
-      const x = margin + step * i;
-      stones.push({ id: id++, team: 1, x, y: yTop, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
-    }
+    const back = Math.ceil(perTeam / 2);   // 뒷줄(가장자리) 수
+    const front = perTeam - back;           // 앞줄(가운데 쪽) 수
+    const yBack = 12, yFront = 24;           // team 0 기준(위). team 1은 미러.
+    const rowX = (n, shift) => {             // n개를 가로로 고르게, shift로 엇갈림
+      const margin = W * 0.15;
+      const step = (W - margin * 2) / Math.max(1, n - 1);
+      return Array.from({ length: n }, (_, i) => margin + step * i + shift);
+    };
+    const halfStep = (W - W * 0.3) / Math.max(1, back - 1) / 2;
+    const push = (team, x, y) => stones.push({ id: id++, team, x, y, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
+    // team 0 (위)
+    rowX(back, 0).forEach(x => push(0, x, yBack));
+    rowX(front, front < back ? halfStep : 0).forEach(x => push(0, x, yFront));
+    // team 1 (아래) — 상하 미러
+    rowX(back, 0).forEach(x => push(1, x, H - yBack));
+    rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
     return stones;
   }
 

@@ -65,6 +65,9 @@
 
   /* 게임 화면 */
   #game{margin-top:6px}
+  /* 인게임: 판(정사각)이 폭에 묶여 세로가 남을 때(폰) 아래가 텅 비지 않게 남는 공간에 중앙 정렬 */
+  body.ingame .app{ min-height:100dvh; display:flex; flex-direction:column }
+  body.ingame #game{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-top:0 }
   .stagewrap{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;overflow:hidden}
   .stagehead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:900;color:var(--muted);margin-bottom:8px}
   .stagehead .turn0{color:var(--team0)} .stagehead .turn1{color:var(--team1)}
@@ -396,19 +399,27 @@
 
   // 시작 배치 — 각 팀 한 줄로 나열. 팀0 아래(y=15), 팀1 위(y=H-15).
   function initialLayout(W, H, perTeam, r) {
+    // 예전엔 각 팀이 판 가장자리에 '한 줄'로만 늘어서 밋밋했다(가운데는 텅, 세게 치면 빈 공간으로 자멸).
+    // → 2줄 엇갈림 대형(뒷줄=가장자리, 앞줄=가운데 쪽, 앞줄이 뒷줄 틈에 위치)으로 깊이를 준다.
+    // 팀 대칭 유지(team1은 y를 H-y로 미러) → AI 대칭성/공정성 보존.
     const stones = [];
-    const yBottom = 15, yTop = H - 15;
-    const margin = W * 0.15;
-    const step = (W - margin * 2) / Math.max(1, perTeam - 1);
     let id = 1;
-    for (let i = 0; i < perTeam; i++) {
-      const x = margin + step * i;
-      stones.push({ id: id++, team: 0, x, y: yBottom, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
-    }
-    for (let i = 0; i < perTeam; i++) {
-      const x = margin + step * i;
-      stones.push({ id: id++, team: 1, x, y: yTop, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
-    }
+    const back = Math.ceil(perTeam / 2);   // 뒷줄(가장자리) 수
+    const front = perTeam - back;           // 앞줄(가운데 쪽) 수
+    const yBack = 12, yFront = 24;           // team 0 기준(위). team 1은 미러.
+    const rowX = (n, shift) => {             // n개를 가로로 고르게, shift로 엇갈림
+      const margin = W * 0.15;
+      const step = (W - margin * 2) / Math.max(1, n - 1);
+      return Array.from({ length: n }, (_, i) => margin + step * i + shift);
+    };
+    const halfStep = (W - W * 0.3) / Math.max(1, back - 1) / 2;
+    const push = (team, x, y) => stones.push({ id: id++, team, x, y, vx: 0, vy: 0, r, mass: 1, alive: true, type: 'normal' });
+    // team 0 (위)
+    rowX(back, 0).forEach(x => push(0, x, yBack));
+    rowX(front, front < back ? halfStep : 0).forEach(x => push(0, x, yFront));
+    // team 1 (아래) — 상하 미러
+    rowX(back, 0).forEach(x => push(1, x, H - yBack));
+    rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
     return stones;
   }
 
@@ -926,12 +937,19 @@ function resizeCanvas(){
   DPR = Math.min(2, window.devicePixelRatio||1);
   // 컨테이너 폭 기준. 정사각 판.
   const parent = cvs.parentElement;
-  const w = parent.clientWidth - 20;   // padding 10 * 2
-  cssW = cssH = w;
-  cvs.style.width = w+'px';
-  cvs.style.height = w+'px';
-  cvs.width = w*DPR;
-  cvs.height = w*DPR;
+  const availW = parent.clientWidth - 20;   // padding 10 * 2
+  // 세로 가용: 캔버스 위 오프셋 + 아래 노트/여백을 빼 화면을 넘지 않게(짧은 화면 대비).
+  const note = document.getElementById('stageNote');
+  const noteH = note ? note.offsetHeight + 10 : 24;
+  const top = cvs.getBoundingClientRect().top;
+  const availH = window.innerHeight - top - noteH - 16;
+  const size = Math.max(220, Math.min(availW, availH));
+  cssW = cssH = size;
+  cvs.style.width = size+'px';
+  cvs.style.height = size+'px';
+  cvs.style.margin = '0 auto';   // 폭보다 작으면 가로 중앙
+  cvs.width = size*DPR;
+  cvs.height = size*DPR;
   render();
 }
 window.addEventListener('resize', resizeCanvas);
