@@ -376,9 +376,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #pieceLayer .pcpiece.pitfall{ transition:transform 1s cubic-bezier(.5,.02,.86,.36) }
   #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:pitspin 1s ease-in; transform-origin:center; transform-box:fill-box }
   @keyframes pitspin{ 0%{transform:rotate(0) scale(1)} 42%{transform:rotate(430deg) scale(.26)} 58%{transform:rotate(500deg) scale(.2)} 100%{transform:rotate(720deg) scale(1)} }
-  #pieceLayer .pcpiece.finishing{ transition:transform .28s ease-in, opacity .72s ease-in; opacity:0 }
-  #pieceLayer .pcpiece.finishing .pcbody{ animation:finishpop .72s cubic-bezier(.2,.9,.3,1) forwards }
-  @keyframes finishpop{ 0%{transform:scale(1) translateY(0)} 45%{transform:scale(1.5) translateY(-12px)} 100%{transform:scale(1.95) translateY(-30px)} }
+  #pieceLayer .pcpiece.finishing{ transition:transform .3s ease-in, opacity .95s ease-in; opacity:0 }
+  #pieceLayer .pcpiece.finishing .pcbody{ animation:finishpop .95s cubic-bezier(.2,.85,.3,1) forwards }
+  @keyframes finishpop{ 0%{transform:scale(1) translateY(0) rotate(0)} 40%{transform:scale(1.55) translateY(-22px) rotate(200deg)} 100%{transform:scale(2.15) translateY(-52px) rotate(400deg)} }
   #pieceLayer .pcpiece.mv{ cursor:pointer }
   #pieceLayer .pcpiece.mv .ring{ animation:pcpulse 2.2s ease-in-out infinite }
   @keyframes pcpulse{ 0%,100%{stroke-opacity:1} 50%{stroke-opacity:.35} }
@@ -2786,15 +2786,83 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     setTimeout(()=>{ try{c.remove();}catch(e){} }, 540);
   }
   // 완주 연출: 종착(=출발) 코너로 미끄러진 뒤 크게 떠오르며 사라짐 + 배너 (그냥 툭 사라지지 않게)
+  // 완주 골인 연출: 금빛 빛기둥 + 상승 ✦ 분수. grand=목표 달성(최종 완주)이면 더 넘치게.
+  function finishFx(node, grand){
+    const layer=$('fxLayer'); if(!layer||FX_REDUCED())return;
+    const [px,py]=nodeXY(node); const mk=t=>document.createElementNS(NS,t);
+    const anim=(el,dur,fn,delay)=>{ setTimeout(()=>{ let t0=null; function f(ts){ if(!el.isConnected)return; if(t0==null)t0=ts; let e=(ts-t0)/dur; if(e>1)e=1; fn(e); if(e<1)requestAnimationFrame(f); else{try{el.remove();}catch(_){}} } requestAnimationFrame(f); }, delay||0); };
+    // 금빛 빛기둥(아래 좁고 위로 넓게 퍼지며 솟음)
+    const beam=mk('polygon'); beam.setAttribute('fill','rgba(255,214,96,.26)'); layer.appendChild(beam);
+    anim(beam, grand?1100:820, e=>{ const w0=7, w1=(grand?34:26)*Math.min(1,e*1.6), ty=py-(grand?170:130)*Math.min(1,e*1.4);
+      beam.setAttribute('points',`${(px-w0).toFixed(1)},${py.toFixed(1)} ${(px+w0).toFixed(1)},${py.toFixed(1)} ${(px+w1).toFixed(1)},${ty.toFixed(1)} ${(px-w1).toFixed(1)},${ty.toFixed(1)}`);
+      beam.setAttribute('opacity',(e<0.35?e/0.35:(1-(e-0.35)/0.65)).toFixed(2)); });
+    // 상승 ✦/★ 분수
+    const nS=grand?18:9;
+    for(let i=0;i<nS;i++){ const t=mk('text'); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size',(6+Math.random()*5).toFixed(1)); t.setAttribute('fill', i%2?'#fff6d8':'#ffcf3a'); t.textContent=i%3?'✦':'★'; layer.appendChild(t);
+      const spx=(Math.random()-0.5)*(grand?56:38), up=(grand?110:72)+Math.random()*90, sway=(Math.random()-0.5)*22;
+      anim(t, 760+Math.random()*340, e=>{ t.setAttribute('x',(px+spx+Math.sin(e*6)*sway).toFixed(1)); t.setAttribute('y',(py-up*e+3).toFixed(1)); t.setAttribute('opacity',(1-e).toFixed(2)); }, i*30);
+    }
+  }
+  // 화면 전역 불꽃놀이(최종 완주 피날레) — 색색 파편이 팡 터져 퍼짐
+  function fireworks(){
+    if(FX_REDUCED())return;
+    const W=innerWidth, H=innerHeight, cols=['#ffd24d','#ff6b8a','#5ac8ff','#8fe36a','#c98fff','#ffa64d'];
+    for(let b=0;b<2;b++){
+      const cx=W*(0.18+Math.random()*0.64), cy=H*(0.12+Math.random()*0.38), col=cols[Math.floor(Math.random()*cols.length)], nP=15;
+      for(let i=0;i<nP;i++){ const d=document.createElement('div');
+        d.style.cssText='position:fixed;z-index:9100;pointer-events:none;width:6px;height:6px;border-radius:50%;background:'+col+';left:'+cx.toFixed(0)+'px;top:'+cy.toFixed(0)+'px;box-shadow:0 0 7px '+col+';transform:translate(-50%,-50%);transition:transform .95s cubic-bezier(.15,.7,.3,1),opacity .95s ease-in';
+        document.body.appendChild(d);
+        const ang=(i/nP)*Math.PI*2+Math.random()*0.3, dist=54+Math.random()*76;
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(d.isConnected){ d.style.transform='translate(-50%,-50%) translate('+(Math.cos(ang)*dist).toFixed(0)+'px,'+(Math.sin(ang)*dist+34).toFixed(0)+'px)'; d.style.opacity='0'; } }));
+        setTimeout(()=>{try{d.remove();}catch(e){}},1000);
+      }
+    }
+  }
+  // 완주 골인 연출. ⚠️ 완주한 말은 done→out=false라 renderPieces가 판 토큰을 지운다(늪과 동일).
+  //   그래서 상승하는 말은 '임시 요소'로 띄우고, 빛기둥·불꽃은 토큰과 무관하게 항상 실행한다.
   function animateFinish(ids, onDone){
-    const els=(Array.isArray(ids)?ids:[ids]).map(id=>document.getElementById(id)).filter(Boolean);
-    if(!els.length){ if(onDone)onDone(); return; }
-    const [sx,sy]=nodeXY(0); const N=els.length;
-    els.forEach((g,k)=>{ g.setAttribute('transform',`translate(${(sx+(k-(N-1)/2)*13).toFixed(1)},${sy.toFixed(1)})`); }); // 종착점(=출발점)으로 미끄러짐
-    effectAnnounce('<span class="efann-big">🏁 완주!</span><span class="efann-sub">한 바퀴 돌아 골인 🎉</span>', BANNER_MS);
+    const parsed=(Array.isArray(ids)?ids:[ids]).map(id=>{ const m=/^pc-(\d+)-(\d+)$/.exec(id); return m?{seat:+m[1],pid:+m[2]}:null; }).filter(Boolean);
+    if(!parsed.length){ if(onDone)onDone(); return; }
+    const ownerSeat=parsed[0].seat;
+    // 최종 완주(목표 달성=우승) 판정 — 소유자의 완주 수가 목표에 도달했나
+    let grand=false; try{ grand = !!(S && dispDone(ownerSeat)>=S.goal); }catch(e){}
+    effectAnnounce(grand
+      ? '<span class="efann-big">🏆 완주 완료!</span><span class="efann-sub">모든 말 골인! 우승 🎉</span>'
+      : '<span class="efann-big">🏁 완주!</span><span class="efann-sub">한 바퀴 돌아 골인 🎉</span>', grand?2400:BANNER_MS);
     try{ SFX.finish&&SFX.finish(); }catch(e){}
-    setTimeout(()=>{ els.forEach(g=>{ if(g.isConnected) g.classList.add('finishing'); }); }, HOP_MAIN);   // 미끄러진 뒤 떠오름
-    setTimeout(()=>{ if(onDone)onDone(); }, HOP_MAIN+780);
+    const rise=HOP_MAIN;
+    const home=nodeScreenXY(0);
+    const type=(S&&S.players[ownerSeat])?pieceAnimal(S.players[ownerSeat],ownerSeat):null;
+    setTimeout(()=>{
+      try{ finishFx(0, grand); }catch(e){}                     // 금빛 빛기둥 + ✦ 분수(토큰 무관)
+      if(!FX_REDUCED() && home && type){                       // 천천히 회전하며 떠오르는 말(임시 요소)
+        parsed.forEach((o,k)=>{
+          const el=document.createElement('div'); el.className='flyhome';
+          el.style.left='0px'; el.style.top='0px'; el.style.transition='none'; el.style.borderColor=pieceColor(o.seat);
+          el.innerHTML='<img src="'+(ANIMAL_IMG[type]||'')+'" alt="">';
+          document.body.appendChild(el);
+          const jx=(k-(parsed.length-1)/2)*14, dur=grand?1150:920; let t0=null;
+          function frame(ts){ if(!el.isConnected)return; if(t0==null)t0=ts; let e=(ts-t0)/dur; if(e>1)e=1;
+            const ease=1-Math.pow(1-e,2);
+            const y=home[1]-(grand?98:62)*ease, sc=1+(grand?1.35:1.05)*ease, rot=(grand?520:400)*ease, op=e<0.7?1:(1-(e-0.7)/0.3);
+            el.style.transform='translate(-50%,-50%) translate('+(home[0]+jx).toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+rot.toFixed(0)+'deg) scale('+sc.toFixed(2)+')';
+            el.style.opacity=op.toFixed(2);
+            if(e<1)requestAnimationFrame(frame); else{try{el.remove();}catch(_){}}
+          }
+          requestAnimationFrame(frame);
+        });
+      }
+    }, rise);
+    if(grand){
+      // 박진감 넘치는 피날레: 화면 플래시 + 진동 + 3연발 불꽃놀이
+      try{ screenFlash(); cameraPunch(); }catch(e){}
+      setTimeout(()=>{ try{ screenShake(); fireworks(); }catch(e){} }, rise+340);
+      setTimeout(()=>{ try{ fireworks(); screenShake(); }catch(e){} }, rise+980);
+      setTimeout(()=>{ try{ fireworks(); }catch(e){} }, rise+1620);
+      setTimeout(()=>{ if(onDone)onDone(); }, rise+1950);
+    } else {
+      setTimeout(()=>{ if(onDone)onDone(); }, rise+1000);   // 기존 780 → 1000 (천천히 음미)
+    }
   }
   // 특수 칸 효과 안내 배너(크고 명확히, 잠깐 유지)
   let _effT=null;
@@ -3274,7 +3342,13 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     buildReactbar();
     checkRankConfirm();
     refreshTurnTimer(S);   // 턴 타이머(온라인 · turnDeadline>0)
-    if(S.phase==='over') setTimeout(showResult, 500);
+    if(S.phase==='over' && !resultScheduled){
+      resultScheduled=true;
+      // 마지막 한 수가 '완주'(승리 골인)면 피날레(불꽃놀이)를 충분히 보여주고 결과창을 띄운다.
+      let grandWin=false;
+      try{ const lp=S.lastMovePath; if(lp){ const owner=S.players[lp.seat]; const pc=owner&&owner.pieces&&owner.pieces.find(x=>x.id===lp.pieceId); if(pc&&pc.done) grandWin=true; } }catch(e){}
+      setTimeout(showResult, grandWin?3200:500);
+    }
   }
   /* ===== 턴 타이머(온라인) ===== deadline(epoch ms)까지 남은시간을 진행 바로. */
   let turnTimerIv=null, curTurnDeadline=0, curTurnMs=0, turnWarned=false, lastTurnKey='';
@@ -3701,7 +3775,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   });
 
   /* ===== 결과 ===== */
-  let resultShown=false, roundKey=null, growthInfo=null;
+  let resultShown=false, resultScheduled=false, roundKey=null, growthInfo=null;
   /* 결과창 성장 피드백: 연승·통산·새 도전과제 해금 한 줄 */
   function renderGrowth(){
     const box=$('resGrowth'); if(!box)return; const g=growthInfo;
@@ -3725,7 +3799,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
   /* 새 판(로컬/온라인 공통) 시작 시 판 단위 상태 전부 초기화 */
   function resetRoundState(){
-    resultShown=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null;
+    resultShown=false; resultScheduled=false; capCount=0; prevCaptured=null; prevDone={}; prevThrowKey=null;
     moveSeqSeen=0; animatingId=null; animGroup=new Set(); skipSeen=0; pitSeen=0; selStep=null; eventFxSeen=0; _boardSig=null;
     rankConfirmShown=false; clearRankConfirm();
     growthInfo=null; { const rg=$('resGrowth'); if(rg){ rg.style.display='none'; rg.innerHTML=''; } }
