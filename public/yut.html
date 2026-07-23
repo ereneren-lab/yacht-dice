@@ -425,6 +425,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .flyhome img{ width:100%; height:100%; object-fit:cover; display:block; }
   #pieceLayer .pcpiece.caught{ animation:pccaught .5s ease }
   @keyframes pccaught{ 0%{transform:scale(1)} 40%{transform:scale(1.5) rotate(20deg)} 100%{transform:scale(1)} }
+  /* 잡은 말 임팩트 반동 — 부딪히며 확 커졌다 튕겨 되돌아옴(id 셀렉터라 breath보다 우선) */
+  #pieceLayer .pcpiece .pcbody.hit{ animation:pcHit .46s cubic-bezier(.3,.8,.35,1) }
+  @keyframes pcHit{ 0%{transform:scale(1)} 22%{transform:scale(1.32)} 52%{transform:scale(.9)} 78%{transform:scale(1.07)} 100%{transform:scale(1)} }
   .throwarea{ text-align:center;margin:6px 0 4px }
   .thrower{ min-height:40px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px }
   .thrower:empty{ display:none }
@@ -2610,20 +2613,49 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     layer.appendChild(t);
     setTimeout(()=>{ try{ring.remove();t.remove();if(ring2)ring2.remove();frags.forEach(fr=>fr.el.remove());}catch(e){} },720);
   }
-  // ✨ 잡힌 말이 잡힌 자리에서 빙글 돌며 튕겨 날아감(주인 아바타 색 링). victims=잡힌 말 주인 seat들.
+  // 잡은 말이 들어온 방향(=잡힌 말이 튕겨날 방향). 경로 마지막 진입 벡터, 없으면 판 중앙→칸 바깥.
+  function captureDir(node){
+    const [nx,ny]=nodeXY(node);
+    const path=S&&S.lastMovePath&&S.lastMovePath.path;
+    let prev=null;
+    if(path){ for(let i=path.length-2;i>=0;i--){ const c=path[i]; if(c&&c.node!=null){ prev=c.node; break; } } }
+    let dx,dy;
+    if(prev!=null){ const [px,py]=nodeXY(prev); dx=nx-px; dy=ny-py; }
+    else { dx=nx-200; dy=ny-200; }   // 판 중앙(≈200)에서 바깥으로 튕겨
+    const L=Math.hypot(dx,dy)||1; return [dx/L, dy/L];
+  }
+  // ✨ 잡힌 말: 부딪힌 방향으로 튕겨나가 포물선을 그리며 출발점(집)으로 날아가 착지. victims=잡힌 말 주인 seat들.
   function flyCapturedHome(node, seats){
     if(FX_REDUCED() || !seats || !seats.length) return;
-    const pos=nodeScreenXY(node); if(!pos) return;
-    seats.forEach((seat)=>{
+    const from=nodeScreenXY(node), home=nodeScreenXY(0); if(!from||!home) return;
+    const [hbx,hby]=nodeXY(0);   // 착지 먼지용 판 좌표
+    const dir=captureDir(node);
+    seats.forEach((seat, si)=>{
       const p=S&&S.players[seat]; if(!p) return;
       const type=pieceAnimal(p, seat);
       const el=document.createElement('div'); el.className='flyhome';
-      el.style.left=pos[0]+'px'; el.style.top=pos[1]+'px'; el.style.borderColor=pieceColor(seat);
+      el.style.left='0px'; el.style.top='0px'; el.style.transition='none'; el.style.borderColor=pieceColor(seat);
       el.innerHTML='<img src="'+(ANIMAL_IMG[type]||'')+'" alt="">';
       document.body.appendChild(el);
-      const dx=(Math.random()*2-1)*70, rot=(Math.random()*2-1)*340;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(el.isConnected){ el.style.transform='translate(-50%,-50%) translate('+dx.toFixed(0)+'px,-120px) rotate('+rot.toFixed(0)+'deg) scale(.4)'; el.style.opacity='0'; } }));
-      setTimeout(()=>{ try{el.remove();}catch(e){} }, 840);
+      const jx=(si-(seats.length-1)/2)*11;
+      const x0=from[0], y0=from[1], hx=home[0]+jx, hy=home[1];
+      // 제어점: 부딪힌 방향으로 확 튕긴 뒤 위로 솟구쳤다 집으로 낙하(포물선)
+      const cx=x0+dir[0]*78+jx, cy=y0+dir[1]*54-160;
+      const rot=(Math.random()<0.5?-1:1)*(560+Math.random()*200);
+      const dur=760; let t0=null;
+      function frame(ts){
+        if(!el.isConnected) return;
+        if(t0==null)t0=ts; let e=(ts-t0)/dur; if(e>1)e=1;
+        const mt=1-e;
+        const x=mt*mt*x0 + 2*mt*e*cx + e*e*hx;
+        const y=mt*mt*y0 + 2*mt*e*cy + e*e*hy;
+        const sc=1-0.42*e, op=e<0.86?1:(1-(e-0.86)/0.14);
+        el.style.transform='translate(-50%,-50%) translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+(rot*e).toFixed(0)+'deg) scale('+sc.toFixed(2)+')';
+        el.style.opacity=op.toFixed(2);
+        if(e<1) requestAnimationFrame(frame);
+        else { try{el.remove();}catch(e){} try{ if(si===0) spawnPuff(hbx,hby); }catch(e){} }
+      }
+      requestAnimationFrame(frame);
     });
   }
   // ── 이동 연출 속도(천천히 · 한 눈에 보이게) ──
@@ -3096,7 +3128,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       showToast(catchWord+' '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
       if(who) showSpeech(who.pid,'catch');
       captureEffect(S.captured.node, cn);
-      flyCapturedHome(S.captured.node, S.captured.victims);   // ✨ 잡힌 말 튕겨 날아가기
+      flyCapturedHome(S.captured.node, S.captured.victims);   // ✨ 잡힌 말 튕겨 → 집으로
+      // ✨ 잡은 말: 부딪힌 반동으로 확 커졌다 되돌아옴
+      if(!FX_REDUCED() && S.lastMovePath){
+        const capEl=document.getElementById('pc-'+S.lastMovePath.seat+'-'+S.lastMovePath.pieceId);
+        const body=capEl&&capEl.querySelector('.pcbody');
+        if(body){ body.classList.remove('hit'); void capEl.getBoundingClientRect(); body.classList.add('hit');
+          setTimeout(()=>{ try{body.classList.remove('hit');}catch(e){} }, 480); }
+      }
       if(who) floatReaction(who.pid, '😆');                    // 잡은 쪽 신남
       const vseats=[...new Set(S.captured.victims||[])];        // 잡힌 쪽 시무룩(주인별 1회)
       vseats.forEach(vs=>{ const vp=S.players[vs]; if(vp&&vp.pid!==(who&&who.pid)) floatReaction(vp.pid, '😵'); });
