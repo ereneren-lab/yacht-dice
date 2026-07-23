@@ -287,8 +287,9 @@
     standard: { W: 100, H: 100, perTeam: 6, r: 3.5, friction: 0.98 },
     battle:   { W: 120, H: 120, perTeam: 8, r: 3.5, friction: 0.98 },
   };
-  // 판 재질 → 마찰(스텝당 감쇠). 얼음은 살짝만 미끄럽게(리플레이 안 늘어지게), 잔디는 빨리 멈춤.
-  const SURFACE_FRICTION = { board: 0.98, ice: 0.988, grass: 0.965 };
+  // 판 재질 → 마찰(스텝당 감쇠). 격차를 뚜렷이: 잔디=금방 멈춤, 얼음=쭉 미끄러짐.
+  // (0.98 vs 0.988은 충돌 난무 중엔 체감이 안 돼 "다 똑같다"는 피드백 → 벌림)
+  const SURFACE_FRICTION = { board: 0.98, ice: 0.992, grass: 0.96 };
 
   // ===== 순수 함수 유틸 =====
   function clone(state) {
@@ -509,6 +510,7 @@
       this.simSeq = 0;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
+      this.manualAI = !!opt.manualAI;
       this.aiFast = !!opt.aiFast;
       this._timer = null;
       this._dead = false;
@@ -593,6 +595,9 @@
       if (this._dead || this.phase !== 'aim') return;
       const p = this.players[this.turn];
       if (!p) return;
+      // manualAI: 엔진이 타이머로 자동 두지 않는다. 클라가 리플레이를 다 보여준 뒤 aiTurnIfNeeded()로 트리거.
+      // (예전엔 900ms 뒤 자동으로 둬서 내 리플레이 도중 AI 수가 겹쳐 화면이 튀었다 = 정신없음)
+      if (this.manualAI) return;
       if (p.ai || !p.connected) {
         this._timer = setTimeout(() => {
           if (this._dead || this.phase !== 'aim') return;
@@ -600,6 +605,16 @@
           if (flick) this._runSim(flick);
         }, this.aiFast ? 130 : this.aiMs);
       }
+    }
+
+    // 클라가 리플레이 종료 후 호출 — 지금이 AI 차례면 한 수 두고 true. (manualAI 전용)
+    aiTurnIfNeeded() {
+      if (this._dead || this.phase !== 'aim') return false;
+      const p = this.players[this.turn];
+      if (!p || !(p.ai || !p.connected)) return false;
+      const flick = this._pickAiFlick(this.turn, p.aiDiff);
+      if (flick) { this._runSim(flick); return true; }
+      return false;
     }
 
     // 단순 AI: 자기 돌 중 랜덤 하나를 골라 가장 가까운 상대 돌 방향으로 파워 0.6~0.9.
@@ -1002,7 +1017,7 @@ function startGame(){
     : [{pid:MYPID,name:name+' 🅐'}, {pid:OPPPID,name:'상대 🅑'}];
   const Core = window.AlkkagiCore;
   engine = new Core.AlkkagiEngine({
-    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.bomb?['bomb']:[]),
+    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.bomb?['bomb']:[]), manualAI:true,
     aiFast:false, aiMs:900,
     onState(){ S=engine.serialize(MYPID); onEngineState(); },
   });
@@ -1503,12 +1518,20 @@ function finishPlay(){
   if(S){ for(const s of S.stones){ s.__falling=false; s.__fallStart=0; } }
   render();
   updateNote();
-  if(S && S.phase==='over'){ showResult(); }
-  else if(S && S.lastSim && S.lastSim.extraFlick){
+  if(S && S.phase==='over'){ showResult(); return; }
+  if(S && S.lastSim && S.lastSim.extraFlick){
     const actorPid = S.players[S.lastSim.actorSeat] && S.players[S.lastSim.actorSeat].pid;
     if(actorPid === MYPID || !online) toast('🔥 상대 낙사! 한 번 더 튕겨!');
     else toast('🔥 상대가 한 번 더!');
   }
+  // 로컬 AI: 리플레이가 끝난 뒤에야 AI가 다음 수를 둔다(겹침 방지). 잠깐 쉬어 결과를 눈에 담게.
+  scheduleAiTurn();
+}
+function scheduleAiTurn(){
+  if(online || !engine || !S || S.phase!=='aim') return;
+  const p = S.players[S.turn];
+  if(!p || !p.ai) return;
+  setTimeout(()=>{ if(engine && !playing && S && S.phase==='aim' && S.players[S.turn] && S.players[S.turn].ai) engine.aiTurnIfNeeded(); }, 750);
 }
 
 // ===== 상태 변화 처리 (로컬 엔진 · 서버 모두 사용) =====

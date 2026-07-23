@@ -28,8 +28,9 @@
     standard: { W: 100, H: 100, perTeam: 6, r: 3.5, friction: 0.98 },
     battle:   { W: 120, H: 120, perTeam: 8, r: 3.5, friction: 0.98 },
   };
-  // 판 재질 → 마찰(스텝당 감쇠). 얼음은 살짝만 미끄럽게(리플레이 안 늘어지게), 잔디는 빨리 멈춤.
-  const SURFACE_FRICTION = { board: 0.98, ice: 0.988, grass: 0.965 };
+  // 판 재질 → 마찰(스텝당 감쇠). 격차를 뚜렷이: 잔디=금방 멈춤, 얼음=쭉 미끄러짐.
+  // (0.98 vs 0.988은 충돌 난무 중엔 체감이 안 돼 "다 똑같다"는 피드백 → 벌림)
+  const SURFACE_FRICTION = { board: 0.98, ice: 0.992, grass: 0.96 };
 
   // ===== 순수 함수 유틸 =====
   function clone(state) {
@@ -250,6 +251,7 @@
       this.simSeq = 0;
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
+      this.manualAI = !!opt.manualAI;
       this.aiFast = !!opt.aiFast;
       this._timer = null;
       this._dead = false;
@@ -334,6 +336,9 @@
       if (this._dead || this.phase !== 'aim') return;
       const p = this.players[this.turn];
       if (!p) return;
+      // manualAI: 엔진이 타이머로 자동 두지 않는다. 클라가 리플레이를 다 보여준 뒤 aiTurnIfNeeded()로 트리거.
+      // (예전엔 900ms 뒤 자동으로 둬서 내 리플레이 도중 AI 수가 겹쳐 화면이 튀었다 = 정신없음)
+      if (this.manualAI) return;
       if (p.ai || !p.connected) {
         this._timer = setTimeout(() => {
           if (this._dead || this.phase !== 'aim') return;
@@ -341,6 +346,16 @@
           if (flick) this._runSim(flick);
         }, this.aiFast ? 130 : this.aiMs);
       }
+    }
+
+    // 클라가 리플레이 종료 후 호출 — 지금이 AI 차례면 한 수 두고 true. (manualAI 전용)
+    aiTurnIfNeeded() {
+      if (this._dead || this.phase !== 'aim') return false;
+      const p = this.players[this.turn];
+      if (!p || !(p.ai || !p.connected)) return false;
+      const flick = this._pickAiFlick(this.turn, p.aiDiff);
+      if (flick) { this._runSim(flick); return true; }
+      return false;
     }
 
     // 단순 AI: 자기 돌 중 랜덤 하나를 골라 가장 가까운 상대 돌 방향으로 파워 0.6~0.9.
