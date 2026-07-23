@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>알까기 · 주사위 골목</title>
 <link rel="icon" href="icon.png">
+<!-- 계측 보류(2026-07-22) — 다른 세션의 계측 작업이 검토 전에 실수로 배포돼(커밋 05a8ed2),
+     사용자 결정에 따라 6개 페이지에서 '로딩만' 껐다. 알까기(v1.171)는 이 라인이 켜진 채 들어와
+     같은 기준으로 함께 끈다. window.AL 미로드라 아래 AL.done 호출은 무해한 no-op이 된다.
+     계측을 켤 땐 이 라인의 주석을 풀면 된다.
 <script src="analytics.js" defer></script>
+-->
 <style>
   :root{
     --bg:#1a140e; --ink:#f2e2c6; --muted:#a08c6f; --panel:#2a2015; --panel2:#3a2b1a;
