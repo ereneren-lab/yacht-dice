@@ -148,8 +148,10 @@
       </div>
       <div class="lbl">특수 돌</div>
       <div class="row" id="optBomb">
-        <div class="opt on" data-b="0">없음</div>
-        <div class="opt" data-b="1">💣 폭탄돌</div>
+        <div class="opt on" data-sp="none">없음</div>
+        <div class="opt" data-sp="bomb">💣 폭탄</div>
+        <div class="opt" data-sp="giant">🪨 거대</div>
+        <div class="opt" data-sp="magnet">🧲 자석</div>
       </div>
       <div class="lbl">보조</div>
       <div class="row" id="optGuide">
@@ -181,8 +183,10 @@
       </div>
       <div class="lbl">특수 돌 (호스트)</div>
       <div class="row" id="optBombOnline">
-        <div class="opt on" data-b="0">없음</div>
-        <div class="opt" data-b="1">💣 폭탄돌</div>
+        <div class="opt on" data-sp="none">없음</div>
+        <div class="opt" data-sp="bomb">💣 폭탄</div>
+        <div class="opt" data-sp="giant">🪨 거대</div>
+        <div class="opt" data-sp="magnet">🧲 자석</div>
       </div>
       <div class="row" style="margin-top:14px">
         <button class="btn" id="createBtn">방 만들기</button>
@@ -280,6 +284,8 @@
   const FALL_BEYOND = 40;              // 판 밖 이 거리 이상 나가면 즉시 gone
   const BOMB_RADIUS = 20;              // 폭탄돌 폭발 반경(판 100 기준)
   const BOMB_IMPULSE = 88;             // 폭발 중심의 밀어내는 속도(가장자리로 갈수록 0)
+  const MAGNET_RADIUS = 18;            // 자석돌 인력 반경
+  const MAGNET_PULL = 1.4;             // 스텝당 아군에게 주는 인력(가까울수록 강)
 
   // 판/돌 기본 사양 (셋업 옵션이 오면 덮어씀)
   const PRESETS = {
@@ -375,6 +381,20 @@
         s.vx *= st.friction;
         s.vy *= st.friction;
       }
+      // 자석돌: 움직이는 자석이 반경 내 '아군' alive 돌을 자기 쪽으로 살짝 끌어당김(따라오게). 결정론(위치 기반).
+      for (const m of st.stones) {
+        if (!m.alive || m.type !== 'magnet') continue;
+        if (m.vx * m.vx + m.vy * m.vy < 4) continue;   // 사실상 멈춰 있으면 인력 없음
+        for (const s of st.stones) {
+          if (!s.alive || s === m || s.team !== m.team) continue;
+          const dx = m.x - s.x, dy = m.y - s.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 0.01 || d >= MAGNET_RADIUS) continue;
+          const pull = MAGNET_PULL * (1 - d / MAGNET_RADIUS);
+          s.vx += (dx / d) * pull;
+          s.vy += (dy / d) * pull;
+        }
+      }
       // 충돌 (alive 끼리만)
       const alive = st.stones.filter(s => s.alive);
       const toExplode = [];
@@ -469,16 +489,20 @@
     // team 1 (아래) — 상하 미러
     rowX(back, 0).forEach(x => push(1, x, H - yBack));
     rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
-    // 특수 돌 — 폭탄: 각 팀 '앞줄 가운데' 한 개를 폭탄으로(대칭). 앞줄이 없으면(front=0) 뒷줄 가운데.
-    if (specials && specials.includes('bomb')) {
+    // 특수 돌 — 각 팀 '앞줄 가운데' 한 개를 특수 돌로(대칭). 한 종류만(단일 선택).
+    const specType = specials && specials.find(t => ['bomb', 'giant', 'magnet'].includes(t));
+    if (specType) {
       for (const team of [0, 1]) {
         const row = stones.filter(s => s.team === team);
-        // 앞줄(가운데 쪽 y) 후보 → 그중 판 중앙(W/2)에 가장 가까운 돌
         const yMid = team === 0 ? yFront : H - yFront;
         const rowStones = row.filter(s => Math.abs(s.y - yMid) < 0.01);
         const pool = rowStones.length ? rowStones : row;
         pool.sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2));
-        if (pool[0]) pool[0].type = 'bomb';
+        const st = pool[0];
+        if (st) {
+          st.type = specType;
+          if (specType === 'giant') { st.r = r * 1.4; st.mass = 2; }   // 거대돌: 크고 무겁게(밀고 나감)
+        }
       }
     }
     return stones;
@@ -499,7 +523,7 @@
       this.friction = SURFACE_FRICTION[this.surface];
       this.r = preset.r;
       this.perTeam = preset.perTeam;
-      this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb'].includes(t)) : [];
+      this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb', 'giant', 'magnet'].includes(t)) : [];
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r, this.specials);
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
@@ -814,7 +838,7 @@ function renderLevel(){
 renderLevel();
 
 // 셋업 옵션 상태
-const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), bomb:(function(){try{return localStorage.getItem('alk_bomb')==='1';}catch(e){return false;}})(), myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
+const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), special:(function(){try{const v=localStorage.getItem('alk_special'); if(['none','bomb','giant','magnet'].includes(v))return v; return localStorage.getItem('alk_bomb')==='1'?'bomb':'none';}catch(e){return 'none';}})(), myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
 function bindOpts(rootId, key, cb){
   const root=$(rootId); if(!root) return;
   root.querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>{
@@ -827,9 +851,9 @@ bindOpts('optDiff','diff');
 bindOpts('optPreset','preset');
 bindOpts('optSurface','surface',()=>{ try{localStorage.setItem('alk_surface',cfg.surface);}catch(e){} });
 (function(){ const r=$('optBomb'); if(!r) return;
-  r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', (o.dataset.b==='1')===cfg.bomb));
+  r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.sp===cfg.special));
   r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
-    cfg.bomb = o.dataset.b==='1'; try{localStorage.setItem('alk_bomb', cfg.bomb?'1':'0');}catch(e){} }); })();
+    cfg.special = o.dataset.sp; try{localStorage.setItem('alk_special', cfg.special);}catch(e){} }); })();
 (function(){ const r=$('optSurface'); if(r) r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.s===cfg.surface)); })();
 // 궤적 프리뷰 토글 — guideOn 전역과 sync
 (function(){
@@ -860,10 +884,10 @@ const onlineCfg={ preset:'standard', surface:cfg.surface };
     onlineCfg.surface=o.dataset.s;
   });
 })();
-onlineCfg.bomb=cfg.bomb;
+onlineCfg.special=cfg.special;
 (function(){ const r=$('optBombOnline'); if(!r) return;
-  r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', (o.dataset.b==='1')===onlineCfg.bomb));
-  r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); onlineCfg.bomb=o.dataset.b==='1'; }); })();
+  r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.sp===onlineCfg.special));
+  r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); onlineCfg.special=o.dataset.sp; }); })();
 
 // 로컬/온라인 탭 전환
 $('tabLocal').onclick=()=>{ $('tabLocal').classList.add('on'); $('tabOnline').classList.remove('on'); $('localCfg').style.display='block'; $('onlineCfg').style.display='none'; };
@@ -960,7 +984,9 @@ function renderLobby(){
   const stoneN = preset==='mini'?4:preset==='battle'?8:6;
   const surf = lobby.surface || 'board';
   const surfName = surf==='ice'?'🧊 얼음판':surf==='grass'?'🟩 잔디판':'🟫 바둑판';
-  const bombOn = (lobby.specials||[]).includes('bomb') ? ' · 💣 폭탄돌' : '';
+  const spMap = {bomb:'💣 폭탄돌', giant:'🪨 거대돌', magnet:'🧲 자석돌'};
+  const sp = (lobby.specials||[]).find(t=>spMap[t]);
+  const bombOn = sp ? (' · '+spMap[sp]) : '';
   $('lobbyRules').textContent = `판: ${preset==='mini'?'미니':preset==='battle'?'대전':'표준'} · 각자 ${stoneN}돌 · ${surfName}${bombOn} · 낙사 시 한 번 더`;
   const host = $('members'); host.innerHTML='';
   lobby.members.forEach(mm=>{
@@ -998,7 +1024,7 @@ $('createBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'호스트';
   cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
   online=true; $('onErr').textContent='';
-  connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface, specials:(onlineCfg.bomb?['bomb']:[])}));
+  connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface, specials:(onlineCfg.special&&onlineCfg.special!=='none'?[onlineCfg.special]:[])}));
 };
 $('joinBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'게스트';
@@ -1017,7 +1043,7 @@ function startGame(){
     : [{pid:MYPID,name:name+' 🅐'}, {pid:OPPPID,name:'상대 🅑'}];
   const Core = window.AlkkagiCore;
   engine = new Core.AlkkagiEngine({
-    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.bomb?['bomb']:[]), manualAI:true,
+    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.special&&cfg.special!=='none'?[cfg.special]:[]), manualAI:true,
     aiFast:false, aiMs:900,
     onState(){ S=engine.serialize(MYPID); onEngineState(); },
   });
@@ -1206,9 +1232,11 @@ function drawStone(s, opts){
   ctx.fillStyle = `rgba(0,0,0,${0.35*alpha})`;
   ctx.fill();
   // 몸통 — 폭탄돌은 팀색 유지하되 어둡게 + 심지, 일반 돌은 팀색
-  const isBomb = s.type==='bomb';
-  const c0 = isBomb ? (s.team===0 ? '#25406e' : '#6e2a25') : (s.team===0 ? '#3b82ff' : '#e04a3a');
-  const c1 = isBomb ? (s.team===0 ? '#5f86c0' : '#c06a5f') : (s.team===0 ? '#8fc0ff' : '#ff9d8e');
+  const isBomb = s.type==='bomb', isGiant = s.type==='giant', isMagnet = s.type==='magnet';
+  let c0 = s.team===0 ? '#3b82ff' : '#e04a3a';
+  let c1 = s.team===0 ? '#8fc0ff' : '#ff9d8e';
+  if(isBomb){ c0 = s.team===0 ? '#25406e' : '#6e2a25'; c1 = s.team===0 ? '#5f86c0' : '#c06a5f'; }   // 폭탄=어둡게
+  // 거대돌은 팀색 유지(크기로 구분), 자석돌은 팀색 유지 + 아래 자석 마크
   const grad = ctx.createRadialGradient(cx-rr*0.35, cy-rr*0.4, rr*0.2, cx, cy, rr);
   grad.addColorStop(0, c1);
   grad.addColorStop(1, c0);
@@ -1224,13 +1252,23 @@ function drawStone(s, opts){
   ctx.arc(cx, cy, rr, 0, Math.PI*2);
   ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(0,0,0,${0.35*alpha})`;
   ctx.stroke();
-  // 폭탄돌 표시 — 가운데 작은 💥 심지 점(낙사 중엔 흐리게)
+  // 특수 돌 마크(낙사 중엔 흐리게)
   if(isBomb){
     ctx.globalAlpha = alpha;
     ctx.beginPath(); ctx.arc(cx, cy, rr*0.30, 0, Math.PI*2);
     ctx.fillStyle = 'rgba(255,220,120,.9)'; ctx.fill();
     ctx.beginPath(); ctx.arc(cx, cy, rr*0.14, 0, Math.PI*2);
     ctx.fillStyle = 'rgba(120,40,10,.95)'; ctx.fill();
+  } else if(isGiant){
+    // 거대돌 — 안쪽 굵은 링으로 '무거움' 표시
+    ctx.globalAlpha = alpha*0.9;
+    ctx.beginPath(); ctx.arc(cx, cy, rr*0.55, 0, Math.PI*2);
+    ctx.lineWidth = rr*0.16; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.stroke();
+  } else if(isMagnet){
+    // 자석돌 — 남/빨 두 극 점(N/S 느낌)
+    ctx.globalAlpha = alpha;
+    ctx.beginPath(); ctx.arc(cx-rr*0.32, cy, rr*0.20, 0, Math.PI*2); ctx.fillStyle='rgba(60,90,220,.95)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+rr*0.32, cy, rr*0.20, 0, Math.PI*2); ctx.fillStyle='rgba(220,60,60,.95)'; ctx.fill();
   }
   ctx.globalAlpha = 1;
   // 선택 강조 (낙사 중엔 표시 안함)

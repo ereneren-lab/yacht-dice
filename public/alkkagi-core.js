@@ -21,6 +21,8 @@
   const FALL_BEYOND = 40;              // 판 밖 이 거리 이상 나가면 즉시 gone
   const BOMB_RADIUS = 20;              // 폭탄돌 폭발 반경(판 100 기준)
   const BOMB_IMPULSE = 88;             // 폭발 중심의 밀어내는 속도(가장자리로 갈수록 0)
+  const MAGNET_RADIUS = 18;            // 자석돌 인력 반경
+  const MAGNET_PULL = 1.4;             // 스텝당 아군에게 주는 인력(가까울수록 강)
 
   // 판/돌 기본 사양 (셋업 옵션이 오면 덮어씀)
   const PRESETS = {
@@ -116,6 +118,20 @@
         s.vx *= st.friction;
         s.vy *= st.friction;
       }
+      // 자석돌: 움직이는 자석이 반경 내 '아군' alive 돌을 자기 쪽으로 살짝 끌어당김(따라오게). 결정론(위치 기반).
+      for (const m of st.stones) {
+        if (!m.alive || m.type !== 'magnet') continue;
+        if (m.vx * m.vx + m.vy * m.vy < 4) continue;   // 사실상 멈춰 있으면 인력 없음
+        for (const s of st.stones) {
+          if (!s.alive || s === m || s.team !== m.team) continue;
+          const dx = m.x - s.x, dy = m.y - s.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 0.01 || d >= MAGNET_RADIUS) continue;
+          const pull = MAGNET_PULL * (1 - d / MAGNET_RADIUS);
+          s.vx += (dx / d) * pull;
+          s.vy += (dy / d) * pull;
+        }
+      }
       // 충돌 (alive 끼리만)
       const alive = st.stones.filter(s => s.alive);
       const toExplode = [];
@@ -210,16 +226,20 @@
     // team 1 (아래) — 상하 미러
     rowX(back, 0).forEach(x => push(1, x, H - yBack));
     rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
-    // 특수 돌 — 폭탄: 각 팀 '앞줄 가운데' 한 개를 폭탄으로(대칭). 앞줄이 없으면(front=0) 뒷줄 가운데.
-    if (specials && specials.includes('bomb')) {
+    // 특수 돌 — 각 팀 '앞줄 가운데' 한 개를 특수 돌로(대칭). 한 종류만(단일 선택).
+    const specType = specials && specials.find(t => ['bomb', 'giant', 'magnet'].includes(t));
+    if (specType) {
       for (const team of [0, 1]) {
         const row = stones.filter(s => s.team === team);
-        // 앞줄(가운데 쪽 y) 후보 → 그중 판 중앙(W/2)에 가장 가까운 돌
         const yMid = team === 0 ? yFront : H - yFront;
         const rowStones = row.filter(s => Math.abs(s.y - yMid) < 0.01);
         const pool = rowStones.length ? rowStones : row;
         pool.sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2));
-        if (pool[0]) pool[0].type = 'bomb';
+        const st = pool[0];
+        if (st) {
+          st.type = specType;
+          if (specType === 'giant') { st.r = r * 1.4; st.mass = 2; }   // 거대돌: 크고 무겁게(밀고 나감)
+        }
       }
     }
     return stones;
@@ -240,7 +260,7 @@
       this.friction = SURFACE_FRICTION[this.surface];
       this.r = preset.r;
       this.perTeam = preset.perTeam;
-      this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb'].includes(t)) : [];
+      this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb', 'giant', 'magnet'].includes(t)) : [];
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r, this.specials);
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
