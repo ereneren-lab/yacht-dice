@@ -297,22 +297,64 @@
 
     // 단순 AI: 자기 돌 중 랜덤 하나를 골라 가장 가까운 상대 돌 방향으로 파워 0.6~0.9.
     // 난이도별 살짝 조정(easy=조준 흔들림 크게, hard=흔들림 작게).
+    // 낡은 AI(무작위 돌 → 가까운 상대로 대충): 보통 상대로도 6:0으로 지던 수준이라 교체.
+    // 새 AI는 simulate()가 순수 함수인 걸 이용해 후보 샷을 실제로 돌려보고 결과로 점수를 매긴다.
+    _naiveFlick(seat) {   // easy가 가끔 섞어 쓰는 옛 방식(초보에게 이길 여지 남김)
+      const mine = this._aliveOfTeam(seat), opps = this._aliveOfTeam(1 - seat);
+      if (!mine.length || !opps.length) return null;
+      const me = mine[Math.floor(Math.random() * mine.length)];
+      let best = opps[0], bestD = Infinity;
+      for (const o of opps) { const d = (o.x - me.x) ** 2 + (o.y - me.y) ** 2; if (d < bestD) { bestD = d; best = o; } }
+      const angle = Math.atan2(best.y - me.y, best.x - me.x) + (Math.random() - 0.5) * 0.35;
+      return { stoneId: me.id, angle, power: 0.55 + Math.random() * 0.35 };
+    }
+    // 샷 결과 점수: 상대 낙사 +100 / 내 낙사 −140(자멸 회피) + 위치 보너스(내 돌 안전·상대 돌 가장자리로).
+    _scoreShot(result, seat) {
+      let score = 0;
+      for (const e of result.events) if (e.type === 'off') score += (e.team === seat ? -140 : 100);
+      const teamOf = {}; for (const s of this.stones) teamOf[s.id] = s.team;
+      const W = this.W, H = this.H;
+      for (const f of result.final) {
+        if (!f.alive) continue;
+        const edge = Math.min(f.x, W - f.x, f.y, H - f.y);   // 가장자리까지 거리(작을수록 위험)
+        const clamped = Math.min(edge, 20);
+        score += (teamOf[f.id] === seat ? clamped : -clamped) * 0.35;   // 내 돌 안쪽 = +, 상대 돌 가장자리 = +
+      }
+      return score;
+    }
     _pickAiFlick(seat, diff) {
       const mine = this._aliveOfTeam(seat);
       const opps = this._aliveOfTeam(1 - seat);
       if (!mine.length || !opps.length) return null;
-      const me = mine[Math.floor(Math.random() * mine.length)];
-      // 가장 가까운 상대 찾기
-      let best = opps[0], bestD = Infinity;
-      for (const o of opps) {
-        const d = (o.x - me.x) ** 2 + (o.y - me.y) ** 2;
-        if (d < bestD) { bestD = d; best = o; }
+      // easy는 절반 확률로 옛 방식 → 실수 여지 남겨 초보도 이길 수 있게
+      if (diff === 'easy' && Math.random() < 0.5) return this._naiveFlick(seat);
+
+      // 난이도별 탐색 폭 — 뚜렷이 벌린다: hard=촘촘/정밀, normal=중간, easy=거칠게(+옛 방식 섞음).
+      const powers = diff === 'hard' ? [0.55, 0.78, 1.0] : diff === 'easy' ? [0.8] : [0.75];
+      const offsets = diff === 'hard' ? [-0.06, 0, 0.06] : [0];   // hard만 각도 미세 탐색
+      const nOpp = diff === 'hard' ? 4 : diff === 'easy' ? 1 : 2;   // 겨눌 상대 후보 수
+      const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones };
+
+      let best = null, bestScore = -Infinity;
+      for (const me of mine) {
+        const near = opps.slice().sort((a, b) =>
+          ((a.x - me.x) ** 2 + (a.y - me.y) ** 2) - ((b.x - me.x) ** 2 + (b.y - me.y) ** 2)).slice(0, nOpp);
+        for (const o of near) {
+          const base = Math.atan2(o.y - me.y, o.x - me.x);
+          for (const off of offsets) {
+            for (const pw of powers) {
+              const flick = { stoneId: me.id, angle: base + off, power: pw };
+              const score = this._scoreShot(simulate(state, flick), seat);
+              // 동점이면 무작위로 갈라 매판 같은 수만 두지 않게
+              if (score > bestScore || (score === bestScore && Math.random() < 0.5)) { bestScore = score; best = flick; }
+            }
+          }
+        }
       }
-      const angle = Math.atan2(best.y - me.y, best.x - me.x);
-      const jitter = diff === 'hard' ? 0.08 : diff === 'easy' ? 0.35 : 0.18;
-      const aimAngle = angle + (Math.random() - 0.5) * jitter;
-      const power = 0.55 + Math.random() * 0.35;
-      return { stoneId: me.id, angle: aimAngle, power };
+      if (!best) return this._naiveFlick(seat);
+      // 난이도별 조준 흔들림(easy 크게, hard 거의 없음) — 손맛/실수 재현
+      const jitter = diff === 'hard' ? 0.02 : diff === 'easy' ? 0.18 : 0.12;
+      return { stoneId: best.stoneId, angle: best.angle + (Math.random() - 0.5) * jitter, power: best.power };
     }
 
     setConnected(pid, v) {
