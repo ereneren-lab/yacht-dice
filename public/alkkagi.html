@@ -937,15 +937,24 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 
 // 판 좌표 <-> Canvas 좌표
+// 뷰 뒤집기 — 내 돌이 화면 아래(나와 가까운 쪽)에 오게 한다.
+// team 0은 엔진에서 판 위쪽(y작음)에 배치되므로, 내가 seat 0이면 세로로 뒤집는다.
+// 핫시트(1대1 같은 기기)는 둘이 한 화면을 보므로 고정(뒤집지 않음).
+function viewFlip(){
+  if(!S || cfg.mode==='two') return false;
+  return mySeat() === 0;
+}
 function toCanvas(x, y){
   if(!S) return {cx:0,cy:0};
+  const yy = viewFlip() ? (S.H - y) : y;
   return {
     cx: (x / S.W) * cssW,
-    cy: (y / S.H) * cssH,
+    cy: (yy / S.H) * cssH,
   };
 }
 function fromCanvas(cx, cy){
-  return { x: (cx/cssW)*S.W, y: (cy/cssH)*S.H };
+  const by = (cy/cssH)*S.H;
+  return { x: (cx/cssW)*S.W, y: viewFlip() ? (S.H - by) : by };
 }
 
 // 조준 상태
@@ -1103,7 +1112,7 @@ function drawPreview(){
   const maxLen = Math.min(cssW*0.35, 140);
   const pow = Math.min(1, len/maxLen);
   if(pow < 0.1) return;
-  const angle = Math.atan2(dy, dx);
+  const angle = Math.atan2(viewFlip() ? -dy : dy, dx);   // 화면 뒤집힘 보정 → 판 좌표 각도
   const pts = previewPath(aim.stoneId, angle, pow);
   if(pts.length < 3) return;
   ctx.save();
@@ -1262,7 +1271,7 @@ function onUp(ev){
   aim = null;
   cvs.classList.remove('aiming');
   if(power < 0.08){ render(); toast('더 세게 당겨봐'); return; }
-  const angle = Math.atan2(dy, dx);
+  const angle = Math.atan2(viewFlip() ? -dy : dy, dx);   // 화면 뒤집힘 보정 → 판 좌표 각도
   const shaped = Math.pow(power, 0.72);
   try{ SFX.whoosh(); }catch(e){}
   const a = { type:'flick', stoneId, angle, power: shaped };
