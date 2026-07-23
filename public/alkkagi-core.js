@@ -19,6 +19,8 @@
   const MIN_POWER = 0.05;              // 이 아래는 무시
   const FALL_STEPS = 40;               // 낙사 후 애니 지속 스텝 (판 밖으로 미끄러지는 시간 ≈ 0.67s)
   const FALL_BEYOND = 40;              // 판 밖 이 거리 이상 나가면 즉시 gone
+  const BOMB_RADIUS = 20;              // 폭탄돌 폭발 반경(판 100 기준)
+  const BOMB_IMPULSE = 88;             // 폭발 중심의 밀어내는 속도(가장자리로 갈수록 0)
 
   // 판/돌 기본 사양 (셋업 옵션이 오면 덮어씀)
   const PRESETS = {
@@ -90,7 +92,7 @@
   function simulate(state, flick) {
     const st = clone(state);
     // 진입 시 falling 초기화(외부 상태에서 남아있을 수 있음)
-    for (const s of st.stones) { s.falling = false; s.fallStart = -1; }
+    for (const s of st.stones) { s.falling = false; s.fallStart = -1; s._boom = false; }
     const target = st.stones.find(s => s.id === flick.stoneId);
     if (!target || !target.alive) {
       return { frames: [], events: [], final: st.stones.map(s => ({ id: s.id, x: s.x, y: s.y, alive: s.alive })), hitCount: 0, offCount: 0 };
@@ -115,13 +117,35 @@
       }
       // 충돌 (alive 끼리만)
       const alive = st.stones.filter(s => s.alive);
+      const toExplode = [];
       for (let i = 0; i < alive.length; i++) {
         for (let j = i + 1; j < alive.length; j++) {
           if (resolveCollision(alive[i], alive[j])) {
             events.push({ t, type: 'hit', ids: [alive[i].id, alive[j].id] });
             hitCount++;
+            // 폭탄돌이 부딪히면 이번 프레임 끝에 터진다(한 번만)
+            for (const s of [alive[i], alive[j]]) {
+              if (s.type === 'bomb' && !s._boom) { s._boom = true; toExplode.push(s); }
+            }
           }
         }
+      }
+      // 폭발 처리 — 반경 내 다른 돌을 바깥으로 밀치고 폭탄은 소멸(자기 팀 손실). Math.random 없이 위치 기반(결정론).
+      for (const bomb of toExplode) {
+        for (const s of st.stones) {
+          if (!s.alive || s === bomb) continue;
+          const dx = s.x - bomb.x, dy = s.y - bomb.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d >= BOMB_RADIUS) continue;
+          const nx = d > 0.01 ? dx / d : ((s.id % 2) ? 1 : -1);
+          const ny = d > 0.01 ? dy / d : ((s.id % 3) ? 1 : -0.7);
+          const norm = Math.hypot(nx, ny) || 1;
+          const push = BOMB_IMPULSE * (1 - d / BOMB_RADIUS);
+          s.vx += (nx / norm) * push;
+          s.vy += (ny / norm) * push;
+        }
+        bomb.alive = false;
+        events.push({ t, type: 'boom', id: bomb.id, x: Math.round(bomb.x * 100) / 100, y: Math.round(bomb.y * 100) / 100, team: bomb.team });
       }
       // alive → falling: 판 밖으로 나가는 순간 (경계에서 판정)
       for (const s of st.stones) {
@@ -163,7 +187,7 @@
   }
 
   // 시작 배치 — 각 팀 한 줄로 나열. 팀0 아래(y=15), 팀1 위(y=H-15).
-  function initialLayout(W, H, perTeam, r) {
+  function initialLayout(W, H, perTeam, r, specials) {
     // 예전엔 각 팀이 판 가장자리에 '한 줄'로만 늘어서 밋밋했다(가운데는 텅, 세게 치면 빈 공간으로 자멸).
     // → 2줄 엇갈림 대형(뒷줄=가장자리, 앞줄=가운데 쪽, 앞줄이 뒷줄 틈에 위치)으로 깊이를 준다.
     // 팀 대칭 유지(team1은 y를 H-y로 미러) → AI 대칭성/공정성 보존.
@@ -185,6 +209,18 @@
     // team 1 (아래) — 상하 미러
     rowX(back, 0).forEach(x => push(1, x, H - yBack));
     rowX(front, front < back ? halfStep : 0).forEach(x => push(1, x, H - yFront));
+    // 특수 돌 — 폭탄: 각 팀 '앞줄 가운데' 한 개를 폭탄으로(대칭). 앞줄이 없으면(front=0) 뒷줄 가운데.
+    if (specials && specials.includes('bomb')) {
+      for (const team of [0, 1]) {
+        const row = stones.filter(s => s.team === team);
+        // 앞줄(가운데 쪽 y) 후보 → 그중 판 중앙(W/2)에 가장 가까운 돌
+        const yMid = team === 0 ? yFront : H - yFront;
+        const rowStones = row.filter(s => Math.abs(s.y - yMid) < 0.01);
+        const pool = rowStones.length ? rowStones : row;
+        pool.sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2));
+        if (pool[0]) pool[0].type = 'bomb';
+      }
+    }
     return stones;
   }
 
@@ -203,7 +239,8 @@
       this.friction = SURFACE_FRICTION[this.surface];
       this.r = preset.r;
       this.perTeam = preset.perTeam;
-      this.stones = initialLayout(this.W, this.H, this.perTeam, this.r);
+      this.specials = Array.isArray(opt.specials) ? opt.specials.filter(t => ['bomb'].includes(t)) : [];
+      this.stones = initialLayout(this.W, this.H, this.perTeam, this.r, this.specials);
       // 밸런싱: 상대 돌 낙사 시 한 번 더 (기본 켜짐 · 실제 알까기 규칙)
       this.extraFlickOnKnockoff = opt.extraFlickOnKnockoff !== false;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
@@ -322,7 +359,11 @@
     // 샷 결과 점수: 상대 낙사 +100 / 내 낙사 −140(자멸 회피) + 위치 보너스(내 돌 안전·상대 돌 가장자리로).
     _scoreShot(result, seat) {
       let score = 0;
-      for (const e of result.events) if (e.type === 'off') score += (e.team === seat ? -140 : 100);
+      for (const e of result.events) {
+        if (e.type === 'off') score += (e.team === seat ? -140 : 100);
+        // 폭탄 소멸: 내 폭탄이 터지면 내 돌 하나를 잃는 셈(단, 그 폭발로 상대를 날렸으면 위 off 보상이 상쇄).
+        else if (e.type === 'boom' && e.team === seat) score -= 95;
+      }
       const teamOf = {}; for (const s of this.stones) teamOf[s.id] = s.team;
       const W = this.W, H = this.H;
       for (const f of result.final) {
@@ -382,7 +423,7 @@
         turn: this.turn,
         winner: this.winner,
         W: this.W, H: this.H, r: this.r,
-        friction: this.friction, surface: this.surface,
+        friction: this.friction, surface: this.surface, specials: this.specials.slice(),
         stones: this.stones.map(s => ({
           id: s.id, team: s.team, x: s.x, y: s.y,
           alive: s.alive, type: s.type, r: s.r, mass: s.mass,
