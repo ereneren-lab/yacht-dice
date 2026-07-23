@@ -23,6 +23,14 @@
   const BOMB_IMPULSE = 88;             // 폭발 중심의 밀어내는 속도(가장자리로 갈수록 0)
   const MAGNET_RADIUS = 18;            // 자석돌 인력 반경
   const MAGNET_PULL = 1.4;             // 스텝당 아군에게 주는 인력(가까울수록 강)
+  // 삑사리(미스샷): 파워가 이 값을 넘으면 세게 칠수록 빗나갈 확률이 오른다.
+  const MISFIRE_THRESH = 0.72;         // 이 아래 파워는 절대 안 삑남 (안전 구간)
+  const MISFIRE_MAX_CHANCE = 0.5;      // 파워 1.0에서의 삑사리 확률
+  // 결정론 의사난수 [0,1) — Math.random 금지 규약을 지키려고 seq+플릭값을 해시(GLSL식 sin 해시).
+  function _hashFrac(a, b, c) {
+    const x = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453;
+    return x - Math.floor(x);
+  }
 
   // 판/돌 기본 사양 (셋업 옵션이 오면 덮어씀)
   const PRESETS = {
@@ -267,6 +275,7 @@
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r, this.specials);
       // 오늘의 규칙(선택식): doubleShot=턴당 2발, wind=일정 방향 가속. null=없음.
       this.rule = ['doubleShot', 'wind'].includes(opt.rule) ? opt.rule : null;
+      this.misfire = opt.misfire !== false;   // 삑사리(미스샷): 기본 켜짐
       this.shotsThisTurn = 0;
       // 바람 벡터 — 판 시작 시 한 번 결정(시뮬 입력값이라 이후 결정론에 영향 없음).
       this.windX = 0; this.windY = 0;
@@ -342,6 +351,10 @@
     }
 
     _runSim(flick) {
+      // 삑사리: 실행 직전에만 플릭을 틀어 준다. simulate()·AI 후보 채점은 깨끗한 값으로 돌아
+      //   AI는 "정확히 맞았다면"을 기준으로 조준하고, 실제 발사에서 세게 치면 사람처럼 빗나간다.
+      const misfire = this._applyMisfire(flick);
+      flick = misfire.flick;
       const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones, windX: this.windX, windY: this.windY };
       const result = simulate(state, flick);
       // 최종 결과 반영
@@ -362,6 +375,7 @@
         frames: result.frames, events: result.events, actorSeat: actor, flick,
         seq: ++this.simSeq, extraFlick, oppOffCount, myOffCount,
         doubleShot: doubleShotContinue, shotsThisTurn: this.shotsThisTurn,
+        misfired: misfire.hit,
       };
       const w = this._checkWinner();   // 이기는 '팀'(0/1) 또는 -1(무) 또는 null
       if (w != null) {
@@ -379,6 +393,25 @@
       // 턴 유지(extraFlick 또는 더블샷 2발째)면 같은 사람이 다시 aim
       this._emit();
       this._maybeAI();
+    }
+
+    // 세게 칠수록 삑날 확률↑. 걸리면 각도가 틀어지고 힘도 일부 샌다. { flick, hit }
+    _applyMisfire(flick) {
+      if (this.misfire === false) return { flick, hit: false };
+      const p = flick.power;
+      if (p <= MISFIRE_THRESH) return { flick, hit: false };
+      const over = (p - MISFIRE_THRESH) / (1 - MISFIRE_THRESH);   // 0..1 (안전구간 밖 정도)
+      const chance = over * MISFIRE_MAX_CHANCE;
+      const seq = (this.simSeq || 0) + 1;                          // 이 샷의 seq(아직 증가 전)
+      if (_hashFrac(seq, p * 100, flick.angle) >= chance) return { flick, hit: false };
+      // 삑! 각도 0.12~0.32rad 틀어지고 힘 20~40% 샘.
+      const r = _hashFrac(seq * 7 + 3, flick.angle * 50, p);
+      const dir = r < 0.5 ? -1 : 1;
+      const dev = (0.12 + over * 0.20) * dir;
+      return {
+        hit: true,
+        flick: { stoneId: flick.stoneId, angle: flick.angle + dev, power: p * (0.6 + r * 0.2) },
+      };
     }
 
     _maybeAI() {
@@ -504,6 +537,7 @@
           extraFlick: !!this.lastSim.extraFlick,
           oppOffCount: this.lastSim.oppOffCount || 0,
           myOffCount: this.lastSim.myOffCount || 0,
+          misfired: !!this.lastSim.misfired,
         } : null,
         players: this.players.map((p, i) => ({
           pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, team: i % 2,
