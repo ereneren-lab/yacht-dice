@@ -140,6 +140,12 @@
         <div class="opt on" data-p="standard">표준 · 6돌</div>
         <div class="opt" data-p="battle">대전 · 8돌</div>
       </div>
+      <div class="lbl">판 재질</div>
+      <div class="row" id="optSurface">
+        <div class="opt on" data-s="board">🟫 바둑판</div>
+        <div class="opt" data-s="ice">🧊 얼음판</div>
+        <div class="opt" data-s="grass">🟩 잔디판</div>
+      </div>
       <div class="lbl">보조</div>
       <div class="row" id="optGuide">
         <div class="opt on" data-g="1">궤적 프리뷰 · 켜짐</div>
@@ -161,6 +167,12 @@
         <div class="opt" data-p="mini">미니 · 4돌</div>
         <div class="opt on" data-p="standard">표준 · 6돌</div>
         <div class="opt" data-p="battle">대전 · 8돌</div>
+      </div>
+      <div class="lbl">판 재질 (호스트)</div>
+      <div class="row" id="optSurfaceOnline">
+        <div class="opt on" data-s="board">🟫 바둑판</div>
+        <div class="opt" data-s="ice">🧊 얼음판</div>
+        <div class="opt" data-s="grass">🟩 잔디판</div>
       </div>
       <div class="row" style="margin-top:14px">
         <button class="btn" id="createBtn">방 만들기</button>
@@ -263,6 +275,8 @@
     standard: { W: 100, H: 100, perTeam: 6, r: 3.5, friction: 0.98 },
     battle:   { W: 120, H: 120, perTeam: 8, r: 3.5, friction: 0.98 },
   };
+  // 판 재질 → 마찰(스텝당 감쇠). 얼음은 살짝만 미끄럽게(리플레이 안 늘어지게), 잔디는 빨리 멈춤.
+  const SURFACE_FRICTION = { board: 0.98, ice: 0.988, grass: 0.965 };
 
   // ===== 순수 함수 유틸 =====
   function clone(state) {
@@ -434,7 +448,8 @@
       const preset = PRESETS[opt.preset] || PRESETS.standard;
       this.W = preset.W;
       this.H = preset.H;
-      this.friction = preset.friction;
+      this.surface = SURFACE_FRICTION[opt.surface] != null ? opt.surface : 'board';
+      this.friction = SURFACE_FRICTION[this.surface];
       this.r = preset.r;
       this.perTeam = preset.perTeam;
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r);
@@ -616,7 +631,7 @@
         turn: this.turn,
         winner: this.winner,
         W: this.W, H: this.H, r: this.r,
-        friction: this.friction,
+        friction: this.friction, surface: this.surface,
         stones: this.stones.map(s => ({
           id: s.id, team: s.team, x: s.x, y: s.y,
           alive: s.alive, type: s.type, r: s.r, mass: s.mass,
@@ -733,7 +748,7 @@ function renderLevel(){
 renderLevel();
 
 // 셋업 옵션 상태
-const cfg={ mode:'ai', diff:'normal', preset:'standard', myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
+const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
 function bindOpts(rootId, key, cb){
   const root=$(rootId); if(!root) return;
   root.querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>{
@@ -744,6 +759,8 @@ function bindOpts(rootId, key, cb){
 bindOpts('optMode','mode',()=>{ $('aiBox').style.display=(cfg.mode==='ai'?'block':'none'); });
 bindOpts('optDiff','diff');
 bindOpts('optPreset','preset');
+bindOpts('optSurface','surface',()=>{ try{localStorage.setItem('alk_surface',cfg.surface);}catch(e){} });
+(function(){ const r=$('optSurface'); if(r) r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.s===cfg.surface)); })();
 // 궤적 프리뷰 토글 — guideOn 전역과 sync
 (function(){
   const root=$('optGuide'); if(!root) return;
@@ -757,12 +774,20 @@ $('myName').value=cfg.myName;
 $('onName').value=cfg.myName;
 
 // 온라인 판 크기 (호스트 create 시 사용)
-const onlineCfg={ preset:'standard' };
+const onlineCfg={ preset:'standard', surface:cfg.surface };
 (function(){
   const root=$('optPresetOnline'); if(!root) return;
   root.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
     root.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
     onlineCfg.preset=o.dataset.p;
+  });
+})();
+(function(){
+  const root=$('optSurfaceOnline'); if(!root) return;
+  root.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.s===onlineCfg.surface));
+  root.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
+    root.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
+    onlineCfg.surface=o.dataset.s;
   });
 })();
 
@@ -859,7 +884,9 @@ function renderLobby(){
   $('lobbyCode').textContent = lobby.code;
   const preset = lobby.preset || 'standard';
   const stoneN = preset==='mini'?4:preset==='battle'?8:6;
-  $('lobbyRules').textContent = `판: ${preset==='mini'?'미니':preset==='battle'?'대전':'표준'} · 각자 ${stoneN}돌 · 낙사 시 한 번 더`;
+  const surf = lobby.surface || 'board';
+  const surfName = surf==='ice'?'🧊 얼음판':surf==='grass'?'🟩 잔디판':'🟫 바둑판';
+  $('lobbyRules').textContent = `판: ${preset==='mini'?'미니':preset==='battle'?'대전':'표준'} · 각자 ${stoneN}돌 · ${surfName} · 낙사 시 한 번 더`;
   const host = $('members'); host.innerHTML='';
   lobby.members.forEach(mm=>{
     const d=document.createElement('div');
@@ -896,7 +923,7 @@ $('createBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'호스트';
   cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
   online=true; $('onErr').textContent='';
-  connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset}));
+  connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface}));
 };
 $('joinBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'게스트';
@@ -915,7 +942,7 @@ function startGame(){
     : [{pid:MYPID,name:name+' 🅐'}, {pid:OPPPID,name:'상대 🅑'}];
   const Core = window.AlkkagiCore;
   engine = new Core.AlkkagiEngine({
-    players, preset:cfg.preset,
+    players, preset:cfg.preset, surface:cfg.surface,
     aiFast:false, aiMs:900,
     onState(){ S=engine.serialize(MYPID); onEngineState(); },
   });
@@ -986,9 +1013,15 @@ function drawBoard(){
   ctx.save();
   ctx.scale(DPR, DPR);
   ctx.clearRect(0,0,cssW,cssH);
-  // 판 나무 색
-  const board = getComputedStyle(document.documentElement).getPropertyValue('--board').trim() || '#c99653';
-  const line = getComputedStyle(document.documentElement).getPropertyValue('--boardline').trim() || '#6b4d24';
+  // 판 색 — 재질별 틴트(얼음=푸른빛, 잔디=초록빛, 바둑판=나무)
+  const surf = (S && S.surface) || 'board';
+  const SURF = {
+    board: { board:'#c99653', line:'#6b4d24' },
+    ice:   { board:'#bcd6e6', line:'#5f7f93' },
+    grass: { board:'#8fb56a', line:'#4f6d38' },
+  };
+  const board = SURF[surf] ? SURF[surf].board : (getComputedStyle(document.documentElement).getPropertyValue('--board').trim() || '#c99653');
+  const line  = SURF[surf] ? SURF[surf].line  : (getComputedStyle(document.documentElement).getPropertyValue('--boardline').trim() || '#6b4d24');
   // 그림자
   ctx.fillStyle = 'rgba(0,0,0,.28)';
   ctx.fillRect(3, 5, cssW-3, cssH-3);

@@ -26,6 +26,8 @@
     standard: { W: 100, H: 100, perTeam: 6, r: 3.5, friction: 0.98 },
     battle:   { W: 120, H: 120, perTeam: 8, r: 3.5, friction: 0.98 },
   };
+  // 판 재질 → 마찰(스텝당 감쇠). 얼음은 살짝만 미끄럽게(리플레이 안 늘어지게), 잔디는 빨리 멈춤.
+  const SURFACE_FRICTION = { board: 0.98, ice: 0.988, grass: 0.965 };
 
   // ===== 순수 함수 유틸 =====
   function clone(state) {
@@ -197,7 +199,8 @@
       const preset = PRESETS[opt.preset] || PRESETS.standard;
       this.W = preset.W;
       this.H = preset.H;
-      this.friction = preset.friction;
+      this.surface = SURFACE_FRICTION[opt.surface] != null ? opt.surface : 'board';
+      this.friction = SURFACE_FRICTION[this.surface];
       this.r = preset.r;
       this.perTeam = preset.perTeam;
       this.stones = initialLayout(this.W, this.H, this.perTeam, this.r);
@@ -379,7 +382,7 @@
         turn: this.turn,
         winner: this.winner,
         W: this.W, H: this.H, r: this.r,
-        friction: this.friction,
+        friction: this.friction, surface: this.surface,
         stones: this.stones.map(s => ({
           id: s.id, team: s.team, x: s.x, y: s.y,
           alive: s.alive, type: s.type, r: s.r, mass: s.mass,

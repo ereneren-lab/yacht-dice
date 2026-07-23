@@ -102,7 +102,7 @@ function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
   return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room), cap:capOf(room),
-    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false,
+    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false,
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
@@ -167,7 +167,7 @@ function startEngine(room){
     room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes||undefined, dailyRule:(room.dailyOn===false?false:undefined), limitMs:(room.timer||0)*60000, turnMs:60000, aiMs:1100, onState });
   } else if (room.game === 'alkkagi'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
-    room.engine = new AlkkagiEngine({ aiFast:!!room.aiFast, players, preset:(['mini','standard','battle'].includes(room.preset)?room.preset:'standard'), aiMs:900, onState });
+    room.engine = new AlkkagiEngine({ aiFast:!!room.aiFast, players, preset:(['mini','standard','battle'].includes(room.preset)?room.preset:'standard'), surface:room.surface, aiMs:900, onState });
   } else {
     const onState = (s)=> broadcast(room, { t:'state', state:s });
     room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, players, onState,
@@ -256,7 +256,7 @@ wss.on('connection', (ws) => {
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : (m.game === 'alkkagi') ? 'alkkagi' : 'yacht';
       const code = newCode(), pid = rid();
       const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':game==='alkkagi'?'alkkagi':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
-        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
