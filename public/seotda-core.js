@@ -131,6 +131,7 @@
       this.manualAI = !!opt.manualAI;
       this.dealerSeat = 0;
       this.handNo = 0;
+      this.actionSeq = 0;    // 베팅 액션 순번(클라 칩 연출 트리거용)
       this.phase = 'idle';   // 'idle'|'bet'|'showdown'|'handover'|'gameover'
       this._dead = false;
       this._timer = null;
@@ -262,7 +263,7 @@
         this.toAct.delete(seat);
       } else return;
 
-      this.lastAction = { seat, mode };
+      this.lastAction = { seat, mode, amount: chips - this.players[seat].chips, seq: ++this.actionSeq };
       this._afterAction();
     }
     _resetToActAfterRaise(raiser) {
