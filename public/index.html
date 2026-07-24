@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>주사위 골목 — Dice Alley</title>
+<!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
+     게임 콘텐츠 수정을 앱 재제출 없이 반영한다. 웹·오프라인·이미 원격일 땐 아무것도 안 함(no-op).
+     번들 우선이라 오프라인에서도 켜지고(애플 4.2 안전), 온라인일 때만 최신으로 갈아탄다. -->
+<script>
+(function(){
+  try{
+    var C = window.Capacitor;
+    if(!(C && C.isNativePlatform && C.isNativePlatform())) return;       // 네이티브 앱에서만
+    var REMOTE = 'https://yacht-dice-jxva.onrender.com';
+    if(location.href.indexOf(REMOTE) === 0) return;                       // 이미 원격 → 종료(루프 방지)
+    if(navigator.onLine === false) return;                                // 확실히 오프라인 → 번들 유지
+    var settled = false;
+    var timer = setTimeout(function(){ settled = true; }, 1500);          // 응답 느리면 번들로 진행
+    fetch(REMOTE + '/manifest.json', { cache:'no-store', mode:'no-cors' })
+      .then(function(){
+        if(settled) return; settled = true; clearTimeout(timer);
+        var path = location.pathname.replace(/^\/+/, '');                 // '/index.html' → 'index.html'
+        location.replace(REMOTE + '/' + path + location.search);          // 최신으로 갈아타기
+      })
+      .catch(function(){ settled = true; clearTimeout(timer); });         // 도달 불가(오프라인) → 번들 유지
+  }catch(e){}
+})();
+</script>
 <!-- 계측 보류(2026-07-22) — 다른 세션의 계측 작업이 검토 전에 실수로 배포돼(커밋 05a8ed2),
      사용자 결정에 따라 '로딩만' 껐다. public/analytics.js·privacy.html·AL.* 호출부는 그대로 두었으니
      계측을 켤 땐 아래 두 줄을 6개 페이지(index·yut·yacht·kb·ld·lcr)에 다시 넣으면 된다.
