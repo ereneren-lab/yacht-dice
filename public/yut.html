@@ -372,6 +372,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     #game .players-strip .pchip img,#game .players-strip .pchip .pav{ width:22px;height:22px }
     #game .thrower{ min-height:24px }                        /* 던지는 캐릭터 36→30 */
     #game .thrower img{ width:30px;height:30px }
+    /* 선 뽑기 단계: 중앙 순서 패널이 커서 판이 아래로 밀리고 던지기 영역이 화면 밖으로 나갔다
+       (실측 229px 넘침). 이 단계의 판은 opacity .42로 흐려둔 '장식'이므로 폰에서만 줄여
+       순서 패널 + 던지기 버튼이 스크롤 없이 한 화면에 들어오게 한다. 판이 깔리면 원래 크기로 복귀. */
+    #game.orderphase .board{ max-width:min(52vw, 22vh) }
     /* 던진 결과가 보드 바로 아래 오도록 순서 조정 (트레이는 그 아래) */
     .game-right .turninfo{ order:1 }
     .game-right .throwarea{ order:2 }
