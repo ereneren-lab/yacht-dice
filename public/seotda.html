@@ -69,30 +69,49 @@
   /* 게임 화면 */
   #game{margin-top:6px;display:none}
   body.ingame #game{flex:1;display:flex;flex-direction:column}
-  .tablewrap{position:relative;flex:1;min-height:400px;border-radius:22px;
-    background:radial-gradient(120% 100% at 50% 40%, var(--felt) 0%, var(--felt2) 78%, #0f2c17 100%);
-    border:6px solid #2a1a0e;box-shadow:inset 0 0 60px rgba(0,0,0,.45),0 10px 30px rgba(0,0,0,.4);
+  .tablewrap{position:relative;flex:1;min-height:400px;border-radius:24px;
+    background:
+      radial-gradient(64% 44% at 50% 33%, rgba(255,255,255,.08), transparent 72%),
+      radial-gradient(135% 108% at 50% 46%, var(--felt) 0%, var(--felt2) 66%, #0b2410 100%);
+    border:7px solid #2a1a0e;
+    box-shadow:inset 0 0 72px rgba(0,0,0,.52), inset 0 0 0 2px rgba(212,179,90,.16), 0 12px 34px rgba(0,0,0,.45);
     padding:8px;overflow:hidden}
-  .tablewrap::after{content:'';position:absolute;inset:14px;border-radius:16px;border:2px solid rgba(255,255,255,.06);pointer-events:none}
+  .tablewrap::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.45;z-index:0;
+    background-image:radial-gradient(rgba(0,0,0,.13) 1px, transparent 1.5px);background-size:7px 7px}
+  .tablewrap::after{content:'';position:absolute;inset:16px;border-radius:18px;border:2px solid rgba(212,179,90,.15);box-shadow:inset 0 0 44px rgba(0,0,0,.32);pointer-events:none;z-index:0}
+  .table-emblem{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-size:clamp(90px,26vw,160px);font-weight:900;color:rgba(255,255,255,.045);pointer-events:none;z-index:0;user-select:none;letter-spacing:-.05em}
 
-  /* 중앙 팟 */
-  .pot{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:2}
-  .pot .plabel{font-size:10px;font-weight:800;color:rgba(255,255,255,.65);letter-spacing:.1em}
-  .pot .pamt{font-size:clamp(18px,5vw,26px);font-weight:900;color:var(--gold);text-shadow:0 2px 6px rgba(0,0,0,.6)}
-  .pot .pchips{font-size:20px;margin-bottom:2px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
-  .pot .pbet{font-size:11px;font-weight:800;color:rgba(255,255,255,.8);margin-top:2px}
+  /* 중앙 팟 — 칩 더미 + 금액 배지 */
+  .pot{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:2;width:170px}
+  .pot-pile{display:flex;justify-content:center;align-items:flex-end;gap:5px;height:64px;margin-bottom:2px}
+  .chip-stack{position:relative;width:36px;height:100%}
+  .chip{position:absolute;left:50%;width:34px;height:11px;border-radius:50%;margin-left:-17px;background:var(--c,#d94f4f);
+    border:1px solid rgba(0,0,0,.4);box-shadow:0 1px 2px rgba(0,0,0,.45);
+    background-image:repeating-conic-gradient(from 0deg, rgba(255,255,255,.55) 0 9deg, transparent 9deg 30deg)}
+  .chip.c-red{--c:#d24f4f} .chip.c-blue{--c:#4f7fd2} .chip.c-green{--c:#4fae5f} .chip.c-gold{--c:#e0b040} .chip.c-purple{--c:#a75fc7}
+  .pot-badge{display:inline-flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,.64),rgba(0,0,0,.8));border:1.5px solid var(--gold);border-radius:13px;padding:4px 20px;box-shadow:0 3px 12px rgba(0,0,0,.55)}
+  .pot-badge .pb-l{font-size:9px;font-weight:800;color:rgba(255,255,255,.72);letter-spacing:.12em}
+  .pot-badge .pb-a{font-size:clamp(19px,5.2vw,26px);font-weight:900;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .pot.pulse .pb-a{animation:potBump .42s ease}
+  .pot-call{font-size:11px;font-weight:800;color:#fff;margin-top:6px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:2px 12px;display:inline-block}
 
-  /* 플레이어 슬롯 */
-  .seat{position:absolute;transform:translate(-50%,-50%);width:112px;text-align:center;z-index:3;transition:opacity .3s}
-  .seat.folded{opacity:.4}
-  .seat .pav{width:44px;height:44px;border-radius:50%;background:var(--panel2);border:2.5px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+  /* 플레이어 슬롯 — 패널 + 베팅 칩 */
+  .seat{position:absolute;transform:translate(-50%,-50%);width:120px;text-align:center;z-index:3;transition:opacity .3s}
+  .seat.folded{opacity:.42}
+  .seat .pbox{display:inline-flex;flex-direction:column;align-items:center;gap:1px;position:relative;
+    background:linear-gradient(180deg,rgba(12,24,12,.6),rgba(6,14,6,.74));border:1.5px solid rgba(212,179,90,.34);
+    border-radius:14px;padding:6px 13px 7px;box-shadow:0 3px 9px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+  .seat.turn .pbox{border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold),0 0 18px color-mix(in srgb,var(--gold) 45%,transparent)}
+  .seat .pav{width:42px;height:42px;border-radius:50%;background:var(--panel2);border:2.5px solid rgba(212,179,90,.55);display:inline-flex;align-items:center;justify-content:center;font-size:21px;overflow:hidden}
   .seat .pav img{width:100%;height:100%;object-fit:cover}
-  .seat.turn .pav{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 40%,transparent),0 0 14px var(--gold)}
+  .seat.turn .pav{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}
   .seat.winner .pav{border-color:var(--gold);animation:winGlow 1s ease-in-out infinite}
   .seat.winner .cards .hwa{box-shadow:0 0 0 2.5px var(--gold),0 0 14px color-mix(in srgb,var(--gold) 60%,transparent),0 3px 10px rgba(0,0,0,.5)}
   @keyframes winGlow{0%,100%{box-shadow:0 0 0 3px var(--gold),0 0 16px var(--gold)}50%{box-shadow:0 0 0 5px var(--gold),0 0 32px var(--gold)}}
-  .seat .pname{font-size:11.5px;font-weight:800;color:#fff;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .seat .pchip{font-size:10.5px;font-weight:900;color:var(--chip);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+  .seat .pname{font-size:11.5px;font-weight:800;color:#fff;margin-top:2px;max-width:98px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seat .pchip{font-size:11px;font-weight:900;color:var(--chip);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+  .seat .betchips{margin-top:4px;font-size:10px;font-weight:900;color:#1a1608;background:linear-gradient(180deg,#f2dc8e,#d9b35a);border-radius:999px;padding:2px 10px;display:inline-block;box-shadow:0 2px 5px rgba(0,0,0,.4)}
+  .seat .betchips::before{content:'🪙 '}
   .seat .pact{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;font-weight:900;color:#1a1608;background:var(--gold);border-radius:8px;padding:2px 8px;white-space:nowrap;opacity:0;transition:opacity .2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
   .seat .pact.show{opacity:1;animation:pactPop .32s cubic-bezier(.2,1.5,.4,1)}
   @keyframes pactPop{0%{transform:translateX(-50%) scale(.4)}60%{transform:translateX(-50%) scale(1.18)}100%{transform:translateX(-50%) scale(1)}}
@@ -137,13 +156,16 @@
 
   /* 베팅 바 */
   .betbar{display:flex;gap:6px;margin-top:8px}
-  .bbtn{flex:1;border:none;border-radius:12px;padding:9px 4px 8px;font-weight:900;cursor:pointer;background:var(--panel2);color:var(--ink);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .08s,filter .12s}
-  .bbtn:active{transform:translateY(1px)}
-  .bbtn .bn{font-size:13.5px} .bbtn .ba{font-size:10px;font-weight:800;opacity:.85;min-height:12px}
-  .bbtn.die{background:#5a2c2c;border-color:#7a3a3a;color:#ffd9d9}
-  .bbtn.call{background:linear-gradient(180deg,#3a6b3a,#2c5a2c);border-color:#4a7d4a;color:#eaffea}
-  .bbtn.raise{background:linear-gradient(180deg,#b98a2a,#9a6f1a);border-color:#caa04a;color:#fff6e0}
-  .bbtn:disabled{opacity:.3;cursor:default;filter:grayscale(.4)}
+  .bbtn{flex:1;border:none;border-radius:13px;padding:8px 4px 7px;font-weight:900;cursor:pointer;color:#fff;border:1.5px solid rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;gap:1px;transition:transform .08s,filter .12s;box-shadow:0 4px 10px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18);position:relative;overflow:hidden}
+  .bbtn::after{content:'';position:absolute;inset:0 0 55% 0;background:linear-gradient(180deg,rgba(255,255,255,.22),transparent);pointer-events:none}
+  .bbtn:hover{filter:brightness(1.08)} .bbtn:active{transform:translateY(1px);filter:brightness(.95)}
+  .bbtn .bi{font-size:14px;line-height:1} .bbtn .bn{font-size:12.5px} .bbtn .ba{font-size:9.5px;font-weight:800;opacity:.92;min-height:11px}
+  .bbtn.die{background:linear-gradient(180deg,#c05252,#8a3030)}
+  .bbtn.call{background:linear-gradient(180deg,#4fae5a,#2f7d3e)}
+  .bbtn.ping{background:linear-gradient(180deg,#5a8fd9,#3a67b0)}
+  .bbtn.raise{background:linear-gradient(180deg,#e0a840,#b07d1a)}
+  .bbtn:disabled{opacity:.32;cursor:default;filter:grayscale(.45);box-shadow:none}
+  .bbtn:disabled::after{display:none}
   .note{text-align:center;font-size:12px;font-weight:800;color:var(--muted);margin-top:8px;min-height:16px}
   .note b{color:var(--brass)}
 
@@ -209,6 +231,7 @@
   <!-- 게임 -->
   <div id="game">
     <div class="tablewrap" id="table">
+      <div class="table-emblem">花</div>
       <div class="pot" id="pot"></div>
       <div class="mine" id="mine"></div>
     </div>
@@ -853,10 +876,11 @@ function render(){
   const ms=mySeat();
   // 새 판이면 쪼기 초기화
   if(S.handNo!==lastHandNo){ lastHandNo=S.handNo; peeked=[false,false]; }
-  // 팟
+  // 팟 (칩 더미 + 배지)
   const pot=$('pot');
-  pot.innerHTML=`<div class="pchips">💰</div><div class="plabel">판돈</div><div class="pamt">${fmt(S.pot)}</div>`+
-    (S.bet>0?`<div class="pbet">콜 ${fmt(S.bet-(S.players[ms]?S.players[ms].contrib:0))}</div>`:'');
+  pot.innerHTML=`<div class="pot-pile">${chipPileHTML(S.pot)}</div>`+
+    `<div class="pot-badge"><span class="pb-l">판돈</span><span class="pb-a">${fmt(S.pot)}</span></div>`+
+    (S.bet>0?`<div class="pot-call">콜 ${fmt(S.bet-(S.players[ms]?S.players[ms].contrib:0))}</div>`:'');
 
   // 상대 슬롯 (seat != ms)
   const table=$('table');
@@ -874,10 +898,13 @@ function render(){
     for(let k=0;k<Math.max(o.p.cardCount,cc?cc.length:0);k++) cards+= cardHTML(cc?cc[k]:null,false);
     const act=o.p.folded?'다이':(o.p.allin?'올인':(S.lastAction&&S.lastAction.seat===o.s?ACT[S.lastAction.mode]:''));
     el.innerHTML=`<div class="pact${act?' show':''}">${act||''}</div>`+
-      `${S.dealerSeat===o.s?'<span class="dealer">선</span>':''}`+
-      `<div class="pav">${o.p.avatar?`<img src="${o.p.avatar}">`:'🤖'}</div>`+
-      `<div class="pname">${esc(o.p.name)}</div><div class="pchip">${fmt(o.p.chips)}</div>`+
-      `<div class="cards">${cards}</div>`;
+      `<div class="pbox">`+
+        `${S.dealerSeat===o.s?'<span class="dealer">선</span>':''}`+
+        `<div class="pav">${o.p.avatar?`<img src="${o.p.avatar}">`:'🤖'}</div>`+
+        `<div class="pname">${esc(o.p.name)}</div><div class="pchip">💰 ${fmt(o.p.chips)}</div>`+
+      `</div>`+
+      `<div class="cards">${cards}</div>`+
+      ((o.p.contrib>0)?`<div class="betchips">${fmt(o.p.contrib)}</div>`:'');
     table.appendChild(el);
   });
 
@@ -961,6 +988,23 @@ function revealFlip(){   // 쇼다운: 상대 공개 카드가 뒤집히듯 등�
     img.style.animation='revIn .5s cubic-bezier(.3,1,.4,1) '+(i*0.14)+'s both';
     setTimeout(()=>{ try{SFX.deal();}catch(e){} }, i*140);
   });
+}
+// 판돈 크기에 따라 칩 더미(3열)를 쌓는다. 색은 액면가 순환.
+const CHIP_COL=['c-red','c-blue','c-green','c-gold','c-purple'];
+function chipPileHTML(pot){
+  pot=Math.max(0,pot|0);
+  // 판돈이 커질수록 칩 개수↑ (로그 스케일, 열당 최대 7)
+  const total=Math.min(21, 3+Math.round(Math.log10(pot+1)*4));
+  const cols=[[],[],[]];
+  for(let i=0;i<total;i++) cols[i%3].push(CHIP_COL[Math.floor(i/3)%CHIP_COL.length]);
+  let h='';
+  cols.forEach(stack=>{
+    let s='<div class="chip-stack">';
+    stack.forEach((c,j)=>{ s+=`<div class="chip ${c}" style="bottom:${j*7}px"></div>`; });
+    s+='</div>';
+    h+=s;
+  });
+  return h;
 }
 // ── 쪼기(squeeze): 손으로 카드를 위로 밀어 까기 ──
 function cardSrc(c){ if(!c) return 'assets/hwatu/back.png'; return 'assets/hwatu/'+c.month+'_'+((c.id%2===0)?1:2)+'.png'; }
@@ -1058,11 +1102,13 @@ function renderBetbar(){
     quarter:fmt(Math.max(0,S.bet+Math.max(S.ante,Math.round(S.pot*0.25))-(me?me.contrib:0))),
     half:fmt(Math.max(0,S.bet+Math.max(S.ante,Math.round(S.pot*0.5))-(me?me.contrib:0))),
   };
-  const BTNS=[['die','다이','die'],['ping','삥','raise'],['ttadang','따당','raise'],['call','콜','call'],['quarter','쿼터','raise'],['half','하프','raise']];
-  bar.innerHTML=BTNS.map(([mode,name,cls])=>{
+  const BTNS=[['die','다이','die','🚪'],['ping','삥','ping','🪙'],['ttadang','따당','raise','⚡'],['call','콜','call','✅'],['quarter','쿼터','raise','◔'],['half','하프','raise','◑']];
+  bar.innerHTML=BTNS.map(([mode,name,cls,ic])=>{
     const on=myTurn&&valid.indexOf(mode)>=0;
-    const label = mode==='ping'&&valid.indexOf('check')>=0&&valid.indexOf('ping')<0 ? '체크' : name;
-    return `<button class="bbtn ${cls}" data-m="${mode}" ${on?'':'disabled'}><span class="bn">${label}</span><span class="ba">${on?(amt[mode]||''):''}</span></button>`;
+    const isCheck = mode==='ping'&&valid.indexOf('check')>=0&&valid.indexOf('ping')<0;
+    const label = isCheck ? '체크' : name;
+    const icon = isCheck ? '👀' : ic;
+    return `<button class="bbtn ${cls}" data-m="${mode}" ${on?'':'disabled'}><span class="bi">${icon}</span><span class="bn">${label}</span><span class="ba">${on?(amt[mode]||''):''}</span></button>`;
   }).join('');
   bar.querySelectorAll('.bbtn').forEach(b=>{ b.onclick=()=>{ let m=b.dataset.m; if(m==='ping'&&(S.validActions||[]).indexOf('ping')<0&&(S.validActions||[]).indexOf('check')>=0)m='check'; act(m); }; });
 }
