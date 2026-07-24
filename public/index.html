@@ -10,6 +10,16 @@
 <script>
 (function(){
   try{
+    // ⚑ 지금은 OFF — 번들 우선(앱 안 사본으로 실행).
+    // 2026-07-24 실기기 점검에서 원격 전환의 실제 대가가 드러났다:
+    //  1) 매 페이지가 네트워크 경유 — Render 무료 티어는 유휴 후 잠들어 첫 요청이 수십 초(체감 '렉')
+    //  2) 원격 origin에는 Capacitor 브릿지가 주입되지 않아 isNativePlatform()=false
+    //     → 네이티브 광고 제어·햅틱 등 네이티브 기능이 먹통 (실제로 배너를 못 끄는 버그가 났다)
+    //  3) 프리미엄 등 localStorage 상태가 번들/원격으로 갈라짐
+    // 미출시 단계라 '재제출 없이 갱신'의 이점보다 손해가 크다.
+    // 출시 후 무선 업데이트가 필요하면 이 리다이렉트 대신 정식 OTA(capacitor-updater 등)를 쓸 것.
+    var HYBRID_REMOTE = false;
+    if(!HYBRID_REMOTE) return;
     var C = window.Capacitor;
     if(!(C && C.isNativePlatform && C.isNativePlatform())) return;       // 네이티브 앱에서만
     var REMOTE = 'https://yacht-dice-jxva.onrender.com';
