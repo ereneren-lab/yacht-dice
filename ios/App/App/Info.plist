@@ -45,5 +45,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- AdMob App ID — TODO(실결제): 실출시 전 네 AdMob 앱 ID로 교체. 지금은 구글 공식 테스트 ID. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 </dict>
 </plist>

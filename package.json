@@ -1,6 +1,6 @@
 {
   "name": "yacht-dice",
-  "version": "1.201.0",
+  "version": "1.202.0",
   "description": "주사위 골목 — 윷놀이·요트·너클본즈·라이어·좌중우 5게임 허브. 로컬/AI/온라인(서버 권위형) 멀티플레이 + 데스크톱 앱",
   "author": "jaesung",
   "main": "electron/main.js",
@@ -26,6 +26,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^6.2.0",
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
