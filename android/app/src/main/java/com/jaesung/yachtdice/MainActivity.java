@@ -13,7 +13,9 @@ public class MainActivity extends BridgeActivity {
     // 위에 겹쳐 그리므로(BannerExecutor: "Add AdViewLayout top of the WebView"),
     // 웹뷰 자체를 줄이는 이 방식이 모든 게임·페이지에 한 번에 적용된다.
     // 표준 배너 높이 = 50dp. 살짝 여유를 둔다.
-    private static final int AD_INSET_DP = 52;
+    // ⚑ 지금은 0 — monetize.js의 ADS_ENABLED가 false라 배너가 뜨지 않는다.
+    //    광고를 다시 켤 땐 여기를 52로, monetize.js의 ADS_ENABLED를 true로 **함께** 되돌릴 것.
+    private static final int AD_INSET_DP = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

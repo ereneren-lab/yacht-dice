@@ -24,6 +24,13 @@
 
   var LS_PREMIUM = 'alley_premium';
 
+  // ⚑ 광고 마스터 스위치 — 지금은 OFF.
+  // 사용자 결정(2026-07-24): "수익화 연결 이전에 사람들이 플레이할 게임을 먼저."
+  // 배너가 세로 공간(폰에서 52px)을 뺏고 광고 SDK가 렌더러를 함께 쓰므로,
+  // 게임 최적화가 끝날 때까지 끈다. 다시 켤 땐 여기와 MainActivity의
+  // AD_INSET_DP(웹뷰 하단 인셋)를 **함께** 되돌릴 것.
+  var ADS_ENABLED = false;
+
   // TODO(실결제): 구글 공식 테스트 ID — 실출시 전 네 AdMob ID로 교체.
   var TEST = true;
   var AD_IDS = {
@@ -67,6 +74,7 @@
       MZ._reflect();
       if (_inited) return; _inited = true;
       try {
+        if (!ADS_ENABLED) return;   // 광고 OFF면 SDK도 띄우지 않는다(렌더러 부하 제거)
         var A = admob();
         if (native() && A) await A.initialize({ initializeForTesting: TEST });
       } catch (e) { }
@@ -75,7 +83,7 @@
     // 하단 배너 노출. 프리미엄이면 숨기고 끝.
     banner: async function () {
       try {
-        if (MZ.isPremium()) { MZ.hideBanner(); return; }
+        if (!ADS_ENABLED || MZ.isPremium()) { MZ.hideBanner(); return; }
         var A = admob();
         if (native() && A) {
           if (_bannerShown) return;
@@ -98,7 +106,7 @@
     // 전면 광고(예: 게임 종료 후). 프리미엄이면 no-op. 웹은 아직 no-op.
     interstitial: async function () {
       try {
-        if (MZ.isPremium()) return;
+        if (!ADS_ENABLED || MZ.isPremium()) return;
         var A = admob();
         if (native() && A) {
           await A.prepareInterstitial({ adId: adId('interstitial'), isTesting: TEST });

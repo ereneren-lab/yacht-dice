@@ -343,7 +343,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .game-left{ order:3; position:static; }
     /* 보드 + 윷가락 + 결과가 한 화면에 들어오도록 축소
        (뒤쪽 기본 규칙에 덮이지 않도록 #game 접두사로 우선순위 확보) */
-    .game-center .board{ max-width:min(78vw, 38vh); }
+    /* 폰 실측(Galaxy A16, 384×748 CSS)으로 판 주변 여백을 걷어낸 뒤 상한을 올렸다.
+       종전 38vh(=265px)는 세로가 병목이라 판이 필요 이상으로 작았다. */
+    .game-center .board{ max-width:min(94vw, 46vh); }
     #game .yutsticks{ min-height:46px;gap:9px;margin-bottom:3px }
     #game .stick{ width:22px;height:54px }
     #game .stick .face{ border-radius:11px }
@@ -359,6 +361,17 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     #game .tray-row{ padding:4px 8px;gap:7px }
     #game .tp{ width:25px;height:25px;font-size:11px;border-width:2px }
     #game .tray-name{ font-size:11px;min-width:40px }
+    /* ── 폰 세로 공간 회수(2026-07-24 실측 기반) ──
+       판 위아래 요소가 341px을 먹어 판이 265px로 눌려 있었다. 아래 압축으로 ~40px을 돌려주고
+       그만큼 판을 키운다. 각 수치는 기기에서 잰 실제 높이에서 깎은 값이다. */
+    #game .pendingrow:empty{ display:none;margin:0 }        /* 남은 끗수 없을 때 45px 통째로 회수 */
+    #game .pchipm{ padding:3px 10px;border-width:1.5px }    /* 끗수 칩 45→~34 */
+    #game .pchipm .pcm-nm{ font-size:12px;line-height:1.15 }
+    #game .pchipm .pcm-st{ font-size:9.5px;line-height:1.1 }
+    #game .players-strip .pchip{ padding:3px 7px;font-size:11px }   /* 플레이어 칩 43→~34 */
+    #game .players-strip .pchip img,#game .players-strip .pchip .pav{ width:22px;height:22px }
+    #game .thrower{ min-height:24px }                        /* 던지는 캐릭터 36→30 */
+    #game .thrower img{ width:30px;height:30px }
     /* 던진 결과가 보드 바로 아래 오도록 순서 조정 (트레이는 그 아래) */
     .game-right .turninfo{ order:1 }
     .game-right .throwarea{ order:2 }
