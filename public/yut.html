@@ -3943,7 +3943,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
 
   /* ===== 온라인 ===== */
-  function wsUrl(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
+  function wsUrl(){ if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()) return 'wss://yacht-dice-jxva.onrender.com'; return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
   function wsSend(o){ if(ws&&ws.readyState===1)ws.send(JSON.stringify(o)); }
   function teardownNet(){ try{BGM.leave();}catch(e){} try{clearWake&&clearWake();}catch(e){} try{stopTurnTimer();}catch(e){} try{hideReconnFail();}catch(e){} if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } }
   let reconnects=0, reconnecting=false, bootReconnect=false;

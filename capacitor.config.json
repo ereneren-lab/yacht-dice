@@ -1,0 +1,20 @@
+{
+  "appId": "com.jaesung.yachtdice",
+  "appName": "주사위 골목",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "app",
+    "allowNavigation": [
+      "yacht-dice-jxva.onrender.com",
+      "plausible.io"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#15110d"
+  },
+  "ios": {
+    "backgroundColor": "#15110d",
+    "contentInset": "always"
+  }
+}

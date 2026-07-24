@@ -1204,7 +1204,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   // ---------- ONLINE ----------
-  const wsUrl = () => (location.protocol==='https:'?'wss':'ws')+'://'+location.host;
+  const wsUrl = () => (window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()) ? 'wss://yacht-dice-jxva.onrender.com' : (location.protocol==='https:'?'wss':'ws')+'://'+location.host;
   function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
   function teardownNet(){ if(ws){ try{ws.onclose=null;ws.close();}catch(e){} ws=null; } stopBlink(); stopTimer(); lastMyTurn=false; }
   // 자동 재접속 (yacht/yut 패턴): 세션(kb_room/kb_pid)이 있으면 1.5초 간격으로 최대 6회 재시도

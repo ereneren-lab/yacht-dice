@@ -1063,7 +1063,7 @@ if(seatBC) seatBC.addEventListener('message', ev=>{
 function seatFromThisTab(){ try{ return sessionStorage.getItem(SEAT_NS+'_room')!=null; }catch(e){ return false; } }
 
 // ===== WebSocket =====
-function wsUrl(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
+function wsUrl(){ if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()) return 'wss://yacht-dice-jxva.onrender.com'; return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
 function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
 function teardownNet(){ if(ws){ try{ ws.onclose=null; ws.close(); }catch(e){} ws=null; } }
 let reconnects=0, reconnecting=false;

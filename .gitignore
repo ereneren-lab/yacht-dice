@@ -1,3 +1,11 @@
 node_modules/
 npm-debug.log
 .DS_Store
+
+# Capacitor — cap sync가 public/에서 재생성하는 복사본·생성물 (원본은 public/)
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/Pods/
+ios/App/App/config.xml
