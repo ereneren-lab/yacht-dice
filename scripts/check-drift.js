@@ -21,6 +21,7 @@ const CASES = [
   ['lcr',     'lcr-core.js',     'lcr.html'],
   ['yacht',   'game-core.js',    'yacht.html'],
   ['alkkagi', 'alkkagi-core.js', 'alkkagi.html'],
+  ['seotda',  'seotda-core.js',  'seotda.html'],
 ];
 
 // 블록/라인 주석과 모든 공백 제거
