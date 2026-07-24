@@ -42,6 +42,29 @@
   .opt.on{border-color:var(--brass);color:var(--brass);background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 22%,var(--panel2)),color-mix(in srgb,var(--brass) 11%,var(--panel2)));box-shadow:0 4px 12px color-mix(in srgb,var(--brass) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.12)}
   input[type=text]{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;width:100%;font-family:inherit}
   .warn{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
+  /* 보유 머니 */
+  .wallet{display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 22%,var(--panel2)),color-mix(in srgb,var(--brass) 8%,var(--panel2)));border:1.5px solid color-mix(in srgb,var(--brass) 45%,var(--line));border-radius:12px;padding:10px 14px;margin-bottom:10px}
+  .wallet .wlabel{font-size:12px;font-weight:800;color:var(--muted)}
+  .wallet .wamt{font-size:19px;font-weight:900;color:var(--gold);margin-left:auto}
+  .wallet .wcharge{margin-left:8px;background:var(--brass);color:#1a1608;border:none;border-radius:8px;padding:6px 10px;font-weight:900;font-size:11px;cursor:pointer}
+  /* 족보 표 */
+  .jb-title{font-size:12px;font-weight:900;color:var(--brass);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  .jokbo{display:flex;flex-direction:column;gap:4px}
+  .jb-row{display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--panel2);border-radius:8px;border:1px solid var(--line)}
+  .jb-row.top{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,var(--panel2))}
+  .jb-name{font-weight:900;color:var(--brass);font-size:12.5px;width:56px;flex:none}
+  .jb-cards{flex:none;display:flex;gap:3px}
+  .jb-cards img{height:42px;border-radius:4px;display:block;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .jb-desc{font-size:10.5px;color:var(--muted);margin-left:auto;text-align:right}
+  /* 튜토리얼 */
+  .tut-step{font-size:11px;font-weight:900;color:var(--brass);letter-spacing:.1em;margin-bottom:4px}
+  #tutBody h3{margin:0 0 8px;font-size:18px;color:var(--gold)}
+  #tutBody p{font-size:13.5px;line-height:1.65;color:var(--ink);margin:6px 0}
+  #tutBody b{color:var(--brass)}
+  .tut-hero{font-size:46px;text-align:center;margin:4px 0 10px}
+  .tut-dots{display:flex;gap:6px;justify-content:center;margin:12px 0 4px}
+  .tut-dots i{width:8px;height:8px;border-radius:50%;background:var(--line);transition:all .2s}
+  .tut-dots i.on{background:var(--brass);width:22px;border-radius:4px}
 
   /* 게임 화면 */
   #game{margin-top:6px;display:none}
@@ -105,6 +128,9 @@
 
   /* 내 영역(하단) */
   .mine{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:4;text-align:center}
+  .mine .mychips{font-size:12px;font-weight:800;color:#fff;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:3px 13px;margin-bottom:5px;display:inline-block;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .mine .mychips .mc-me{color:var(--gold)}
+  .mine .mychips b{color:var(--chip);font-size:14px}
   .mine .myhand{font-size:13px;font-weight:900;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.6);margin-bottom:3px;min-height:16px}
   .mine .mycards{display:flex;gap:8px;justify-content:center}
   .mine .peekhint{font-size:10px;color:rgba(255,255,255,.6);margin-top:3px}
@@ -148,7 +174,15 @@
 
   <!-- 셋업 -->
   <div class="card" id="setup">
-    <h3>새 판 · 섯다</h3>
+    <div class="wallet">
+      <span class="wlabel">💰 보유 머니</span>
+      <span class="wamt" id="walletAmt">—</span>
+      <button class="wcharge" id="chargeBtn" style="display:none">🎁 무료 충전</button>
+    </div>
+    <div class="row" style="margin-top:0">
+      <button class="opt" id="tutBtn" style="flex:1">📖 게임 방법 · 튜토리얼</button>
+    </div>
+    <h3 style="margin-top:14px">새 판 · 섯다</h3>
     <div class="lbl">인원 (나 + AI)</div>
     <div class="row" id="optN"></div>
     <div class="lbl">AI 실력</div>
@@ -195,18 +229,31 @@
   </div>
 </div>
 
-<!-- 규칙 -->
+<!-- 규칙 (족보 표) -->
 <div class="sheet" id="rulesOv">
-  <div class="sheetbox">
-    <h2>섯다 규칙</h2>
+  <div class="sheetbox" style="max-width:440px">
+    <h2>섯다 족보 & 규칙</h2>
     <div class="rulebox">
-      <p><b>목표</b> — 화투 2장으로 더 높은 족보를 만들어 판돈(팟)을 따요.</p>
-      <p><b>진행</b> — 앤티를 걸고 1장 받아 <b>첫 베팅</b>, 2장째 받아 <b>둘째 베팅</b>, 남은 사람끼리 <b>쇼다운</b>.</p>
-      <p><b>족보</b> — 광땡(38>18>13) &gt; 땡(장~삥) &gt; 알리·독사·구삥·장삥·장사·세륙 &gt; 끗(갑오9~망통0).</p>
-      <p><b>베팅</b> — 다이(포기)·삥(최소)·따당(2배)·콜(맞춤)·쿼터(팟¼)·하프(팟½).</p>
-      <p><b>쪼기</b> — 내 카드를 눌러 까봐요.</p>
+      <p><b>진행</b> — 앤티 걸고 1장 받아 <b>첫 베팅</b> → 2장째 받아 <b>둘째 베팅</b> → 남은 사람끼리 <b>쇼다운</b>. 더 높은 족보가 판돈을 가져가요.</p>
+      <div class="jb-title">족보 (강한 순)</div>
+      <div id="jokboHost"></div>
+      <p style="margin-top:10px"><b>베팅</b> — 다이(포기) · 삥(최소) · 따당(직전 2배) · 콜(맞춤) · 쿼터(팟¼) · 하프(팟½)</p>
+      <p><b>쪼기</b> — 내 카드를 <b>손으로 위로 밀어</b> 몰래 까봐요 👆</p>
     </div>
     <button class="btn" id="rulesClose" style="margin-top:14px">알겠어</button>
+  </div>
+</div>
+
+<!-- 튜토리얼 -->
+<div class="sheet" id="tutorialOv">
+  <div class="sheetbox" style="max-width:420px">
+    <div class="tut-step" id="tutStepNo"></div>
+    <div id="tutBody" style="min-height:170px"></div>
+    <div class="tut-dots" id="tutDots"></div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn ghost" id="tutSkip" style="flex:1">건너뛰기</button>
+      <button class="btn" id="tutNext" style="flex:1.6">다음 ▶</button>
+    </div>
   </div>
 </div>
 
@@ -718,9 +765,59 @@ $('optDiff').querySelectorAll('.opt').forEach(o=>{ o.classList.toggle('on', o.da
 $('optRules').querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>{ o.classList.toggle('on'); cfg[o.dataset.r]=o.classList.contains('on'); }; });
 $('myName').value=cfg.name;
 
+// ===== 보유 머니(지갑) =====
+function getWallet(){ try{ const v=parseInt(localStorage.getItem('seotda_wallet'),10); return isNaN(v)?100000:v; }catch(e){ return 100000; } }
+function setWallet(v){ v=Math.max(0,Math.round(v)); try{localStorage.setItem('seotda_wallet',String(v));}catch(e){} refreshWallet(); return v; }
+function refreshWallet(){ const w=getWallet(); const a=$('walletAmt'); if(a)a.textContent=fmt(w); const c=$('chargeBtn'); if(c)c.style.display=(w<1000)?'inline-block':'none'; }
+let walletBuyIn=null;
+function cashOut(){ if(walletBuyIn==null)return; const ms=mySeat(); const chips=(S&&ms>=0&&S.players[ms])?S.players[ms].chips:0; setWallet(getWallet()+chips); walletBuyIn=null; }
+$('chargeBtn').onclick=()=>{ setWallet(100000); try{SFX.chip();}catch(e){} };
+refreshWallet();
+
+// ===== 족보 표 =====
+function jokboChart(){
+  const c=(m,w)=>`<img src="assets/hwatu/${m}_${w}.png" alt="">`;
+  const row=(n,cards,d,top)=>`<div class="jb-row${top?' top':''}"><span class="jb-name">${n}</span><span class="jb-cards">${cards}</span><span class="jb-desc">${d||''}</span></div>`;
+  return `<div class="jokbo">`+
+    row('38광땡',c(3,1)+c(8,1),'최강',true)+ row('광땡',c(1,1)+c(8,1),'18·13')+
+    row('땡',c(10,1)+c(10,2),'장(10)~삥(1)')+ row('알리',c(1,1)+c(2,1),'1+2')+
+    row('독사',c(1,1)+c(4,1),'1+4')+ row('구삥',c(1,1)+c(9,1),'1+9')+
+    row('장삥',c(1,1)+c(10,1),'1+10')+ row('장사',c(4,1)+c(10,1),'4+10')+
+    row('세륙',c(4,1)+c(6,1),'4+6')+ row('갑오',c(4,1)+c(5,1),'합9·끗 최고')+
+    row('망통',c(2,1)+c(8,2),'합0·최저')+`</div>`;
+}
+$('helpBtn').onclick=()=>{ $('jokboHost').innerHTML=jokboChart(); $('rulesOv').classList.add('on'); };
+
+// ===== 튜토리얼 =====
+const TUT=[
+  {t:'섯다에 온 걸 환영해!',hero:'🎴',html:'<p>화투 <b>2장</b>으로 족보를 만들어 겨루는 게임이야.</p><p>더 높은 족보를 만든 사람이 <b>판돈(팟)</b>을 몽땅 가져가!</p>'},
+  {t:'카드는 손으로 쪼아',hero:'👆',html:'<p>내 카드를 <b>손끝으로 위로 밀면</b> 살짝살짝 까볼 수 있어(쪼기).</p><p>끝까지 밀면 공개! 상대는 못 봐 🤫</p>'},
+  {t:'베팅으로 심리전',hero:'💰',html:'<p><b>삥</b>(최소)·<b>콜</b>(맞춤)·<b>따당</b>(직전 2배)·<b>쿼터</b>(팟¼)·<b>하프</b>(팟½)로 판돈을 키우고,</p><p>패가 나쁘면 <b>다이</b>(포기)! 뻥카(블러프)도 전략이야.</p>'},
+  {t:'족보 순서',hero:'🏆',html:'<p><b>광땡 &gt; 땡 &gt; 알리·독사… &gt; 끗</b></p><p>끗은 두 장 합의 <b>끝자리</b> — 갑오(9) 최고, 망통(0) 꼴찌.</p>'+jokboChart()},
+  {t:'준비 완료!',hero:'🎉',html:'<p>이긴 만큼 <b>보유 머니</b>가 불어나! 파산해도 <b>무료 충전</b> 있으니 걱정 마.</p><p>자, 한 판 붙어보자!</p>'},
+];
+let tutI=0;
+function renderTut(){ const s=TUT[tutI]; $('tutStepNo').textContent=`STEP ${tutI+1} / ${TUT.length}`;
+  $('tutBody').innerHTML=`<div class="tut-hero">${s.hero}</div><h3>${s.t}</h3>${s.html}`;
+  $('tutDots').innerHTML=TUT.map((_,i)=>`<i class="${i===tutI?'on':''}"></i>`).join('');
+  $('tutNext').textContent=tutI===TUT.length-1?'시작하기 🎮':'다음 ▶'; }
+function openTut(){ tutI=0; renderTut(); $('tutorialOv').classList.add('on'); }
+function closeTut(){ $('tutorialOv').classList.remove('on'); try{localStorage.setItem('seotda_tut','1');}catch(e){} }
+$('tutBtn').onclick=openTut;
+$('tutSkip').onclick=closeTut;
+$('tutNext').onclick=()=>{ if(tutI<TUT.length-1){ tutI++; renderTut(); } else closeTut(); };
+// 첫 방문이면 튜토리얼 자동
+try{ if(localStorage.getItem('seotda_tut')!=='1') setTimeout(openTut,400); }catch(e){}
+// 나가기 정산(허브·언로드)
+document.querySelector('.hubx').addEventListener('click',cashOut);
+window.addEventListener('beforeunload',cashOut);
+
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
   try{ localStorage.setItem('seotda_name',cfg.name); localStorage.setItem('seotda_diff',cfg.diff); }catch(e){}
+  // 바이인: 보유 머니에서 시작 칩만큼. 부족하면 무료 지급.
+  if(getWallet() < cfg.chips) setWallet(getWallet()+Math.max(100000,cfg.chips));
+  walletBuyIn=cfg.chips; setWallet(getWallet()-cfg.chips);
   const Core=window.SeotdaCore;
   const players=[{pid:MYPID,name:cfg.name}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
@@ -736,7 +833,7 @@ function startGame(){
   engine.start();
 }
 $('startBtn').onclick=startGame;
-$('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); document.body.classList.remove('ingame'); $('game').style.display='none'; $('setup').style.display=''; };
+$('againBtn').onclick=()=>{ cashOut(); $('resultOv').classList.remove('on'); document.body.classList.remove('ingame'); $('game').style.display='none'; $('setup').style.display=''; refreshWallet(); };
 
 function mySeat(){ return S? S.players.findIndex(p=>p.pid===MYPID):-1; }
 
@@ -798,7 +895,8 @@ function render(){
       (shown?'':'<span class="sq-hint">밀어서 쪼기 👆</span>')+`</div>`;
   }
   const bothPeek = peeked[0]&&peeked[1];
-  mine.innerHTML=`<div class="myhand">${(revealed||bothPeek)&&me.hand?me.hand.name:''}</div>`+
+  mine.innerHTML=`<div class="mychips"><span class="mc-me">${esc(me.name)}</span> 💰 <b>${fmt(me.chips)}</b></div>`+
+    `<div class="myhand">${(revealed||bothPeek)&&me.hand?me.hand.name:''}</div>`+
     `<div class="mycards">${myCards}</div>`;
   if(!revealed) attachSqueeze();
 
@@ -1012,9 +1110,15 @@ function showHandBanner(){
 }
 function showResult(){
   const win=S.winner; const p=S.players.find(x=>x.pid===win);
-  $('resTitle').textContent = win===MYPID?'🏆 최종 우승!':'게임 종료';
-  $('resBody').innerHTML = (p?`<b style="color:var(--brass)">${esc(p.name)}</b>님이 모든 칩을 차지했어요.`:'')+`<br>${S.handNo}판 진행`;
+  const iWon=win===MYPID;
+  const before=getWallet();
+  cashOut();                 // 남은 칩을 보유 머니로 정산
+  const after=getWallet(), delta=after-(before);   // 이 게임 순손익(칩 반환분)
+  $('resTitle').textContent = iWon?'🏆 최종 우승!':'게임 종료';
+  $('resBody').innerHTML = (p?`<b style="color:var(--brass)">${esc(p.name)}</b>님이 모든 칩을 차지했어요.`:'')+
+    `<br>${S.handNo}판 진행 · 💰 보유 머니 <b style="color:var(--gold)">${fmt(after)}</b>`;
   $('resultOv').classList.add('on');
+  if(iWon){ try{coinRain();}catch(e){} }
 }
 </script>
 </body>
