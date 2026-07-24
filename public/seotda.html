@@ -70,17 +70,17 @@
   .seat .pact{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;font-weight:900;color:#1a1608;background:var(--gold);border-radius:8px;padding:2px 8px;white-space:nowrap;opacity:0;transition:opacity .2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
   .seat .pact.show{opacity:1}
   .seat .dealer{position:absolute;right:6px;top:-2px;width:18px;height:18px;border-radius:50%;background:#fff;color:#1a1608;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.5)}
-  .seat .cards{display:flex;gap:4px;justify-content:center;margin-top:5px;min-height:52px}
+  .seat .cards{display:flex;gap:4px;justify-content:center;margin-top:5px;min-height:62px}
 
-  /* 화투 카드 (실제 화투 이미지) */
-  .hwa{width:37px;height:54px;border-radius:5px;object-fit:cover;flex:none;display:block;background:#fff;
+  /* 화투 카드 (실제 화투 이미지) — 비율 116:183(실제 크롭)에 맞춰 안 잘리게 */
+  .hwa{width:39px;height:62px;border-radius:5px;object-fit:contain;flex:none;display:block;background:#fff;
     box-shadow:0 2px 5px rgba(0,0,0,.4)}
-  .hwa.big{width:62px;height:90px;border-radius:8px}
+  .hwa.big{width:62px;height:98px;border-radius:8px}
   .hwa.gwang{box-shadow:0 0 0 2px var(--gold),0 0 10px color-mix(in srgb,var(--gold) 55%,transparent),0 2px 6px rgba(0,0,0,.45)}
   .hwa.back{box-shadow:0 2px 5px rgba(0,0,0,.45)}
   /* 플립(쪼기) */
-  .flipwrap{width:60px;height:86px;perspective:600px;flex:none}
-  .flipwrap.sm{width:36px;height:52px}
+  .flipwrap{width:62px;height:98px;perspective:600px;flex:none}
+  .flipwrap.sm{width:39px;height:62px}
   .flipcard{position:relative;width:100%;height:100%;transition:transform .5s cubic-bezier(.3,.9,.3,1);transform-style:preserve-3d;cursor:pointer}
   .flipcard.flipped{transform:rotateY(180deg)}
   .flipcard .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
