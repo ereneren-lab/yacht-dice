@@ -65,6 +65,9 @@
   .seat .pav{width:44px;height:44px;border-radius:50%;background:var(--panel2);border:2.5px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
   .seat .pav img{width:100%;height:100%;object-fit:cover}
   .seat.turn .pav{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 40%,transparent),0 0 14px var(--gold)}
+  .seat.winner .pav{border-color:var(--gold);animation:winGlow 1s ease-in-out infinite}
+  .seat.winner .cards .hwa{box-shadow:0 0 0 2.5px var(--gold),0 0 14px color-mix(in srgb,var(--gold) 60%,transparent),0 3px 10px rgba(0,0,0,.5)}
+  @keyframes winGlow{0%,100%{box-shadow:0 0 0 3px var(--gold),0 0 16px var(--gold)}50%{box-shadow:0 0 0 5px var(--gold),0 0 32px var(--gold)}}
   .seat .pname{font-size:11.5px;font-weight:800;color:#fff;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .seat .pchip{font-size:10.5px;font-weight:900;color:var(--chip);text-shadow:0 1px 2px rgba(0,0,0,.6)}
   .seat .pact{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;font-weight:900;color:#1a1608;background:var(--gold);border-radius:8px;padding:2px 8px;white-space:nowrap;opacity:0;transition:opacity .2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
@@ -77,7 +80,8 @@
   .seat .cards{display:flex;gap:5px;justify-content:center;margin-top:5px;min-height:68px}
 
   /* 화투 카드 (실제 화투 이미지) — 비율 116:183 정확히 고정 → cover로 흰줄·잘림 없음 */
-  .hwa{aspect-ratio:116/183;height:68px;width:auto;border-radius:6px;object-fit:cover;flex:none;display:block;background:transparent;
+  /* object-fit:fill = 박스에 꽉 채움(잘림 0·흰줄 0, 비율차 0.2%라 왜곡 비가시) */
+  .hwa{aspect-ratio:116/183;height:68px;width:auto;border-radius:6px;object-fit:fill;flex:none;display:block;background:transparent;
     box-shadow:0 2px 6px rgba(0,0,0,.45)}
   .hwa.gwang{box-shadow:0 0 0 2px var(--gold),0 0 12px color-mix(in srgb,var(--gold) 55%,transparent),0 2px 7px rgba(0,0,0,.5)}
   .hwa.back{box-shadow:0 2px 6px rgba(0,0,0,.5)}
@@ -128,6 +132,7 @@
     <a class="iconbtn hubx" href="./" title="골목으로">←</a>
     <div class="title"><span class="dot"></span>섯다</div>
     <div class="spacer"></div>
+    <button class="iconbtn" id="soundBtn" title="소리">🔊</button>
     <button class="iconbtn" id="lightBtn" title="테마">☀️</button>
     <button class="iconbtn" id="helpBtn" title="규칙">?</button>
   </div>
@@ -510,7 +515,16 @@
         return;
       }
       this.reveal = true;
-      this._award(res.winners, res.evs);
+      // 잡이 반전으로 이겼는지 판정(배너용)
+      let jabiWin = null;
+      if (this.jabi && res.winners.length) {
+        const w = res.evs.find(e => e.seat === res.winners[0]);
+        if (w) {
+          if (w.h.jabi.amhaeng && res.evs.some(e => e.h.tier === '광땡' && (e.h.name === '13광땡' || e.h.name === '18광땡'))) jabiWin = '암행어사';
+          else if (w.h.jabi.ttaengjabi && res.evs.some(e => e.h.tier === '땡' && e.h.name !== '장땡')) jabiWin = '땡잡이';
+        }
+      }
+      this._award(res.winners, res.evs, jabiWin);
     }
     _redeal() {
       // 팟 유지, 카드만 다시(앤티 재징수 없음). 딜러 유지.
@@ -522,7 +536,7 @@
       this.round = 1;
       this._startBetRound();
     }
-    _award(winners, evs) {
+    _award(winners, evs, jabiWin) {
       const share = Math.floor(this.pot / winners.length);
       let rem = this.pot - share * winners.length;
       winners.forEach((w, i) => { this.players[w].chips += share + (i < rem ? 1 : 0); });
@@ -531,6 +545,7 @@
         winners: winners.map(w => this.players[w].pid),
         pot: this.pot,
         reveal: !!this.reveal,
+        jabiWin: jabiWin || null,
         hands: evs ? evs.map(e => ({ seat: e.seat, name: e.h.name, tier: e.h.tier })) : null,
       };
       this._emit();
@@ -652,6 +667,26 @@ const MC={1:'#b83227',2:'#2e8b57',3:'#d64161',4:'#3d3b6e',5:'#7d5ba6',6:'#a01f36
 const MO={1:'🌙',2:'🐦',3:'🌸',4:'🖤',5:'🪻',6:'🌺',7:'🐗',8:'⚪',9:'🌼',10:'🍁'};
 const fmt=n=>{ n=Math.round(n); if(n>=100000000)return (n/100000000).toFixed(n%100000000?1:0)+'억'; if(n>=10000)return (n/10000).toFixed(n%10000?1:0)+'만'; return String(n); };
 
+// ===== 효과음 (WebAudio 합성, 파일 0) =====
+const SFX=(function(){
+  let ctx=null, on=true; try{ on=localStorage.getItem('seotda_sound')!=='0'; }catch(e){}
+  function ac(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ctx&&ctx.state==='suspended'){try{ctx.resume();}catch(e){}} return ctx; }
+  function tone(freq,dur,type,gain,when){ const c=ac(); if(!c||!on)return; const t=c.currentTime+(when||0); const o=c.createOscillator(),g=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(gain||0.14,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.03); }
+  function noise(dur,gain,ff,when){ const c=ac(); if(!c||!on)return; const t=c.currentTime+(when||0); const len=Math.floor(c.sampleRate*dur); const buf=c.createBuffer(1,len,c.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len); const n=c.createBufferSource(); n.buffer=buf; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=ff||2600; f.Q.value=0.7; const g=c.createGain(); g.gain.setValueAtTime(gain||0.2,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); n.connect(f); f.connect(g); g.connect(c.destination); n.start(t); n.stop(t+dur+0.02); }
+  return {
+    on(){ return on; }, resume(){ ac(); },
+    toggle(){ on=!on; try{localStorage.setItem('seotda_sound',on?'1':'0');}catch(e){} return on; },
+    deal(){ noise(0.085,0.16,3400); },                                     // 착 (카드 슬라이드)
+    chip(){ tone(1500,0.07,'triangle',0.1); tone(2200,0.05,'sine',0.07,0.02); }, // 짤랑
+    peek(){ tone(560,0.05,'sine',0.09); tone(760,0.05,'sine',0.06,0.03); },
+    bet(){ tone(300,0.06,'square',0.06); },
+    win(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.28,'triangle',0.13,i*0.08)); },
+    lose(){ [440,349,262].forEach((f,i)=>tone(f,0.26,'sine',0.09,i*0.1)); },
+    show(){ tone(180,0.45,'sawtooth',0.045); tone(270,0.45,'sine',0.05,0.04); },
+    jabi(){ noise(0.28,0.14,900); tone(784,0.14,'square',0.11,0.04); tone(1245,0.18,'square',0.09,0.14); tone(1568,0.22,'square',0.08,0.26); },
+  };
+})();
+
 let engine=null, S=null, driveT=null, peeked=[false,false], lastHandNo=-1;
 const cfg={ n:3, diff:'normal', ante:200, chips:10000, jabi:false, ttaeng:false, name:'' };
 try{ cfg.name=localStorage.getItem('seotda_name')||''; }catch(e){}
@@ -661,6 +696,8 @@ try{ cfg.diff=localStorage.getItem('seotda_diff')||'normal'; }catch(e){}
 (function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
 $('lightBtn').onclick=()=>{ const cur=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=cur; try{localStorage.setItem('alley_theme',cur);}catch(e){} };
 $('helpBtn').onclick=()=>$('rulesOv').classList.add('on');
+$('soundBtn').textContent=SFX.on()?'🔊':'🔇';
+$('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'🔊':'🔇'; if(v){SFX.resume();SFX.chip();} };
 $('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
 
 // 셋업 옵션 빌드
@@ -686,6 +723,7 @@ function startGame(){
   });
   $('setup').style.display='none'; $('game').style.display=''; document.body.classList.add('ingame');
   $('resultOv').classList.remove('on');
+  try{ SFX.resume(); }catch(e){}
   engine.start();
 }
 $('startBtn').onclick=startGame;
@@ -752,7 +790,7 @@ function render(){
   mine.innerHTML=`<div class="myhand">${(revealed||bothPeek)&&me.hand?me.hand.name:''}</div>`+
     `<div class="mycards">${myCards}</div>`+
     `<div class="peekhint">${(me.cardCount>0 && !revealed && !bothPeek)?'카드를 눌러 쪼아봐 👆':''}</div>`;
-  mine.querySelectorAll('.flipwrap').forEach(w=>{ w.onclick=()=>{ if(revealed)return; const k=+w.dataset.k; peeked[k]=true; render(); }; });
+  mine.querySelectorAll('.flipwrap').forEach(w=>{ w.onclick=()=>{ if(revealed)return; const k=+w.dataset.k; if(!peeked[k]){try{SFX.peek();}catch(e){}} peeked[k]=true; render(); }; });
 
   renderBetbar();
   renderNote();
@@ -787,15 +825,17 @@ function dealAnim(newSeats){
   const pc=rectC('#pot'); if(!pc)return; let stag=0;
   newSeats.forEach(s=>{
     const to=seatXY(s); if(!to)return;
-    flyover(pc,to,'<img src="assets/hwatu/back.png" style="width:42px;height:66px;border-radius:6px;box-shadow:0 5px 12px rgba(0,0,0,.55);display:block">',
-      {dur:340,delay:stag,arcUp:26,scaleFrom:0.45,scaleTo:1,spin:(s%2?14:-14)});
-    stag+=85;
+    flyover(pc,to,'<img src="assets/hwatu/back.png" style="width:44px;height:70px;border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.6);display:block">',
+      {dur:300,delay:stag,arcUp:28,scaleFrom:0.4,scaleTo:1,spin:(s%2?16:-16)});
+    setTimeout(()=>{ try{SFX.deal();}catch(e){} const el=document.querySelector('.seat[data-seat="'+s+'"] .cards')||(s===mySeat()?$('mine'):null); if(el){el.style.transition='transform .12s';el.style.transform='scale(1.06)';setTimeout(()=>el.style.transform='',130);} }, stag+250);  // 착!
+    stag+=130;   // 한 장씩 착착
   });
 }
 function chipFly(seat,amount){
   const from=seatXY(seat), to=rectC('#pot'); if(!from||!to)return;
-  const n=Math.max(1,Math.min(5,Math.round(Math.log10(amount+9))));
-  for(let i=0;i<n;i++) flyover(from,to,'🪙',{dur:440,delay:i*55,arcUp:38,scaleFrom:.55,scaleTo:1.05,fadeOut:true,css:'font-size:20px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))'});
+  try{SFX.chip();}catch(e){}
+  const n=Math.max(1,Math.min(6,Math.round(Math.log10(amount+9))+1));
+  for(let i=0;i<n;i++) flyover(from,to,'🪙',{dur:440,delay:i*50,arcUp:40,scaleFrom:.55,scaleTo:1.1,fadeOut:true,css:'font-size:21px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))'});
 }
 function potToWinner(pids){
   const from=rectC('#pot'); if(!from)return;
@@ -803,11 +843,15 @@ function potToWinner(pids){
     for(let i=0;i<7;i++) flyover(from,to,'🪙',{dur:600,delay:i*45,arcUp:46,scaleFrom:1,scaleTo:.65,fadeOut:true,css:'font-size:23px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))'});
   });
 }
-function revealFlip(){   // 쇼다운: 상대 공개 카드가 뒤집히듯 등장
+function revealFlip(){   // 쇼다운: 상대 공개 카드가 뒤집히듯 등장(한 장씩)
+  const imgs=[...document.querySelectorAll('.seat .cards .hwa:not(.back)')];
+  if(!imgs.length)return;
+  try{SFX.show();}catch(e){}
   if(FXR())return;
-  document.querySelectorAll('.seat .cards .hwa:not(.back)').forEach((img,i)=>{
+  imgs.forEach((img,i)=>{
     img.style.animation='none'; void img.offsetWidth;
-    img.style.animation='revIn .45s cubic-bezier(.3,1,.4,1) '+(i*0.08)+'s both';
+    img.style.animation='revIn .5s cubic-bezier(.3,1,.4,1) '+(i*0.14)+'s both';
+    setTimeout(()=>{ try{SFX.deal();}catch(e){} }, i*140);
   });
 }
 function afterRender(){
@@ -825,6 +869,7 @@ function afterRender(){
     prevActSeq=S.lastAction.seq;
     if((S.lastAction.amount||0)>0){ chipFly(S.lastAction.seat, S.lastAction.amount);
       setTimeout(()=>{ const pt=$('pot'); if(pt){ pt.classList.remove('pulse'); void pt.offsetWidth; pt.classList.add('pulse'); setTimeout(()=>pt.classList.remove('pulse'),460);} }, 460); }
+    else { try{ SFX.bet(); }catch(e){} }   // 체크/다이
   }
   // 쇼다운 진입 시 상대 카드 플립
   if(S.phase==='handover' && prevPhaseA!=='handover'){ revealFlip(); }
@@ -871,7 +916,7 @@ function drive(){
   clearTimeout(driveT);
   if(!S) return;
   if(S.phase==='gameover'){ showResult(); return; }
-  if(S.phase==='handover'){ showHandBanner(); driveT=setTimeout(()=>{ if(engine) engine.nextHand(); }, 2400); return; }
+  if(S.phase==='handover'){ showHandBanner(); const d=(S.lastResult&&S.lastResult.jabiWin)?4400:(S.lastResult&&S.lastResult.hands?3400:2600); driveT=setTimeout(()=>{ if(engine) engine.nextHand(); }, d); return; }
   if(S.phase==='bet'){
     const cur=S.players[S.turn];
     if(cur&&cur.ai){ driveT=setTimeout(()=>{ if(engine&&S&&S.phase==='bet'&&S.players[S.turn]&&S.players[S.turn].ai) engine.aiTurnIfNeeded(); }, 850); }
@@ -881,12 +926,21 @@ function drive(){
 function banner(t,s,ms){ const b=$('banner'); b.style.display='flex'; b.innerHTML=`<div class="bbox"><div class="bt">${t}</div>${s?`<div class="bs">${s}</div>`:''}</div>`; clearTimeout(banner._t); banner._t=setTimeout(()=>b.style.display='none', ms||1600); }
 function showHandBanner(){
   const r=S.lastResult; if(!r) return;
-  if(r.redeal){ banner('🔄 재경기!', r.reason+' 등장', 1400); return; }
-  const winNames=(r.winners||[]).map(pid=>{ const p=S.players.find(x=>x.pid===pid); return p?p.name:''; });
+  if(r.redeal){ banner('🔄 재경기!', (r.reason||'구사')+' 등장!', 1700); try{SFX.jabi();}catch(e){} return; }
   const iWon=(r.winners||[]).indexOf(MYPID)>=0;
-  let handName='';
-  if(r.hands){ const w=r.hands.find(h=>r.winners.indexOf(S.players[h.seat].pid)>=0); if(w)handName=w.name; }
-  banner(iWon?'🎉 승리!':(winNames[0]+' 승'), (handName?handName+' · ':'')+'+'+fmt(r.pot), 2000);
+  const winNames=(r.winners||[]).map(pid=>{ const p=S.players.find(x=>x.pid===pid); return p?p.name:''; });
+  let handName=''; if(r.hands){ const w=r.hands.find(h=>r.winners.indexOf(S.players[h.seat].pid)>=0); if(w)handName=w.name; }
+  // 승자 좌석 강조
+  (r.winners||[]).forEach(pid=>{ const seat=S.players.findIndex(p=>p.pid===pid); const el=document.querySelector('.seat[data-seat="'+seat+'"]'); if(el)el.classList.add('winner'); });
+  const showWin=()=>{ banner(iWon?'🎉 승리!':('👑 '+esc(winNames[0])+' 승'),
+    (handName?'<b style="color:#fff">'+esc(handName)+'</b> · ':'')+'💰 +'+fmt(r.pot), 2300);
+    try{ iWon?SFX.win():SFX.lose(); }catch(e){} };
+  if(r.jabiWin){
+    setTimeout(()=>{ banner('🎭 '+r.jabiWin+'!', r.jabiWin==='암행어사'?'광땡을 잡았다!':'땡을 잡았다!', 1800); try{SFX.jabi();}catch(e){} }, 750);
+    setTimeout(showWin, 2300);
+  } else {
+    setTimeout(showWin, r.hands?900:400);   // 쇼다운이면 리플레이(플립) 뒤 배너
+  }
 }
 function showResult(){
   const win=S.winner; const p=S.players.find(x=>x.pid===win);

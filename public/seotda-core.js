@@ -310,7 +310,16 @@
         return;
       }
       this.reveal = true;
-      this._award(res.winners, res.evs);
+      // 잡이 반전으로 이겼는지 판정(배너용)
+      let jabiWin = null;
+      if (this.jabi && res.winners.length) {
+        const w = res.evs.find(e => e.seat === res.winners[0]);
+        if (w) {
+          if (w.h.jabi.amhaeng && res.evs.some(e => e.h.tier === '광땡' && (e.h.name === '13광땡' || e.h.name === '18광땡'))) jabiWin = '암행어사';
+          else if (w.h.jabi.ttaengjabi && res.evs.some(e => e.h.tier === '땡' && e.h.name !== '장땡')) jabiWin = '땡잡이';
+        }
+      }
+      this._award(res.winners, res.evs, jabiWin);
     }
     _redeal() {
       // 팟 유지, 카드만 다시(앤티 재징수 없음). 딜러 유지.
@@ -322,7 +331,7 @@
       this.round = 1;
       this._startBetRound();
     }
-    _award(winners, evs) {
+    _award(winners, evs, jabiWin) {
       const share = Math.floor(this.pot / winners.length);
       let rem = this.pot - share * winners.length;
       winners.forEach((w, i) => { this.players[w].chips += share + (i < rem ? 1 : 0); });
@@ -331,6 +340,7 @@
         winners: winners.map(w => this.players[w].pid),
         pot: this.pot,
         reveal: !!this.reveal,
+        jabiWin: jabiWin || null,
         hands: evs ? evs.map(e => ({ seat: e.seat, name: e.h.name, tier: e.h.tier })) : null,
       };
       this._emit();
