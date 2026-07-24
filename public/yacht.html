@@ -400,6 +400,12 @@
     #sheet th,#sheet td{font-size:12.5px}
     #sheet tr.total td{padding:5px 5px;font-size:13.5px}
     .hint{font-size:10.5px;line-height:1.3}
+    /* 점수판만 내부 스크롤 → 페이지는 스크롤되지 않는다.
+       (사용자 피드백: "스크롤하면서 플레이하는 건 불편")
+       요트는 주사위 영역 390 + 점수판 437 = 827px이라 폰 한 화면(748)에 구조적으로 다 못 들어간다.
+       그래서 '굴리기·주사위'는 항상 고정으로 보이게 두고 점수판만 자기 박스 안에서 굴린다.
+       thead가 sticky라 스크롤해도 플레이어 열 머리는 계속 보인다. 실측: 페이지 넘침 154px → 4px. */
+    .sheetwrap{ max-height:calc(100dvh - 462px);overflow-y:auto;-webkit-overflow-scrolling:touch }
     /* 주사위 영역도 함께 압축(주사위는 38px 유지 — 눈금 가독성 한계선) */
     .dicepane{padding:7px 10px 9px;gap:6px}
     .tray{padding:7px 10px}

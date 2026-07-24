@@ -376,6 +376,31 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
        (실측 229px 넘침). 이 단계의 판은 opacity .42로 흐려둔 '장식'이므로 폰에서만 줄여
        순서 패널 + 던지기 버튼이 스크롤 없이 한 화면에 들어오게 한다. 판이 깔리면 원래 크기로 복귀. */
     #game.orderphase .board{ max-width:min(52vw, 22vh) }
+    /* ── 스크롤 없이 플레이 (사용자 피드백: "스크롤하면서 플레이하는 건 불편") ──
+       실기기(384×748)에서 요소를 하나씩 재며 맞춘 값이다. 판 아래로 아이템바·턴정보·던지기·
+       트레이가 쌓이고 하단 고정 조작바용 예약 여백까지 더해져 매 턴 스크롤이 필요했다.
+       아래 압축 + 판 높이 계산으로 넘침 0을 만든다(실측 확인).
+       100dvh를 쓰는 이유: vh는 모바일에서 주소창 높이를 빼지 않아 과대 계산된다. */
+    body.ingame #missionPanel, body.ingame .game-left{ display:none }  /* 미션은 부가 정보 → 게임 중 숨김 */
+    #game.orderphase .board{ display:none }        /* 선 뽑기 땐 판이 흐린 장식 → 숨겨 순서판·던지기 확보 */
+    #game .itembar{ padding:3px 7px;gap:1px }      /* 109 → 62 */
+    #game .itembar .ib-head{ display:none }        /* '탭해서 사용' 안내는 카드 아이콘으로 충분 */
+    #game .itembar .ib-card{ padding:3px 6px }
+    #game .tray{ margin:1px 0 0;gap:2px }          /* 76 → 52 */
+    #game .tray-row{ padding:1px 6px }
+    #game .tp{ width:20px;height:20px;font-size:9.5px;border-width:1.5px }
+    #game .tray-name{ font-size:10px;min-width:34px }
+    #game .throwarea{ margin:0 }
+    #game .turninfo{ margin:1px 0;padding:3px 8px;font-size:12px }
+    #game .yutsticks{ min-height:40px;margin-bottom:2px }
+    #game .stick{ width:20px;height:48px }
+    .ctrlbar{ padding:5px 12px calc(5px + env(safe-area-inset-bottom,0px)) }   /* 107 → 89 */
+    .ctrlbar .powergauge{ height:16px;margin-bottom:3px }
+    .ctrlbar .gaugehint{ margin-bottom:2px;font-size:9.5px }
+    .ctrlbar .bigbtn{ padding:11px;font-size:15px }
+    /* 판 높이 = 남는 공간. 아이템전은 아이템바(62px)만큼 더 빼야 하므로 :has()로 분기한다. */
+    .game-center .board{ max-width:min(94vw, calc(100dvh - 420px)) }
+    #game:has(.itembar.on) .game-center .board{ max-width:min(94vw, calc(100dvh - 487px)) }
     /* 던진 결과가 보드 바로 아래 오도록 순서 조정 (트레이는 그 아래) */
     .game-right .turninfo{ order:1 }
     .game-right .throwarea{ order:2 }
@@ -709,6 +734,23 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes yfWordIn{ 0%{opacity:0;transform:scale(1.55);filter:blur(18px)} 25%{opacity:1;transform:scale(.97);filter:blur(0)} 33%{transform:scale(1.02)} 40%{transform:scale(1)} 72%{opacity:1;transform:scale(1.03)} 100%{opacity:0;transform:scale(1.18);filter:blur(3px)} }
   @keyframes yfSubIn{ 0%{opacity:0;transform:translateX(-50%) translateY(16px)} 32%{opacity:0} 48%{opacity:1;transform:translateX(-50%) translateY(0)} 78%{opacity:1} 100%{opacity:0;transform:translateX(-50%) translateY(-6px)} }
   @keyframes yfSpark{ 0%{opacity:0;transform:translate(-50%,-50%) scale(.3)} 22%{opacity:1} 100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.1) rotate(160deg)} }
+  /* ── 폰 축하 연출 경량화 (사용자 피드백: "축하 연출 스터터") ──
+     실기기 측정에서 윷·모가 뜨는 순간 89~200ms 프레임이 났다. 비싼 것 셋을 폰에서만 바꾼다:
+      1) yf-word의 filter:blur(18px) — 최대 260px 글자에 블러를 매 프레임 다시 그린다(제일 비쌈)
+         → 블러 없는 키프레임으로. 확대·페이드는 그대로라 눈에는 거의 같다.
+      2) yf-rays — 160vmax(≈1200px) 원뿔 그라디언트를 mix-blend-mode로 합성하며 무한 회전
+         → 크기를 줄이고 블렌드를 끈다(투명도로 비슷한 인상 유지).
+      3) camerapunch/scrshake의 scale·rotate — 게임 전체를 재래스터화
+         → 폭을 줄이고 회전을 빼 합성만으로 처리되게 한다. */
+  @media (max-width:480px){
+    #yutFx .yf-word{ animation-name:yfWordInLite }
+    #yutFx .yf-rays{ width:110vmax;height:110vmax;margin-left:-55vmax;margin-top:-55vmax;mix-blend-mode:normal;opacity:.55 }
+    #game.camerapunch{ animation-name:camPunchLite }
+    .app.scrshake{ animation-name:scrShakeLite }
+  }
+  @keyframes yfWordInLite{ 0%{opacity:0;transform:scale(1.5)} 25%{opacity:1;transform:scale(.97)} 33%{transform:scale(1.02)} 40%{transform:scale(1)} 72%{opacity:1;transform:scale(1.03)} 100%{opacity:0;transform:scale(1.16)} }
+  @keyframes camPunchLite{ 0%{transform:scale(1)} 45%{transform:scale(1.022)} 100%{transform:scale(1)} }
+  @keyframes scrShakeLite{ 0%,100%{transform:translate(0,0)} 12%{transform:translate(-6px,3px)} 26%{transform:translate(6px,-3px)} 42%{transform:translate(-5px,2px)} 58%{transform:translate(5px,-2px)} 74%{transform:translate(-3px,1px)} 88%{transform:translate(2px,-1px)} }
   /* 카메라 프리즈·줌 (보드 영역) + 화면 흔들림(.app) */
   #game.camerapunch{ animation:camPunch .3s cubic-bezier(.22,1,.36,1); transform-origin:center 42%; }
   @keyframes camPunch{ 0%{transform:scale(1)} 45%{transform:scale(1.05)} 100%{transform:scale(1)} }
@@ -2451,8 +2493,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     html+='<div class="yf-word">'+text+'</div>';
     if(big) html+='<div class="yf-sub">한 번 더!</div>';
     fx.innerHTML=html;
-    if(big && !reduced){ // 반짝이 파티클
-      for(let i=0;i<10;i++){ const s=document.createElement('div'); s.className='yf-spark'; s.textContent=Math.random()<.5?'✦':'✧';
+    if(big && !reduced){ // 반짝이 파티클 (폰은 개수를 줄인다 — 동시 애니메이션이 스터터의 한 축)
+      const SPARKS = (window.innerWidth<=480) ? 6 : 10;
+      for(let i=0;i<SPARKS;i++){ const s=document.createElement('div'); s.className='yf-spark'; s.textContent=Math.random()<.5?'✦':'✧';
         const ang=Math.random()*Math.PI*2, d=120+Math.random()*220; s.style.setProperty('--dx',(Math.cos(ang)*d).toFixed(0)+'px'); s.style.setProperty('--dy',(Math.sin(ang)*d).toFixed(0)+'px');
         s.style.animationDelay=(Math.random()*.18).toFixed(2)+'s'; s.style.color=Math.random()<.5?'#fff3cf':'#f2ce68'; fx.appendChild(s); }
     }
