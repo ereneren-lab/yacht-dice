@@ -337,9 +337,41 @@
       this._startBetRound();
     }
     _award(winners, evs, jabiWin) {
-      const share = Math.floor(this.pot / winners.length);
-      let rem = this.pot - share * winners.length;
-      winners.forEach((w, i) => { this.players[w].chips += share + (i < rem ? 1 : 0); });
+      // 사이드팟: 판 전체 기여(roundContribTotal)를 기여액 '층'으로 나눠, 각 층을 그 층에
+      // 기여한 '안 죽은' 참가자 중 최고 패에게 준다. 폴드한 사람의 기여는 죽은 돈으로 층에
+      // 포함되나 이길 수 없다. 자격자가 없는 층(전원 폴드가 낸 초과분)은 그 기여자에게 환급
+      // (언콜된 초과 베팅 반환). 이러면 소액 올인 승자가 안 받친 돈까지 가져가지 않는다.
+      const N = this.N;
+      const contribs = this.roundContribTotal.slice();
+      const aliveSet = {};
+      for (let s = 0; s < N; s++) if (this.inHand[s] && !this.folded[s]) aliveSet[s] = true;
+      const handOf = {};
+      if (evs) evs.forEach(e => { handOf[e.seat] = e.h; });
+      const bestAmong = (seats) => {
+        const cand = seats.filter(s => aliveSet[s]);
+        if (!cand.length) return [];
+        if (!evs) return cand.slice();               // 폴드승: 안 죽은 1명이 가짐
+        let best = cand[0];
+        for (let i = 1; i < cand.length; i++) if (cmpJabi(handOf[cand[i]], handOf[best], !!this.jabi) > 0) best = cand[i];
+        return cand.filter(s => cmpJabi(handOf[s], handOf[best], !!this.jabi) === 0);
+      };
+      const gains = this.players.map(() => 0);
+      let guard = 0;
+      while (guard++ < 100000) {
+        let min = Infinity;
+        for (let s = 0; s < N; s++) if (contribs[s] > 0 && contribs[s] < min) min = contribs[s];
+        if (min === Infinity) break;
+        let amt = 0; const layer = [];
+        for (let s = 0; s < N; s++) if (contribs[s] > 0) { amt += min; contribs[s] -= min; layer.push(s); }
+        const lw = bestAmong(layer);
+        if (lw.length) {
+          const share = Math.floor(amt / lw.length), rem = amt - share * lw.length;
+          lw.forEach((w, i) => { gains[w] += share + (i < rem ? 1 : 0); });
+        } else {
+          for (const s of layer) gains[s] += min;    // 자격자 없음 → 초과분 환급
+        }
+      }
+      for (let s = 0; s < N; s++) this.players[s].chips += gains[s];
       this.phase = 'handover';
       this.lastResult = {
         winners: winners.map(w => this.players[w].pid),
@@ -347,6 +379,7 @@
         reveal: !!this.reveal,
         jabiWin: jabiWin || null,
         hands: evs ? evs.map(e => ({ seat: e.seat, name: e.h.name, tier: e.h.tier })) : null,
+        payouts: gains.map((g, s) => (g > 0 ? { pid: this.players[s].pid, amount: g } : null)).filter(Boolean),
       };
       this._emit();
       this._maybeNextHand();
