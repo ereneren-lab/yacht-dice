@@ -97,8 +97,23 @@
   .pc.sm .cbig{display:none}
   .pc.win{box-shadow:0 0 0 2.5px var(--win),0 4px 14px rgba(0,0,0,.42)}
   .pc.lose{box-shadow:0 0 0 2.5px var(--danger),0 4px 14px rgba(0,0,0,.42)}
+  .pc.flip{animation:cardFlip .55s cubic-bezier(.3,1,.4,1) both;transform-origin:center}
+  @keyframes cardFlip{0%{transform:rotateY(90deg) scale(.9);opacity:.2}55%{transform:rotateY(-13deg) scale(1.06)}100%{transform:rotateY(0) scale(1);opacity:1}}
   @media (max-width:400px){ .pc{width:66px;height:94px} .pc .cbig{font-size:38px} .pc .cr{font-size:14px} }
-  @media (prefers-reduced-motion:reduce){ .pc{animation:none} .potbadge.pulse .pa{animation:none} }
+  @media (prefers-reduced-motion:reduce){ .pc{animation:none} .pc.flip{animation:none} .potbadge.pulse .pa{animation:none} }
+
+  /* ===== 연출 강화 ===== */
+  @keyframes fxshake{0%,100%{transform:translateX(0)}12%{transform:translateX(-8px)}26%{transform:translateX(7px)}40%{transform:translateX(-6px)}55%{transform:translateX(5px)}70%{transform:translateX(-3px)}85%{transform:translateX(2px)}}
+  .fxshake{animation:fxshake .5s ease}
+  .redflash{position:fixed;inset:0;z-index:70;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(220,60,60,.32),transparent 66%);animation:rflash .55s ease forwards}
+  @keyframes rflash{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
+  .floatpop{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:88;pointer-events:none;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.7);will-change:transform,opacity}
+  .fxbanner{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .fxbanner .bx{background:linear-gradient(180deg,rgba(40,26,10,.96),rgba(28,18,8,.96));border:2.5px solid var(--brass);border-radius:20px;padding:14px 32px;text-align:center;color:#fff6d8;box-shadow:0 14px 44px rgba(0,0,0,.55);animation:fxpop .34s cubic-bezier(.2,1.4,.4,1)}
+  .fxbanner .bx.win{border-color:var(--gold)} .fxbanner .bx.lose{border-color:var(--danger)}
+  .fxbanner .bt{font-size:26px;font-weight:900} .fxbanner .bs{font-size:13px;color:var(--brass);margin-top:3px}
+  @keyframes fxpop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){ .fxshake{animation:none} .redflash{display:none} .fxbanner .bx{animation:none} }
 
   /* 하단 조작부 */
   .dock{flex:none;padding-top:8px}
@@ -250,6 +265,48 @@ const SFX=(function(){
   };
 })();
 
+// ===== 연출 헬퍼 =====
+const FXR=()=>{ try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;} };
+function rectC(sel){ const e=typeof sel==='string'?document.querySelector(sel):sel; if(!e)return null; const r=e.getBoundingClientRect(); if(!r.width)return null; return [r.left+r.width/2, r.top+r.height/2]; }
+function flyover(from,to,html,o){
+  o=o||{}; if(!from||!to||FXR())return;
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:0;top:0;z-index:85;pointer-events:none;will-change:transform,opacity;'+(o.css||'');
+  el.innerHTML=html; document.body.appendChild(el);
+  const [x0,y0]=from,[x1,y1]=to, dur=o.dur||420, delay=o.delay||0;
+  const cx=(x0+x1)/2+(o.arcX||0), cy=(y0+y1)/2-(o.arcUp||0);
+  const sF=o.scaleFrom!=null?o.scaleFrom:1, sT=o.scaleTo!=null?o.scaleTo:1, spin=o.spin||0;
+  let t0=null;
+  function fr(ts){ if(!el.isConnected)return; if(t0==null)t0=ts; let e=(ts-t0-delay)/dur;
+    if(e<0){ el.style.opacity='0'; requestAnimationFrame(fr); return; } if(e>1)e=1;
+    const mt=1-e, x=mt*mt*x0+2*mt*e*cx+e*e*x1, y=mt*mt*y0+2*mt*e*cy+e*e*y1, sc=sF+(sT-sF)*e;
+    el.style.transform='translate(-50%,-50%) translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+(spin*e).toFixed(0)+'deg) scale('+sc.toFixed(2)+')';
+    el.style.opacity=(o.fadeOut&&e>0.8)?String(1-(e-0.8)/0.2):(e<0.1?String(e/0.1):'1');
+    if(e<1) requestAnimationFrame(fr); else { try{el.remove();}catch(_){}}
+  }
+  requestAnimationFrame(fr);
+}
+function shakeFX(){ if(FXR())return;
+  const t=$('table'); if(t){ t.classList.remove('fxshake'); void t.offsetWidth; t.classList.add('fxshake'); setTimeout(()=>{try{t.classList.remove('fxshake');}catch(e){}},560); }
+  const f=document.createElement('div'); f.className='redflash'; document.body.appendChild(f); setTimeout(()=>{try{f.remove();}catch(e){}},640);
+  try{ if(navigator.vibrate)navigator.vibrate(50); }catch(e){}
+}
+function floatPop(txt,color,size){ if(FXR())return;
+  const d=document.createElement('div'); d.className='floatpop'; d.textContent=txt;
+  d.style.color=color||'var(--gold)'; d.style.fontSize=(size||30)+'px';
+  d.style.transition='transform .8s cubic-bezier(.2,.8,.3,1),opacity .8s'; document.body.appendChild(d);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ d.style.transform='translate(-50%,-50%) translateY(-52px) scale(1.25)'; d.style.opacity='0'; }));
+  setTimeout(()=>{try{d.remove();}catch(e){}},840);
+}
+function coinFly(){ const from=rectC('#pot'), to=rectC('#bankAmt'); if(!from||!to)return;
+  for(let i=0;i<7;i++) flyover(from,to,'🪙',{dur:600,delay:i*45,arcUp:44,scaleFrom:1,scaleTo:.6,fadeOut:true,css:'font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))'}); }
+function showBanner(title,sub,kind){
+  const b=document.createElement('div'); b.className='fxbanner';
+  b.innerHTML=`<div class="bx ${kind||''}"><div class="bt">${title}</div>${sub?`<div class="bs">${sub}</div>`:''}</div>`;
+  document.body.appendChild(b);
+  setTimeout(()=>{ b.style.transition='opacity .3s'; b.style.opacity='0'; setTimeout(()=>{try{b.remove();}catch(e){}},320); }, 1350);
+}
+
 // ===== 카드 =====
 const SUITS=['♠','♥','♦','♣'];        // 0,3=black · 1,2=red
 const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];  // r=1..13 → 값 1..13 (A 최저, K 최고)
@@ -354,7 +411,7 @@ function guess(dir){ // dir: 'H' or 'L'
     else if(dir==='H') result = nv>cv ? 'win':'lose';
     else result = nv<cv ? 'win':'lose';
     if(result==='push'){
-      $('nextSlot').innerHTML=cardHTML(next,false,'');
+      $('nextSlot').innerHTML=cardHTML(next,false,'flip');
       try{SFX.push();}catch(e){}
       $('msg').className='msg'; $('msg').innerHTML='같은 숫자 — 무승부, 다시 뽑아요';
       pushHist(cur); cur=next; curOdds=odds(deck,cur);
@@ -363,10 +420,11 @@ function guess(dir){ // dir: 'H' or 'L'
       render();
     } else if(result==='win'){
       cls='win';
-      $('nextSlot').innerHTML=cardHTML(next,false,'win');
+      $('nextSlot').innerHTML=cardHTML(next,false,'win flip');
       pot=Math.round(pot*m); streak++;
       try{SFX.good();}catch(e){}
       $('pot').classList.add('pulse'); setTimeout(()=>$('pot').classList.remove('pulse'),450);
+      try{ floatPop('×'+m.toFixed(2), 'var(--win)', 32); if(streak>=3) setTimeout(()=>floatPop(streak+'연승 🔥','var(--gold)',26),160); }catch(e){}
       $('msg').className='msg good'; $('msg').innerHTML=`정답! ×${m.toFixed(2)} → 팟 🪙 ${pot.toLocaleString()}`;
       pushHist(cur); cur=next; curOdds=odds(deck,cur);
       locked=false;
@@ -374,8 +432,9 @@ function guess(dir){ // dir: 'H' or 'L'
       render();
     } else {
       cls='lose';
-      $('nextSlot').innerHTML=cardHTML(next,false,'lose');
+      $('nextSlot').innerHTML=cardHTML(next,false,'lose flip');
       try{SFX.lose();}catch(e){}
+      try{ shakeFX(); showBanner('틀렸어요…','팟을 잃었어요','lose'); }catch(e){}
       const lost=pot; pot=0;
       $('msg').className='msg bad'; $('msg').innerHTML=`틀렸어요… <span style="color:var(--danger)">-${lost.toLocaleString()}</span>`;
       pushHist(cur); cur=next;
@@ -392,8 +451,10 @@ function cashout(){
   if(phase!=='guess'||locked||streak<=0)return;
   bank+=pot;
   try{SFX.cash();}catch(e){}
+  try{ coinFly(); }catch(e){}
   coinRain();
   const got=pot; pot=0;
+  try{ showBanner('💰 챙겼어요!','+'+got.toLocaleString()+' 칩','win'); }catch(e){}
   $('msg').className='msg good'; $('msg').innerHTML=`💰 챙겼어요! <span style="color:var(--win)">+${got.toLocaleString()}</span>`;
   phase='settle'; render();
   setTimeout(settle, 1200);

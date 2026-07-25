@@ -63,7 +63,9 @@
   .seat{width:74px;text-align:center;transition:opacity .3s}
   .seat.folded{opacity:.4}
   .seat.turn .pbox{border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold),0 0 16px color-mix(in srgb,var(--gold) 45%,transparent)}
-  .seat.winner .fc{box-shadow:0 0 0 2.5px var(--gold),0 0 16px color-mix(in srgb,var(--gold) 60%,transparent)}
+  .seat.winner .fc{box-shadow:0 0 0 2.5px var(--gold),0 0 16px color-mix(in srgb,var(--gold) 60%,transparent);animation:winGlow 1s ease-in-out infinite}
+  .seat.loser .fc{filter:grayscale(.5) brightness(.62);transition:filter .4s}
+  @keyframes winGlow{0%,100%{box-shadow:0 0 0 2px var(--gold),0 0 12px var(--gold)}50%{box-shadow:0 0 0 3.5px var(--gold),0 0 26px var(--gold)}}
   .pbox{background:linear-gradient(180deg,rgba(12,24,12,.6),rgba(6,14,6,.74));border:1.5px solid rgba(212,179,90,.34);border-radius:12px;padding:5px 4px 6px;box-shadow:0 3px 9px rgba(0,0,0,.4)}
   .pav{font-size:19px;line-height:1}
   .pname{font-size:10.5px;font-weight:800;color:#fff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -113,6 +115,14 @@
   .bbtn.raise{background:linear-gradient(180deg,#e0a840,#b07d1a)}
   .nextwrap{display:flex}
   .coinrain{position:fixed;top:-40px;z-index:80;pointer-events:none;font-size:26px;will-change:transform;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+  /* ===== 연출 강화 ===== */
+  @keyframes fcFlip{0%{transform:rotateY(90deg) scale(.9);opacity:.2}55%{transform:rotateY(-12deg) scale(1.05)}100%{transform:rotateY(0) scale(1);opacity:1}}
+  .fxbanner{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .fxbanner .bx{background:linear-gradient(180deg,rgba(40,26,10,.96),rgba(28,18,8,.96));border:2.5px solid var(--brass);border-radius:20px;padding:14px 32px;text-align:center;color:#fff6d8;box-shadow:0 14px 44px rgba(0,0,0,.55);animation:fxpop .34s cubic-bezier(.2,1.4,.4,1)}
+  .fxbanner .bx.win{border-color:var(--gold)} .fxbanner .bx.lose{border-color:var(--danger)}
+  .fxbanner .bt{font-size:26px;font-weight:900} .fxbanner .bs{font-size:13px;color:var(--brass);margin-top:3px}
+  @keyframes fxpop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){ .fc.flip{animation:none} .fxbanner .bx{animation:none} .seat.winner .fc{animation:none} }
 </style>
 </head>
 <body>
@@ -216,6 +226,49 @@ const SFX=(function(){
   };
 })();
 
+// ===== 연출 헬퍼 =====
+const FXR=()=>{ try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;} };
+function rectC(sel){ const e=typeof sel==='string'?document.querySelector(sel):sel; if(!e)return null; const r=e.getBoundingClientRect(); if(!r.width)return null; return [r.left+r.width/2, r.top+r.height/2]; }
+function flyover(from,to,html,o){
+  o=o||{}; if(!from||!to||FXR())return;
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:0;top:0;z-index:85;pointer-events:none;will-change:transform,opacity;'+(o.css||'');
+  el.innerHTML=html; document.body.appendChild(el);
+  const [x0,y0]=from,[x1,y1]=to, dur=o.dur||420, delay=o.delay||0;
+  const cx=(x0+x1)/2+(o.arcX||0), cy=(y0+y1)/2-(o.arcUp||0);
+  const sF=o.scaleFrom!=null?o.scaleFrom:1, sT=o.scaleTo!=null?o.scaleTo:1, spin=o.spin||0;
+  let t0=null;
+  function fr(ts){ if(!el.isConnected)return; if(t0==null)t0=ts; let e=(ts-t0-delay)/dur;
+    if(e<0){ el.style.opacity='0'; requestAnimationFrame(fr); return; } if(e>1)e=1;
+    const mt=1-e, x=mt*mt*x0+2*mt*e*cx+e*e*x1, y=mt*mt*y0+2*mt*e*cy+e*e*y1, sc=sF+(sT-sF)*e;
+    el.style.transform='translate(-50%,-50%) translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+(spin*e).toFixed(0)+'deg) scale('+sc.toFixed(2)+')';
+    el.style.opacity=(o.fadeOut&&e>0.8)?String(1-(e-0.8)/0.2):(e<0.1?String(e/0.1):'1');
+    if(e<1) requestAnimationFrame(fr); else { try{el.remove();}catch(_){}}
+  }
+  requestAnimationFrame(fr);
+}
+function seatXY(s){ if(s===MYSEAT) return rectC('#mine .myfc')||rectC('#mine'); return rectC('.seat[data-seat="'+s+'"] .fcwrap')||rectC('.seat[data-seat="'+s+'"]'); }
+function pulsePot(){ const p=$('pot'); if(!p)return; p.classList.remove('pulse'); void p.offsetWidth; p.classList.add('pulse'); setTimeout(()=>{try{p.classList.remove('pulse');}catch(e){}},450); }
+function dealAnim(){ const pc=rectC('#pot'); if(!pc||FXR())return; let st=0;
+  for(let s=0;s<players.length;s++){ if(!inHand[s])continue; const to=seatXY(s); if(!to)continue;
+    flyover(pc,to,'<div style="width:32px;height:46px;border-radius:6px;background:repeating-linear-gradient(45deg,#8a2f2f 0 6px,#732424 6px 12px);box-shadow:0 4px 10px rgba(0,0,0,.55)"></div>',{dur:300,delay:st,arcUp:24,scaleFrom:.4,scaleTo:1,spin:s%2?14:-14});
+    st+=110; }
+}
+function chipFlySeat(s){ const from=seatXY(s), to=rectC('#pot'); if(!from||!to)return;
+  flyover(from,to,'🪙',{dur:400,arcUp:32,scaleFrom:.6,scaleTo:1.05,fadeOut:true,css:'font-size:20px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))'}); pulsePot(); }
+function revealFlip(){ if(FXR())return;
+  const mine=document.querySelector('#mine .fc:not(.back)');
+  const list=[...document.querySelectorAll('#opps .fc:not(.back)')];
+  if(mine) list.unshift(mine);
+  list.forEach((el,i)=>{ el.style.animation='none'; void el.offsetWidth; el.style.animation='fcFlip .5s cubic-bezier(.3,1,.4,1) '+(i*0.09)+'s both'; });
+}
+function showBanner(title,sub,kind){
+  const b=document.createElement('div'); b.className='fxbanner';
+  b.innerHTML=`<div class="bx ${kind||''}"><div class="bt">${title}</div>${sub?`<div class="bs">${sub}</div>`:''}</div>`;
+  document.body.appendChild(b);
+  setTimeout(()=>{ b.style.transition='opacity .3s'; b.style.opacity='0'; setTimeout(()=>{try{b.remove();}catch(e){}},320); }, 1400);
+}
+
 // 카드 색(짝수번호=빨강 느낌으로 번갈아 — 순전히 시각용)
 const CSUIT=['♦','♣','♥','♠'];
 function suitOf(seatIdx){ return CSUIT[seatIdx%4]; }
@@ -279,6 +332,7 @@ function newHand(){
   turn=firstActive(0);
   try{SFX.deal();}catch(e){}
   render();
+  try{dealAnim();}catch(e){}
   drive();
 }
 function countActive(){ let c=0; for(let s=0;s<players.length;s++) if(inHand[s]&&!folded[s]) c++; return c; }
@@ -314,6 +368,7 @@ function doAction(seat, mode){
     }
   } else return;
   try{ mode==='raise'?SFX.chip():SFX.bet(); }catch(e){}
+  if(mode==='call'||mode==='raise'){ try{chipFlySeat(seat);}catch(e){} }
   afterAction(seat, mode);
 }
 function countActiveExcept(seat){ let c=0; for(let s=0;s<players.length;s++) if(inHand[s]&&!folded[s]&&s!==seat) c++; return c; }
@@ -338,11 +393,13 @@ function showdown(){
   winners.forEach((w,i)=>{ players[w].chips+=share+(i<rem?1:0); });
   phase='result'; window._winners=winners;
   render();
+  try{revealFlip();}catch(e){}
   const iWon=winners.indexOf(MYSEAT)>=0;
   const names=winners.map(w=>players[w].name).join(', ');
   $('msg').innerHTML=`<div style="font-size:16px">${iWon?'🎉 승리!':'👑 '+esc(names)+' 승'}</div><div style="font-size:12px;color:#fff;margin-top:2px">팟 🪙 ${pot} 획득</div>`;
   try{ iWon?SFX.win():SFX.lose(); }catch(e){}
   if(iWon) coinRain();
+  try{ showBanner(iWon?'🎉 승리!':'👑 '+esc(names), '팟 🪙 '+pot+' 획득', iWon?'win':'lose'); }catch(e){}
   renderNext();
 }
 
@@ -411,7 +468,10 @@ function render(){
     if(s===MYSEAT) continue;
     const p=players[s];
     const el=document.createElement('div');
-    el.className='seat'+(folded[s]?' folded':'')+(turn===s&&phase==='bet'?' turn':'')+((phase==='result'&&window._winners&&window._winners.indexOf(s)>=0)?' winner':'');
+    const isWin=phase==='result'&&window._winners&&window._winners.indexOf(s)>=0;
+    const isLose=phase==='result'&&window._winners&&!isWin&&inHand[s]&&!folded[s];
+    el.className='seat'+(folded[s]?' folded':'')+(turn===s&&phase==='bet'?' turn':'')+(isWin?' winner':'')+(isLose?' loser':'');
+    el.dataset.seat=s;
     const showCard = inHand[s] && cards[s]!=null;  // 남의 카드는 항상 보임
     el.innerHTML=`<div class="pbox">`+
       `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
