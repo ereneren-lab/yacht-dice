@@ -117,6 +117,13 @@
   /* 쇼다운 시 상대 족보(끗/땡) 이름 — 내 .myhand과 짝 */
   .seat .phand{font-size:11px;font-weight:900;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.75);margin-top:3px;min-height:14px;animation:phandPop .34s cubic-bezier(.2,1.4,.4,1) both}
   .seat.winner .phand{color:#ffe9a8;font-size:12px}
+  /* 패자 카드/족보 흐리게 — 승자 부각 */
+  .seat.loser .cards .hwa{filter:grayscale(.55) brightness(.58);transition:filter .45s ease}
+  .seat.loser .phand{color:var(--muted)}
+  /* AI 도발 말풍선 */
+  .seatspeech{position:fixed;z-index:420;transform:translate(-50%,-100%) scale(.75);transform-origin:bottom center;background:#fff;color:#241a0e;font-size:11px;font-weight:800;padding:5px 11px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.45);pointer-events:none;opacity:0;transition:opacity .2s,transform .2s cubic-bezier(.2,1.5,.4,1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+  .seatspeech::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+  .seatspeech.show{opacity:1;transform:translate(-50%,-100%) scale(1)}
   @keyframes phandPop{from{opacity:0;transform:translateY(-4px) scale(.8)}to{opacity:1;transform:none}}
   @keyframes pactPop{0%{transform:translateX(-50%) scale(.4)}60%{transform:translateX(-50%) scale(1.18)}100%{transform:translateX(-50%) scale(1)}}
   @keyframes revIn{0%{transform:rotateY(90deg) scale(.85);opacity:0}60%{transform:rotateY(-8deg) scale(1.05)}100%{transform:rotateY(0) scale(1);opacity:1}}
@@ -1099,9 +1106,33 @@ function coinRain(){ if(FXR())return; const W=innerWidth;
 }
 function aiReactions(){ if(!S||!S.lastResult||FXR())return; const r=S.lastResult;
   S.players.forEach((p,s)=>{ if(s===mySeat())return;
-    const emo = p.folded?'😮‍💨' : ((r.winners||[]).indexOf(p.pid)>=0?'😎':'😩');
+    const won=(r.winners||[]).indexOf(p.pid)>=0;
+    const emo = p.folded?'😮‍💨' : (won?'😎':'😩');
     floatEmojiSeat(s, emo);
+    // AI 승/패 대사 (안 죽은 참가자만)
+    if(p.ai && !p.folded){ setTimeout(()=>showSeatSpeech(s, pickL(won?TAUNT_WIN:TAUNT_LOSE)), 420); }
   });
+}
+// AI 도발 대사 (피망식) — 좌석 위 말풍선
+const TAUNT={
+  allin:['다 건다!','올인! 받아?','간다 이거야','네 칩 다 내놔'],
+  ttadang:['따당! 두 배','겁나면 죽어','받아봐~','판 키운다'],
+  half:['하프!','쫄리지?','슬슬 조여볼까'],
+  quarter:['쿼터로 간 봐','이 정돈 껌','부담되지?'],
+  die:['에잇, 죽자','이번 판은 접는다','다음 기회에','패가 영 별로'],
+};
+const TAUNT_WIN=['이게 실력이지 😎','내 판이야','미안하게 됐어','또 이겼네~'];
+const TAUNT_LOSE=['에이 졌다 😩','운이 없네','다음 판 각오해','말도 안 돼'];
+function pickL(a){ return a[Math.floor(Math.random()*a.length)]; }
+function showSeatSpeech(seat, text){
+  if(FXR()||seat===mySeat())return;
+  const el=document.querySelector('.seat[data-seat="'+seat+'"]'); if(!el)return;
+  const b=el.getBoundingClientRect(); if(!b.width)return;
+  const d=document.createElement('div'); d.className='seatspeech'; d.textContent=text;
+  d.style.left=(b.left+b.width/2)+'px'; d.style.top=(b.top+2)+'px';
+  document.body.appendChild(d);
+  requestAnimationFrame(()=>d.classList.add('show'));
+  setTimeout(()=>{ d.classList.remove('show'); setTimeout(()=>{try{d.remove();}catch(e){}},260); }, 1500);
 }
 function floatEmojiSeat(seat, emo){ const el=document.querySelector('.seat[data-seat="'+seat+'"]'); if(!el)return; const b=el.getBoundingClientRect();
   const d=document.createElement('div'); d.className='sparkle'; d.style.fontSize='27px'; d.textContent=emo; d.style.left=(b.left+b.width/2)+'px'; d.style.top=(b.top+8)+'px'; d.style.transition='transform 1.2s ease-out,opacity 1.2s'; d.style.transform='translate(-50%,-50%)'; document.body.appendChild(d);
@@ -1124,6 +1155,9 @@ function afterRender(){
     if((S.lastAction.amount||0)>0){ chipFly(S.lastAction.seat, S.lastAction.amount);
       setTimeout(()=>{ const pt=$('pot'); if(pt){ pt.classList.remove('pulse'); void pt.offsetWidth; pt.classList.add('pulse'); setTimeout(()=>pt.classList.remove('pulse'),460);} }, 460); }
     else { try{ SFX.bet(); }catch(e){} }   // 체크/다이
+    // AI 도발: 공격적 베팅·다이에만(너무 잦지 않게)
+    const la=S.lastAction, lp=S.players[la.seat];
+    if(la.seat!==mySeat() && lp && lp.ai && TAUNT[la.mode]){ setTimeout(()=>showSeatSpeech(la.seat, pickL(TAUNT[la.mode])), 300); }
   }
   // 쇼다운 진입 시 상대 카드 플립
   if(S.phase==='handover' && prevPhaseA!=='handover'){ revealFlip(); }
@@ -1188,6 +1222,8 @@ function showHandBanner(){
   let handName=''; if(r.hands){ const w=r.hands.find(h=>r.winners.indexOf(S.players[h.seat].pid)>=0); if(w)handName=w.name; }
   // 승자 좌석 강조 + AI 반응 이모지
   (r.winners||[]).forEach(pid=>{ const seat=S.players.findIndex(p=>p.pid===pid); const el=document.querySelector('.seat[data-seat="'+seat+'"]'); if(el)el.classList.add('winner'); });
+  // 패자(공개된 안 죽은 비승자) 카드 흐리게 → 승자 부각 (피망/한게임식)
+  if(r.hands){ r.hands.forEach(h=>{ if((r.winners||[]).indexOf(S.players[h.seat].pid)<0){ const el=document.querySelector('.seat[data-seat="'+h.seat+'"]'); if(el)el.classList.add('loser'); } }); }
   setTimeout(()=>{ try{aiReactions();}catch(e){} }, r.hands?900:300);
   const showWin=()=>{ banner(iWon?'🎉 승리!':('👑 '+esc(winNames[0])+' 승'),
     (handName?'<b style="color:#fff">'+esc(handName)+'</b> · ':'')+'💰 +'+fmt(r.pot), 2300);
