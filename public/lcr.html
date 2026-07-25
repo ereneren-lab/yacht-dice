@@ -12,6 +12,7 @@
 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- 공유 미리보기 (OG / 트위터) -->
 <meta name="description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 칩을 좌·우 이웃에게 넘기고, 마지막까지 남은 1명이 가운데 팟을 싹쓸이!">
@@ -330,6 +331,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .meta-chip{ display:none;font-size:10.5px;font-weight:900;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);border:1px solid color-mix(in srgb,var(--brass) 40%,transparent);border-radius:999px;padding:2px 9px;margin-left:6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle }
   body.ingame .meta-chip{ display:inline-flex;align-items:center }
   @media (max-width:480px){ .meta-chip{ max-width:110px;font-size:9.5px } }
+  /* 좁은 폰(≤400px)은 상단바가 꽉 차 레벨칩이 잘려 아이콘에 붙는다 → 게임 중엔 숨김(레벨은 셋업·결과 화면에 있음) */
+  @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
 </style>
 </head>
 <body>

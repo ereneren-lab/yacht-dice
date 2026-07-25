@@ -939,9 +939,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .meta-chip{ display:none;font-size:10.5px;font-weight:900;color:var(--gold,#e0a23c);background:color-mix(in srgb,var(--gold,#e0a23c) 14%,transparent);border:1px solid color-mix(in srgb,var(--gold,#e0a23c) 40%,transparent);border-radius:999px;padding:2px 9px;margin-left:6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle }
   body.ingame .meta-chip{ display:inline-flex;align-items:center }
   @media (max-width:480px){ .meta-chip{ max-width:120px;font-size:9.5px } }
+  /* 좁은 폰(≤400px)은 상단바 아이콘이 4개라 레벨칩이 "Lv.1 ·"까지 짜부라진다 → 게임 중엔 숨김(레벨은 셋업·결과 화면에 있음) */
+  @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>

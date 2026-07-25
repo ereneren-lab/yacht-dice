@@ -424,6 +424,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
    상대 판은 보기만 하는 정보라 더 작게, 내 판은 탭 대상이라 크게 유지한다.
    ⚠️ 이 블록은 반드시 스타일 끝에 둔다 — 위쪽에 두면 뒤따르는 .tray/.arena/.side 기본 규칙이 덮어쓴다. */
 @media (max-width:480px){
+  /* 게임 중엔 굴리기 버튼 아래 60px 여백이 죽은 공간이라 스크롤을 만든다(넘침 21px).
+     홈·전적 화면(스크롤됨)은 여백이 필요하므로 ingame일 때만 줄인다. */
+  body.ingame .wrap{ padding-bottom:18px }
   .kbtop{ margin-bottom:8px }
   .arena{ gap:5px }
   .side{ gap:11px; padding:5px }
@@ -470,9 +473,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .meta-chip{ display:none;font-size:10.5px;font-weight:900;color:var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);border:1px solid color-mix(in srgb,var(--brass) 40%,transparent);border-radius:999px;padding:2px 9px;margin-left:6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle }
   body.ingame .meta-chip{ display:inline-flex;align-items:center }
   @media (max-width:480px){ .meta-chip{ max-width:110px;font-size:9.5px } }
+  /* 좁은 폰(≤400px)은 상단바에 ←·제목·모드칩·아이콘3개가 이미 꽉 차서, 레벨 meta-chip까지
+     넣으면 제목(h2)이 박스를 넘쳐 칩 위로 겹친다. 레벨은 셋업·결과 화면에 있으니 게임 중엔 숨긴다. */
+  @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>

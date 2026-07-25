@@ -11,27 +11,47 @@ const os = require('os');
 const path = require('path');
 const WebSocket = require('ws');
 
-/** 크로미움 실행파일 찾기 — 버전 폴더명이 바뀌어도 견디게 탐색한다 */
+/** 크로미움 실행파일 찾기 — 버전 폴더명·OS가 바뀌어도 견디게 탐색한다 */
 function findBrowser() {
-  const cache = path.join(os.homedir(), 'Library/Caches/ms-playwright');
+  const win = process.platform === 'win32';
+  // 1) Playwright 캐시 (OS별 위치) — 버전 폴더명 무관하게 탐색
+  const cache = win
+    ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData/Local'), 'ms-playwright')
+    : process.platform === 'linux'
+      ? path.join(os.homedir(), '.cache/ms-playwright')
+      : path.join(os.homedir(), 'Library/Caches/ms-playwright');
   if (fs.existsSync(cache)) {
     const dirs = fs.readdirSync(cache).filter(d => d.startsWith('chromium'));
     // headless shell 우선(가볍다), 없으면 일반 chromium
     dirs.sort((a, b) => (b.includes('headless_shell') ? 1 : 0) - (a.includes('headless_shell') ? 1 : 0));
     for (const d of dirs) {
       for (const rel of [
+        'chrome-headless-shell-win64/chrome-headless-shell.exe',
+        'chrome-win/chrome.exe',
         'chrome-headless-shell-mac-arm64/chrome-headless-shell',
         'chrome-headless-shell-mac-x64/chrome-headless-shell',
         'chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+        'chrome-headless-shell-linux/chrome-headless-shell',
+        'chrome-linux/chrome',
       ]) {
         const p = path.join(cache, d, rel);
         if (fs.existsSync(p)) return p;
       }
     }
   }
-  const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  if (fs.existsSync(chrome)) return chrome;
-  throw new Error('크로미움을 못 찾았다. `npx playwright install chromium` 또는 Chrome 설치 필요.');
+  // 2) 시스템 브라우저 폴백 (OS별)
+  const candidates = win
+    ? [
+        path.join(process.env['PROGRAMFILES'] || 'C:/Program Files', 'Google/Chrome/Application/chrome.exe'),
+        path.join(process.env['PROGRAMFILES(X86)'] || 'C:/Program Files (x86)', 'Google/Chrome/Application/chrome.exe'),
+        path.join(process.env['PROGRAMFILES(X86)'] || 'C:/Program Files (x86)', 'Microsoft/Edge/Application/msedge.exe'),
+        path.join(process.env['PROGRAMFILES'] || 'C:/Program Files', 'Microsoft/Edge/Application/msedge.exe'),
+      ]
+    : process.platform === 'linux'
+      ? ['/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium']
+      : ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'];
+  for (const p of candidates) if (fs.existsSync(p)) return p;
+  throw new Error('크로미움을 못 찾았다. `npx playwright install chromium` 또는 Chrome/Edge 설치 필요.');
 }
 
 class CDP {
