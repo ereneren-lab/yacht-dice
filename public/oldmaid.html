@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ko" data-theme="wood">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>도둑잡기 · 주사위 골목</title>
+<link rel="icon" href="icon-192.png">
+<!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
+<script src="analytics.js" defer></script>
+-->
+<style>
+  :root{
+    --bg:#12210f; --ink:#f2e9d6; --muted:#9db089; --panel:#1c2f18; --panel2:#274023;
+    --line:#2f4a28; --brass:#d9b35a; --gold:#f0c65a; --danger:#e8696b; --win:#7bd88f;
+    --felt:#1f5c2e; --felt2:#164322; --chip:#e8c15a;
+  }
+  html[data-theme="hanji"]{ --bg:#f2ecd8; --ink:#25200f; --muted:#6f6440; --panel:#e9e0c4; --panel2:#ddd0aa; --line:#c7b78a; --brass:#8a6015; --gold:#a67613; --felt:#2f7d43; --felt2:#256235; --win:#3a9a4a; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;overflow:hidden}
+  body{height:100dvh;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+  .app{max-width:560px;height:100dvh;margin:0 auto;padding:8px 12px 12px;display:flex;flex-direction:column}
+
+  .topbar{display:flex;align-items:center;gap:8px;padding:2px 2px 8px;flex:none}
+  .topbar .title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden}
+  .topbar .title .dot{width:9px;height:9px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass)}
+  .spacer{flex:1}
+  .iconbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn:hover{background:var(--panel2)}
+  .hubx{font-size:18px}
+
+  .sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:18px}
+  .sheet.on{display:flex}
+  .card{background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 92%,#fff 8%),var(--panel));border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 14px 40px rgba(0,0,0,.4);max-width:400px;width:100%;max-height:90vh;overflow-y:auto}
+  .card h2{margin:0 0 4px;font-size:22px;color:var(--gold);text-align:center}
+  .card .sub{font-size:12.5px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5}
+  .btn{background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 82%,#fff 18%),var(--brass));color:#1a1608;border:none;border-radius:13px;padding:14px 18px;font-size:15px;font-weight:900;cursor:pointer;width:100%;box-shadow:0 5px 14px color-mix(in srgb,var(--brass) 34%,transparent),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .08s,filter .15s}
+  .btn:hover{filter:brightness(1.06)} .btn:active{transform:translateY(1px)} .btn:disabled{opacity:.32;cursor:default;filter:grayscale(.4);box-shadow:none}
+  .btn.ghost{background:var(--panel2);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+  .lbl{font-size:11px;font-weight:900;color:color-mix(in srgb,var(--brass) 78%,var(--muted));margin:14px 0 5px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:6px}
+  .lbl::before{content:'';width:3px;height:11px;background:var(--brass);border-radius:2px;opacity:.75;flex:none}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .opt{flex:1;min-width:56px;background:var(--panel2);border:1.5px solid var(--line);border-radius:12px;padding:11px 8px;text-align:center;font-weight:800;font-size:12.5px;color:var(--muted);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+  .opt:hover{border-color:color-mix(in srgb,var(--brass) 45%,var(--line))}
+  .opt.on{border-color:var(--brass);color:var(--brass);background:color-mix(in srgb,var(--brass) 16%,var(--panel2))}
+  input[type=text]{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;width:100%;font-family:inherit}
+  .warn{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5;text-align:center}
+  .rulebox{font-size:12.5px;line-height:1.7;color:var(--ink);text-align:left}
+  .rulebox b{color:var(--brass)}
+
+  /* 테이블 */
+  .table{flex:1;min-height:0;position:relative;border-radius:22px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(60% 42% at 50% 38%, rgba(255,255,255,.07), transparent 72%),
+      radial-gradient(135% 110% at 50% 44%, var(--felt) 0%, var(--felt2) 66%, #0b2410 100%);
+    border:6px solid #2a1a0e;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.5), inset 0 0 0 2px rgba(212,179,90,.16), 0 10px 30px rgba(0,0,0,.42);
+    padding:8px;overflow:hidden}
+  .table::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;z-index:0;
+    background-image:radial-gradient(rgba(0,0,0,.13) 1px, transparent 1.5px);background-size:7px 7px}
+
+  /* 상대 좌석(상단) */
+  .opps{position:relative;z-index:2;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;flex:none}
+  .seat{width:82px;text-align:center;transition:opacity .3s}
+  .seat.out{opacity:.42}
+  .seat.turn .pbox{border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold),0 0 16px color-mix(in srgb,var(--gold) 45%,transparent)}
+  .seat.target .pbox{border-color:var(--win);box-shadow:0 0 0 1.5px var(--win),0 0 16px color-mix(in srgb,var(--win) 50%,transparent)}
+  .seat.loser .pbox{border-color:var(--danger);box-shadow:0 0 0 2px var(--danger),0 0 18px color-mix(in srgb,var(--danger) 55%,transparent)}
+  .pbox{background:linear-gradient(180deg,rgba(12,24,12,.6),rgba(6,14,6,.74));border:1.5px solid rgba(212,179,90,.34);border-radius:12px;padding:5px 4px 6px;box-shadow:0 3px 9px rgba(0,0,0,.4)}
+  .pav{font-size:20px;line-height:1}
+  .pname{font-size:10.5px;font-weight:800;color:#fff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcount{font-size:9.5px;font-weight:900;color:var(--chip)}
+  .fan{display:flex;justify-content:center;margin-top:3px;min-height:34px}
+  .fan .mc{margin-left:-14px} .fan .mc:first-child{margin-left:0}
+  .pact{font-size:9px;font-weight:900;color:#1a1608;background:var(--gold);border-radius:7px;padding:1px 6px;margin-top:2px;display:inline-block;min-height:0;opacity:0;transition:opacity .2s}
+  .pact.show{opacity:1}
+  .safe{font-size:9px;font-weight:900;color:#1a1608;background:var(--win);border-radius:7px;padding:1px 6px;margin-top:2px;display:inline-block}
+
+  /* 중앙 안내 */
+  .center{position:relative;z-index:2;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px}
+  .msg{text-align:center;font-size:13.5px;font-weight:800;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.6);padding:0 6px;min-height:19px}
+  .msg b{color:#fff}
+  .drawtray{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;max-width:100%}
+
+  /* 내 손패(하단) */
+  .mine{position:relative;z-index:2;flex:none}
+  .myhead{display:flex;justify-content:space-between;align-items:center;padding:0 2px 3px;font-size:11px;font-weight:900;color:#fff}
+  .myhead .mc-chip{color:var(--chip)}
+  .myhand{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;min-height:56px;align-content:flex-start}
+
+  /* 카드 (CSS 렌더 · 이미지 0) */
+  .mc{width:38px;height:54px;border-radius:6px;background:linear-gradient(160deg,#fffefb,#eee6d3);position:relative;flex:none;
+    box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.08);font-weight:900;
+    display:flex;align-items:center;justify-content:center;animation:dealIn .26s cubic-bezier(.2,1.2,.4,1) both}
+  @keyframes dealIn{0%{transform:translateY(-16px) scale(.7);opacity:0}100%{transform:none;opacity:1}}
+  .mc .cr{position:absolute;top:2px;left:4px;font-size:11px;line-height:1;text-align:center}
+  .mc .cr .cs{font-size:9px;display:block;margin-top:-1px}
+  .mc .cbig{font-size:22px;line-height:1}
+  .mc.red{color:#c62d3f} .mc.black{color:#20242b}
+  .mc.joker{color:#7a3fbf;background:linear-gradient(160deg,#fff,#efe6f7)}
+  .mc.joker .cbig{font-size:24px}
+  .mc.back{background:repeating-linear-gradient(45deg,#8a2f2f 0 6px,#732424 6px 12px);box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 2px #f2e4c4}
+  .mc.back::after{content:'?';position:absolute;color:rgba(255,255,255,.55);font-size:20px}
+  .mc.pick{cursor:pointer;animation:none}
+  .mc.pick:hover{transform:translateY(-6px);box-shadow:0 8px 16px rgba(0,0,0,.5),0 0 0 2px var(--gold)}
+  .mc.big{width:46px;height:66px}
+  .mc.big .cbig{font-size:28px} .mc.big.joker .cbig{font-size:30px} .mc.big .cr{font-size:13px}
+  .mc.pop{animation:pairpop .5s ease both}
+  @keyframes pairpop{0%{transform:scale(1)}40%{transform:scale(1.25);filter:brightness(1.35)}100%{transform:scale(0);opacity:0}}
+  @media (prefers-reduced-motion:reduce){ .mc{animation:none} .mc.pop{animation:none;opacity:0} }
+
+  .coinrain{position:fixed;top:-40px;z-index:80;pointer-events:none;font-size:26px;will-change:transform;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <a class="iconbtn hubx" href="./" title="골목으로">←</a>
+    <div class="title"><span class="dot"></span>도둑잡기</div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="soundBtn" title="소리">🔊</button>
+    <button class="iconbtn" id="lightBtn" title="테마">☀️</button>
+    <button class="iconbtn" id="helpBtn" title="규칙">?</button>
+  </div>
+
+  <div class="table" id="table">
+    <div class="opps" id="opps"></div>
+    <div class="center">
+      <div class="msg" id="msg"></div>
+      <div class="drawtray" id="drawtray"></div>
+    </div>
+    <div class="mine" id="mine">
+      <div class="myhead"><span id="myLabel">🧑 나</span><span class="mc-chip" id="myCount"></span></div>
+      <div class="myhand" id="myhand"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 셋업 -->
+<div class="sheet on" id="setupOv">
+  <div class="card">
+    <h2>🃏 도둑잡기</h2>
+    <div class="sub">짝을 맞춰 버리고, <b>조커(도둑)</b>를 마지막까지<br>들고 있는 사람이 술래! 옆 사람 패에서 몰래 뽑아요.</div>
+    <div class="lbl">인원 (나 + AI)</div>
+    <div class="row" id="optN">
+      <div class="opt" data-n="3">3인</div>
+      <div class="opt on" data-n="4">4인</div>
+    </div>
+    <div class="lbl">이름</div>
+    <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
+    <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
+    <div class="warn">🃏 조커를 든 채 끝나면 술래! 짝을 부지런히 버리세요.</div>
+  </div>
+</div>
+
+<!-- 규칙 -->
+<div class="sheet" id="rulesOv">
+  <div class="card">
+    <h2>도둑잡기 규칙</h2>
+    <div class="rulebox">
+      <p><b>준비</b> — 52장 + <b>조커 1장</b>을 모두 나눠 가져요. 처음에 손에 있는 <b>같은 숫자 짝</b>은 자동으로 버려요.</p>
+      <p><b>차례</b> — 자기 차례에 <b>왼쪽(다음) 사람</b>의 뒤집힌 패에서 <b>1장</b>을 뽑아요. 뽑은 카드로 짝이 생기면 바로 버려요.</p>
+      <p><b>탈출</b> — 손이 비면 그 사람은 <b>세이프</b>(탈출). 계속 진행돼요.</p>
+      <p><b>패배</b> — 짝이 없는 <b>조커</b>는 끝까지 남아요. 마지막에 조커를 든 <b>한 사람이 술래(패)!</b></p>
+    </div>
+    <button class="btn" id="rulesClose" style="margin-top:14px">알겠어</button>
+  </div>
+</div>
+
+<!-- 결과 -->
+<div class="sheet" id="resultOv">
+  <div class="card" style="text-align:center">
+    <h2 id="resTitle">게임 종료</h2>
+    <div class="sub" id="resBody"></div>
+    <button class="btn" id="againBtn">다시 하기</button>
+    <a class="btn ghost" href="./" style="margin-top:8px;display:block;text-decoration:none;text-align:center">골목으로</a>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const AI_NAMES=['호구','타짜','물주','왕눈이','새우깡','판돌이'];
+
+// ===== 효과음 =====
+const SFX=(function(){
+  let ctx=null,on=true; try{on=localStorage.getItem('om_sound')!=='0';}catch(e){}
+  function ac(){ if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(ctx&&ctx.state==='suspended'){try{ctx.resume();}catch(e){}} return ctx; }
+  function tone(f,d,t,g,w){ const c=ac(); if(!c||!on)return; const s=c.currentTime+(w||0); const o=c.createOscillator(),gn=c.createGain(); o.type=t||'sine'; o.frequency.setValueAtTime(f,s); gn.gain.setValueAtTime(.0001,s); gn.gain.exponentialRampToValueAtTime(g||.13,s+.008); gn.gain.exponentialRampToValueAtTime(.0001,s+d); o.connect(gn); gn.connect(c.destination); o.start(s); o.stop(s+d+.03); }
+  function noise(d,g,ff,w){ const c=ac(); if(!c||!on)return; const s=c.currentTime+(w||0); const len=Math.floor(c.sampleRate*d); const b=c.createBuffer(1,len,c.sampleRate); const dd=b.getChannelData(0); for(let i=0;i<len;i++)dd[i]=(Math.random()*2-1)*(1-i/len); const n=c.createBufferSource(); n.buffer=b; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=ff||2800; const gn=c.createGain(); gn.gain.setValueAtTime(g||.18,s); gn.gain.exponentialRampToValueAtTime(.0001,s+d); n.connect(f); f.connect(gn); gn.connect(c.destination); n.start(s); n.stop(s+d+.02); }
+  return {
+    on(){return on;}, resume(){ac();},
+    toggle(){on=!on; try{localStorage.setItem('om_sound',on?'1':'0');}catch(e){} return on;},
+    deal(){ noise(.08,.15,3400); },
+    draw(){ noise(.06,.12,2600); tone(700,.05,'triangle',.05,.02); },
+    pair(){ tone(880,.09,'triangle',.09); tone(1240,.09,'triangle',.08,.07); },
+    safe(){ [660,880,1180].forEach((f,i)=>tone(f,.18,'triangle',.1,i*.06)); },
+    win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.26,'triangle',.12,i*.08)); },
+    lose(){ tone(200,.4,'sawtooth',.09); noise(.25,.12,700,.02); [392,311,247].forEach((f,i)=>tone(f,.22,'sine',.07,.12+i*.1)); },
+  };
+})();
+
+// ===== 카드 =====
+const SUITS=['♠','♥','♦','♣'];
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let CID=0;
+function makeDeck(){
+  const d=[];
+  for(let s=0;s<4;s++) for(let r=1;r<=13;r++) d.push({r,s,joker:false,id:CID++});
+  d.push({r:0,s:0,joker:true,id:CID++});
+  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=d[i]; d[i]=d[j]; d[j]=t; }
+  return d;
+}
+function cardFaceHTML(c,cls){
+  if(c.joker) return `<div class="mc joker ${cls||''}"><span class="cr">JOKER</span><span class="cbig">🃏</span></div>`;
+  const red=(c.s===1||c.s===2);
+  return `<div class="mc ${red?'red':'black'} ${cls||''}"><span class="cr">${RANKS[c.r-1]}<span class="cs">${SUITS[c.s]}</span></span><span class="cbig">${SUITS[c.s]}</span></div>`;
+}
+function backHTML(cls){ return `<div class="mc back ${cls||''}"></div>`; }
+
+// ===== 상태 =====
+const cfg={ n:4, name:'' };
+try{ cfg.name=localStorage.getItem('om_name')||''; }catch(e){}
+const MYSEAT=0;
+let players=[], hands=[], out=[], turn=0, phase='idle', lastAct=[], busy=false, loser=-1;
+
+// 테마/버튼
+(function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
+$('lightBtn').onclick=()=>{ const c=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=c; try{localStorage.setItem('alley_theme',c);}catch(e){} };
+$('soundBtn').textContent=SFX.on()?'🔊':'🔇';
+$('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'🔊':'🔇'; if(v){SFX.resume();SFX.pair();} };
+$('helpBtn').onclick=()=>$('rulesOv').classList.add('on');
+$('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
+
+document.querySelectorAll('#optN .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optN .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.n=+o.dataset.n; });
+$('myName').value=cfg.name;
+
+function startGame(){
+  cfg.name=($('myName').value||'').trim()||'나';
+  try{ localStorage.setItem('om_name',cfg.name); }catch(e){}
+  players=[{name:cfg.name,ai:false}];
+  const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
+  for(let i=1;i<cfg.n;i++) players.push({name:nm[i-1],ai:true});
+  $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
+  document.body.classList.add('ingame');
+  try{SFX.resume();}catch(e){}
+  newGame();
+}
+$('startBtn').onclick=startGame;
+$('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); };
+
+// 손에서 짝 제거 → 버린 카드 배열 반환
+function discardPairs(hand){
+  const removed=[];
+  const byRank={};
+  for(const c of hand){ if(c.joker) continue; (byRank[c.r]=byRank[c.r]||[]).push(c); }
+  for(const r in byRank){
+    const arr=byRank[r];
+    const pairs=Math.floor(arr.length/2);
+    for(let p=0;p<pairs*2;p++) removed.push(arr[p]);
+  }
+  if(removed.length){
+    const ids=new Set(removed.map(c=>c.id));
+    for(let i=hand.length-1;i>=0;i--) if(ids.has(hand[i].id)) hand.splice(i,1);
+  }
+  return removed;
+}
+
+function newGame(){
+  const deck=makeDeck();
+  hands=players.map(()=>[]);
+  out=players.map(()=>false);
+  lastAct=players.map(()=>'');
+  loser=-1; phase='play'; busy=false;
+  // 라운드로빈 분배
+  let s=0; while(deck.length){ hands[s%players.length].push(deck.pop()); s++; }
+  try{SFX.deal();}catch(e){}
+  render();
+  // 초기 짝 정리(순차 연출)
+  busy=true;
+  setTimeout(()=>initialCleanup(0), 500);
+}
+
+function initialCleanup(i){
+  if(i>=players.length){ // 정리 끝 → 게임 진행
+    // 손 빈 사람은 즉시 세이프
+    for(let s=0;s<players.length;s++) if(hands[s].length===0) out[s]=true;
+    busy=false;
+    if(checkEnd()) return;
+    turn=firstActive(0);
+    $('msg').textContent='';
+    render(); nextStep();
+    return;
+  }
+  const removed=discardPairs(hands[i]);
+  if(removed.length){ try{SFX.pair();}catch(e){} }
+  render();
+  setTimeout(()=>initialCleanup(i+1), removed.length?360:120);
+}
+
+function activeCount(){ let c=0; for(let s=0;s<players.length;s++) if(!out[s]&&hands[s].length>0) c++; return c; }
+function firstActive(from){ for(let k=0;k<players.length;k++){ const s=(from+k)%players.length; if(!out[s]&&hands[s].length>0) return s; } return from; }
+function nextActive(from){ for(let k=1;k<=players.length;k++){ const s=(from+k)%players.length; if(!out[s]&&hands[s].length>0) return s; } return from; }
+
+function checkEnd(){
+  // 손패가 남은 사람이 1명 이하 → 종료
+  const holders=[]; for(let s=0;s<players.length;s++) if(hands[s].length>0) holders.push(s);
+  if(holders.length<=1){
+    loser = holders.length===1 ? holders[0] : -1;
+    endGame();
+    return true;
+  }
+  return false;
+}
+
+// 한 스텝: turn 플레이어가 target(다음 사람)에게서 1장 뽑기
+function nextStep(){
+  if(phase!=='play') return;
+  if(checkEnd()) return;
+  // turn 유효화
+  if(out[turn]||hands[turn].length===0) turn=firstActive(turn);
+  const target=nextActive(turn);
+  if(target===turn){ checkEnd(); return; }
+  render();
+  if(players[turn].ai){
+    busy=true;
+    setTimeout(()=>{ const idx=Math.floor(Math.random()*hands[target].length); doDraw(turn,target,idx); }, 780);
+  } else {
+    // 사람 차례 → target 패를 클릭해 뽑기
+    busy=false;
+    $('msg').innerHTML=`<b>${esc(players[target].name)}</b>의 패에서 한 장 뽑으세요 👆`;
+    render();
+  }
+}
+
+function doDraw(from,target,idx){
+  if(phase!=='play') return;
+  if(idx<0||idx>=hands[target].length) idx=0;
+  const card=hands[target].splice(idx,1)[0];
+  hands[from].push(card);
+  try{SFX.draw();}catch(e){}
+  lastAct[from]='뽑기';
+  // target 세이프 체크
+  if(hands[target].length===0 && !out[target]){ out[target]=true; lastAct[target]='세이프'; try{SFX.safe();}catch(e){} }
+  render();
+  // 방금 뽑은 카드로 짝 검사
+  busy=true;
+  setTimeout(()=>{
+    const before=hands[from].length;
+    const removed=discardPairs(hands[from]);
+    if(removed.length){ try{SFX.pair();}catch(e){} lastAct[from]='짝!'; }
+    if(hands[from].length===0 && !out[from]){ out[from]=true; lastAct[from]='세이프'; try{SFX.safe();}catch(e){} }
+    render();
+    setTimeout(()=>{
+      lastAct=lastAct.map(()=> '');
+      if(checkEnd()) return;
+      turn=nextActive(from);
+      render(); nextStep();
+    }, removed.length?520:340);
+  }, 420);
+}
+
+function endGame(){
+  phase='over';
+  render();
+  if(loser===MYSEAT){
+    $('resTitle').textContent='🃏 앗, 술래!';
+    $('resBody').innerHTML=`마지막까지 <b style="color:var(--danger)">조커</b>를 들고 있었어요…<br>다음 판엔 짝을 더 빨리 버려봐요!`;
+    try{SFX.lose();}catch(e){}
+  } else if(loser>=0){
+    $('resTitle').textContent='🎉 세이프!';
+    $('resBody').innerHTML=`술래는 <b style="color:var(--brass)">${esc(players[loser].name)}</b>! 당신은 무사히 탈출했어요.`;
+    try{SFX.win();}catch(e){}
+    coinRain();
+  } else {
+    $('resTitle').textContent='게임 종료';
+    $('resBody').innerHTML='무승부로 끝났어요.';
+  }
+  setTimeout(()=>$('resultOv').classList.add('on'), 900);
+}
+
+// ===== 렌더 =====
+function render(){
+  // 상대
+  const opps=$('opps'); opps.innerHTML='';
+  for(let s=0;s<players.length;s++){
+    if(s===MYSEAT) continue;
+    const p=players[s];
+    const isTarget = phase==='play' && !busy && !players[turn].ai && turn===MYSEAT && nextActive(MYSEAT)===s;
+    const el=document.createElement('div');
+    el.className='seat'+(out[s]?' out':'')+(turn===s&&phase==='play'&&!out[s]?' turn':'')+(isTarget?' target':'')+(phase==='over'&&loser===s?' loser':'');
+    // 뒷면 부채(최대 5장 표시)
+    const shown=Math.min(hands[s].length,5);
+    let fan=''; for(let i=0;i<shown;i++){ const clickable=isTarget; fan+=`<div class="mc back${clickable?' pick':''}" data-t="${s}" data-i="${i}"></div>`; }
+    el.innerHTML=`<div class="pbox">`+
+      `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
+      `<div class="pname">${esc(p.name)}</div>`+
+      (out[s]? `<div class="safe">세이프</div>` : `<div class="pcount">🃏 ${hands[s].length}장</div><div class="fan">${fan}</div>`)+
+      (lastAct[s]&&!out[s]? `<div class="pact show">${lastAct[s]}</div>`:'')+
+      `</div>`;
+    opps.appendChild(el);
+  }
+  // 타깃 클릭 핸들러
+  if(phase==='play' && !busy && turn===MYSEAT && !players[MYSEAT].ai){
+    const tgt=nextActive(MYSEAT);
+    opps.querySelectorAll('.mc.pick').forEach(el=>{
+      el.onclick=()=>{
+        if(phase!=='play'||busy||turn!==MYSEAT) return;
+        // 실제 인덱스는 랜덤(부채는 앞 5장만 보여주므로) — 클릭 위치는 연출, 뽑기는 무작위
+        const idx=Math.floor(Math.random()*hands[tgt].length);
+        doDraw(MYSEAT,tgt,idx);
+      };
+    });
+  }
+  // 내 손패
+  const my=hands[MYSEAT]||[];
+  $('myLabel').innerHTML=`${players[MYSEAT]?('🧑 '+esc(players[MYSEAT].name)):''}`+(out[MYSEAT]?' · <span style="color:var(--win)">세이프 ✅</span>':(turn===MYSEAT&&phase==='play'?' · <b style="color:var(--gold)">내 차례</b>':''));
+  $('myCount').textContent = my.length? `${my.length}장` : (out[MYSEAT]?'':'');
+  $('myhand').innerHTML = my.length? my.map(c=>cardFaceHTML(c,'big'+(c.joker?' ':''))).join('') : (out[MYSEAT]?'<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패를 다 버렸어요 🎉</div>':'');
+}
+
+function coinRain(){
+  try{ if(matchMedia('(prefers-reduced-motion: reduce)').matches)return; }catch(e){}
+  const W=innerWidth;
+  for(let i=0;i<18;i++){ const c=document.createElement('div'); c.className='coinrain'; c.textContent=i%3?'🎉':'✨'; c.style.left=(Math.random()*W)+'px'; c.style.transition='transform '+(1.1+Math.random()*.7)+'s cubic-bezier(.4,0,.7,1),opacity .3s'; document.body.appendChild(c);
+    const delay=Math.random()*420, rot=(Math.random()*2-1)*380;
+    setTimeout(()=>{ c.style.transform='translateY('+(innerHeight+90)+'px) rotate('+rot.toFixed(0)+'deg)'; }, delay);
+    setTimeout(()=>{try{c.remove();}catch(e){}}, 2200); }
+}
+
+// 로직 노출(헤드리스 검증용)
+if(typeof module!=='undefined'&&module.exports){ module.exports={makeDeck,discardPairs}; }
+</script>
+</body>
+</html>
