@@ -102,7 +102,7 @@ function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
   return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room), cap:capOf(room),
-    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, specials:room.specials, rule:room.rule, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false,
+    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, specials:room.specials, rule:room.rule, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false, stake:room.stake||'',
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
@@ -312,6 +312,9 @@ wss.on('connection', (ws) => {
 
     } else if (m.t === 'setSpot') {
       if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){ room.spotOn=!!m.v; sendLobby(room); }
+    } else if (m.t === 'setStake') {
+      // 내기(커피·딱밤·심부름 등) — 호스트가 로비에서 정한다. 강제성 없는 사회적 라벨.
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){ room.stake=(''+(m.stake||'')).replace(/[<>]/g,'').slice(0,24); sendLobby(room); }
     } else if (m.t === 'setTeam') {
       if (room.phase==='lobby' && room.teamMode && (m.team===0||m.team===1)){ const me=room.members.find(x=>x.pid===ws.meta.pid); if(me){ me.team=m.team; sendLobby(room); } }
 

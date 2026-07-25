@@ -476,6 +476,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 좁은 폰(≤400px)은 상단바에 ←·제목·모드칩·아이콘3개가 이미 꽉 차서, 레벨 meta-chip까지
      넣으면 제목(h2)이 박스를 넘쳐 칩 위로 겹친다. 레벨은 셋업·결과 화면에 있으니 게임 중엔 숨긴다. */
   @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
+  /* 내기(스테이크) 로비 선택 UI */
+  .stakeRow{ margin:2px 0 12px }
+  .stake-lbl{ font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:7px;text-align:center }
+  .stake-lbl small{ color:var(--muted);font-weight:700;font-size:11px;margin-left:4px }
+  .stake-chips{ display:flex;flex-wrap:wrap;gap:6px;justify-content:center }
+  .stake-chip{ border:1.5px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;font-family:inherit;cursor:pointer;transition:.12s }
+  .stake-chip:disabled{ cursor:default;opacity:.9 }
+  .stake-chip.on{ border-color:var(--brass);background:color-mix(in srgb,var(--brass) 20%,var(--panel2));color:var(--brass) }
+  .stake-chip:not(:disabled):hover{ border-color:color-mix(in srgb,var(--brass) 50%,var(--line)) }
+  .stake-now{ text-align:center;font-size:12.5px;font-weight:800;color:var(--brass);margin-top:9px }
+  .stake-now b{ color:var(--ink) }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -612,6 +623,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <button class="rules-link" id="copyLink">🔗 초대 링크 복사</button>
     <div class="lobbyrules" id="lobbyRules" style="display:none"></div>
     <div class="members" id="members"></div>
+    <div class="stakeRow" id="stakeRow"></div>
     <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
     <div class="waiting-line" id="lobbyWait">상대를 기다리는 중…</div>
     <button class="btn" id="lobbyStart" style="display:none">시작</button>
@@ -1355,6 +1367,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     saveName($('onName').value); mode='online'; connect(()=>{ wsSend({t:'join',code,name}); sendMyAvatar(); }); };
   function switchOnline(){ mode='online'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('diffWrap').style.display='none'; $('matchWrap').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
 
+  // ── 내기(스테이크): 로비에서 호스트가 정하는 사회적 벌칙 라벨(강제성 없음) ──
+  const STAKES=[['','없음','🚫'],['커피','커피','☕'],['딱밤','딱밤','👋'],['심부름','심부름','🏃'],['설거지','설거지','🧹'],['라면','라면','🍜'],['안마','안마','💆']];
+  function renderStake(lb){
+    const row=$('stakeRow'); if(!row||!lb){ if(row)row.innerHTML=''; return; }
+    const amHost=(lb.members||[]).some(x=>x.pid===myPid&&x.host);
+    const cur=lb.stake||'';
+    let h='<div class="stake-lbl">🎯 내기 <small>'+(amHost?'호스트가 골라줘':'호스트가 정함')+'</small></div><div class="stake-chips">';
+    STAKES.forEach(function(s){ const on=(s[0]===cur); h+='<button class="stake-chip'+(on?' on':'')+'" data-v="'+esc(s[0])+'"'+(amHost?'':' disabled')+'>'+s[2]+' '+esc(s[1])+'</button>'; });
+    h+='</div>'+(cur?'<div class="stake-now">진 사람이 <b>'+esc(cur)+'</b> 🫵</div>':'');
+    row.innerHTML=h;
+    if(amHost) row.querySelectorAll('.stake-chip').forEach(function(b){ b.onclick=function(){ try{wsSend({t:'setStake',stake:b.dataset.v});}catch(e){} }; });
+  }
   function renderLobby(){
     if(!lobby) return;
     $('setupOv').classList.remove('on'); $('arena').style.display='none'; document.body.classList.remove('ingame'); $('rollWrap').style.display='none'; $('kbMode').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
@@ -1366,6 +1390,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       lr.style.display='block'; }
     amHostFlag = lobby.members.some(x=>x.host && x.pid===myPid);
     { const lc=$('lobbyClose'); if(lc) lc.style.display = amHostFlag ? 'block' : 'none'; }   // 방 파하기: 호스트만
+    renderStake(lobby);   // 내기 선택 영역
     const host = $('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{
       const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
