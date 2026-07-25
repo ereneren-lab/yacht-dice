@@ -476,6 +476,11 @@
       // 이번 라운드 행동해야 할 사람(살아있고 안 죽고 올인 아님)
       this.toAct = new Set();
       for (let s = 0; s < this.N; s++) if (this.inHand[s] && !this.folded[s] && !this.allin[s]) this.toAct.add(s);
+      // 행동 가능자가 없으면(남은 전원 올인) 베팅 라운드를 열지 않는다.
+      // 열면 _firstToAct가 폴드된 딜러 좌석을 폴백 반환→_maybeAI가 타이머를 안 걸고,
+      // 섯다엔 사람용 턴 타임아웃도 없어 phase:'bet'에서 판이 영구 정지한다(온라인 방 얼어붙음).
+      // → 즉시 라운드 종료: 라운드1이면 2장째 딜 후 재확인, 라운드2면 쇼다운으로 간다.
+      if (this.toAct.size === 0) { this._endBetRound(); return; }
       // 선부터
       this.turn = this._firstToAct();
       this.phase = 'bet';
