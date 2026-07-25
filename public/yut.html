@@ -2221,8 +2221,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(nearBottom || pid===MYPID) log.scrollTop=log.scrollHeight;
   }
   function floatReaction(pid,emoji){
-    const strip=document.querySelector('.pchip[data-pid="'+pid+'"]')||$('board')||document.body;
-    const r=strip.getBoundingClientRect(), cx=r.left+r.width/2;
+    // 단계마다 그 플레이어를 나타내는 '보이는' 요소가 다르다: 게임 중엔 캐릭터 카드(#charCards
+    // .ccard), 선 뽑기·로비 땐 상단 칩(.pchip). 숨겨진 요소는 getBoundingClientRect가 0을 주는데,
+    // 예전엔 무조건 .pchip을 잡아 게임 중(strip이 display:none)엔 이모지가 좌상단(0,0)에 떴다.
+    // → rect가 실제로 보이는(0이 아닌) 첫 앵커를 고르고, 없으면 보드 중앙으로.
+    const pick=(sel)=>{ const e=document.querySelector(sel); if(!e) return null; const b=e.getBoundingClientRect(); return (b.width||b.height)?b:null; };
+    let r=pick('#charCards .ccard[data-pid="'+pid+'"]')||pick('.pchip[data-pid="'+pid+'"]');
+    if(!r){ const bd=$('board'); r=(bd||document.body).getBoundingClientRect(); }
+    const cx=r.left+r.width/2;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.~]/.test(emoji);
     const el=document.createElement('div'); el.className='floatemo'+(isText?' txt':''); el.textContent=emoji;
     if(isText){ el.style.left=cx+'px'; el.style.top=(r.top-8)+'px'; }
