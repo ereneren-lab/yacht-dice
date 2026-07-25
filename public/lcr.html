@@ -129,6 +129,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .codebox{ text-align:center;margin:10px 0 }
   .codebox .code{ font-size:32px;font-weight:900;letter-spacing:.1em;color:var(--brass) }
   .members{ display:flex;flex-direction:column;gap:8px;margin:12px 0 }
+  /* 내기(스테이크) 로비 선택 UI */
+  .stakeRow{ margin:2px 0 12px }
+  .stake-lbl{ font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:7px;text-align:center }
+  .stake-lbl small{ color:var(--muted);font-weight:700;font-size:11px;margin-left:4px }
+  .stake-chips{ display:flex;flex-wrap:wrap;gap:6px;justify-content:center }
+  .stake-chip{ border:1.5px solid var(--line);background:var(--panel2,var(--panel));color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;font-family:inherit;cursor:pointer;transition:.12s }
+  .stake-chip:disabled{ cursor:default;opacity:.9 }
+  .stake-chip.on{ border-color:var(--brass,#e0a23c);background:color-mix(in srgb,var(--brass,#e0a23c) 20%,var(--panel2,var(--panel)));color:var(--brass,#e0a23c) }
+  .stake-chip:not(:disabled):hover{ border-color:color-mix(in srgb,var(--brass,#e0a23c) 50%,var(--line)) }
+  .stake-now{ text-align:center;font-size:12.5px;font-weight:800;color:var(--brass,#e0a23c);margin-top:9px }
+  .stake-now b{ color:var(--ink) }
   .member{ display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px }
   .member .mav{ font-size:20px }
   .member .mnm{ font-weight:800;font-size:14px }
@@ -440,6 +451,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="codebox"><div class="potl" style="color:var(--muted);font-size:11px">방 코드 · 친구에게 공유</div><div class="code" id="lobbyCode">----</div></div>
       <button class="btn ghost" id="lobbyCopy" style="margin-bottom:8px">🔗 초대 링크 복사</button>
       <div class="members" id="members"></div>
+      <div class="stakeRow" id="stakeRow"></div>
       <button class="btn ghost" id="lobbyAddAi" style="display:none;margin-bottom:8px">🤖 AI 추가</button>
       <div class="waiting-line" id="lobbyRules" style="display:none"></div>
       <div class="waiting-line" id="lobbyWait">상대를 기다리는 중… (3~6인)</div>
@@ -1242,8 +1254,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     else if(m.t==='rematchCancelled'){ resetRematchUI(); showToast('인원이 부족해 재경기가 취소됐어요'); }
   }
+  const STAKES=[['','없음','🚫'],['커피','커피','☕'],['딱밤','딱밤','👋'],['심부름','심부름','🏃'],['설거지','설거지','🧹'],['라면','라면','🍜'],['안마','안마','💆']];
+  function renderStake(lb){
+    const row=$('stakeRow'); if(!row||!lb){ if(row)row.innerHTML=''; return; }
+    const amHost=(lb.members||[]).some(x=>x.pid===MYPID&&x.host);
+    const cur=lb.stake||'';
+    let h='<div class="stake-lbl">🎯 내기 <small>'+(amHost?'호스트가 골라줘':'호스트가 정함')+'</small></div><div class="stake-chips">';
+    STAKES.forEach(function(s){ const on=(s[0]===cur); h+='<button class="stake-chip'+(on?' on':'')+'" data-v="'+esc(s[0])+'"'+(amHost?'':' disabled')+'>'+s[2]+' '+esc(s[1])+'</button>'; });
+    h+='</div>'+(cur?'<div class="stake-now">진 사람이 <b>'+esc(cur)+'</b> 🫵</div>':'');
+    row.innerHTML=h;
+    if(amHost) row.querySelectorAll('.stake-chip').forEach(function(b){ b.onclick=function(){ try{wsSend({t:'setStake',stake:b.dataset.v});}catch(e){} }; });
+  }
   function renderLobby(){
     if(!lobby)return;
+    renderStake(lobby);
     $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none';
     $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;

@@ -100,6 +100,17 @@
   .row2 .btn{margin-top:0}
   .roomcode{font-size:30px;font-weight:800;letter-spacing:.18em;text-align:center;background:var(--panel2);border-radius:12px;padding:14px;margin:4px 0 4px;color:var(--accent)}
   .members{display:flex;flex-direction:column;gap:8px}
+  /* 내기(스테이크) 로비 선택 UI */
+  .stakeRow{ margin:2px 0 12px }
+  .stake-lbl{ font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:7px;text-align:center }
+  .stake-lbl small{ color:var(--muted);font-weight:700;font-size:11px;margin-left:4px }
+  .stake-chips{ display:flex;flex-wrap:wrap;gap:6px;justify-content:center }
+  .stake-chip{ border:1.5px solid var(--line);background:var(--panel2,var(--panel));color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;font-family:inherit;cursor:pointer;transition:.12s }
+  .stake-chip:disabled{ cursor:default;opacity:.9 }
+  .stake-chip.on{ border-color:var(--gold,#e0a23c);background:color-mix(in srgb,var(--gold,#e0a23c) 20%,var(--panel2,var(--panel)));color:var(--gold,#e0a23c) }
+  .stake-chip:not(:disabled):hover{ border-color:color-mix(in srgb,var(--gold,#e0a23c) 50%,var(--line)) }
+  .stake-now{ text-align:center;font-size:12.5px;font-weight:800;color:var(--gold,#e0a23c);margin-top:9px }
+  .stake-now b{ color:var(--ink) }
   .member{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:10px;padding:10px 12px;font-weight:600}
   .member .swatch{width:12px;height:12px;border-radius:4px;flex:none}
   .member .host{font-size:10px;font-weight:800;letter-spacing:.04em;background:var(--gold);color:#3a2a00;padding:2px 6px;border-radius:5px;margin-left:auto}
@@ -1096,6 +1107,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <div class="optrow" style="margin-top:8px"><div class="toggle" id="fastToggleO"><div class="switch"></div>AI 빠르게</div></div>
           <div class="lbl mt" data-setlbl="members">참가자</div>
           <div class="members" id="members"></div>
+          <div class="stakeRow" id="stakeRow"></div>
           <button class="btn ghost" id="addAiBtn" style="margin-top:10px">AI 추가</button>
           <button class="btn" id="startOnline">게임 시작</button>
           <div class="modedesc" id="lobbyWait" style="margin-top:12px;text-align:center"></div>
@@ -2306,7 +2318,19 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 방 파하기: 호스트가 방 자체를 없앤다(자리·재접속 정보까지 사라짐) — 되돌릴 수 없어 확인받는다
   $('closeRoomBtn').onclick=()=>{ if(isOnline() && amHost() && confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); };
   { const lc=$('lobbyClose'); if(lc) lc.onclick=()=>{ if(isOnline()&&amHost()&&confirm('방을 파하고 모두 내보낼까요? 되돌릴 수 없어요.')) wsSend({t:'closeRoom'}); }; }
-  function enterLobby(){ $('onlineJoin').style.display='none'; $('lobby').style.display='block'; $('lobbyCode').textContent=lobby.code;
+  const STAKES=[['','없음','🚫'],['커피','커피','☕'],['딱밤','딱밤','👋'],['심부름','심부름','🏃'],['설거지','설거지','🧹'],['라면','라면','🍜'],['안마','안마','💆']];
+  function renderStake(lb){
+    const row=$('stakeRow'); if(!row||!lb){ if(row)row.innerHTML=''; return; }
+    const E=function(s){ return (''+s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+    const amH=(lb.members||[]).some(x=>x.pid===myPid&&x.host);
+    const cur=lb.stake||'';
+    let h='<div class="stake-lbl">🎯 내기 <small>'+(amH?'호스트가 골라줘':'호스트가 정함')+'</small></div><div class="stake-chips">';
+    STAKES.forEach(function(s){ const on=(s[0]===cur); h+='<button class="stake-chip'+(on?' on':'')+'" data-v="'+E(s[0])+'"'+(amH?'':' disabled')+'>'+s[2]+' '+E(s[1])+'</button>'; });
+    h+='</div>'+(cur?'<div class="stake-now">진 사람이 <b>'+E(cur)+'</b> 🫵</div>':'');
+    row.innerHTML=h;
+    if(amH) row.querySelectorAll('.stake-chip').forEach(function(b){ b.onclick=function(){ try{wsSend({t:'setStake',stake:b.dataset.v});}catch(e){} }; });
+  }
+  function enterLobby(){ $('onlineJoin').style.display='none'; $('lobby').style.display='block'; $('lobbyCode').textContent=lobby.code; renderStake(lobby);
     const me=lobby.members.find(u=>u.pid===myPid); if(me&&document.activeElement!==$('lobbyName'))$('lobbyName').value=me.name;
     if(!avatarPushed){ avatarPushed=true; const sa=getStoredAvatar(); if(sa&&me&&me.avatar!==sa)wsSend({t:'setAvatar',emoji:sa}); }  // 저장된 공유 아바타를 기본값으로 1회 반영
     $('hostOnly').textContent=amHost()?'':'(호스트가 선택)'; $('diffHostOnly').textContent=amHost()?'':'(호스트가 선택)';
