@@ -43,8 +43,10 @@ for (const game of Object.keys(MAP)) {
   }
 
   // 마커 사이(마커 라인 자체는 보존)를 <script>\n{core}\n</script>로 치환.
+  // \r?\n: CRLF(윈도우 줄바꿈) 파일도 매칭 — 수동 생성된 인라인 사본(yacht/alkkagi/seotda)이 CRLF라
+  // START 마커 뒤가 \r\n이면 \n만으론 매칭 실패해 "마커 없음"으로 오인됐다.
   const re = new RegExp(
-    `(<!-- CORE:${game} START[^\\n]*-->)\\n[\\s\\S]*?\\n(<!-- CORE:${game} END -->)`
+    `(<!-- CORE:${game} START[^\\n]*-->)\\r?\\n[\\s\\S]*?\\r?\\n(<!-- CORE:${game} END -->)`
   );
   if (!re.test(html)) {
     console.error(`✗ [${game}] ${htmlName}에 CORE:${game} 마커(START/END)가 없습니다. 마커를 먼저 삽입하세요.`);
