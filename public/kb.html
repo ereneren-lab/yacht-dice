@@ -710,6 +710,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       <div class="growthbox" id="resGrowth" style="display:none"></div>
       <div id="resultBtns">
         <button class="btn" id="againBtn">다시 한 판</button>
+        <button class="btn ghost" id="resetupBtn" style="margin-top:10px;display:none">⚙️ 설정 바꿔 다시</button>
         <button class="btn ghost" id="toLobbyBtn" style="margin-top:10px;display:none">🏛 로비로</button>
         <button class="btn ghost" id="shareBtn" style="margin-top:10px">📤 결과 자랑하기</button>
         <button class="btn ghost" id="imgShareBtn" style="margin-top:10px">🖼️ 이미지로 공유</button>
@@ -1063,6 +1064,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   };
   // 진짜 로비 복귀: 판이 끝난 뒤엔 누구나 방을 로비로 되돌릴 수 있다(서버가 종료 상태에서 허용).
   $('toLobbyBtn').onclick = ()=>{ if(online()) wsSend({t:'endGame'}); };
+  // 로컬/AI 게임 종료 후 '설정 바꿔 다시' — 결과창 닫고 셋업 오버레이로(모드·난이도·매치 변경 가능)
+  $('resetupBtn').onclick = ()=>{ $('resultOv').classList.remove('on'); document.body.classList.remove('ingame'); $('arena').style.display='none'; $('rollWrap').style.display='none'; try{stopBlink();stopTimer();}catch(e){} S=null; openSetup(); };
   // 재경기 대기 30초 카운트다운 (서버도 30초 후 무응답 처리)
   let rematchTimer=null, rematchLeft=30;
   function stopRematchCountdown(){ if(rematchTimer){ clearInterval(rematchTimer); rematchTimer=null; } }
@@ -1855,6 +1858,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('againBtn').textContent = online() ? '🔄 다시 하기 (재경기 제안)' : (mi && !mi.matchOver ? '다음 판 ▶' : (mi ? '새 매치 ▶' : '다시 한 판'));
     $('againBtn').disabled = false;
     $('toLobbyBtn').style.display = online() ? 'block' : 'none';
+    $('resetupBtn').style.display = online() ? 'none' : 'block';   // 로컬/AI: 설정 바꿔 다시
     $('toLobbyBtn').textContent = (online() && amHostFlag) ? '🏛 판 끝내고 로비로 (모두)' : '🏛 로비로';
     { const cb=$('closeRoomBtn'); if(cb) cb.style.display = (online() && amHostFlag) ? 'block' : 'none'; }   // 방 파하기: 호스트만
     $('resultOv').classList.add('on');
