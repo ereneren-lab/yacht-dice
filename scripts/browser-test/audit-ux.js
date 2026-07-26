@@ -115,7 +115,10 @@ const LIST = ONLY.length ? GAMES.filter(x => ONLY.includes(x.g)) : GAMES;
 
         rec.setup = await page.eval(OVER);
         rec.startBtn = await page.eval(visFn(G.start));
-        rec.tutBtn = G.tut ? await page.eval(visFn(G.tut)) : null;
+        /* 튜토리얼 버튼 — 자체 구현(G.tut)이 있으면 그걸, 없으면 공용 모듈이 다는 #tutOpenBtn을 본다.
+           v1.227에서 9종에 공용 튜토리얼이 붙었는데 이 표를 안 고쳐서 "튜토리얼 없음"으로 잘못 나왔다. */
+        rec.tutBtn = await page.eval(visFn(G.tut || '#tutOpenBtn'));
+        if (!G.tut && (!rec.tutBtn || !rec.tutBtn.found)) rec.tutBtn = await page.eval(visFn('#tutOpenBtn'));
 
         // ── 룰 오버레이 (셋업에서)
         rec.helpBtn = await page.eval(visFn(G.help));
@@ -186,7 +189,9 @@ const LIST = ONLY.length ? GAMES.filter(x => ONLY.includes(x.g)) : GAMES;
   for (const G of LIST) {
     const mine = rows.filter(r => r.g === G.g);
     const okIn = mine.filter(r => r.helpIn && r.helpIn.shown && r.helpIn.inView).length;
-    const tut = G.tut ? (mine.some(r => r.tutBtn && r.tutBtn.shown) ? '튜토리얼 있음' : `튜토리얼 버튼(${G.tut}) 안 보임`) : '튜토리얼 없음';
+    const shown = mine.some(r => r.tutBtn && r.tutBtn.shown);
+    const tut = shown ? ('튜토리얼 있음' + (G.tut ? '(자체)' : '(공용 tutorial.js)'))
+                      : `튜토리얼 버튼(${G.tut || '#tutOpenBtn'}) 안 보임`;
     P(`${okIn === mine.length ? '✅' : '⚠️ '} ${G.g.padEnd(12)} 인게임 룰버튼 ${okIn}/${mine.length} 폭에서 접근 가능 · ${tut}`);
   }
 
