@@ -23,6 +23,7 @@ const MAP = {
   yacht:   ['game-core.js',    'yacht.html'],
   alkkagi: ['alkkagi-core.js', 'alkkagi.html'],
   seotda:  ['seotda-core.js',  'seotda.html'],
+  indianpoker: ['indianpoker-core.js', 'indianpoker.html'],
 };
 
 let hadError = false;

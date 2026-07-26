@@ -11,20 +11,24 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 
 ## 게임과 파일
 
-| 게임 | HTML | 엔진 파일 (서버용) | HTML 내 인라인 사본 |
-|------|------|--------------------|---------------------|
-| 윷놀이 | `public/yut.html` | `public/yut-core.js` | yut.html 526행~ |
-| 요트 다이스 | `public/yacht.html` | `public/game-core.js` | yacht.html 658행~ |
-| 너클본즈 | `public/kb.html` | `public/kb-core.js` | kb.html 485행~ |
-| 라이어 다이스 | `public/ld.html` | `public/ld-core.js` | ld.html 448행~ |
-| 좌·중·우(LCR) | `public/lcr.html` | `public/lcr-core.js` | lcr.html 308행~ |
+| 게임 | HTML | 엔진 파일 | 온라인 |
+|------|------|-----------|--------|
+| 윷놀이 | `public/yut.html` | `public/yut-core.js` | ✅ |
+| 요트 다이스 | `public/yacht.html` | `public/game-core.js` | ✅ |
+| 너클본즈 | `public/kb.html` | `public/kb-core.js` | ✅ |
+| 라이어 다이스 | `public/ld.html` | `public/ld-core.js` | ✅ |
+| 좌·중·우(LCR) | `public/lcr.html` | `public/lcr-core.js` | ✅ |
+| 알까기 | `public/alkkagi.html` | `public/alkkagi-core.js` | ✅ |
+| 섯다 | `public/seotda.html` | `public/seotda-core.js` | — (로컬/AI) |
+| 인디언 포커 | `public/indianpoker.html` | `public/indianpoker-core.js` | — (로컬/AI · v1.232 코어 분리) |
+| 카드 5종 | `blackjack`·`baccarat`·`highlow`·`onecard`·`oldmaid`.html | (코어 없음 — HTML 안) | — |
 | 허브 | `public/index.html` | — | — |
 
 서버는 게임 엔진을 `require`해서 방마다 인스턴스 1개를 돌린다(권위 서버). 클라는 상태 스냅샷을 받아 렌더만 한다.
 
-## ⚠️ 엔진 이중 구조 (제일 중요) — 윷만이 아니라 **5종 전부**
+## ⚠️ 엔진 이중 구조 (제일 중요) — 코어가 있는 **8종 전부**
 
-**모든 게임 엔진은 `*-core.js`(서버가 `require`)와 해당 HTML 안 인라인 사본(브라우저용) 두 곳에 동일하게 존재한다.** 한쪽만 고치면 로컬/온라인 동작이 갈린다(드리프트).
+**코어가 있는 게임 엔진은 `*-core.js`(서버가 `require`)와 해당 HTML 안 인라인 사본(브라우저용) 두 곳에 동일하게 존재한다.** 한쪽만 고치면 로컬/온라인 동작이 갈린다(드리프트).
 
 **✅ 단일 소스화 완료 — 엔진은 `*-core.js`만 고치고 `npm run build`.** 빌드 스크립트(`scripts/build-inline.js`)가 core를 각 HTML의 `<!-- CORE:x START -->`~`<!-- CORE:x END -->` 마커 사이에 자동 주입한다. **HTML의 CORE 마커 블록은 직접 손대지 말 것**(빌드가 덮어씀). UI·렌더 등 엔진이 아닌 코드는 마커 바깥에서 평소처럼 HTML을 고친다.
 
@@ -32,12 +36,9 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 - UMD 래퍼가 Node에선 `module.exports`, 브라우저에선 `window.YutCore` / `LCRCore` 등으로 갈라주므로 **같은 소스를 양쪽에 그대로** 쓸 수 있다.
 - `lcr`의 인라인 사본은 과거 한 줄로 압축한 다른 포맷이었으나, **빌드 도입 시 core 원본으로 정규화**되어 이제 5종 모두 core와 동일 포맷이다.
 
-동기화 확인법 — **`npm run check:drift`** (커밋/배포 전 실행, 5종 OK 확인 · 드리프트면 exit 1). 아래는 그 내부 로직(수동 대조용):
-```bash
-node -e 'const fs=require("fs");const s=x=>x.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\/\/.*$/gm,"").replace(/\s+/g,"");
-for(const[n,c,h]of[["yut","yut-core.js","yut.html"],["kb","kb-core.js","kb.html"],["ld","ld-core.js","ld.html"],["lcr","lcr-core.js","lcr.html"],["yacht","game-core.js","yacht.html"]])
-console.log(n, s(fs.readFileSync("public/"+h,"utf8")).includes(s(fs.readFileSync("public/"+c,"utf8")))?"OK":"DRIFT")'
-```
+동기화 확인법 — **`npm run check:drift`** (커밋/배포 전 실행, **8종** OK 확인 · 드리프트면 exit 1).
+게임을 새로 코어 분리하면 `scripts/build-inline.js`의 `MAP`과 `scripts/check-drift.js`의 `CASES` **양쪽에** 추가해야 한다(한쪽만 넣으면 검사에서 조용히 빠진다).
+⚠️ CORE 마커는 START/END **사이에 최소 한 줄**이 있어야 정규식이 잡는다 — 두 줄을 붙여 넣으면 "마커 없음"으로 실패한다.
 
 > 빌드/검사 스크립트: `scripts/build-inline.js`(core→HTML 주입), `scripts/check-drift.js`(드리프트 검사). `package.json`의 `npm run build` / `npm run check:drift`. 빌드는 멱등(같은 입력이면 재실행해도 변화 없음).
 
@@ -140,7 +141,13 @@ git add -A && git commit -m "..." && git push
 
 13. **CDP 테스트에서 게임의 `S`(상태) 변수를 못 읽을 수 있다** — IIFE 안에 있으면 `Runtime.evaluate`로 접근이 안 된다(ld·lcr이 그렇고, 섯다는 된다). 이걸 "기능이 안 된다"로 오진하기 쉽다. → **DOM으로 단언할 것.** 사용자가 실제로 보는 것을 검증하는 게 더 정직하다.
 
-14. **첫 방문 오버레이가 자동 테스트를 깨뜨린다** — 튜토리얼·규칙이 처음 방문에 자동으로 떠서 시작 버튼 클릭을 막는다. 감사·테스트는 시작 전에 `TUT.close()` + `#helpClose/#rulesClose`를 먼저 눌러야 한다.
+14. **`serialize(viewerPid)`가 가리는 대상은 게임마다 다르다 (v1.232)** — 라이어·섯다는 '남'을 가리지만
+   **인디언 포커는 '보는 사람 자신'을 가린다**(남의 카드는 다 보이고 내 것만 안 보이는 게임). 다른 코어를 복사해
+   `s !== vseat`를 그대로 쓰면 **게임이 통째로 뒤집힌다** — 그런데 화면은 멀쩡해 보여서 눈치채기 어렵다.
+   → 새 게임의 코어를 만들 땐 "이 게임에서 **누가 무엇을 볼 수 없나**"를 먼저 한 줄로 적고 시작할 것.
+   회귀 단언: 판 중(`phase==='bet'`)에 `serialize(나).myCard`가 null이고 `players[상대].card`는 non-null.
+
+15. **첫 방문 오버레이가 자동 테스트를 깨뜨린다** — 튜토리얼·규칙이 처음 방문에 자동으로 떠서 시작 버튼 클릭을 막는다. 감사·테스트는 시작 전에 `TUT.close()` + `#helpClose/#rulesClose`를 먼저 눌러야 한다.
 
 ## 📖 튜토리얼 (공용 모듈 · v1.227)
 
@@ -156,7 +163,7 @@ git add -A && git commit -m "..." && git push
 - 단계 내용은 `scripts/add-tutorials.js`에 모여 있다(멱등 — 다시 돌려도 중복 삽입 안 됨).
 - 첫 방문 1회만 자동 오픈(`alley_tut_<game>`), `body.ingame`이면 안 뜬다. 검사: **`npm run test:tutorial`**
 
-## 🎁 아이템전 (6종)
+## 🎁 아이템전 (8종)
 
 | 게임 | 아이템 | 액션 |
 |---|---|---|
@@ -166,11 +173,16 @@ git add -A && git commit -m "..." && git push
 | 라이어 | 👁 훔쳐보기 | `{type:'peek'}` |
 | 좌·중·우 | 🛡 칩 지키기 | `{type:'shield'}` (굴리기 **전** 예약) |
 | 섯다 | 🃏 한 장 다시 | `{type:'redraw',idx}` (로컬 전용) |
+| 알까기 | 🎯 한 번 더 튕기기 | `{type:'extraShot'}` (조준 **전** 예약) |
+| 인디언 포커 | 🔍 내 카드 보기 | `{type:'peek'}` (내 차례 · 한 판 1회 · 로컬 전용) |
 
 **규칙(재성님 지시)**: 아이템은 **아이템전에서만** · **전원 같은 개수**(엔진이 지급) · 상점에서 개수 판매 금지 · **AI도 반드시 쓴다.**
 - 윷은 별도 아이템을 추가하지 않았다 — 이미 아이템전이 있어서 같은 이름 두 시스템이 되면 헷갈린다. 대신 **AI가 `useItem`을 한 번도 부르지 않던 공정성 버그**를 고쳤다(v1.227).
 - 라이어는 훔쳐본 눈을 `serialize(viewerPid)`의 `peeked`에 실어 보내고, `aiDecide`가 그걸 '아는 눈'으로 쓴다 → **AI 전용 분기 없이** 판단이 정확해진다. `myPeeks`는 **보는 사람 것만** 실어야 한다(남의 것이 섞이면 그게 정보 누출).
-- 검사: `npm run test:items`(kb·요트) · `npm run test:items:more`(라이어·좌중우·섯다) · `npm run test:items:online`
+- 인디언 포커는 **숨김정보가 거꾸로**다(남의 카드는 다 보이고 내 것만 안 보임) → 아이템도 '내 카드 보기'다.
+  아이템을 쓰면 상대 카드가 전부 보이는 이 게임에선 **승패가 사실상 확정**되므로, 판당 1회·게임당 2개로 묶었다.
+  `estimateWin(seen, my, opp)`이 `my!=null`이면 0.97/0.03을 돌려주고 AI는 기존 판단 트리를 그대로 쓴다(아이템 전용 분기 없음).
+- 검사: `npm run test:items`(kb·요트) · `npm run test:items:more`(라이어·좌중우·섯다·알까기·인디언) · `npm run test:items:online`
 
 ## 코딩 규칙
 

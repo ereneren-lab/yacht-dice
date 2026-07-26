@@ -1,5 +1,6 @@
 /**
- * v1.227에서 아이템전이 붙은 3종 검증 (라이어 '훔쳐보기' · 좌중우 '칩 지키기' · 섯다 '한 장 다시').
+ * 아이템전 5종 검증 — 라이어 '훔쳐보기' · 좌중우 '칩 지키기' · 섯다 '한 장 다시'
+ *                      · 알까기 '한 번 더 튕기기' · 인디언 포커 '내 카드 보기'.
  *  ① 아이템전을 끄면 버튼이 아예 안 보인다
  *  ② 켜면 버튼이 남은 개수와 함께 보인다
  *  ③ 누르면 개수가 줄고 효과가 실제로 반영된다
@@ -179,7 +180,51 @@ const CLOSE_TUT = `try{ if(window.TUT) TUT.close();
     await p.close();
   }
 
+  /* ───────────── 인디언 포커 — 내 카드 보기 ─────────────
+     이 게임만 숨김정보가 거꾸로다(남의 카드는 다 보이고 내 것만 안 보임).
+     그래서 단언도 반대로 한다 — 아이템을 쓰면 '내 카드'가 앞면이 되어야 한다. */
+  console.log('\n=== 인디언 포커 · 내 카드 보기 ===');
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/indianpoker.html');
+      await p.wait(900); await p.eval(CLOSE_TUT); await p.wait(200);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(1500);
+
+      // 남의 카드는 판이 깔리면 늘 보여야 한다(이 게임의 핵심)
+      const opp = await p.eval(`return document.querySelectorAll('#opps .fc:not(.back)').length;`);
+      if (!opp) bad('인디언: 상대 카드가 안 보인다(이 게임은 남의 카드가 보여야 한다)');
+      else ok('상대 카드 ' + opp + '장 공개됨');
+
+      const s1 = await p.eval(`var b=document.getElementById('itemPeek');
+        return { has:!!b, txt:b?b.textContent:'', myBack: !!document.querySelector('#mine .fc.back') };`);
+      if (!s1.myBack) bad('인디언: 아이템 쓰기 전인데 내 카드가 앞면이다');
+      if (!on) {
+        if (s1.has) bad('인디언: 껐는데 "내 카드 보기" 버튼이 보인다'); else ok('꺼짐 → 버튼 없음');
+      } else if (!s1.has) {
+        bad('인디언: 켰는데 버튼이 없다 (내 차례가 아닐 수 있음)');
+      } else {
+        ok('켜짐 → 버튼 "' + s1.txt.trim() + '"');
+        const n0 = +(s1.txt.match(/\((\d+)\)/) || [])[1];
+        await p.click('#itemPeek'); await p.wait(700);
+        const s2 = await p.eval(`var b=document.getElementById('itemPeek');
+          var mine=document.querySelector('#mine .fc'); var hint=document.querySelector('#mine .myhint');
+          return { still:!!b, face: mine?!mine.classList.contains('back'):false,
+                   num: mine?(mine.querySelector('.num')||{}).textContent||'':'',
+                   hint: hint?hint.textContent.trim():'' };`);
+        if (!s2.face) bad('인디언: 아이템을 썼는데 내 카드가 그대로 뒷면이다');
+        else ok('내 카드가 공개됨 — ' + s2.num + ' · "' + s2.hint + '"');
+        if (s2.still) bad('인디언: 한 판에 두 번 쓸 수 있다(버튼이 남아 있음)');
+        else ok(`한 판 1회 제한 — 버튼 사라짐 (${n0}개에서 1 소모)`);
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('인디언 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('인디언 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
   await cdp.close();
-  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 4종 통과');
+  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 5종 통과');
   process.exit(fails ? 1 : 0);
 })();
