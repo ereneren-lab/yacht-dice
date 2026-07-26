@@ -149,7 +149,37 @@ const CLOSE_TUT = `try{ if(window.TUT) TUT.close();
     await p.close();
   }
 
+  /* ───────────── 알까기 — 한 번 더 튕기기 ───────────── */
+  console.log('\n=== 알까기 · 한 번 더 튕기기 ===');
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/alkkagi.html');
+      await p.wait(1100); await p.eval(CLOSE_TUT); await p.wait(250);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(2000);
+      const s1 = await p.eval(`var b=document.getElementById('itemExtra');
+        return { shown: !!b && getComputedStyle(b).display!=='none', txt:b?b.textContent:'' };`);
+      if (!on) {
+        if (s1.shown) bad('알까기: 껐는데 버튼이 보인다'); else ok('꺼짐 → 버튼 숨김');
+      } else if (!s1.shown) bad('알까기: 켰는데 버튼이 안 보인다');
+      else {
+        ok('켜짐 → 버튼 "' + s1.txt.trim() + '"');
+        const n0 = +(s1.txt.match(/\((\d+)\)/) || [])[1];
+        await p.click('#itemExtra'); await p.wait(600);
+        const s2 = await p.eval(`var b=document.getElementById('itemExtra');
+          return { txt:b.textContent, dis:!!b.disabled };`);
+        if (!/예약됨/.test(s2.txt)) bad(`알까기: 예약이 화면에 안 반영됨 — "${s2.txt.trim()}"`);
+        else ok(`예약됨 → "${s2.txt.trim()}" (개수 ${n0}에서 1 소모)`);
+        if (!s2.dis) bad('알까기: 예약 후에도 또 눌린다(중복 소모)'); else ok('중복 예약 차단됨');
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('알까기 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('알까기 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
   await cdp.close();
-  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 3종 통과');
+  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 4종 통과');
   process.exit(fails ? 1 : 0);
 })();

@@ -250,6 +250,11 @@
         <div class="opt on" data-g="1">궤적 프리뷰 · 켜짐</div>
         <div class="opt" data-g="0">끔</div>
       </div>
+      <div class="lbl">아이템전</div>
+      <div class="row" id="optItems">
+        <div class="opt on" data-items="0">끄기</div>
+        <div class="opt" data-items="1">🎯 한 번 더 튕기기 ×2</div>
+      </div>
       <div class="lbl">이름</div>
       <input type="text" id="myName" maxlength="12" placeholder="너의 별명">
       <div class="row" id="startRow" style="margin-top:14px">
@@ -668,6 +673,14 @@
       this.extraFlickCap = opt.extraFlickCap != null ? opt.extraFlickCap : 1;
       this.extraFlickCount = 0;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 번 더 튕기기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         알까기엔 이미 '잡으면 한 번 더'(extraFlick)가 있으니 그 규칙에 얹는다 —
+         조준 중에 켜두면 이번 발사 뒤 턴을 넘기지 않고 한 번 더 쏜다. */
+      this.itemsOn = !!opt.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opt.itemCharges != null ? opt.itemCharges | 0 : 2));
+      this.items = [];
+      this.extraArmed = [];             // 자리별 '이번 발사 뒤 한 번 더' 예약
       this.turn = 0;                    // 0 or 1
       this.winner = null; this.winnerTeam = null;
       this.lastSim = null;              // { frames, events, final, actorSeat, flick }
@@ -687,6 +700,8 @@
     start() {
       if (this._dead) return;
       this.gameStartTime = Date.now();
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.extraArmed = this.players.map(() => false);
       this._emit();
       this._maybeAI();
     }
@@ -720,6 +735,7 @@
       if (this._dead || this.phase !== 'aim') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0 || seat !== this.turn) return;
+      if (a.type === 'extraShot') { this._armExtra(seat); return; }
       if (a.type !== 'flick') return;
       const flick = this._validateFlick(seat, a);
       if (!flick) return;
@@ -727,6 +743,28 @@
       this._runSim(flick);
     }
 
+    /* 아이템전 '한 번 더 튕기기' 예약 — 조준 중(aim)에, 내 차례에만, 중복 예약은 무시.
+       개수는 전원이 똑같이 받으므로(엔진이 지급) 돈으로 유리해질 여지가 없다. */
+    _armExtra(seat) {
+      if (!this.itemsOn) return;
+      if (this.phase !== 'aim' || seat !== this.turn) return;
+      if (this.extraArmed[seat]) return;
+      if (!(this.items[seat] > 0)) return;
+      this.items[seat]--;
+      this.extraArmed[seat] = true;
+      this._emit();
+    }
+    /* AI가 쓸지 — 돌 수가 밀릴 때만(한 발이 아쉬운 상황). 넉넉할 땐 아껴둔다. */
+    _aiWantsExtra(seat) {
+      if (!this.itemsOn || !(this.items[seat] > 0) || this.extraArmed[seat]) return false;
+      const my = this.teamOf(seat);
+      let mine = 0, theirs = 0;
+      for (const s of (this.stones || [])) {
+        if (!s.alive) continue;          // 돌은 alive 플래그를 쓴다(dead 아님)
+        if (s.team === my) mine++; else theirs++;   // 돌에는 team만 있고 seat은 없다
+      }
+      return mine < theirs;
+    }
     _runSim(flick) {
       // 삑사리: 실행 직전에만 플릭을 틀어 준다. simulate()·AI 후보 채점은 깨끗한 값으로 돌아
       //   AI는 "정확히 맞았다면"을 기준으로 조준하고, 실제 발사에서 세게 치면 사람처럼 빗나간다.
@@ -766,6 +804,10 @@
         this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
       } else if (doubleShotContinue) {
         // 턴 유지(2발째) — 카운터 그대로
+      } else if (this.extraArmed[actor]) {
+        // 아이템전 '한 번 더 튕기기' — 턴을 넘기지 않고 같은 사람이 다시 조준한다(1회성)
+        this.extraArmed[actor] = false;
+        this.shotsThisTurn = 0;
       } else {
         this.turn = (actor + 1) % this.players.length;   // 다음 좌석(2v2면 0→1→2→3→0)
         this.shotsThisTurn = 0;
@@ -806,6 +848,8 @@
       if (p.ai || !p.connected) {
         this._timer = setTimeout(() => {
           if (this._dead || this.phase !== 'aim') return;
+          // 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다(발사 전에 예약해야 효과가 있다)
+          if (this._aiWantsExtra(this.turn)) this._armExtra(this.turn);
           const flick = this._pickAiFlick(this.turn, p.aiDiff);
           if (flick) this._runSim(flick);
         }, this.aiFast ? 130 : this.aiMs);
@@ -902,6 +946,7 @@
         game: 'alkkagi',
         phase: this.phase,
         turn: this.turn,
+        itemsOn: this.itemsOn, items: (this.items || []).slice(), extraArmed: (this.extraArmed || []).slice(),
         winner: this.winner, winnerTeam: (this.winnerTeam != null ? this.winnerTeam : null), teamMode: this.players.length > 2,
         W: this.W, H: this.H, r: this.r,
         friction: this.friction, surface: this.surface, specials: this.specials.slice(), rule: this.rule, shotsThisTurn: this.shotsThisTurn, windX: this.windX, windY: this.windY,
@@ -1058,6 +1103,36 @@ bindOpts('optSurface','surface',()=>{ try{localStorage.setItem('alk_surface',cfg
   r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
     cfg.rule = o.dataset.r; try{localStorage.setItem('alk_rule', cfg.rule);}catch(e){} }); })();
 (function(){ const r=$('optSurface'); if(r) r.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on', o.dataset.s===cfg.surface)); })();
+// 아이템전 설정(로컬) — 켜면 전원 같은 개수를 받는다. 상점에서 개수를 파는 건 금지(돈으로 유리해지면 안 됨).
+(function(){ const r=$('optItems'); if(!r) return;
+  r.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ r.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); o.classList.add('on');
+    cfg.itemsOn = o.dataset.items==='1'; }); })();
+/* 아이템전 '한 번 더 튕기기' 버튼 — 조준 중(내 차례)에만 뜬다. 발사 **전에** 켜둬야 효과가 있다.
+   캔버스 게임이라 판을 가리지 않게 화면 하단에 고정한다. */
+(function(){
+  const b=document.createElement('button');
+  b.id='itemExtra'; b.type='button';
+  b.style.cssText='display:none;position:fixed;left:50%;transform:translateX(-50%);'+
+    'bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;padding:10px 16px;border-radius:12px;'+
+    'font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;'+
+    'background:var(--panel,#1c1712);color:var(--brass,#d9a441);border:1.5px solid var(--brass,#d9a441);'+
+    'box-shadow:0 8px 22px rgba(0,0,0,.45)';
+  b.onclick=()=>{ if(!S||!S.itemsOn||S.phase!=='aim') return;
+    const ms=(S.players||[]).findIndex(p=>p.pid===MYPID); if(ms<0||S.turn!==ms) return;
+    if(online) wsSend({t:'action',a:{type:'extraShot'}}); else engine.action(S.players[ms].pid,{type:'extraShot'});
+    try{ window.PACE&&PACE.toast('🎯 이번 발사 뒤 한 번 더!'); }catch(e){} };
+  document.body.appendChild(b);
+  window.__renderItemExtra=function(){
+    if(!S||!S.itemsOn||S.phase!=='aim'){ b.style.display='none'; return; }
+    const ms=(S.players||[]).findIndex(p=>p.pid===MYPID);
+    const n=(S.items&&ms>=0)?(S.items[ms]|0):0;
+    const armed=!!(S.extraArmed&&ms>=0&&S.extraArmed[ms]);
+    const show = ms>=0 && S.turn===ms && (n>0 || armed);
+    b.style.display = show ? 'block' : 'none';
+    b.disabled = armed || n<=0;
+    b.textContent = armed ? '🎯 한 번 더 예약됨 — 쏴!' : '🎯 한 번 더 튕기기 ('+n+')';
+  };
+})();
 // 궤적 프리뷰 토글 — guideOn 전역과 sync
 (function(){
   const root=$('optGuide'); if(!root) return;
@@ -1275,7 +1350,7 @@ function startGame(){
   }
   const Core = window.AlkkagiCore;
   engine = new Core.AlkkagiEngine({
-    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.special&&cfg.special!=='none'?[cfg.special]:[]), rule:(cfg.rule!=='none'?cfg.rule:null), manualAI:true,
+    players, preset:cfg.preset, surface:cfg.surface, specials:(cfg.special&&cfg.special!=='none'?[cfg.special]:[]), rule:(cfg.rule!=='none'?cfg.rule:null), manualAI:true, itemsOn:!!cfg.itemsOn,
     aiFast:false, aiMs:PMS(900),
     onState(){ S=engine.serialize(MYPID); onEngineState(); },
   });
@@ -1722,6 +1797,7 @@ function stoneFallProg(s){
 
 function render(){
   if(!S) return;
+  try{ window.__renderItemExtra && window.__renderItemExtra(); }catch(e){}   // 아이템전 버튼(렌더를 죽이지 않게 감쌈)
   drawBoard();
   const now = performance.now();
   // 판 안쪽에 있는 alive 돌

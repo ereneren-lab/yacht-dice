@@ -305,6 +305,14 @@
       this.extraFlickCap = opt.extraFlickCap != null ? opt.extraFlickCap : 1;
       this.extraFlickCount = 0;
       this.phase = 'aim';               // 'aim' | 'sim' | 'over'
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 번 더 튕기기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         알까기엔 이미 '잡으면 한 번 더'(extraFlick)가 있으니 그 규칙에 얹는다 —
+         조준 중에 켜두면 이번 발사 뒤 턴을 넘기지 않고 한 번 더 쏜다. */
+      this.itemsOn = !!opt.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opt.itemCharges != null ? opt.itemCharges | 0 : 2));
+      this.items = [];
+      this.extraArmed = [];             // 자리별 '이번 발사 뒤 한 번 더' 예약
       this.turn = 0;                    // 0 or 1
       this.winner = null; this.winnerTeam = null;
       this.lastSim = null;              // { frames, events, final, actorSeat, flick }
@@ -324,6 +332,8 @@
     start() {
       if (this._dead) return;
       this.gameStartTime = Date.now();
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.extraArmed = this.players.map(() => false);
       this._emit();
       this._maybeAI();
     }
@@ -357,6 +367,7 @@
       if (this._dead || this.phase !== 'aim') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0 || seat !== this.turn) return;
+      if (a.type === 'extraShot') { this._armExtra(seat); return; }
       if (a.type !== 'flick') return;
       const flick = this._validateFlick(seat, a);
       if (!flick) return;
@@ -364,6 +375,28 @@
       this._runSim(flick);
     }
 
+    /* 아이템전 '한 번 더 튕기기' 예약 — 조준 중(aim)에, 내 차례에만, 중복 예약은 무시.
+       개수는 전원이 똑같이 받으므로(엔진이 지급) 돈으로 유리해질 여지가 없다. */
+    _armExtra(seat) {
+      if (!this.itemsOn) return;
+      if (this.phase !== 'aim' || seat !== this.turn) return;
+      if (this.extraArmed[seat]) return;
+      if (!(this.items[seat] > 0)) return;
+      this.items[seat]--;
+      this.extraArmed[seat] = true;
+      this._emit();
+    }
+    /* AI가 쓸지 — 돌 수가 밀릴 때만(한 발이 아쉬운 상황). 넉넉할 땐 아껴둔다. */
+    _aiWantsExtra(seat) {
+      if (!this.itemsOn || !(this.items[seat] > 0) || this.extraArmed[seat]) return false;
+      const my = this.teamOf(seat);
+      let mine = 0, theirs = 0;
+      for (const s of (this.stones || [])) {
+        if (!s.alive) continue;          // 돌은 alive 플래그를 쓴다(dead 아님)
+        if (s.team === my) mine++; else theirs++;   // 돌에는 team만 있고 seat은 없다
+      }
+      return mine < theirs;
+    }
     _runSim(flick) {
       // 삑사리: 실행 직전에만 플릭을 틀어 준다. simulate()·AI 후보 채점은 깨끗한 값으로 돌아
       //   AI는 "정확히 맞았다면"을 기준으로 조준하고, 실제 발사에서 세게 치면 사람처럼 빗나간다.
@@ -403,6 +436,10 @@
         this.shotsThisTurn = 0;   // 잡으면 새 턴(더블샷이면 2발 다시)
       } else if (doubleShotContinue) {
         // 턴 유지(2발째) — 카운터 그대로
+      } else if (this.extraArmed[actor]) {
+        // 아이템전 '한 번 더 튕기기' — 턴을 넘기지 않고 같은 사람이 다시 조준한다(1회성)
+        this.extraArmed[actor] = false;
+        this.shotsThisTurn = 0;
       } else {
         this.turn = (actor + 1) % this.players.length;   // 다음 좌석(2v2면 0→1→2→3→0)
         this.shotsThisTurn = 0;
@@ -443,6 +480,8 @@
       if (p.ai || !p.connected) {
         this._timer = setTimeout(() => {
           if (this._dead || this.phase !== 'aim') return;
+          // 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다(발사 전에 예약해야 효과가 있다)
+          if (this._aiWantsExtra(this.turn)) this._armExtra(this.turn);
           const flick = this._pickAiFlick(this.turn, p.aiDiff);
           if (flick) this._runSim(flick);
         }, this.aiFast ? 130 : this.aiMs);
@@ -539,6 +578,7 @@
         game: 'alkkagi',
         phase: this.phase,
         turn: this.turn,
+        itemsOn: this.itemsOn, items: (this.items || []).slice(), extraArmed: (this.extraArmed || []).slice(),
         winner: this.winner, winnerTeam: (this.winnerTeam != null ? this.winnerTeam : null), teamMode: this.players.length > 2,
         W: this.W, H: this.H, r: this.r,
         friction: this.friction, surface: this.surface, specials: this.specials.slice(), rule: this.rule, shotsThisTurn: this.shotsThisTurn, windX: this.windX, windY: this.windY,
