@@ -207,6 +207,14 @@
   body:not(.ingame) #setup{ padding-bottom:64px }   /* 76px이면 390x844가 0→+8px로 넘쳤다 — 버튼 높이(52)+여유만 */
   /* 짧은 화면 셋업 압축 — 내용이 라벨 6개 + 옵션 행 5개로 전부 '시작에 필요한 것'이라
      옵션은 건드리지 않고 여백·글자만 줄인다. 시작 버튼은 위에서 하단 고정했다. */
+  /* 넓은 가로 셋업 — 라벨과 옵션 행을 한 줄에 나란히(라벨:필드 폼 배치). 숨기는 것 없음.
+     min-width:700px으로 제한: 좁은 가로(640px)에서는 2열이 칩을 더 줄바꿈시켜 역효과다. */
+  @media (orientation:landscape) and (max-height:520px) and (min-width:700px){
+    #setup{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:5px 10px; align-items:center }
+    #setup > .lbl{ grid-column:1; margin:0; text-align:right; white-space:nowrap }
+    #setup > .row, #setup > input{ grid-column:2; margin:0 }
+    #setup > h3, #setup > .wallet, #setup > .mini{ grid-column:1 / -1 }
+  }
   @media (max-height:780px){
     #setup .lbl{ margin:8px 0 3px; font-size:12px }
     #setup .row{ gap:5px }

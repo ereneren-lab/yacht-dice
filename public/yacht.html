@@ -974,6 +974,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .setup-extra[open] > summary::after{ transform:rotate(180deg) }
   .setup-extra > summary:hover{ color:var(--ink) }
   .setup-extra[open] > summary{ margin-bottom:10px }
+  /* 넓은 가로 셋업 — 라벨과 옵션(chips)을 한 줄에 나란히(라벨:필드 폼 배치). 숨기는 것 없음.
+     min-width:700px으로 제한한다: 좁은 가로(640px)에서 2열로 쪼개면 칩이 더 줄바꿈해 역효과다(알까기에서 실측). */
+  @media (orientation:landscape) and (max-height:520px) and (min-width:700px){
+    #localCfg, #onlineCfg{ display:grid; grid-template-columns:auto minmax(0,1fr);
+      gap:5px 10px; align-items:center }
+    #localCfg > .lbl, #onlineCfg > .lbl{ grid-column:1; margin:0; text-align:right; white-space:nowrap }
+    #localCfg > .chips, #onlineCfg > .chips,
+    #localCfg > .names, #onlineCfg > .names,
+    #localCfg > input, #onlineCfg > input{ grid-column:2; margin:0 }
+    #localCfg > .modedesc, #localCfg > .optrow, #localCfg > .btn, #localCfg > .tabs,
+    #onlineCfg > .modedesc, #onlineCfg > .optrow, #onlineCfg > .btn{ grid-column:1 / -1 }
+  }
   /* 셋업이 길어 시작 버튼이 접힌 아래로 내려간다 — 스크롤해도 항상 손 닿게 고정 */
   #startLocal,#startOnline{ position:sticky; bottom:calc(10px + env(safe-area-inset-bottom,0px)); z-index:6; box-shadow:0 8px 24px rgba(0,0,0,.35) }
   /* ⚠️ 위 sticky는 짧은 화면에서 전혀 듣지 않는다 — 버튼이 #localCfg의 **마지막 자식**이라
