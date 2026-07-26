@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>블랙잭 · 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
 <script src="analytics.js" defer></script>
@@ -363,13 +366,13 @@ function deal(){
   try{SFX.deal();}catch(e){}
   render();
   // 즉시 블랙잭 체크
-  if(isBlackjack(player)||isBlackjack(dealer)){ setTimeout(()=>settle(true), 650); }
+  if(isBlackjack(player)||isBlackjack(dealer)){ setTimeout(()=>settle(true), PMS(650)); }
 }
 
 function hit(){
   if(phase!=='player')return;
   player.push(draw()); try{SFX.deal();}catch(e){}
-  if(handValue(player)>21){ render(); try{SFX.bust();}catch(e){} bustFX(); setTimeout(()=>settle(false), 620); return; }
+  if(handValue(player)>21){ render(); try{SFX.bust();}catch(e){} bustFX(); setTimeout(()=>settle(false), PMS(620)); return; }
   render();
 }
 function stand(){ if(phase!=='player')return; dealerPlay(); }
@@ -378,18 +381,18 @@ function double(){
   bank-=bet; bet*=2; doubled=true;
   player.push(draw()); try{SFX.deal();}catch(e){}
   render();
-  if(handValue(player)>21){ try{SFX.bust();}catch(e){} bustFX(); setTimeout(()=>settle(false), 620); }
-  else setTimeout(dealerPlay, 550);
+  if(handValue(player)>21){ try{SFX.bust();}catch(e){} bustFX(); setTimeout(()=>settle(false), PMS(620)); }
+  else setTimeout(dealerPlay, PMS(550));
 }
 
 function dealerPlay(){
   phase='dealer'; render(); // 딜러 히든 공개
   const step=()=>{
     const v=handValue(dealer);
-    if(v<17){ dealer.push(draw()); try{SFX.deal();}catch(e){} render(); setTimeout(step, 620); }
+    if(v<17){ dealer.push(draw()); try{SFX.deal();}catch(e){} render(); setTimeout(step, PMS(620)); }
     else settle(false);
   };
-  setTimeout(step, 600);
+  setTimeout(step, PMS(600));
 }
 
 function settle(immediate){
@@ -417,7 +420,7 @@ function settle(immediate){
     if(bank>=goal){ endGame(true); return; }
     if(bank<5){ endGame(false); return; }  // 최소 베팅도 못 하면 파산
     toBetPhase();
-  }, outcome==='push'?1400:2100);
+  }, PMS(outcome==='push'?1400:2100));
 }
 
 function endGame(won){

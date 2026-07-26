@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>섯다 · 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 계측 보류(2026-07-22) — 다른 게임과 같은 기준으로 로딩만 꺼둔다.
 <script src="analytics.js" defer></script>
@@ -896,7 +899,7 @@ function startGame(){
   for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true,aiDiff:cfg.diff});
   engine=new Core.SeotdaEngine({
     players, ante:cfg.ante, startChips:cfg.chips, jabi:cfg.jabi, ttaengValue:cfg.ttaeng,
-    manualAI:true, rng:Core.mulberry32(Math.floor(Math.random()*2147483000)+1),
+    manualAI:true, aiMs:PMS(900), rng:Core.mulberry32(Math.floor(Math.random()*2147483000)+1),
     onState(){ S=engine.serialize(MYPID); render(); drive(); }
   });
   $('setup').style.display='none'; $('game').style.display=''; document.body.classList.add('ingame');
@@ -1209,7 +1212,7 @@ function drive(){
   if(S.phase==='handover'){ showHandBanner(); const d=(S.lastResult&&S.lastResult.jabiWin)?4800:(S.lastResult&&S.lastResult.hands?3900:3000); driveT=setTimeout(()=>{ if(engine) engine.nextHand(); }, d); return; }
   if(S.phase==='bet'){
     const cur=S.players[S.turn];
-    if(cur&&cur.ai){ driveT=setTimeout(()=>{ if(engine&&S&&S.phase==='bet'&&S.players[S.turn]&&S.players[S.turn].ai) engine.aiTurnIfNeeded(); }, 850); }
+    if(cur&&cur.ai){ driveT=setTimeout(()=>{ if(engine&&S&&S.phase==='bet'&&S.players[S.turn]&&S.players[S.turn].ai) engine.aiTurnIfNeeded(); }, PMS(850)); }
   }
 }
 

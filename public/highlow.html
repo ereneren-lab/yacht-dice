@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>하이로우 · 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
 <script src="analytics.js" defer></script>
@@ -416,7 +419,7 @@ function guess(dir){ // dir: 'H' or 'L'
       $('msg').className='msg'; $('msg').innerHTML='같은 숫자 — 무승부, 다시 뽑아요';
       pushHist(cur); cur=next; curOdds=odds(deck,cur);
       locked=false;
-      setTimeout(()=>{ $('msg').className='msg'; $('msg').textContent='하이? 로우? 다음 카드를 예상하세요'; render(); }, 900);
+      setTimeout(()=>{ $('msg').className='msg'; $('msg').textContent='하이? 로우? 다음 카드를 예상하세요'; render(); }, PMS(900));
       render();
     } else if(result==='win'){
       cls='win';
@@ -428,7 +431,7 @@ function guess(dir){ // dir: 'H' or 'L'
       $('msg').className='msg good'; $('msg').innerHTML=`정답! ×${m.toFixed(2)} → 팟 🪙 ${pot.toLocaleString()}`;
       pushHist(cur); cur=next; curOdds=odds(deck,cur);
       locked=false;
-      setTimeout(()=>{ if(phase==='guess'){ $('msg').className='msg'; $('msg').textContent='이어가기 또는 챙기기'; } render(); }, 1000);
+      setTimeout(()=>{ if(phase==='guess'){ $('msg').className='msg'; $('msg').textContent='이어가기 또는 챙기기'; } render(); }, PMS(1000));
       render();
     } else {
       cls='lose';
@@ -439,9 +442,9 @@ function guess(dir){ // dir: 'H' or 'L'
       $('msg').className='msg bad'; $('msg').innerHTML=`틀렸어요… <span style="color:var(--danger)">-${lost.toLocaleString()}</span>`;
       pushHist(cur); cur=next;
       phase='settle'; render();
-      setTimeout(settle, 1500);
+      setTimeout(settle, PMS(1500));
     }
-  }, 520);
+  }, PMS(520));
   render();
 }
 
@@ -457,7 +460,7 @@ function cashout(){
   try{ showBanner('💰 챙겼어요!','+'+got.toLocaleString()+' 칩','win'); }catch(e){}
   $('msg').className='msg good'; $('msg').innerHTML=`💰 챙겼어요! <span style="color:var(--win)">+${got.toLocaleString()}</span>`;
   phase='settle'; render();
-  setTimeout(settle, 1200);
+  setTimeout(settle, PMS(1200));
 }
 
 function settle(){

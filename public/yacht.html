@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>요트 다이스 — 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <!-- 계측 보류(2026-07-22) — 다른 세션의 계측 작업이 검토 전에 실수로 배포돼(커밋 05a8ed2),
      사용자 결정에 따라 '로딩만' 껐다. public/analytics.js·privacy.html·AL.* 호출부는 그대로 두었으니
      계측을 켤 땐 아래 두 줄을 6개 페이지(index·yut·yacht·kb·ld·lcr)에 다시 넣으면 된다.
@@ -1360,7 +1363,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.mode = this.rule; this.rule = RULES[this.mode];
       this.difficulty = opts.difficulty || 'normal';
       this.TURN_MS = (typeof opts.turnMs === 'number') ? opts.turnMs : 45000;  // 0 = 시간 제한 없음(로컬)
-      this.AID = opts.aiFast ? 0.45 : 1;   // AI 템포 배수
+      this.AID = opts.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // AI 템포 배수(pace: 공통 진행 속도 배수, pace.js)
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
       this.onRoll = opts.onRoll || function(){};
@@ -2235,7 +2238,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('startLocal').onclick=()=>{ SFX.ensure(); MODE='local'; recorded=false; prevSnap=null; gameShown=false; lastMyTurn=false; sawPlay=false; const players=[]; localPids=[];
     for(let i=0;i<playerCount;i++){const nm=(nameVals[i]||'').trim()||((typeVals[i]==='ai'?'AI ':'플레이어 ')+(i+1));const pid='p'+i;players.push({pid,name:nm,color:COLORS[i],avatar:avatarVals[i],ai:typeVals[i]==='ai'});if(typeVals[i]!=='ai')localPids.push(pid);}
     if(!players.some(p=>!p.ai)){players[0].ai=false; toast('최소 1명은 사람으로 진행해요');}
-    eng=new GameEngine({mode:modeLocal,difficulty:diffLocal,aiFast:aiFastLocal,players,turnMs:0,onState,onRoll}); eng.start();   // 로컬 핫시트는 시간 제한 없음
+    eng=new GameEngine({mode:modeLocal,difficulty:diffLocal,aiFast:aiFastLocal,pace:(window.PACE?PACE.mult():1),players,turnMs:0,onState,onRoll}); eng.start();   // 로컬 핫시트는 시간 제한 없음
   };
 
   // ========== tabs ==========

@@ -58,7 +58,7 @@
       this.onRoll = opts.onRoll || function(){};
       this.TURN_MS = opts.turnMs || 45000;
       this.aiFast = !!opts.aiFast;
-      this.AID = this.aiFast ? 0.45 : 1;
+      this.AID = this.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // pace: 공통 진행 속도 배수(pace.js)
       // exactly 2 seats
       const ps = (opts.players||[]).slice(0,2);
       while(ps.length<2) ps.push({ pid:'p'+ps.length, name:'P'+(ps.length+1), ai:true });

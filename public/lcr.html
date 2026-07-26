@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>좌·중·우 — 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <!-- 계측 보류(2026-07-22) — 다른 세션의 계측 작업이 검토 전에 실수로 배포돼(커밋 05a8ed2),
      사용자 결정에 따라 '로딩만' 껐다. public/analytics.js·privacy.html·AL.* 호출부는 그대로 두었으니
      계측을 켤 땐 아래 두 줄을 6개 페이지(index·yut·yacht·kb·ld·lcr)에 다시 넣으면 된다.
@@ -1095,7 +1098,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('setupOv').classList.remove('on'); $('game').style.display='block'; document.body.classList.add('ingame');
     applySeathint();
     $('modePill').textContent='· AI 대전';
-    const aiMs = cfg.speed==='fast' ? 550 : 1500;   // 빠름: 6인도 라운드가 짧게
+    const aiMs = PMS(cfg.speed==='fast' ? 550 : 1500);   // 빠름: 6인도 라운드가 짧게
     engine=new LCRCore.LCREngine({ players, startChips:cfg.chips, aiMs, onState:()=>{ S=engine.serialize(MYPID); render(); } });
     engine.start();
   }

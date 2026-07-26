@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>바카라 · 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
 <script src="analytics.js" defer></script>
@@ -337,7 +340,7 @@ function deal(){
   seq.push(()=>{ showN(2,2); try{SFX.deal();}catch(e){} });
   if(P.length>2||B.length>2) seq.push(()=>{ showN(P.length,B.length); try{SFX.reveal();}catch(e){} });
   let step=0; showN(0,0); $('msg').textContent='카드를 나눠요…';
-  const run=()=>{ if(step<seq.length){ seq[step++](); setTimeout(run,600); } else setTimeout(()=>settle(r),600); };
+  const run=()=>{ if(step<seq.length){ seq[step++](); setTimeout(run,PMS(600)); } else setTimeout(()=>settle(r),PMS(600)); };
   run();
 }
 let showP=0, showB=0;
@@ -375,7 +378,7 @@ function settle(r){
     if(bank>=goal){ endGame(true); return; }
     if(bank<10){ endGame(false); return; }
     toBetPhase();
-  }, 2300);
+  }, PMS(2300));
 }
 
 function endGame(won){

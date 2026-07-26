@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>원카드 · 주사위 골목</title>
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
 <script src="analytics.js" defer></script>
@@ -397,12 +400,12 @@ function newGame(){
   $('msg').innerHTML='카드를 나눠요…';
   render();
   busy=true;
-  setTimeout(()=>{ busy=false; tick(); }, 700);
+  setTimeout(()=>{ busy=false; tick(); }, PMS(700));
 }
 
 // ===== UI 진행 =====
 function flashAct(seat,txt,warn){ lastAct[seat]=txt; }
-function clearActsSoon(){ setTimeout(()=>{ lastAct=lastAct.map(()=> ''); render(); }, 500); }
+function clearActsSoon(){ setTimeout(()=>{ lastAct=lastAct.map(()=> ''); render(); }, PMS(500)); }
 
 function announceUno(seat){
   if(ST.hands[seat].length===1){ lastAct[seat]='원카드!'; try{SFX.uno();}catch(e){} return true; }
@@ -413,14 +416,14 @@ function tick(){
   if(!ST||ST.over){ return; }
   render();
   const seat=ST.turn;
-  if(players[seat].ai){ busy=true; setTimeout(()=>aiTurn(seat), 780); }
+  if(players[seat].ai){ busy=true; setTimeout(()=>aiTurn(seat), PMS(780)); }
   else { busy=false; humanPrompt(); }
 }
 
 function afterMove(){
   render();
-  if(ST.over){ setTimeout(endGame, 700); return; }
-  setTimeout(tick, 620);
+  if(ST.over){ setTimeout(endGame, PMS(700)); return; }
+  setTimeout(tick, PMS(620));
 }
 
 function aiTurn(seat){
@@ -507,7 +510,7 @@ function endGame(){
     $('resBody').innerHTML=`<b style="color:var(--brass)">${esc(players[w].name)}</b>님이 먼저 손패를 털었어요.`;
     try{SFX.lose();}catch(e){}
   }
-  setTimeout(()=>$('resultOv').classList.add('on'), 800);
+  setTimeout(()=>$('resultOv').classList.add('on'), PMS(800));
 }
 
 // ===== 렌더 =====
