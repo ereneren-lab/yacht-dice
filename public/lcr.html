@@ -6,6 +6,9 @@
 <title>좌·중·우 — 주사위 골목</title>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
+<script src="stats.js"></script>
+<script src="wallet.js"></script>
+<script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <!-- 계측 보류(2026-07-22) — 다른 세션의 계측 작업이 검토 전에 실수로 배포돼(커밋 05a8ed2),
      사용자 결정에 따라 '로딩만' 껐다. public/analytics.js·privacy.html·AL.* 호출부는 그대로 두었으니
@@ -757,7 +760,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,streak:0,bestStreak:0,bigPot:0},JSON.parse(localStorage.getItem('lcr_stats'))||{});}catch(e){return{games:0,wins:0,streak:0,bestStreak:0,bigPot:0};}})(),
     save(){try{localStorage.setItem('lcr_stats',JSON.stringify(this.d));}catch(e){}},
     record(won,maxPot){ const beforeLv=levelOf(this.d.xp).lv;
-      try{window.AL&&AL.done(won);}catch(e){} this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak; if(maxPot>=6)this.d.bigPot=(this.d.bigPot||0)+1;} else this.d.streak=0;
+      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('lcr',won); window.AW&&AW.reward(won); }catch(e){}   // 통합 전적·코인 this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak; if(maxPot>=6)this.d.bigPot=(this.d.bigPot||0)+1;} else this.d.streak=0;
       const gain=15+(won?25:0)+((maxPot||0)>=6?8:0);   // 큰 팟이 걸린 판은 조금 더
       this.d.xp=(this.d.xp||0)+gain; const after=levelOf(this.d.xp);
       this._lastXp={ gain, leveled: after.lv>beforeLv ? after : null };

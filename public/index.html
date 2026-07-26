@@ -6,6 +6,7 @@
 <title>주사위 골목 — Dice Alley</title>
 <!-- 통합 코인 지갑(상점의 토대) -->
 <script src="wallet.js"></script>
+<script src="shop.js"></script>
 <!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
      게임 콘텐츠 수정을 앱 재제출 없이 반영한다. 웹·오프라인·이미 원격일 땐 아무것도 안 함(no-op).
      번들 우선이라 오프라인에서도 켜지고(애플 4.2 안전), 온라인일 때만 최신으로 갈아탄다. -->
@@ -313,6 +314,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important} }
   .coinbar{display:flex;align-items:center;gap:8px;justify-content:center;margin:2px 2px 14px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel),var(--bg2));font-weight:800;font-size:13.5px;color:var(--muted)}
   .coinbar b{color:var(--gold,#d8a93a);font-size:17px}
+  .coinbar .shoplink{margin-left:auto;font-size:12.5px;font-weight:800;color:var(--brass);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -348,7 +350,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       </div>
     </div>
   </details>
-  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b></div>
+  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
   <div class="levelcard" id="levelCard"></div>
   <div class="statstrip" id="statStrip"></div>
   <div class="achshelf" id="achShelf"></div>
@@ -801,7 +803,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 
   function refreshPreview(){
     pavPrev.textContent=curAv||'🎲';
-    if(curName){ pnamePrev.textContent=curName; pnamePrev.classList.remove('empty'); }
+    var _t=''; try{ _t=window.SHOP?SHOP.title():''; }catch(e){}
+    if(curName){ pnamePrev.textContent=curName+(_t?' «'+_t+'»':''); pnamePrev.classList.remove('empty'); }
     else { pnamePrev.textContent='프로필 설정'; pnamePrev.classList.add('empty'); }
   }
   function markChips(){
@@ -812,7 +815,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     if(custom) custom.classList.toggle('active', !!curAv && !matched);
   }
   // 프리셋 아바타 칩
-  PRESETS.forEach(function(em){
+  // 프리셋 + 상점에서 산 아바타 팩
+  var ALL_AV = PRESETS.concat((function(){ try{ return window.SHOP?SHOP.unlockedAvatars():[]; }catch(e){ return []; } })());
+  ALL_AV.forEach(function(em){
     var b=document.createElement('button'); b.type='button'; b.className='avchip'; b.dataset.av=em; b.textContent=em;
     b.setAttribute('aria-label','아바타 '+em);
     b.onclick=function(){ curAv=em; set('alley_avatar',em); if(custom)custom.value=''; refreshPreview(); markChips(); };
@@ -821,7 +826,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 
   // 초기값 반영
   nameInp.value=curName;
-  if(custom && curAv && PRESETS.indexOf(curAv)<0) custom.value=curAv;
+  if(custom && curAv && ALL_AV.indexOf(curAv)<0) custom.value=curAv;
   refreshPreview(); markChips();
 
   nameInp.addEventListener('input',function(){

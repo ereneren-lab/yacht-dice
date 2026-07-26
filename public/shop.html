@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="brass">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>상점 — 주사위 골목</title>
+<link rel="icon" href="icon-192.png">
+<!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
+<script src="pace.js"></script>
+<script>window.PMS=window.PMS||function(n){return n};</script>
+<script src="stats.js"></script>
+<script src="wallet.js"></script>
+<script src="shop.js"></script>
+<script src="monetize.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --font:"Pretendard","Space Grotesk",-apple-system,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif;
+    --bg:#15110d; --bg2:#1d1711; --panel:#26201a; --panel2:#2f2820; --line:rgba(255,255,255,.09);
+    --ink:#f3ece0; --muted:#a89a86; --brass:#e0a23c; --brass-d:#b07d24; --win:#7bd88f; --gold:#f0c65a; --danger:#e88a8a;
+  }
+  html[data-theme="sesame"]{ --bg:#121212; --bg2:#181818; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --brass:#c9bcd8; --brass-d:#9a8ab0; --win:#9ad0a8; --gold:#e0d6b0; --danger:#e88a8a; }
+  html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#8a8a92; --brass:#b07d2a; --brass-d:#8a5f18; --win:#3a9a4a; --gold:#a67613; --danger:#d84535; }
+  html,body{height:100%}
+  body{background:
+      radial-gradient(1200px 700px at 50% -10%, #2a2017 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 110%, #221a2e 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:var(--font); min-height:100%;
+    display:flex; flex-direction:column; align-items:center; -webkit-tap-highlight-color:transparent}
+  html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed }
+  .wrap{width:100%; max-width:560px; padding:22px 18px 60px; margin:0 auto}
+
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .iconbtn{position:relative;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;
+    width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;
+    cursor:pointer;text-decoration:none}
+  .iconbtn::after{content:'';position:absolute;inset:-4px}
+  h1{font-size:20px;font-weight:900;letter-spacing:-.01em;flex:1}
+  h1 small{display:block;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-top:2px}
+
+  .coinbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 18px;padding:13px 16px;
+    border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--panel),var(--bg2));font-weight:800}
+  .coinbar .lbl{font-size:12.5px;color:var(--muted)}
+  .coinbar b{color:var(--gold);font-size:20px}
+
+  .cat{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800;color:var(--muted);margin:22px 2px 11px}
+  .cat::after{content:'';flex:1;height:1px;background:var(--line)}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:11px}
+  .card{display:flex;align-items:center;gap:13px;border:1px solid var(--line);border-radius:16px;padding:14px;
+    background:linear-gradient(180deg,var(--panel),var(--bg2));transition:border-color .15s,transform .08s}
+  .card.have{border-color:color-mix(in srgb,var(--brass) 50%,var(--line))}
+  .card .ic{width:46px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;font-size:24px;
+    border-radius:13px;background:var(--panel2);border:1px solid var(--line)}
+  .card .mid{flex:1;min-width:0}
+  .card .nm{font-size:14.5px;font-weight:800}
+  .card .ds{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .card .act{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .price{font-size:13px;font-weight:900;color:var(--gold);white-space:nowrap}
+  .btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;padding:9px 14px;
+    font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .btn.buy{background:linear-gradient(180deg,var(--brass),var(--brass-d));border-color:transparent;color:#241a08}
+  .btn.on{background:color-mix(in srgb,var(--win) 22%,var(--panel2));border-color:color-mix(in srgb,var(--win) 55%,var(--line))}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .note{font-size:12px;color:var(--muted);line-height:1.6;margin:10px 2px 0}
+  .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    background:rgba(24,16,8,.95);color:#ffe9b8;border:1.5px solid rgba(196,150,74,.6);border-radius:999px;
+    padding:10px 20px;font-size:13.5px;font-weight:800;opacity:0;transition:opacity .18s;pointer-events:none;z-index:99}
+  .toast.on{opacity:1}
+  .preview{display:flex;gap:6px;margin-top:7px}
+  .pdie{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900}
+  @media (max-width:380px){ .card .ds{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="iconbtn" href="./" title="허브로">←</a>
+    <h1>상점<small>모아둔 코인으로 꾸미기</small></h1>
+    <button class="iconbtn" id="lightBtn" title="다크/라이트">☀️</button>
+  </div>
+
+  <div class="coinbar"><span class="lbl">💰 내 코인</span><b data-coin>0</b></div>
+
+  <div id="cats"></div>
+
+  <p class="note">
+    코인은 게임에서 번다 — 베팅 게임은 딴 만큼, 나머지는 이기면 <b>+300</b>.<br>
+    산 물건은 이 브라우저에 저장된다. 기존 테마·아바타는 그대로 무료다.
+  </p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+
+  // 테마(허브와 같은 키)
+  try{
+    var t=localStorage.getItem('alley_theme'); if(t) document.documentElement.dataset.theme=t;
+    var dark=localStorage.getItem('alley_theme_dark');
+    $('lightBtn').onclick=function(){
+      var cur=document.documentElement.dataset.theme;
+      var next=(cur==='hanji')?(localStorage.getItem('alley_theme_dark')||'brass'):'hanji';
+      document.documentElement.dataset.theme=next;
+      try{ localStorage.setItem('alley_theme',next); if(next!=='hanji') localStorage.setItem('alley_theme_dark',next); }catch(e){}
+    };
+  }catch(e){}
+
+  var toastT=0;
+  function toast(m){ var el=$('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(function(){el.classList.remove('on')},1500); }
+
+  var GROUPS=[
+    {slot:'dice',  title:'🎲 주사위 스킨',  sub:'주사위가 나오는 5게임에 전부 적용'},
+    {slot:'pack',  title:'😀 아바타 팩',    sub:'허브 프로필에서 고를 수 있게 된다'},
+    {slot:'title', title:'🏮 칭호',         sub:'이름 옆에 붙는다'}
+  ];
+
+  function diePreview(it){
+    if(!it.vars) return '';
+    var h='<div class="preview">';
+    for(var i=1;i<=3;i++) h+='<span class="pdie" style="background:linear-gradient(150deg,'+it.vars['--die']+','+it.vars['--die2']+');color:'+it.vars['--pip']+'">'+i+'</span>';
+    return h+'</div>';
+  }
+
+  function render(){
+    var host=$('cats'); host.innerHTML='';
+    GROUPS.forEach(function(g){
+      var items=SHOP.CATALOG.filter(function(x){return x.slot===g.slot});
+      if(!items.length) return;
+      var h=document.createElement('div');
+      h.className='cat'; h.innerHTML='<span>'+g.title+'</span>';
+      host.appendChild(h);
+      var grid=document.createElement('div'); grid.className='grid';
+      items.forEach(function(it){
+        var owned=SHOP.owned(it.id), eq=SHOP.equipped(it.slot)===it.id;
+        var c=document.createElement('div'); c.className='card'+(owned?' have':'');
+        c.innerHTML='<div class="ic">'+it.icon+'</div>'+
+          '<div class="mid"><div class="nm">'+it.name+'</div><div class="ds">'+it.desc+'</div>'+diePreview(it)+'</div>'+
+          '<div class="act">'+(owned?'':'<span class="price">🪙 '+it.price.toLocaleString()+'</span>')+
+          '<button class="btn '+(owned?(eq?'on':''):'buy')+'" data-id="'+it.id+'" data-act="'+(owned?(it.slot==='pack'?'has':'equip'):'buy')+'">'+
+          (owned?(it.slot==='pack'?'보유 중':(eq?'장착 중':'장착')):'구매')+'</button></div>';
+        grid.appendChild(c);
+      });
+      host.appendChild(grid);
+      var s=document.createElement('p'); s.className='note'; s.style.margin='7px 2px 0'; s.textContent=g.sub;
+      host.appendChild(s);
+    });
+
+    // 프리미엄(실제 결제 영역 — 코인으로 팔지 않는다)
+    var ph=document.createElement('div'); ph.className='cat'; ph.innerHTML='<span>🚫 광고 제거</span>'; host.appendChild(ph);
+    var pg=document.createElement('div'); pg.className='grid';
+    var isP=false; try{ isP=!!(window.MZ&&MZ.isPremium()); }catch(e){}
+    pg.innerHTML='<div class="card'+(isP?' have':'')+'"><div class="ic">✨</div>'+
+      '<div class="mid"><div class="nm">프리미엄</div><div class="ds">'+(isP?'적용 중 — 광고가 나오지 않는다':'광고를 완전히 끈다. 코인이 아니라 실제 결제다.')+'</div></div>'+
+      '<div class="act"><button class="btn" id="premBtn"'+(isP?' disabled':'')+'>'+(isP?'보유 중':'준비 중')+'</button></div></div>';
+    host.appendChild(pg);
+    var pn=document.createElement('p'); pn.className='note'; pn.style.margin='7px 2px 0';
+    pn.textContent='지금은 광고 자체를 꺼둔 상태라 살 필요가 없다. 결제 연결 후 열린다.';
+    host.appendChild(pn);
+  }
+
+  document.addEventListener('click', function(e){
+    var b=e.target.closest('button[data-act]'); if(!b) return;
+    var id=b.dataset.id, act=b.dataset.act;
+    if(act==='buy'){
+      var r=SHOP.buy(id);
+      if(!r.ok){ toast('❌ '+r.why); return; }
+      toast('🎉 '+r.item.name+' 구매!');
+    } else if(act==='equip'){
+      SHOP.equip(id);
+      var it=SHOP.item(id);
+      toast(SHOP.equipped(it.slot)===id ? '✅ '+it.name+' 장착' : '해제했어');
+    } else { toast('아바타는 허브 프로필에서 고르면 돼'); }
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
