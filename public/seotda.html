@@ -216,6 +216,12 @@
     #game > .tablewrap{ grid-column:1; grid-row:1 / span 2 }
     #game > .note   { grid-column:2; grid-row:1 }
     #game > .betbar { grid-column:2; grid-row:2 }
+    /* 2단으로 갈라도 106px가 남았다 — 원인은 .tablewrap{min-height:400px}로,
+       그것만으로 이미 화면(360px)을 넘는다. 판과 화투장을 가로 높이에 맞춰 줄인다. */
+    .tablewrap{ min-height:230px }
+    .hwa{ height:52px }
+    .pot{ width:140px }
+    .betbar{ margin-top:5px }
   }
 </style>
 </head>

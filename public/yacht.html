@@ -969,13 +969,23 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
      실측: 360x640·640x360·844x390에서 시작 버튼이 화면 밖이라 게임을 시작조차 못 했다.
      → 낮은 화면에서는 뷰포트 바닥에 고정한다. #setup은 판이 깔리면 display:none이 되므로
         버튼도 같이 사라진다(게임 화면에 떠 있을 걱정 없음). */
+  /* 481~700px(레티나 496px 포함) — 이 폭에서는 max-width:700px 규칙이 leftcol/rightcol을
+     width:100%로 만들어 세로로 쌓는데, 정작 점수판 내부 스크롤(.sheetwrap)은
+     max-width:480px에만 걸려 있어 못 받는다 → 496x900에서 인게임이 +209px 넘쳤다.
+     (CLAUDE.md 함정 #4의 바로 그 폭이다.) thead가 sticky라 내부 스크롤이 자연스럽다. */
+  @media (min-width:481px) and (max-width:700px){
+    .sheetwrap{ max-height:calc(100dvh - 540px); overflow-y:auto; -webkit-overflow-scrolling:touch }
+  }
   /* 가로로 돌린 폰 — 인게임이 +749px(640x360) 넘쳤다. 원인은 세로 폰용으로 만든
      '점수판 내부 스크롤'(.sheetwrap max-height)이 max-width:480px에만 걸려 있어
      가로(폭 640~844)에서는 하나도 적용되지 않는 것. thead가 sticky라 내부 스크롤이 자연스럽다.
      → 같은 기법을 '높이' 기준으로 다시 걸고 주사위판을 압축한다. */
   @media (orientation:landscape) and (max-height:520px){
-    body.ingame .app, .app{ padding:4px 10px 6px }
-    .topbar{ margin-bottom:4px }
+    body.ingame .app, .app{ padding:2px 10px 2px; gap:5px }
+    .topbar{ margin-bottom:2px }
+    /* 640x360(가장 짧은 가로)에서 53px가 더 남았다 — 부가 안내와 남은 여백만 더 줄인다 */
+    #hint{ display:none }
+    .rollbtn{ padding:7px }
     .iconbtn{ width:32px;height:32px;font-size:14px }
     .gamewrap{ gap:6px 10px; flex-wrap:nowrap }
     /* ⚠️ 핵심: max-width:700px 규칙이 leftcol/rightcol을 width:100%로 만들어 세로로 쌓는다.
@@ -983,11 +993,24 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .leftcol{ width:44%; min-width:0; flex:0 0 44%; gap:6px }
     .rightcol{ width:auto; flex:1 1 auto; min-width:0 }
     .dicepane{ padding:6px 10px 8px; gap:6px }
-    .tray{ height:auto; max-width:240px; padding:5px 8px }
+    .tray{ height:auto; max-width:196px; padding:3px 6px }
+    .d2{ width:30px;height:30px;border-radius:7px }
     .keptzone{ margin-bottom:3px; padding-bottom:3px }
-    .keptrow{ height:40px }
+    .keptrow{ height:36px }
+    /* 가로에선 .gamewrap이 row라 전체 높이 = max(leftcol, rightcol)이다.
+       점수판은 내부 스크롤로 잡혔으니 남은 건 왼쪽(주사위판) — 주사위를 한 단계 줄인다. */
+    .d2{ width:34px;height:34px;border-radius:8px }
     .turnbanner{ padding:5px 9px; font-size:13px; gap:7px }
     .turnbanner .av{ width:30px;height:30px;font-size:18px }
+    /* ⚠️ 여기가 요트 가로 넘침의 진짜 원인이었다(460px 중 178px).
+       min-width:701px에서 켜지는 '큰 캐릭터 배너'(.turnbanner.big — 아바타 100px, min-height:178px)가
+       폭 844px인 가로에서도 켜지는데 세로 공간은 390px뿐이다.
+       .turnbanner(한 클래스)로는 .big(두 클래스)을 못 이기므로 같은 특이도로 되돌린다. */
+    .turnbanner.big{ flex-direction:row; justify-content:flex-start; text-align:left;
+      min-height:0; padding:5px 9px; gap:8px }
+    .turnbanner.big .av{ width:34px; height:34px; font-size:19px; border-radius:50% }
+    .turnbanner.big .nm{ font-size:13.5px }
+    .turnbanner.big .aitag{ font-size:10px }
     .rollbtn{ max-width:230px; padding:9px }
     .sheetwrap{ max-height:calc(100dvh - 168px); overflow-y:auto; -webkit-overflow-scrolling:touch }
     body.ingame .meta-chip{ display:none }
