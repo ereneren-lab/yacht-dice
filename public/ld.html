@@ -1817,7 +1817,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,streak:0,bestStreak:0},JSON.parse(localStorage.getItem('ld_stats'))||{});}catch(e){return{games:0,wins:0,streak:0,bestStreak:0};}})(),
     save(){try{localStorage.setItem('ld_stats',JSON.stringify(this.d));}catch(e){}},
     record(won){ const beforeLv=levelOf(this.d.xp).lv;
-      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('ld',won); window.AW&&AW.reward(won); }catch(e){}   // 통합 전적·코인 this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0;
+      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('ld',won); window.AW&&AW.reward(won); }catch(e){}   /* 통합 전적·코인 */ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0;
       const gain=15+(won?25:0); this.d.xp=(this.d.xp||0)+gain; const after=levelOf(this.d.xp);
       this._lastXp={ gain, leveled: after.lv>beforeLv ? after : null };
       this.save(); checkAch(); renderStats(); renderAch(); renderLevel(); } };

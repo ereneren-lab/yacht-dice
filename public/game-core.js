@@ -133,12 +133,16 @@
       this.difficulty = opts.difficulty || 'normal';
       this.TURN_MS = (typeof opts.turnMs === 'number') ? opts.turnMs : 45000;  // 0 = 시간 제한 없음(로컬)
       this.AID = opts.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // AI 템포 배수(pace: 공통 진행 속도 배수, pace.js)
-      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
+      // 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 번 더 굴리기'를 받는다.
+      // 상점 보유량과 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
       this.onRoll = opts.onRoll || function(){};
       this.players = (opts.players||[]).map(p=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar||null, ai:!!p.ai, persona: p.ai?(PERSONAS[p.persona]?p.persona:PK[Math.floor(Math.random()*PK.length)]):null, connected:p.connected!==false, scores:emptyScores(this.rule), yBonus:0 }));
       this.phase='play'; this.current=0; this.rollsLeft=3; this.rolled=false;
+      this.items=this.players.map(()=>this.itemsOn?this.itemCharges:0);   // 자리별 남은 아이템(전원 동일)
       this.dice=[0,1,2,3,4].map(()=>({value:0,held:false}));
       this.deadline=0; this._timer=null; this._busy=false; this._dead=false;
       this._aiGen=0;   // AI 대행(자동 진행) 세대 토큰 — 재접속 등으로 무효화할 때 증가
@@ -212,9 +216,11 @@
       if(seat<0||seat!==this.current) return;
       if(a.type==='roll'){ if(this.rollsLeft>0) this._doRoll(); }
       else if(a.type==='extraRoll'){
-        // 상점 소모품 '한 번 더 굴리기'(4번째 굴림). 온라인은 방 옵션이 열려야 먹는다.
+        // 아이템전 전용 '한 번 더'(4번째 굴림). 아이템전이 아니거나 내 몫을 다 썼으면 무시.
         if(!this.itemsOn) return;
         if(!this.rolled || this.rollsLeft>0) return;   // 아직 굴릴 게 남았으면 쓸 이유가 없다
+        if(!(this.items[seat]>0)) return;
+        this.items[seat]--;
         this.rollsLeft=1; this._doRoll();
       }
       else if(a.type==='hold'){ this._hold(a.i); }
@@ -260,12 +266,33 @@
         this._doRoll(); await wait(800*this.AID);
       }
       if(!alive()) return;
+      // 아이템전: AI도 쓴다 — 사람만 쓰면 공정한 판이 아니다.
+      // 지금 확정하면 받을 최선 점수가 시원찮을 때만 한 번 더 굴린다.
+      if(this.itemsOn && this.items[seat]>0 && this._aiWantsExtra(seat, open)){
+        this.items[seat]--;
+        this.rollsLeft=1; this._doRoll(); await wait(800*this.AID);
+        if(!alive()) return;
+      }
       const legal=this._legalCats(seat,this.dice.map(d=>d.value));
       const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat));
       await wait(450*this.AID);
       if(!alive()) return;
       this._busy=false; this._commit(seat,cat);
     }
+    /* AI가 '한 번 더'를 쓸지 — 지금 손패로 받을 최선 점수가 남은 칸 기대치에 못 미칠 때만.
+       기준을 후하게 잡으면 매 턴 써버려 아이템전이 그냥 '4굴림 게임'이 된다 →
+       열린 칸 상한 평균의 0.45배(어려움 0.55)로 확실히 나쁠 때만 쓰게 했다. */
+    _aiWantsExtra(seat, open){
+      try{
+        const d=this.dice.map(x=>x.value);
+        const cur=bestOpen(d,open,this.rule);
+        let ceil=0; open.forEach(id=>{ ceil+=(CEIL[id]||0); });
+        const avg = open.length ? ceil/open.length : 0;
+        const k = this.difficulty==='hard' ? 0.55 : this.difficulty==='easy' ? 0.35 : 0.45;
+        return cur < avg*k;
+      }catch(e){ return false; }
+    }
+
     setConnected(pid,v){ const s=this._seat(pid); if(s<0) return; const p=this.players[s]; if(p.connected===v) return;
       p.connected=v;
       if(this.phase==='play' && s===this.current && !p.ai){
@@ -310,7 +337,7 @@
         phase:this.phase, mode:this.mode, modeName:this.rule.name,
         cats:this.rule.cats.map(c=>({id:c.id,label:c.label,sec:c.sec})),
         bonus:this.rule.bonus, lowBonus:this.rule.lowBonus||null,
-        current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled,
+        current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled, itemsOn:this.itemsOn, items:(this.items||[]).slice(),
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
         deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(), joker:this._jokerInfo(),
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,

@@ -59,7 +59,10 @@
       this.TURN_MS = opts.turnMs || 45000;
       this.aiFast = !!opts.aiFast;
       this.AID = this.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // pace: 공통 진행 속도 배수(pace.js)
-      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
+      // 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '다시 굴리기'를 받는다.
+      // 상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
       // exactly 2 seats
       const ps = (opts.players||[]).slice(0,2);
       while(ps.length<2) ps.push({ pid:'p'+ps.length, name:'P'+(ps.length+1), ai:true });
@@ -69,6 +72,7 @@
       }));
       this.boards = [[[],[],[]],[[],[],[]]];
       this.turn = 0; this.die = null; this.phase='roll';
+      this.items = [this.itemsOn?this.itemCharges:0, this.itemsOn?this.itemCharges:0];   // 자리별 남은 아이템
       this.deadline = 0; this._timer=null; this._busy=false; this._dead=false;
     }
 
@@ -76,7 +80,9 @@
     _emit(){ if(!this._dead) this.onState(this.serialize()); }
     _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
 
-    start(){ this._dead=false; this.gameStartTime=Date.now(); this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
+    start(){ this._dead=false; this.gameStartTime=Date.now(); this.turn=0; this.phase='roll'; this.die=null;
+      this.items=[this.itemsOn?this.itemCharges:0, this.itemsOn?this.itemCharges:0];
+      this._beginTurn(); }
 
     _beginTurn(){
       this._clearTimer();
@@ -112,10 +118,12 @@
         // refresh deadline for the place step
         this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
       } else if(a.type==='reroll'){
-        // 상점 소모품 '다시 굴리기'. 온라인은 방 옵션(itemsOn)을 켜기 전엔 무시 —
-        // 안 그러면 아이템 산 사람이 서버 권위 엔진에서 그냥 이기게 된다.
+        // 아이템전 전용 '다시 굴리기'. 판이 아이템전이 아니거나 내 몫을 다 썼으면 무시한다.
+        // 개수는 양쪽이 똑같이 받으므로(엔진이 지급) 돈으로 유리해질 여지가 없다.
         if(!this.itemsOn) return;
         if(this.phase!=='place' || this.die==null) return;
+        if(!(this.items[seat]>0)) return;
+        this.items[seat]--;
         this.die=this._die(); this.onRoll(seat,this.die);
         this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
       } else if(a.type==='place'){
@@ -151,8 +159,38 @@
         if(this._dead || this.turn!==seat) return;
       }
       const diff = this.players[seat].ai ? this.players[seat].aiDiff : 'normal';
+      // 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+      // 판단은 단순하게: 지금 눈으로 얻을 최선 이득이 시원찮으면 한 번 다시 굴린다.
+      if(this.itemsOn && this.items[seat]>0 && this._aiWantsReroll(seat, diff)){
+        this.items[seat]--;
+        this.die=this._die(); this.onRoll(seat,this.die); this._emit();
+        await wait(620*this.AID);
+        if(this._dead || this.turn!==seat) return;
+      }
       const col = aiChooseCol(this.boards, seat, this.die, diff);
       this._doPlace(seat, col);
+    }
+
+    /* AI가 다시 굴릴지 — 지금 눈의 최선 가치(내 열 이득 + 상대 파괴)가 기대치보다 낮을 때만.
+       기대치를 6면 평균으로 잡으면 절반쯤은 굴리게 돼 아이템이 금세 마른다 →
+       '확실히 나쁠 때만' 쓰도록 문턱을 평균의 0.72배로 낮춰 잡았다. */
+    _aiWantsReroll(seat, diff){
+      const val=this.die; if(val==null) return false;
+      const gain=v=>{
+        const opp=1-seat, legal=[0,1,2].filter(c=>this.boards[seat][c].length<3);
+        let best=0;
+        for(const c of legal){
+          const g = colScore(this.boards[seat][c].concat(v)) - colScore(this.boards[seat][c]);
+          const d = colScore(this.boards[opp][c]) - colScore(this.boards[opp][c].filter(x=>x!==v));
+          if(g+d>best) best=g+d;
+        }
+        return best;
+      };
+      const cur=gain(val);
+      let exp=0; for(let v=1;v<=6;v++) exp+=gain(v);
+      exp/=6;
+      const thr = diff==='easy' ? exp*0.3 : diff==='hard' ? exp*0.62 : exp*0.48;
+      return cur < thr;
     }
 
     setConnected(pid, v){
@@ -179,7 +217,7 @@
       return {
         gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'kb',
-        phase:this.phase, turn:this.turn, die:this.die,
+        phase:this.phase, turn:this.turn, die:this.die, itemsOn:this.itemsOn, items:this.items.slice(),
         deadline:this.deadline, turnMs:this.TURN_MS,
         boards:this.boards.map(b=>b.map(col=>col.slice())),
         colScores:this.boards.map(b=>b.map(col=>colScore(col))),

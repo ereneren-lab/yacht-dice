@@ -2124,7 +2124,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       const next=(i<LV_XP.length-1)?LV_XP[i+1]:null;
       return { lv:i+1, title:LV_TITLE[i], into:xp-LV_XP[i], need:next?next-LV_XP[i]:0, cap:!next, xp }; },
     record(won,caps){ const before=this.level().lv;
-      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('yut',won); window.AW&&AW.reward(won); }catch(e){}   // 통합 전적·코인 this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1;
+      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('yut',won); window.AW&&AW.reward(won); }catch(e){}   /* 통합 전적·코인 */ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(caps>=3)this.d.bigCap=(this.d.bigCap||0)+1;
       const gain=15+(won?25:0)+Math.min(caps||0,5)*4; this.d.xp=(this.d.xp||0)+gain;
       this.save(); this._lastGained=checkAch(); const after=this.level();
       this._lastXp={ gain, leveled: after.lv>before ? after : null };

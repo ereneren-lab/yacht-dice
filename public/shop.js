@@ -21,12 +21,6 @@
     { id:'pack_animal', slot:'pack',   name:'동물 아바타 팩', icon:'🐯', price:4000, desc:'🐯 🐰 🐻 🦊 🐼 🐸', avatars:['🐯','🐰','🐻','🦊','🐼','🐸'] },
     { id:'pack_ghost',  slot:'pack',   name:'요괴 아바타 팩', icon:'👹', price:6000, desc:'👹 👺 👻 💀 🦇 🕯️', avatars:['👹','👺','👻','💀','🦇','🕯️'] },
     { id:'pack_lucky',  slot:'pack',   name:'행운 아바타 팩', icon:'🍀', price:9000, desc:'🍀 🌙 ⭐ 🔥 💎 🪙', avatars:['🍀','🌙','⭐','🔥','💎','🪙'] },
-    // ── 소모품 (슬롯: use) — 판에 직접 개입한다. 여러 번 살 수 있고 쓰면 준다.
-    //    로컬/AI에서는 바로 쓸 수 있고, 온라인은 방 옵션(itemsOn)이 열려야 엔진이 받아준다.
-    { id:'use_reroll3', slot:'use', use:'reroll', qty:3,  name:'다시 굴리기 ×3', icon:'🔄', price:5000,
-      desc:'너클본즈: 굴린 눈을 무르고 다시 · 요트: 4번째 굴림' },
-    { id:'use_reroll10',slot:'use', use:'reroll', qty:10, name:'다시 굴리기 ×10', icon:'🔄', price:15000,
-      desc:'10개 묶음 — 3개짜리보다 개당 싸다' },
     // ── 칭호 (슬롯: title) — 이름 옆에 붙는다
     { id:'title_boss',  slot:'title',  name:'골목대장', icon:'🏮', price:10000, desc:'이름 옆에 «골목대장»' },
     { id:'title_streak',slot:'title',  name:'연승왕',   icon:'🔥', price:15000, desc:'이름 옆에 «연승왕»' },
@@ -48,6 +42,21 @@
     apply();
     return d;
   }
+
+  /* 2026-07-26: 소모품 판매를 내렸다.
+     아이템은 '아이템전'에서 엔진이 전원에게 같은 개수를 주는 방식으로 바뀌었다 —
+     돈 주고 개수를 늘리면 그 순간 공정한 판이 아니게 된다.
+     이미 산 사람에게는 산 값(개당 1,600코인)으로 되돌려준다. */
+  (function refundConsumables(){
+    try{
+      var d = read(), n = 0, k;
+      for (k in d.use) n += d.use[k] | 0;
+      if (!n) return;
+      d.use = {};
+      try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){}
+      if (global.AW) AW.add(n * 1600);
+    }catch(e){}
+  })();
 
   var SHOP = {
     CATALOG: CATALOG,

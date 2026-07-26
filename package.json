@@ -1,6 +1,6 @@
 {
   "name": "yacht-dice",
-  "version": "1.225.0",
+  "version": "1.226.0",
   "description": "주사위 골목 — 윷놀이·요트·너클본즈·라이어·좌중우 5게임 허브. 로컬/AI/온라인(서버 권위형) 멀티플레이 + 데스크톱 앱",
   "author": "jaesung",
   "main": "electron/main.js",
@@ -28,7 +28,8 @@
     "test:wallet": "node scripts/browser-test/verify-wallet.js",
     "test:shop": "node scripts/browser-test/verify-shop.js",
     "test:items": "node scripts/browser-test/verify-items.js",
-    "test:items:online": "node scripts/browser-test/verify-items-online.js"
+    "test:items:online": "node scripts/browser-test/verify-items-online.js",
+    "test:hubstats": "node scripts/browser-test/verify-stats.js"
   },
   "engines": {
     "node": ">=18"

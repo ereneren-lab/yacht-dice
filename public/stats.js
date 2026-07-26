@@ -20,8 +20,27 @@
   }
   function blank() { return { games: 0, wins: 0, best: 0, streak: 0, bestStreak: 0 }; }
 
+  /* 기존 6종은 예전부터 자기 키에 쌓아왔고 지금도 거기 먼저 쓴다(그 화면들이 그걸 읽는다).
+     alley_stats에는 v1.224부터만 쌓이므로, 이 6종은 '자기 키'가 전체 기록이다.
+     그래서 허브 통합 화면은 둘을 더하지 않고 **자기 키가 있으면 그걸 쓴다**(이중 계산 방지). */
+  var LEGACY = { kb:'kb_stats', lcr:'lcr_stats', ld:'ld_stats', yut:'yut_stats', alkkagi:'alk_stats', yacht:'yd_stats' };
+  var ORDER = ['yut','yacht','kb','ld','lcr','alkkagi','seotda','blackjack','baccarat','highlow','indianpoker','oldmaid','onecard'];
+  var ALL_LABEL = {
+    yut:'윷놀이', yacht:'요트 다이스', kb:'너클본즈', ld:'라이어 다이스', lcr:'좌·중·우', alkkagi:'알까기',
+    seotda:'섯다', blackjack:'블랙잭', baccarat:'바카라', highlow:'하이로우', indianpoker:'인디언포커',
+    oldmaid:'도둑잡기', onecard:'원카드'
+  };
+  var HREF = {
+    yut:'yut.html', yacht:'yacht.html', kb:'kb.html', ld:'ld.html', lcr:'lcr.html', alkkagi:'alkkagi.html',
+    seotda:'seotda.html', blackjack:'blackjack.html', baccarat:'baccarat.html', highlow:'highlow.html',
+    indianpoker:'indianpoker.html', oldmaid:'oldmaid.html', onecard:'onecard.html'
+  };
+
   var AS = {
     LABEL: LABEL,
+    ALL_LABEL: ALL_LABEL,
+    ORDER: ORDER,
+    HREF: HREF,
     all: all,
     get: function (game) {
       var d = all()[game];
@@ -44,6 +63,24 @@
         return d;
       } catch (e) { return blank(); }
     },
+    /** 13게임 전체 전적 — 기존 키(있으면 그게 전체)와 통합 키를 합쳐 하나로 본다 */
+    merged: function () {
+      var db = all(), out = {};
+      for (var i = 0; i < ORDER.length; i++) {
+        var g = ORDER[i], d = null;
+        if (LEGACY[g]) {
+          try {
+            var raw = localStorage.getItem(LEGACY[g]);
+            if (raw) { var L = JSON.parse(raw); if (L && typeof L.games === 'number') d = L; }
+          } catch (e) {}
+        }
+        if (!d) d = db[g];
+        if (!d || !d.games) continue;
+        out[g] = { games: d.games | 0, wins: d.wins | 0, best: d.best || 0 };
+      }
+      return out;
+    },
+
     /** 결과창에 붙일 전적 한 줄 */
     line: function (game) {
       var d = AS.get(game);

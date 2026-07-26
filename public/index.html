@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>주사위 골목 — Dice Alley</title>
 <!-- 통합 코인 지갑(상점의 토대) -->
+<script src="stats.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
@@ -315,6 +316,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .coinbar{display:flex;align-items:center;gap:8px;justify-content:center;margin:2px 2px 14px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel),var(--bg2));font-weight:800;font-size:13.5px;color:var(--muted)}
   .coinbar b{color:var(--gold,#d8a93a);font-size:17px}
   .coinbar .shoplink{margin-left:auto;font-size:12.5px;font-weight:800;color:var(--brass);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .allstats{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--panel),var(--bg2));margin:0 2px 14px;overflow:hidden}
+  .allstats .assum{list-style:none;cursor:pointer;padding:13px 16px;font-size:13.5px;font-weight:800;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+  .allstats .assum::-webkit-details-marker{display:none}
+  .allstats .assum::after{content:'▾';color:var(--brass);font-size:12px}
+  .allstats[open] .assum::after{content:'▴'}
+  .asbody{padding:2px 14px 14px}
+  .asrow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
+  .asrow:first-child{border-top:0}
+  .asrow .nm{flex:1;min-width:0;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .asrow .num{font-size:12px;color:var(--muted);font-weight:800;white-space:nowrap}
+  .asrow .bar{width:74px;height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;flex:none}
+  .asrow .fill{height:100%;background:linear-gradient(90deg,var(--brass-d),var(--brass))}
+  .asrow .wr{width:38px;text-align:right;font-size:12px;font-weight:900;color:var(--brass)}
+  .astot{display:flex;gap:8px;justify-content:space-between;padding:11px 2px 4px;border-top:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--muted)}
+  .astot b{color:var(--ink)}
+  .asnone{padding:6px 2px 10px;font-size:12.5px;color:var(--muted);line-height:1.6}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -353,6 +370,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
   <div class="levelcard" id="levelCard"></div>
   <div class="statstrip" id="statStrip"></div>
+  <details class="allstats" id="allStats"><summary class="assum">📊 내 전적 — 13게임 전체</summary><div class="asbody" id="asBody"></div></details>
   <div class="achshelf" id="achShelf"></div>
   <div class="dailygoals" id="dailyGoals"></div>
   <div class="firstnote" id="firstNote"><span class="fe">🎲</span><span><b>처음이라면</b> — 혼자 <b>AI</b>랑 붙어봐도 되고, 친구가 준 <b>방 코드</b>를 아래에 입력해 바로 참가할 수도 있어.</span></div>
@@ -851,5 +869,48 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     try { window.AL && AL.ev('허브_카드클릭', { 게임: name.trim() }); } catch(err){}
   }, true);
 })();</script>
+<script>
+// 📊 내 전적 — 13게임 통합 화면 (asBody 렌더)
+// 기존 6종은 자기 키가 전체 기록이라 그걸 쓰고, 나머지는 alley_stats를 쓴다(AS.merged가 처리).
+(function(){
+  try{
+    var box=document.getElementById('allStats'), body=document.getElementById('asBody');
+    if(!box||!body||!window.AS) return;
+    var m=AS.merged(), keys=AS.ORDER.filter(function(g){ return m[g]; });
+    var totG=0, totW=0;
+    keys.forEach(function(g){ totG+=m[g].games; totW+=m[g].wins; });
+    if(!keys.length){
+      body.innerHTML='<div class="asnone">아직 기록이 없어. 한 판 하고 오면 여기에 쌓인다.</div>';
+      box.querySelector('.assum').textContent='📊 내 전적 — 아직 없음';
+      return;
+    }
+    var maxG=0; keys.forEach(function(g){ if(m[g].games>maxG) maxG=m[g].games; });
+    var h='';
+    keys.forEach(function(g){
+      var d=m[g], wr=Math.round(d.wins/d.games*100);
+      h+='<a class="asrow" href="'+AS.HREF[g]+'">'+
+         '<span class="nm">'+AS.ALL_LABEL[g]+'</span>'+
+         '<span class="num">'+d.games+'판 · '+d.wins+'승</span>'+
+         '<span class="bar"><span class="fill" style="width:'+Math.max(4,Math.round(d.games/maxG*100))+'%"></span></span>'+
+         '<span class="wr">'+wr+'%</span></a>';
+    });
+    var twr=totG?Math.round(totW/totG*100):0;
+    h+='<div class="astot"><span>합계 <b>'+keys.length+'</b>게임</span><span><b>'+totG+'</b>판 · <b>'+totW+'</b>승 · 승률 <b>'+twr+'%</b></span></div>';
+    body.innerHTML=h;
+    box.querySelector('.assum').innerHTML='<span>📊 내 전적 — '+totG+'판 · '+totW+'승 ('+keys.length+'게임)</span>';
+    // 새로 들어온 게임 카드에도 배지 (기존 루프는 5종만 돈다)
+    Object.keys(AS.HREF).forEach(function(g){
+      var card=document.querySelector('.gcard[href="'+AS.HREF[g]+'"]');
+      if(!card) return;
+      var meta=card.querySelector('.meta');
+      if(!meta||meta.querySelector('.statbadge')) return;   // 이미 붙었으면 둔다
+      var b=document.createElement('span');
+      if(m[g]){ b.className='statbadge'; b.textContent=m[g].games+'판 · '+m[g].wins+'승'; }
+      else { b.className='statbadge none'; b.textContent='미플레이'; }
+      meta.appendChild(b);
+    });
+  }catch(e){}
+})();
+</script>
 </body>
 </html>

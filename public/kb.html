@@ -597,6 +597,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <button class="opt" data-d="hard">어려움</button>
       </div>
     </div>
+    <div id="itemWrap">
+      <div class="opt-label">아이템전 <small style="font-weight:700;color:var(--muted)">— 양쪽 모두 '다시 굴리기' 2개씩</small></div>
+      <div class="opts" id="optItems">
+        <button class="opt on" data-items="0">끄기</button>
+        <button class="opt" data-items="1">아이템전</button>
+      </div>
+    </div>
     <div id="matchWrap">
       <div class="opt-label">매치</div>
       <div class="opts" id="optMatch">
@@ -813,7 +820,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.TURN_MS = opts.turnMs || 45000;
       this.aiFast = !!opts.aiFast;
       this.AID = this.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // pace: 공통 진행 속도 배수(pace.js)
-      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
+      // 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '다시 굴리기'를 받는다.
+      // 상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
       // exactly 2 seats
       const ps = (opts.players||[]).slice(0,2);
       while(ps.length<2) ps.push({ pid:'p'+ps.length, name:'P'+(ps.length+1), ai:true });
@@ -823,6 +833,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       }));
       this.boards = [[[],[],[]],[[],[],[]]];
       this.turn = 0; this.die = null; this.phase='roll';
+      this.items = [this.itemsOn?this.itemCharges:0, this.itemsOn?this.itemCharges:0];   // 자리별 남은 아이템
       this.deadline = 0; this._timer=null; this._busy=false; this._dead=false;
     }
 
@@ -830,7 +841,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     _emit(){ if(!this._dead) this.onState(this.serialize()); }
     _isAuto(seat){ const p=this.players[seat]; return p.ai || p.connected===false; }
 
-    start(){ this._dead=false; this.gameStartTime=Date.now(); this.turn=0; this.phase='roll'; this.die=null; this._beginTurn(); }
+    start(){ this._dead=false; this.gameStartTime=Date.now(); this.turn=0; this.phase='roll'; this.die=null;
+      this.items=[this.itemsOn?this.itemCharges:0, this.itemsOn?this.itemCharges:0];
+      this._beginTurn(); }
 
     _beginTurn(){
       this._clearTimer();
@@ -866,10 +879,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         // refresh deadline for the place step
         this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
       } else if(a.type==='reroll'){
-        // 상점 소모품 '다시 굴리기'. 온라인은 방 옵션(itemsOn)을 켜기 전엔 무시 —
-        // 안 그러면 아이템 산 사람이 서버 권위 엔진에서 그냥 이기게 된다.
+        // 아이템전 전용 '다시 굴리기'. 판이 아이템전이 아니거나 내 몫을 다 썼으면 무시한다.
+        // 개수는 양쪽이 똑같이 받으므로(엔진이 지급) 돈으로 유리해질 여지가 없다.
         if(!this.itemsOn) return;
         if(this.phase!=='place' || this.die==null) return;
+        if(!(this.items[seat]>0)) return;
+        this.items[seat]--;
         this.die=this._die(); this.onRoll(seat,this.die);
         this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
       } else if(a.type==='place'){
@@ -905,8 +920,38 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(this._dead || this.turn!==seat) return;
       }
       const diff = this.players[seat].ai ? this.players[seat].aiDiff : 'normal';
+      // 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+      // 판단은 단순하게: 지금 눈으로 얻을 최선 이득이 시원찮으면 한 번 다시 굴린다.
+      if(this.itemsOn && this.items[seat]>0 && this._aiWantsReroll(seat, diff)){
+        this.items[seat]--;
+        this.die=this._die(); this.onRoll(seat,this.die); this._emit();
+        await wait(620*this.AID);
+        if(this._dead || this.turn!==seat) return;
+      }
       const col = aiChooseCol(this.boards, seat, this.die, diff);
       this._doPlace(seat, col);
+    }
+
+    /* AI가 다시 굴릴지 — 지금 눈의 최선 가치(내 열 이득 + 상대 파괴)가 기대치보다 낮을 때만.
+       기대치를 6면 평균으로 잡으면 절반쯤은 굴리게 돼 아이템이 금세 마른다 →
+       '확실히 나쁠 때만' 쓰도록 문턱을 평균의 0.72배로 낮춰 잡았다. */
+    _aiWantsReroll(seat, diff){
+      const val=this.die; if(val==null) return false;
+      const gain=v=>{
+        const opp=1-seat, legal=[0,1,2].filter(c=>this.boards[seat][c].length<3);
+        let best=0;
+        for(const c of legal){
+          const g = colScore(this.boards[seat][c].concat(v)) - colScore(this.boards[seat][c]);
+          const d = colScore(this.boards[opp][c]) - colScore(this.boards[opp][c].filter(x=>x!==v));
+          if(g+d>best) best=g+d;
+        }
+        return best;
+      };
+      const cur=gain(val);
+      let exp=0; for(let v=1;v<=6;v++) exp+=gain(v);
+      exp/=6;
+      const thr = diff==='easy' ? exp*0.3 : diff==='hard' ? exp*0.62 : exp*0.48;
+      return cur < thr;
     }
 
     setConnected(pid, v){
@@ -933,7 +978,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       return {
         gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'kb',
-        phase:this.phase, turn:this.turn, die:this.die,
+        phase:this.phase, turn:this.turn, die:this.die, itemsOn:this.itemsOn, items:this.items.slice(),
         deadline:this.deadline, turnMs:this.TURN_MS,
         boards:this.boards.map(b=>b.map(col=>col.slice())),
         colScores:this.boards.map(b=>b.map(col=>colScore(col))),
@@ -1234,7 +1279,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     mySeat = 0;
     S=null; prevBoards=null; lastSeq=0; busy=false;
     setModePill(); showGame();
-    engine = new KBCore.KBEngine({ players, aiFast:false, pace:(window.PACE?PACE.mult():1), itemsOn:true,
+    engine = new KBCore.KBEngine({ players, aiFast:false, pace:(window.PACE?PACE.mult():1), itemsOn:!!cfgItems,
       onState: s=>onState(s),
       onRoll: (seat,val)=>tumble(val) });
     engine.start();
@@ -1404,8 +1449,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(!lb){ row.innerHTML=''; return; }
     const amHost=(lb.members||[]).some(x=>x.pid===myPid&&x.host);
     const on=!!lb.itemsOn;
-    row.innerHTML='<div class="stake-lbl">🔄 상점 아이템 <small>'+(amHost?'호스트가 켜고 끔':(on?'허용됨':'꺼짐'))+'</small></div>'+
-      '<div class="stake-chips"><button class="stake-chip'+(on?' on':'')+'" id="itemsToggleBtn"'+(amHost?'':' disabled')+'>'+(on?'켜짐 — 다시 굴리기 사용 가능':'꺼짐')+'</button></div>';
+    row.innerHTML='<div class="stake-lbl">🔄 아이템전 <small>'+(amHost?'호스트가 켜고 끔':(on?'허용됨':'꺼짐'))+'</small></div>'+
+      '<div class="stake-chips"><button class="stake-chip'+(on?' on':'')+'" id="itemsToggleBtn"'+(amHost?'':' disabled')+'>'+(on?'아이템전 — 전원 2개씩':'끄기')+'</button></div>';
     if(amHost){ const b=$('itemsToggleBtn'); if(b) b.onclick=()=>{ try{wsSend({t:'setItems',v:!on});}catch(e){} }; }
   }
   function renderLobby(){
@@ -1635,9 +1680,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('rollWrap').style.display = spectating ? 'none' : 'block';
     // 상점 소모품 — 온라인은 방 옵션(itemsOn)이 열리기 전까지 안 보인다
     (function(){ const ib=$('itemReroll'); if(!ib) return;
-      let n=0; try{ n=window.SHOP?SHOP.count('reroll'):0; }catch(e){}
-      const itemsAllowed = !online() || !!(lobby && lobby.itemsOn);
-      const usable = itemsAllowed && !isOver(s) && !busy && s.phase==='place' && canControl(s.turn,s) && n>0;
+      const mySeat = s.players.findIndex(pp=>pp.pid===myPid);
+      const seatIdx = online() ? (mySeat>=0?mySeat:s.turn) : s.turn;
+      const n = (s.itemsOn && s.items) ? (s.items[seatIdx]|0) : 0;   // 엔진이 전원에게 똑같이 준 몫
+      const usable = !!s.itemsOn && !isOver(s) && !busy && s.phase==='place' && canControl(s.turn,s) && n>0;
       ib.style.display = usable ? 'block' : 'none';
       ib.textContent = '🔄 다시 굴리기 ('+n+')'; })();
     // label
@@ -1831,11 +1877,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   // ---------- dispatch ----------
+  // 아이템전 설정(로컬) — 켜면 양쪽 모두 같은 개수를 받는다
+  let cfgItems=false;
+  document.querySelectorAll('#optItems .opt').forEach(function(o){ o.onclick=function(){
+    document.querySelectorAll('#optItems .opt').forEach(function(x){x.classList.remove('on')});
+    o.classList.add('on'); cfgItems = o.dataset.items==='1'; }; });
   $('rollBtn').onclick = ()=>dispatchRoll();
   $('itemReroll').onclick = ()=>{ const s=S; if(!s||busy||s.phase!=='place'||isOver(s)) return;
     if(!canControl(s.turn,s)) return;
-    if(online() && !(lobby&&lobby.itemsOn)) return;
-    try{ if(!window.SHOP||!SHOP.spend('reroll')) return; }catch(e){ return; }
+    if(!s.itemsOn) return;
     if(online()) wsSend({t:'action',a:{type:'reroll'}}); else engine.action(s.players[s.turn].pid,{type:'reroll'});
     try{ window.PACE&&PACE.toast('🔄 다시 굴렸어'); }catch(e){} };
   function dispatchRoll(){ const s=S; if(!s||busy||s.phase!=='roll'||isOver(s)) return; if(!canControl(s.turn,s)) return;
@@ -1981,7 +2031,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const Stats={ d:(function(){try{return Object.assign({games:0,wins:0,best:0,streak:0,bestStreak:0},JSON.parse(localStorage.getItem('kb_stats'))||{});}catch(e){return{games:0,wins:0,best:0,streak:0,bestStreak:0};}})(),
     save(){try{localStorage.setItem('kb_stats',JSON.stringify(this.d));}catch(e){}},
     record(won,score){ const beforeLv=levelOf(this.d.xp).lv;
-      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('kb',won,score); window.AW&&AW.reward(won); }catch(e){}   // 통합 전적·코인 this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(score>this.d.best)this.d.best=score;
+      try{window.AL&&AL.done(won);}catch(e){} try{ window.AS&&AS.record('kb',won,score); window.AW&&AW.reward(won); }catch(e){}   /* 통합 전적·코인 */ this.d.games++; if(won){this.d.wins++; this.d.streak=(this.d.streak||0)+1; if(this.d.streak>this.d.bestStreak)this.d.bestStreak=this.d.streak;} else this.d.streak=0; if(score>this.d.best)this.d.best=score;
       const gain=15+(won?25:0)+Math.min(Math.floor((score||0)/25),5)*4;   // 점수 반영(25점당 +4, 최대 +20)
       this.d.xp=(this.d.xp||0)+gain; const after=levelOf(this.d.xp);
       this._lastXp={ gain, leveled: after.lv>beforeLv ? after : null };

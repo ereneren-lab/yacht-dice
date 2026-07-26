@@ -79,6 +79,21 @@ const send = (ws, o) => ws.send(JSON.stringify(o));
   const phase = last(c, 'state').state.phase;
   if (!changed) fail('켠 방인데 reroll이 25번 시도해도 눈이 안 바뀐다');
   else console.log(`✅ 켠 방: reroll 동작 (눈 ${d1}→${last(c,'state').state.die}, phase=${phase})`);
+
+  // 지급이 양쪽 동일한가 + 내 몫(2개)을 넘겨 쓸 수 없는가
+  const st3 = last(c, 'state').state;
+  if (!st3.items || st3.items.length !== 2 || Math.abs(st3.items[0] - st3.items[1]) > 2) fail(`지급이 이상하다 ${JSON.stringify(st3.items)}`);
+  else console.log(`✅ 지급 상태 ${JSON.stringify(st3.items)} (전원 2개에서 시작)`);
+  // 남은 개수를 다 쓰고 한 번 더 시도 → 무시돼야 한다
+  const seatNow = st3.turn;
+  for (let i = 0; i < 6; i++) { send(tw, { t: 'action', a: { type: 'reroll' } }); await wait(90); }
+  const st4 = last(c, 'state').state;
+  const dieA = st4.die;
+  send(tw, { t: 'action', a: { type: 'reroll' } }); await wait(250);
+  const st5 = last(c, 'state').state;
+  if (st5.items[seatNow] !== 0) fail(`소진 후 잔량이 0이 아니다 ${JSON.stringify(st5.items)}`);
+  else if (st5.die !== dieA) fail(`몫을 다 썼는데 reroll이 또 먹었다 (${dieA}→${st5.die})`);
+  else console.log(`✅ 내 몫 소진 후 추가 시도 무시 (잔량 ${JSON.stringify(st5.items)})`);
   c.close(); d.close();
 
   console.log(bad ? `\n❌ 문제 ${bad}건` : '\n✓ 온라인 아이템은 호스트가 켠 방에서만 먹는다');
