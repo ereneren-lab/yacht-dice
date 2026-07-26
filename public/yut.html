@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>윷놀이 — 주사위 골목</title>
+<!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
+<script src="tutorial.js"></script>
+<script>try{TUT.init({game:"yut",steps:[{"art":"🎲","title":"윷 던지기","body":"윷 4개를 던져 나온 모양대로 말이 움직여.<br><b>도</b> 1칸 · <b>개</b> 2칸 · <b>걸</b> 3칸 · <b>윷</b> 4칸 · <b>모</b> 5칸.<br><b>윷·모</b>가 나오면 <b>한 번 더</b> 던져!"},{"art":"🐎","title":"말 고르기","body":"던진 수가 위에 쌓여. 그중 하나를 골라 움직일 말을 탭하면 돼.<br>여러 개가 쌓였으면 <b>어느 수를 어느 말에</b> 쓸지 네가 정한다."},{"art":"⚔️","title":"잡기 · 업기","body":"상대 말이 있는 칸에 도착하면 <b>잡아서</b> 처음으로 돌려보내고 <b>한 번 더</b> 던져.<br>내 말끼리 만나면 <b>업어서</b> 같이 움직여 — 대신 같이 잡히니 조심."},{"art":"🛣️","title":"지름길","body":"모서리 칸에 <b>정확히</b> 멈추면 안쪽 지름길로 질러갈 수 있어. 크게 단축되니 노려볼 만해."},{"art":"🏁","title":"이기는 법","body":"내 말을 <b>전부 완주</b>시키면 승리! 판에는 <b>구렁텅이</b>와 <b>이벤트 칸</b>도 있어 — 상단 <b>?</b>에서 자세한 규칙을 언제든 볼 수 있어."}]})}catch(e){}</script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
@@ -343,6 +346,25 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .game-right{ grid-area:right; position:static; }
     .game-left{ grid-area:left; position:static; }
     .game-center .board{ max-width:min(54vw, 66vh); }
+  }
+  /* 가로로 돌린 폰 — 폭이 640~844라 위 '중간 폭(481~780)' 2단 규칙에는 들지만,
+     정작 높이를 확보하는 압축은 전부 아래 max-width:480px 블록에 묶여 있어 하나도 적용되지 않는다.
+     그래서 세로에선 넘침 0인데 가로에선 +300px가 났다(너클본즈와 같은 종류의 구멍).
+     → 같은 압축을 '높이' 기준으로 다시 건다. */
+  @media (orientation:landscape) and (max-height:520px){
+    body.ingame .app{ max-width:none; padding:2px 8px 2px }
+    .topbar{ margin:0 0 3px !important }
+    .iconbtn{ width:32px;height:32px;border-radius:8px;font-size:14px }
+    #modePill{ display:none }
+    #game{ gap:5px 10px }
+    body.ingame #missionPanel, body.ingame .game-left{ display:none }   /* 미션은 부가 정보 */
+    #game.orderphase .board{ display:none }        /* 선 뽑기 땐 판이 흐린 장식 */
+    #game .itembar{ padding:3px 7px;gap:1px }
+    #game .itembar .ib-head{ display:none }
+    #game .itembar .ib-card{ padding:3px 6px }
+    .game-center .board{ max-width:min(42vw, 80vh) }
+    .dr-band{ padding:6px 10px; gap:8px }
+    .gaugehint{ font-size:10px;margin-bottom:3px }
   }
   /* 조작부 묶음: 넓은 폭에선 투명(부모 flex 그대로), 폰에선 하단 고정바 */
   .ctrlbar{ display:contents }
@@ -1693,6 +1715,89 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       pl.items.splice(idx, 1);
       this._emit(); this._maybeAI();
     }
+    /* 아이템전에서 AI가 쓸 아이템을 고른다 — 없으면 null.
+       사람만 아이템을 쓰고 AI는 2장을 들고 죽는 판은 공정하지 않다(v1.227 이전이 그랬다).
+       판단은 각 아이템의 '지금 값어치'가 확실할 때만 — 아껴 죽는 것도, 첫 턴에 털리는 것도 막는다.
+         push  … 상대 말이 나와 있고, 그중 가장 많이 전진한 말이 절반 이상 왔을 때
+         rethrow … 이번 턴 굴림이 도(1) 하나뿐이고 그걸로 잡을 것도 없을 때(버리는 턴 살리기)
+         shield … 내 말이 나와 있고 상대 사정거리(뒤 1~5칸)에 걸린 말이 있을 때 */
+    _aiPickItem(seat) {
+      if (!this.itemBattle) return null;
+      const owner = this._pieceOwner(seat);
+      const pl = this.players[owner];
+      const have = (pl.items || []);
+      if (!have.length) return null;
+
+      // ── push: 가장 앞선 상대 말을 처음으로 돌려보낸다
+      if (have.includes('push')) {
+        let best = null;
+        for (const op of this.players) {
+          if (op.seat === seat) continue;
+          if (this.teamMode && op.team === pl.team) continue;
+          if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue;
+          for (const opc of (op.pieces || [])) {
+            if (opc.done || !opc.out) continue;
+            const prog = this._progressOf(opc);
+            if (prog >= 10 && (!best || prog > best.prog)) best = { prog, targetSeat: op.seat, targetPieceId: opc.id };
+          }
+        }
+        if (best) return { item: 'push', targetSeat: best.targetSeat, targetPieceId: best.targetPieceId };
+      }
+      // ── rethrow: 버리는 턴 살리기
+      if (have.includes('rethrow') && this.phase === 'move' &&
+          this.pending.length === 1 && this.pending[0] <= 1 && !this._canCaptureNow(seat)) {
+        return { item: 'rethrow' };
+      }
+      // ── shield: 잡힐 위기일 때만
+      if (have.includes('shield') && this.shieldSide !== owner) {
+        for (const pc of pl.pieces) {
+          if (pc.done || !pc.out) continue;
+          if (this._catchRisk(pc.node, seat, pl)) return { item: 'shield' };
+        }
+      }
+      return null;
+    }
+    /* AI가 고른 아이템을 실제로 쓴다 — 썼으면 true.
+       useItem이 _emit + _maybeAI를 다시 걸어 주므로 호출부는 쓰고 빠지면 된다.
+       아이템은 쓸 때마다 재고에서 빠지므로(useItem의 splice) 재귀는 재고 수만큼에서 멈춘다. */
+    _aiUseItem(p) {
+      if (!this.itemBattle) return false;
+      const pick = this._aiPickItem(this.turn);
+      if (!pick) return false;
+      this.useItem(p.pid, pick);
+      return true;
+    }
+    /* 말이 얼마나 왔나(대략) — push 표적 고르기용. 완주 직전일수록 크다. */
+    _progressOf(pc) {
+      if (pc.done) return 100;
+      if (!pc.out) return 0;
+      if (pc.route === 'sc5' || pc.route === 'sc10') return 14 + pc.node;   // 지름길은 더 앞선 것으로 본다
+      return pc.node;
+    }
+    /* 지금 pending에 든 수로 상대 말을 잡을 수 있나 — 후보 열거는 _bestMove와 같은 규칙(step+지름길).
+       _bestMove의 반환값에는 잡기 여부가 안 담기므로(점수에만 반영) 따로 본다. */
+    _canCaptureNow(seat) {
+      const pl = this.players[this._pieceOwner(seat)];
+      for (const s of this.pending) {
+        for (const pc of pl.pieces) {
+          if (pc.done) continue;
+          const dirs = isBranch(pc.node, pc.route) ? ['shortcut', null] : [null];
+          for (const dir of dirs) {
+            const r = step(pc.node, pc.route, pc.out, s, dir);
+            if (r.noMove || r.done) continue;
+            for (const op of this.players) {
+              if (op.seat === seat) continue;
+              if (this.teamMode && op.team === pl.team) continue;
+              if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue;
+              for (const opc of op.pieces) {
+                if (!opc.done && opc.out && opc.node === r.node) return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
     _anyMovable(seat) {
       const pl = this.players[this._pieceOwner(seat)];
       for (const s of this.pending) {
@@ -1858,9 +1963,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       }
       if (this.phase === 'throw' && auto) {
         const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
-        this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
+        this._timer = setTimeout(() => {
+          if (this._dead || this.phase !== 'throw') return;
+          // 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+          // useItem이 다시 _maybeAI를 걸어 주므로 여기선 쓰고 빠지면 된다.
+          const it = this._aiUseItem(p);
+          if (it) return;
+          this.doThrow(p.pid, power);
+        }, ms);
       } else if (this.phase === 'move' && auto) {
         this._timer = setTimeout(() => {
+          if (this._dead || this.phase !== 'move') return;
+          const it = this._aiUseItem(p);
+          if (it) return;
           const mv = this._bestMove(this.turn);
           if (mv) this.doMove(p.pid, mv.pieceId, mv.pendingIndex, mv.dir);
           else this._endTurn();
@@ -1893,6 +2008,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         eventTiles: Object.assign({}, this.eventTiles), eventTypes: this.eventTypes.slice(), pitOn: this.pitOn, dailyRule: this.dailyRule,
         eventFx: this.eventFx ? { ...this.eventFx } : null,
         itemBattle: this.itemBattle, speedStart: this.speedStart, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
+
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         decideOrder: this.decideOrder,

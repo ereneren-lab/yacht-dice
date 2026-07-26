@@ -87,6 +87,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .topbar h2{ font-size:17px }
     .iconbtn{ width:36px;height:36px;border-radius:9px;font-size:15px }
   }
+  /* 작고 짧은 폰(360x640)에서 29px가 넘쳤다 — 세로로 쌓인 여백만 줄인다(주사위 크기는 유지) */
+  @media (max-width:480px) and (max-height:700px){
+    .wrap{ padding-bottom:14px }
+    .opps{ margin-bottom:8px }
+    .center{ margin:4px 0 8px; min-height:56px }
+    .mydice{ margin-bottom:9px }
+    .me{ padding-top:9px }
+    .mehead{ margin-bottom:6px }
+  }
 
   /* opponents */
   .opps{display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
@@ -387,6 +396,29 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @media (max-width:480px){ .meta-chip{ max-width:110px;font-size:9.5px } }
   /* 좁은 폰(≤400px)은 상단바가 꽉 차 레벨칩이 긴 제목(라이어 다이스)을 가린다 → 게임 중엔 숨김(레벨은 셋업·결과 화면에 있음) */
   @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
+
+  /* 가로로 돌린 폰 — 높이가 360~390px뿐이라 세로 한 줄로는 안 담긴다(640x360에서 +313px).
+     .ld-main 은 [상대들 · 베팅현황 · 공개창] 과 [내 주사위+컨트롤] 로 갈라 2단으로 놓는다.
+     내 주사위·버튼이 오른쪽 한 칸에 모여 있어 엄지로 조작하기도 낫다. */
+  @media (orientation:landscape) and (max-height:520px){
+    .wrap{ padding:4px 14px 4px }
+    .topbar{ margin:0 0 4px !important }
+    .ld-main{ display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; align-items:start }
+    .ld-main > .opps     { grid-column:1; grid-row:1 }
+    .ld-main > .center   { grid-column:1; grid-row:2 }
+    .ld-main > #revealBox{ grid-column:1; grid-row:3 }
+    .ld-main > .me       { grid-column:2; grid-row:1 / span 3 }
+    body.ingame .meta-chip{ display:none }
+    /* 2단으로 갈라도 57px가 남았다 — 세로로 쌓인 여백(margin-bottom 14px들)과 큰 주사위를 줄인다 */
+    .iconbtn{ width:32px;height:32px;border-radius:8px;font-size:14px }
+    .opps{ gap:6px; margin-bottom:6px }
+    .center{ margin:2px 0 6px; min-height:0 }
+    .me{ padding-top:6px; margin-top:0 }
+    .mehead{ gap:6px; margin-bottom:5px }
+    .mydice{ gap:6px; margin-bottom:7px; min-height:0 }
+    .mydice .d{ width:44px;height:44px }
+    .controls{ gap:6px }
+  }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -485,6 +517,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <div class="mini" style="text-align:left;margin-top:5px">개수가 <b>딱 맞다</b>고 부르는 고위험 콜 — 맞으면 판을 뒤집고, 틀리면 내가 잃어요.</div>
     <div class="toggle on" id="wildToggle" style="margin-top:8px"><span class="tnm">와일드 (1 만능)</span><span class="tsw"></span></div>
     <div class="mini" style="text-align:left;margin-top:5px">1이 <b>모든 숫자</b>로 쳐지는 규칙 — 끄면 1은 1로만 세어요.</div>
+    <div class="toggle" id="itemsToggle" style="margin-top:8px"><span class="tnm">🛡 아이템전 (훔쳐보기)</span><span class="tsw"></span></div>
+    <div class="mini" style="text-align:left;margin-top:5px">전원이 <b>'훔쳐보기' 2개</b>씩 받아요 — 상대 주사위 1개를 나만 봅니다. AI도 씁니다.</div>
     <div id="onlineBox" style="display:none">
       <div class="opt-label">내 이름</div>
       <input class="field" id="onName" maxlength="12" placeholder="이름 입력">
@@ -627,9 +661,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const p = wild ? 1/3 : 1/6;
     const total = view.totalDice;
     const my = view.players[seat].dice || [];
-    const myLen = my.length;
-    const unknown = total - myLen;
-    const myMatch = f => my.filter(d=>d===f || (wild && d===1)).length;
+    /* 아이템전 '훔쳐보기'로 알아낸 상대 주사위도 '아는 눈'에 넣는다.
+       이렇게 하면 아래 확률 계산(unknown/myMatch)이 그대로 쓰이면서 판단이 정확해진다
+       → AI 전용 분기를 따로 만들 필요가 없다. 사람도 같은 정보를 화면에서 본다. */
+    const known = my.concat(view.peeked || []);
+    const unknown = Math.max(0, total - known.length);
+    const myMatch = f => known.filter(d=>d===f || (wild && d===1)).length;
     const bid = view.bid;
     if(!bid){
       let bestF=2, bestC=-1;
@@ -687,6 +724,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         aiDiff:p.aiDiff||'normal', connected:p.connected!==false,
         dice:[], alive:true, seat:i
       }));
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '훔쳐보기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         효과: 상대 주사위 1개를 나에게만 공개. 공개는 그 라운드 동안 유지되고 새 라운드에 지워진다. */
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
+      this.items = this.players.map(()=>this.itemsOn?this.itemCharges:0);
+      this.peeks = {};        // 보는 사람 seat → [{t:상대seat, i:주사위번호}]
+      this.peekSeq = 0; this.lastPeek = null;   // 연출용
       this.phase='bid'; this.turn=0; this.bid=null; this.lastResult=null;
       this._busy=false; this._dead=false; this._timer=null; this._turnTimer=null;
       this.turnDeadline=0;              // 제한시간 있는 사람 턴의 마감 시각(ms). 0 = 없음
@@ -707,6 +752,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       // ensure alive players who never rolled get startDice
       this.players.forEach(p=>{ if(p.alive && p.dice.length===0) p.dice=Array.from({length:this.startDice},()=>this._d()); });
       this.bid=null; this.lastResult=null; this.phase='bid';
+      this.peeks = {};   // 주사위를 새로 굴렸으니 지난 라운드의 훔쳐본 정보는 무효
       this.turn = this.players[starter] && this.players[starter].alive ? starter : this._nextAlive(starter);
       this._maybeAI();   // 먼저 턴 마감시각을 잡아야 emit에 turnLeft가 실린다
       this._emit();
@@ -724,7 +770,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     _aiTurn(){
       if(this._dead || this.phase!=='bid') { this._busy=false; return; }
       const seat=this.turn;
-      const view = this.serialize(this.players[seat].pid); // AI sees only its own dice
+      /* 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+         정보가 가장 값어치 있는 순간은 '도전할지 말지' 고민할 때(=이미 베팅이 올라와 있을 때)라
+         그때 라운드당 한 번만 쓴다. 아껴 죽지도, 첫 턴에 털리지도 않는다. */
+      if(this.itemsOn && this.items[seat]>0 && this.bid && !(this.peeks[seat]||[]).length){
+        this._doPeek(seat);
+      }
+      const view = this.serialize(this.players[seat].pid); // 자기 주사위 + 훔쳐본 것만 보인다
       const a = aiDecide(view, seat, this.players[seat].aiDiff, this.wild, this.spotOn);
       this._busy=false;
       this._apply(seat, a);
@@ -771,7 +823,51 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       } else if(a.type==='calza'){
         if(!this.bid || !this.spotOn) return;
         this._resolveCalza(seat);
+      } else if(a.type==='peek'){
+        this._doPeek(seat, a.target);
       }
+    }
+
+    /* 아이템전 '훔쳐보기' — 상대 주사위 1개를 **나에게만** 공개한다.
+       판이 아이템전이 아니거나 내 몫을 다 썼으면 무시한다(개수는 전원 동일하게 지급). */
+    _doPeek(seat, target){
+      if(!this.itemsOn) return;
+      if(this.phase!=='bid') return;
+      if(!(this.items[seat]>0)) return;
+      const mine = this.peeks[seat] || (this.peeks[seat]=[]);
+      // 표적: 지정이 없으면 주사위가 가장 많이 남은 상대(정보 가치가 가장 큼)
+      let t = (target!=null) ? (target|0) : -1;
+      const okTarget = s => s>=0 && s<this.players.length && s!==seat && this.players[s].alive && this.players[s].dice.length>0;
+      if(!okTarget(t)){
+        t = -1; let bestN = 0;
+        for(const p of this.players){
+          if(p.seat===seat || !p.alive) continue;
+          const left = p.dice.length - mine.filter(x=>x.t===p.seat).length;   // 아직 안 본 것만 셈
+          if(left>0 && p.dice.length>bestN){ bestN=p.dice.length; t=p.seat; }
+        }
+      }
+      if(t<0) return;                                   // 볼 게 없으면 아이템을 쓰지 않는다(낭비 방지)
+      const seen = mine.filter(x=>x.t===t).map(x=>x.i);
+      const cand = this.players[t].dice.map((_,i)=>i).filter(i=>seen.indexOf(i)<0);
+      if(!cand.length) return;
+      const i = cand[Math.floor(this.rng()*cand.length)];
+      this.items[seat]--;
+      mine.push({ t, i });
+      this.peekSeq++;
+      this.lastPeek = { seq:this.peekSeq, by:seat, target:t, value:this.players[t].dice[i] };
+      this._emit();
+    }
+
+    /* 이 사람이 훔쳐본 상대 주사위 눈 목록 — serialize와 AI가 함께 쓴다.
+       주사위를 잃어 배열이 짧아졌을 수 있으니 인덱스 유효성을 매번 확인한다. */
+    _peekedValues(seat){
+      const mine = this.peeks[seat] || [];
+      const out = [];
+      for(const x of mine){
+        const p = this.players[x.t];
+        if(p && p.alive && x.i < p.dice.length) out.push(p.dice[x.i]);
+      }
+      return out;
     }
 
     _loseDie(seat){ const p=this.players[seat]; if(p.dice.length>0) p.dice.pop(); if(p.dice.length===0) p.alive=false; }
@@ -827,7 +923,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
     serialize(viewerPid){
       const reveal = this.phase==='reveal' || this.phase==='over';
+      const vSeat = this.players.findIndex(p=>p.pid===viewerPid);
+      // 훔쳐본 정보는 **보는 사람 것만** 실어 보낸다 — 남의 정보가 스냅샷에 섞이면 그게 곧 정보 누출이다
+      const myPeeks = vSeat>=0 ? (this.peeks[vSeat]||[]).map(x=>{
+        const p=this.players[x.t];
+        return (p && p.alive && x.i<p.dice.length) ? { seat:x.t, i:x.i, v:p.dice[x.i] } : null;
+      }).filter(Boolean) : [];
       return {
+        itemsOn:this.itemsOn, items:(this.items||[]).slice(),
+        peeked: myPeeks.map(x=>x.v),      // aiDecide가 '아는 눈'으로 쓴다
+        myPeeks: myPeeks,                 // 클라가 어느 주사위인지 표시하는 데 쓴다
+        lastPeek: this.lastPeek && vSeat===this.lastPeek.by ? {...this.lastPeek} : null,
         gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'ld', phase:this.phase, turn:this.turn, bid:this.bid?{...this.bid}:null,
         wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),
@@ -897,7 +1003,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   function tryReconnect(){ const room=seatGet('ld_room'), pid=seatGet('ld_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
 
-  let engine=null, S=null, cfg={n:3, diff:'normal', spotOn:true, dice:5, wild:true};
+  let engine=null, S=null, cfg={n:3, diff:'normal', spotOn:true, dice:5, wild:true, itemsOn:false};
   try{ const d=+localStorage.getItem('ld_dice'); if(d===3||d===5) cfg.dice=d; }catch(e){}
   try{ cfg.wild = localStorage.getItem('ld_wild')!=='0'; }catch(e){}
   let bidQty=1, bidFace=2, busy=false, freshRound=true, lastRevealKey=null, resultShown=false, ffActive=false;
@@ -963,6 +1069,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('spotToggle').onclick=()=>{ cfg.spotOn=!cfg.spotOn; $('spotToggle').classList.toggle('on',cfg.spotOn); };
   $('optDice').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return; cfg.dice=+b.dataset.dc; document.querySelectorAll('#optDice .opt').forEach(o=>o.classList.toggle('on',o===b)); try{localStorage.setItem('ld_dice',cfg.dice);}catch(e){} };
   $('wildToggle').onclick=()=>{ cfg.wild=!cfg.wild; $('wildToggle').classList.toggle('on',cfg.wild); try{localStorage.setItem('ld_wild',cfg.wild?'1':'0');}catch(e){} };
+  $('itemsToggle').onclick=()=>{ cfg.itemsOn=!cfg.itemsOn; $('itemsToggle').classList.toggle('on',cfg.itemsOn); };
   // 저장된 값으로 초기 UI 상태 반영
   document.querySelectorAll('#optDice .opt').forEach(o=>o.classList.toggle('on',+o.dataset.dc===cfg.dice));
   $('wildToggle').classList.toggle('on',cfg.wild);
@@ -1130,7 +1237,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 코드칸: 항상 노출 · 대문자+영숫자만 4자리로 정규화 · Enter로 바로 참가
   $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
   $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); $('joinBtn').onclick(); } });
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn,diceCount:cfg.dice,wild:cfg.wild})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn,diceCount:cfg.dice,wild:cfg.wild,itemsOn:!!cfg.itemsOn})); };
   $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
 
   function start(){
@@ -1142,7 +1249,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:av[i-1],ai:true,aiDiff:cfg.diff});
     S=null; busy=false;
     $('game').style.display='block'; document.body.classList.add('ingame');
-    engine=new LDCore.LDEngine({ players, diceCount:cfg.dice, wild:cfg.wild, spotOn:cfg.spotOn, aiMs:PMS(900),
+    engine=new LDCore.LDEngine({ players, diceCount:cfg.dice, wild:cfg.wild, spotOn:cfg.spotOn, itemsOn:!!cfg.itemsOn, aiMs:PMS(900),
       onState:()=>{ S=engine.serialize(MYPID); render(); } });
     engine.start();
   }
@@ -1232,9 +1339,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     row.innerHTML=h;
     if(amHost) row.querySelectorAll('.stake-chip').forEach(function(b){ b.onclick=function(){ try{wsSend({t:'setStake',stake:b.dataset.v});}catch(e){} }; });
   }
+  // 아이템전 허용 토글 — 호스트만. 산 개수와 무관하게 엔진이 전원에게 같은 개수를 준다.
+  function renderItemsOpt(lb){
+    let row=$('itemsRow');
+    if(!row){ const sr=$('stakeRow'); if(!sr) return; row=document.createElement('div'); row.id='itemsRow'; row.style.margin='6px 0 2px'; sr.parentNode.insertBefore(row, sr.nextSibling); }
+    if(!lb){ row.innerHTML=''; return; }
+    const amHost=(lb.members||[]).some(x=>x.pid===MYPID&&x.host);   // ld는 MYPID를 쓴다(myPid 아님)
+    const on=!!lb.itemsOn;
+    row.innerHTML='<div class="stake-lbl">👁 아이템전 <small>'+(amHost?'호스트가 켜고 끔':(on?'허용됨':'꺼짐'))+'</small></div>'+
+      '<div class="stake-chips"><button class="stake-chip'+(on?' on':'')+'" id="itemsToggleBtn"'+(amHost?'':' disabled')+'>'+(on?'아이템전 — 전원 2개씩':'끄기')+'</button></div>';
+    if(amHost){ const b=$('itemsToggleBtn'); if(b) b.onclick=()=>{ try{wsSend({t:'setItems',v:!on});}catch(e){} }; }
+  }
   function renderLobby(){
     if(!lobby) return;
     renderStake(lobby);
+    renderItemsOpt(lobby);
     $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on'); stopTurnTimer();
     $('lobbyCode').textContent=lobby.code;
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
@@ -1562,6 +1681,29 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     const myTurn = S.turn===mySeat() && S.phase==='bid' && me.alive && !busy;
     if(!myTurn){ host.innerHTML=''; return; }
+    // 훔쳐본 결과 — 나에게만 보인다(serialize가 myPeeks를 보는 사람 것만 실어 보낸다)
+    if(S.itemsOn && S.myPeeks && S.myPeeks.length){
+      const PIP=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+      const d=document.createElement('div');
+      d.className='mini'; d.id='peekInfo';
+      d.style.cssText='padding:7px 10px;text-align:center;font-size:12px;border:1px dashed var(--brass);border-radius:9px;color:var(--brass)';
+      d.innerHTML='👁 '+S.myPeeks.map(x=>esc((S.players[x.seat]||{}).name||('P'+(x.seat+1)))+'의 '+(PIP[x.v]||x.v)).join(' · ');
+      host.appendChild(d);
+    }
+    // 아이템전 '훔쳐보기' — 상대 주사위 1개를 나에게만 공개. 내 차례에만, 남은 개수만큼.
+    (function(){
+      if(!S.itemsOn) return;
+      const n=(S.items&&S.items[mySeat()]|0)||0;
+      if(n<=0) return;
+      const b=document.createElement('button');
+      b.className='btn ghost'; b.id='itemPeek';
+      b.style.cssText='border-color:var(--brass);color:var(--brass)';
+      b.textContent='👁 훔쳐보기 ('+n+')';
+      b.onclick=()=>{ if(busy) return;
+        if(online) wsSend({t:'action',a:{type:'peek'}}); else engine.action(S.players[mySeat()].pid,{type:'peek'});
+        try{ window.PACE&&PACE.toast('👁 상대 주사위 하나를 봤어'); }catch(e){} };
+      host.appendChild(b);
+    })();
     // 새 라운드(또는 내 차례 첫 진입)면 내 패 기반으로 추천값 세팅
     if(freshRound){
       // 베팅이 있으면 도전 판단이 쉽도록 그 눈을 기본 선택(내 최다 face 대신) → faceHint가 바로 "그 눈 내 보유"를 보여줌

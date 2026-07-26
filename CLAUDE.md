@@ -126,6 +126,50 @@ git add -A && git commit -m "..." && git push
 
 8. **방/자리(pid)는 탭 단위다** — 방 코드·pid를 `localStorage`에만 두면 같은 브라우저의 다른 탭이 join하며 값을 덮어써, 먼저 있던 탭이 새로고침(모바일 복귀)할 때 **남의 자리로 rejoin**해 서로 끊는 루프에 빠진다. → 5종 모두 `sessionStorage`(탭 전용) 우선 읽기/쓰기(`seatGet/seatSet/seatDel`, 요트는 `SEAT`)를 쓰고, `localStorage`에는 허브 '이어하기' 배너용으로 함께 남긴다. **새 탭(초대 링크로 방금 연 탭)은 sessionStorage가 비어 localStorage로 폴백**하므로 여기서도 자리를 뺏을 수 있다 → 부트에서 `BroadcastChannel('alley_seat')`로 "이 자리 쓰는 탭 있냐"를 묻고(250ms) 있으면 자동 rejoin을 포기한다(v1.155). 회귀 테스트: `npm run test:online2p`.
 
+8. **`max-width` 기반 압축은 가로 회전(landscape)에서 통째로 무력해진다 (v1.227)** — 폰을 돌리면 **폭이 640~844px로 커지고 높이가 360~390px로 줄어든다.** 그러면 `@media (max-width:480px)`에 넣어둔 '높이 확보용' 압축이 전부 빠지면서, 정작 높이가 가장 부족한 순간에 압축이 사라진다. 실제로 세로에선 넘침 0인데 가로에서 요트 +749 · 너클본즈 +322 · 라이어 +313 · 윷 +300px가 났다. → **높이를 확보하는 규칙은 `max-height`/`orientation:landscape`로 걸 것.** 같은 구멍이 481~780px 구간(2단)에도 있다 — `≤480`의 압축도, `≥781`의 가로 배치도 못 받는 구간이라 가장 심하게 넘친다. 검사: **`npm run audit:ux`** (13게임 × 8뷰포트 × 셋업/룰오버레이/인게임/룰접근/가로잘림).
+
+9. **`position:sticky`는 요소가 컨테이너의 마지막 자식이면 아무 일도 안 한다** — 위로 움직일 여유가 0이기 때문. 요트·섯다 셋업의 '시작' 버튼에 sticky가 걸려 있었는데도 짧은 화면에서 **화면 밖으로 나가 게임을 시작조차 못 했다.** → 래퍼를 고정하거나(`#helpOv .btns`가 쓰는 방식) `position:fixed`를 쓸 것. `#setup`처럼 판이 깔리면 `display:none`되는 컨테이너 안에 두면 게임 화면에 남지 않는다.
+
+10. **`body{overflow-x:hidden}`은 가로로 잘린 버튼을 숨긴다** — 페이지 넘침 수치(hOver)로는 절대 안 잡힌다. 너클본즈 상단바의 '?'(규칙) 버튼이 그렇게 조용히 사라져 있었다(right=396 / 화면 360). `audit:ux`의 ⑤ 항목이 버튼 rect를 직접 봐서 잡는다.
+
+11. **HTML `style` 속성이 두 개면 뒤쪽은 무시된다** — `#rollWrap`이 `style="max-width…"` … `style="display:none"`이라 `display:none`이 안 먹고 셋업 화면 뒤에 버튼이 떠 있었다. 그리고 **JS가 인라인 `display`를 넣는 요소는 일반 CSS로 못 숨긴다** → `!important`가 필요하다(`#kbMode`).
+
+12. **CSS 미디어 블록을 기본 규칙보다 앞에 두면 기본 규칙이 이긴다** — 특이도가 같으면 나중에 오는 쪽이 이기므로, `.arena{flex-direction:column}`이 파일 뒤에 있어서 앞선 미디어 쿼리의 `row`가 덮였다. 에러도 안 나고 "왜 안 먹지"로만 나타난다. → 오버라이드 블록은 **기본 정의 뒤에** 둘 것.
+
+13. **CDP 테스트에서 게임의 `S`(상태) 변수를 못 읽을 수 있다** — IIFE 안에 있으면 `Runtime.evaluate`로 접근이 안 된다(ld·lcr이 그렇고, 섯다는 된다). 이걸 "기능이 안 된다"로 오진하기 쉽다. → **DOM으로 단언할 것.** 사용자가 실제로 보는 것을 검증하는 게 더 정직하다.
+
+14. **첫 방문 오버레이가 자동 테스트를 깨뜨린다** — 튜토리얼·규칙이 처음 방문에 자동으로 떠서 시작 버튼 클릭을 막는다. 감사·테스트는 시작 전에 `TUT.close()` + `#helpClose/#rulesClose`를 먼저 눌러야 한다.
+
+## 📖 튜토리얼 (공용 모듈 · v1.227)
+
+13게임 전부 단계별 튜토리얼이 있다. 4종(kb·ld·lcr·섯다)은 **자체 구현**을, 나머지 9종은 **공용 모듈**을 쓴다.
+
+- 모듈: `public/tutorial.js` (`window.TUT`). 마크업·CSS를 스스로 주입하고, 상단바(`.topbar`/`.kbtop`)에 📖 버튼을 자동 장착한다.
+- 붙이는 법 — 게임 HTML의 **`</title>` 직후**에 두 줄:
+  ```html
+  <script src="tutorial.js"></script>
+  <script>try{TUT.init({game:'yut',steps:[{art:'🎲',title:'…',body:'…'}]})}catch(e){}</script>
+  ```
+  ⚠️ **`</title>` 직후여야 한다** — 13개 HTML 모두 `analytics.js`가 '계측 보류' 주석 블록 안에 있어서, 그 뒤에 스크립트를 넣으면 주석에 갇혀 **조용히 로드되지 않는다**(pace.js가 실제로 그랬다).
+- 단계 내용은 `scripts/add-tutorials.js`에 모여 있다(멱등 — 다시 돌려도 중복 삽입 안 됨).
+- 첫 방문 1회만 자동 오픈(`alley_tut_<game>`), `body.ingame`이면 안 뜬다. 검사: **`npm run test:tutorial`**
+
+## 🎁 아이템전 (6종)
+
+| 게임 | 아이템 | 액션 |
+|---|---|---|
+| 너클본즈 | 🔄 다시 굴리기 | `{type:'reroll'}` |
+| 요트 | 🎲 한 번 더 | `{type:'extra'}` |
+| 윷놀이 | 🛡 방어막 · 🔄 재던지기 · 👊 밀치기 | `{type:'useItem',item}` (기존 `itemBattle`) |
+| 라이어 | 👁 훔쳐보기 | `{type:'peek'}` |
+| 좌·중·우 | 🛡 칩 지키기 | `{type:'shield'}` (굴리기 **전** 예약) |
+| 섯다 | 🃏 한 장 다시 | `{type:'redraw',idx}` (로컬 전용) |
+
+**규칙(재성님 지시)**: 아이템은 **아이템전에서만** · **전원 같은 개수**(엔진이 지급) · 상점에서 개수 판매 금지 · **AI도 반드시 쓴다.**
+- 윷은 별도 아이템을 추가하지 않았다 — 이미 아이템전이 있어서 같은 이름 두 시스템이 되면 헷갈린다. 대신 **AI가 `useItem`을 한 번도 부르지 않던 공정성 버그**를 고쳤다(v1.227).
+- 라이어는 훔쳐본 눈을 `serialize(viewerPid)`의 `peeked`에 실어 보내고, `aiDecide`가 그걸 '아는 눈'으로 쓴다 → **AI 전용 분기 없이** 판단이 정확해진다. `myPeeks`는 **보는 사람 것만** 실어야 한다(남의 것이 섞이면 그게 정보 누출).
+- 검사: `npm run test:items`(kb·요트) · `npm run test:items:more`(라이어·좌중우·섯다) · `npm run test:items:online`
+
 ## 코딩 규칙
 
 - 응답·주석은 한국어. 사용자(재성)는 틀리면 바로 지적함 — 정확성 우선.

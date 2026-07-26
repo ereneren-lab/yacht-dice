@@ -129,6 +129,13 @@
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
       this.manualAI = !!opt.manualAI;
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 장 다시'를 받는다(판마다 재지급).
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         효과: 내 패 한 장을 덱에서 새로 받은 장으로 바꾼다. 섯다는 온라인이 없어 로컬 전용이다. */
+      this.itemsOn = !!opt.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opt.itemCharges != null ? opt.itemCharges | 0 : 2));
+      this.items = [];
+      this.redrawSeq = 0; this.lastRedraw = null;   // 연출용
       this.dealerSeat = 0;
       this.handNo = 0;
       this.actionSeq = 0;    // 베팅 액션 순번(클라 칩 연출 트리거용)
@@ -153,6 +160,8 @@
       this.deck = shuffle(makeDeck(), this.rng);
       this.deckIdx = 0;
       this.hands = this.players.map(() => []);
+      // 아이템전은 **판마다** 전원 같은 개수로 다시 지급한다(구사 재딜에서는 안 채운다 — 아래 _redeal 참고)
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
       this.inHand = this.players.map(p => p.chips > 0);   // 이번 판 참가 여부
       this.folded = this.players.map(() => false);
       this.allin = this.players.map(() => false);
@@ -238,7 +247,9 @@
       if (this._dead || this.phase !== 'bet') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0 || seat !== this.turn) return;
-      if (!a || typeof a !== 'object' || a.type !== 'bet') return;
+      if (!a || typeof a !== 'object') return;
+      if (a.type === 'redraw') { this._doRedraw(seat, a.idx); return; }
+      if (a.type !== 'bet') return;
       this._clearTimer();
       const mode = a.mode;
       const chips = this.players[seat].chips;
@@ -408,6 +419,39 @@
       if (!p || !p.ai) return false;
       this._aiAct(this.turn); return true;
     }
+    /* 아이템전 '한 장 다시' — 내 패 한 장을 덱의 새 장으로 바꾼다.
+       판이 아이템전이 아니거나 내 몫을 다 썼으면 무시한다(개수는 전원 동일 지급).
+       내 차례(베팅 차례)에만 쓸 수 있고, 덱이 마르면 쓰지 않는다(아이템 낭비 방지). */
+    _doRedraw(seat, idx) {
+      if (!this.itemsOn) return;
+      if (this.phase !== 'bet' || seat !== this.turn) return;
+      if (this.folded[seat] || !this.inHand[seat]) return;
+      if (!(this.items[seat] > 0)) return;
+      const h = this.hands[seat];
+      if (!h || !h.length) return;
+      if (this.deckIdx >= this.deck.length) return;
+      let i = idx | 0;
+      if (i < 0 || i >= h.length) i = 0;
+      const old = h[i];
+      h[i] = this.deck[this.deckIdx++];
+      this.items[seat]--;
+      this.redrawSeq++;
+      this.lastRedraw = { seq: this.redrawSeq, seat, idx: i };   // 어떤 장이었는지는 남기지 않는다(정보 누출)
+      this._emit();
+    }
+    /* AI가 '한 장 다시'를 쓸지 — 패가 확실히 나쁠 때만.
+       바꿀 장은 가치가 낮은 쪽(월이 작고 광이 아닌 것)을 고른다. */
+    _aiRedrawIdx(seat) {
+      const h = this.hands[seat];
+      if (!h || !h.length) return -1;
+      let worst = 0, ws = Infinity;
+      for (let i = 0; i < h.length; i++) {
+        const c = h[i];
+        const s = c.month + (c.gwang ? 20 : 0);
+        if (s < ws) { ws = s; worst = i; }
+      }
+      return worst;
+    }
     _handStrength(seat) {
       const h = this.hands[seat];
       if (this.round === 1 || h.length < 2) {   // 1장만: 월/광으로 대략
@@ -422,6 +466,12 @@
     }
     _aiAct(seat) {
       const diff = this.players[seat].aiDiff;
+      /* 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+         패가 확실히 나쁠 때(강도 0.25 미만)만 한 장 바꾼다. 바꾼 뒤 강도를 다시 잰다. */
+      if (this.itemsOn && this.items[seat] > 0 && this._handStrength(seat) < 0.25) {
+        const i = this._aiRedrawIdx(seat);
+        if (i >= 0) this._doRedraw(seat, i);
+      }
       const st = this._handStrength(seat);
       const r = this.rng();
       const toCall = this.bet - (this.contrib[seat] || 0);
@@ -457,6 +507,8 @@
         game: 'seotda', phase: this.phase, handNo: this.handNo,
         pot: this.pot, bet: this.bet, turn: this.turn, round: this.round,
         dealerSeat: this.dealerSeat, jabi: this.jabi, ante: this.ante,
+        itemsOn: this.itemsOn, items: (this.items || []).slice(),
+        lastRedraw: this.lastRedraw ? { ...this.lastRedraw } : null,
         winner: this.winner,
         lastAction: this.lastAction || null,
         lastResult: this.lastResult || null,

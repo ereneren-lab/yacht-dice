@@ -103,7 +103,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .iconbtn::after{ content:'';position:absolute;inset:-3px }
 
   .iconbtn:hover{background:var(--panel2)}
-  .kbtop h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1;white-space:nowrap;min-width:0}
+  /* nowrap + min-width:0 인데 overflow가 없어서, 좁은 폭에선 제목 글자가
+     옆의 모드 배지 위로 삐져나와 겹쳐 보였다(360·496px에서 확인) → 넘치면 …으로 자른다. */
+  .kbtop h2{font-family:var(--font);font-size:20px;font-weight:600;flex:1;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .kbtop .mode-pill{font-size:11.5px;color:var(--brass);font-weight:700;background:color-mix(in srgb,var(--brass) 12%,transparent);padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none}
   /* 좁은 화면(390px 등)에서 제목이 두 줄로 깨지지 않게 헤더 요소를 압축 */
   @media (max-width:480px){
@@ -429,10 +431,43 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
    (390×844에서 내 판이 화면 밖이라 매 턴 스크롤해야 했다)
    상대 판은 보기만 하는 정보라 더 작게, 내 판은 탭 대상이라 크게 유지한다.
    ⚠️ 이 블록은 반드시 스타일 끝에 둔다 — 위쪽에 두면 뒤따르는 .tray/.arena/.side 기본 규칙이 덮어쓴다. */
+/* 481~780px(2단 구간) — 여기가 제일 심하게 넘쳤다(496px에서 +290px, 768px에서 +166px).
+   ≤480px에는 압축 규칙이 있고 ≥781px는 가로 배치인데, 그 사이 구간만
+   '세로로 쌓인 판 두 개'를 그대로 받아 내용이 ~1190px까지 자랐다.
+   가로 여유가 있으니 판 두 개를 나란히 놓고 굴림판을 아래로 내린다(≥781px와 같은 발상, 열만 2개).
+   ⚠️ 이 블록은 반드시 위 `.arena{flex-direction:column}` **뒤에** 있어야 한다.
+      앞에 두면 특이도가 같아 나중에 오는 기본 규칙이 이겨 column으로 되돌아간다(실제로 겪음). */
+@media (min-width:481px) and (max-width:780px){
+  body.ingame .wrap{ max-width:760px; padding-bottom:20px }
+  .arena{ flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:12px }
+  .arena>.side{ flex:1 1 40%; min-width:0; width:auto; gap:12px }
+  .arena>.side .board{ max-width:none; width:100% }
+  .arena>.tray{ flex:1 1 100%; order:3; margin:4px auto 0 }
+  .kbtop{ margin-bottom:10px }
+  .rollzone{ min-height:64px }
+}
+/* 가로로 돌린 폰 — 높이가 360~390px뿐이라 세로로 쌓을 공간이 아예 없다(640x360에서 +322px).
+   대신 가로는 남으므로 ≥781px kblocal이 쓰는 3열 배치를 그대로 가져온다: [상대판 | 굴림판 | 내판].
+   DOM 순서가 opp → tray → you 라서 order를 건드릴 필요가 없다. */
+@media (orientation:landscape) and (max-height:520px){
+  body.ingame .wrap{ max-width:none; padding:8px 14px 10px }
+  .kbtop{ margin:0 2px 6px }
+  .arena{ flex-direction:row; flex-wrap:nowrap; align-items:center; justify-content:center; gap:12px }
+  .arena>.side{ flex:1 1 0; min-width:0; width:auto; gap:6px }
+  .arena>.side .board{ max-width:none; width:100% }
+  .arena>.tray{ flex:0 1 30%; margin:0 }
+  body.ingame #rollWrap{ margin-top:6px !important; max-width:300px }
+  .rollzone{ min-height:46px }
+  .bigdie{ width:46px;height:46px;padding:6px;border-radius:10px }
+  .scorehelp{ display:none }
+  body.ingame .kbtop .mode-pill, body.ingame .kbtop .meta-chip{ display:none !important }
+}
 @media (max-width:480px){
   /* 게임 중엔 굴리기 버튼 아래 60px 여백이 죽은 공간이라 스크롤을 만든다(넘침 21px).
      홈·전적 화면(스크롤됨)은 여백이 필요하므로 ingame일 때만 줄인다. */
-  body.ingame .wrap{ padding-bottom:18px }
+  /* 390x844에선 위 값으로도 12px이 남아 넘쳤다 → 죽은 여백만 더 줄인다(판 크기는 유지) */
+  body.ingame .wrap{ padding-bottom:10px }
+  body.ingame #rollWrap{ margin-top:10px !important }   /* 인라인 margin:16px auto 0 을 이긴다 */
   .kbtop{ margin-bottom:8px }
   .arena{ gap:5px }
   .side{ gap:11px; padding:5px }
@@ -447,12 +482,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
    sticky로 띄워봤더니 내 판의 탭 영역을 가려서 더 나빴다 → 판과 주사위를 한 단계 더 줄인다.
    규칙 버튼은 상단바 '?'로도 열 수 있어 여기선 감춘다. */
 @media (max-width:480px) and (max-height:800px){
-  .side.opp .board{ max-width:142px }
-  .side.you .board{ max-width:252px }
   .rollzone{ min-height:52px }
   .bigdie{ width:54px;height:54px;border-radius:11px;padding:7px }
   .scorehelp{ display:none }
   .kbvs{ font-size:12px }
+  /* 위 압축만으로도 360x640에서 103px이 남아 넘쳤다(내용 743 / 화면 640).
+     arena 587px = [상대판 193 + 굴림판 81 + 내판 303] + gap.
+     상대판을 굴림판과 한 줄에 놓아봤더니 굴림판이 38% 폭에서 세로로 풀려 오히려 751px로 커졌다
+     → 한 줄 배치는 폐기. 대신 '눌러볼 필요가 없는 상대 판'을 확실히 줄여 91px을 확보한다. */
+  .side{ gap:6px }
+  .arena{ gap:4px }
+  .side.opp .board{ max-width:96px }
+  .side.you .board{ max-width:215px }
+  body.ingame .wrap{ padding-bottom:12px }
+  body.ingame #rollWrap{ margin-top:10px !important }   /* 인라인 margin:16px auto 0 을 이긴다 */
 }
   /* 되돌릴 수 없는 동작(방 파하기) — 실수로 누르지 않게 붉은 톤 */
   .btn.ghost.danger{ color:var(--danger,#e8696b); border-color:color-mix(in srgb,var(--danger,#e8696b) 45%,transparent) }
@@ -482,6 +525,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 좁은 폰(≤400px)은 상단바에 ←·제목·모드칩·아이콘3개가 이미 꽉 차서, 레벨 meta-chip까지
      넣으면 제목(h2)이 박스를 넘쳐 칩 위로 겹친다. 레벨은 셋업·결과 화면에 있으니 게임 중엔 숨긴다. */
   @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
+  /* 좁은 폭에서 상단바 요소가 자리를 다 먹어 flex:1인 제목이 0폭으로 접혀 사라졌다(496px에서 확인).
+     제목이 '지금 무슨 게임인지'라 가장 중요하므로 최소 폭을 보장하고,
+     레벨 칩(Lv.1 · …)은 진행 정보라 판 도중엔 접는다(결과창에서 다시 보인다). */
+  @media (max-width:780px){
+    .kbtop h2{ flex:1 1 auto; min-width:4.2em }
+    body.ingame .kbtop .meta-chip{ display:none }
+  }
+  /* 360px에선 제목 최소 폭 + 배지 + 아이콘 5개가 가로로 넘쳐 맨 오른쪽 '?'(규칙)가 잘렸다.
+     body에 overflow-x:hidden이 걸려 있어 페이지 넘침으로는 드러나지 않고 버튼만 조용히 사라진다.
+     규칙 버튼은 '초보가 보면서 플레이'의 핵심이라 절대 잘리면 안 된다 → 모드 배지를 접는다. */
+  @media (max-width:480px){
+    /* !important 필수 — JS가 kbMode에 인라인 display:flex를 넣으므로 일반 규칙으로는 안 꺼진다 */
+    body.ingame .kbtop .mode-pill{ display:none !important }
+  }
   /* 내기(스테이크) 로비 선택 UI */
   .stakeRow{ margin:2px 0 12px }
   .stake-lbl{ font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:7px;text-align:center }
@@ -566,7 +623,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   </div>
   </div>
 
-  <div style="max-width:340px;margin:16px auto 0" id="rollWrap" style="display:none">
+  <!-- style 속성이 두 개라 뒤쪽 display:none이 무시되고 있었다(HTML은 첫 속성만 채택) → 하나로 합침 -->
+  <div id="rollWrap" style="max-width:340px;margin:16px auto 0;display:none">
     <button class="btn" id="rollBtn">굴리기</button>
     <button class="btn" id="itemReroll" style="display:none;margin-top:8px;font-size:13px">🔄 다시 굴리기</button>
   </div>

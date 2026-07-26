@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>원카드 · 주사위 골목</title>
+<!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
+<script src="tutorial.js"></script>
+<script>try{TUT.init({game:"onecard",steps:[{"art":"🔄","title":"손패 먼저 털기","body":"각자 7장으로 시작. <b>손에 든 카드를 먼저 다 내면</b> 승리!"},{"art":"🃏","title":"낼 수 있는 카드","body":"버림패 맨 위 카드와 <b>같은 무늬</b>거나 <b>같은 숫자</b>인 카드를 낼 수 있어.<br>낼 게 없으면 더미에서 한 장 가져와."},{"art":"⚡","title":"특수 카드","body":"<b>공격</b>은 상대에게 카드를 먹이고, <b>스킵</b>은 차례를 건너뛰고, <b>방향전환</b>은 순서를 뒤집어.<br>이걸 언제 쓰느냐가 승부를 가른다."},{"art":"🎯","title":"팁","body":"마지막 한 장이 남으면 <b>원카드</b>! 상대가 공격 카드를 쥐고 있을 수 있으니 방심하지 마.<br>자세한 규칙은 상단 <b>?</b>에서."}]})}catch(e){}</script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>

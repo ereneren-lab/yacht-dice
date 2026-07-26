@@ -350,6 +350,33 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @media (max-width:480px){ .meta-chip{ max-width:110px;font-size:9.5px } }
   /* 좁은 폰(≤400px)은 상단바가 꽉 차 레벨칩이 잘려 아이콘에 붙는다 → 게임 중엔 숨김(레벨은 셋업·결과 화면에 있음) */
   @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
+
+  /* 가로로 돌린 폰 — 높이가 360~390px뿐이라 세로 한 줄로는 안 담긴다(640x360에서 +183px).
+     왼쪽엔 자리(칩) 줄, 오른쪽엔 팟·주사위·굴리기를 모아 2단으로 놓는다. */
+  @media (orientation:landscape) and (max-height:520px){
+    .app{ padding:6px 12px 6px }
+    body.ingame .app{ min-height:0 }
+    .topbar{ margin:0 0 5px !important }
+    .lcr-main{ display:grid; grid-template-columns:1.15fr 1fr; gap:5px 14px; align-items:start }
+    .lcr-main > .seatring  { grid-column:1; grid-row:1 }
+    .lcr-main > .seathint  { grid-column:1; grid-row:2 }
+    .lcr-main > #specBadge { grid-column:1; grid-row:3 }
+    .lcr-main > .pot       { grid-column:2; grid-row:1 }
+    .lcr-main > .dicerow   { grid-column:2; grid-row:2 }
+    .lcr-main > .rolllog   { grid-column:2; grid-row:3 }
+    .lcr-main > .rollbtn   { grid-column:2; grid-row:4 }
+    .lcr-main > #autoWrap  { grid-column:2; grid-row:5 }
+    .lcr-main > .reactzone { grid-column:1 / -1; grid-row:6 }
+    body.ingame .meta-chip{ display:none }
+    /* 2단으로 갈라도 79px가 남았다 — 세로로 쌓인 margin(14px들)과 큰 버튼·주사위를 줄인다 */
+    .iconbtn{ width:32px;height:32px;border-radius:8px;font-size:14px }
+    .seatring{ margin:2px 0 2px }
+    .seathint{ margin:0 0 4px }
+    .pot{ padding:7px; margin:0 auto 6px; max-width:150px }
+    .dicerow{ gap:7px; margin:0 0 6px; min-height:0 }
+    .rolllog{ margin:0 0 6px; padding:6px 8px; font-size:12.5px; min-height:0 }
+    .rollbtn{ padding:11px; font-size:15px }
+  }
 </style>
 </head>
 <body>
@@ -379,6 +406,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <div class="dicerow" id="dicerow"></div>
           <div class="rolllog" id="rolllog" role="status" aria-live="polite" aria-atomic="true"></div>
           <button class="rollbtn" id="rollBtn">🎲 굴리기</button>
+          <!-- 아이템전 '칩 지키기' — 굴리기 전에 켜두면 이번 굴림에서 나갈 칩 1개를 막는다 -->
+          <button class="rollbtn" id="itemShield" style="display:none;margin-top:7px;padding:10px;font-size:14px;background:var(--panel2);color:var(--ink);border:1.5px solid var(--brass)">🛡 칩 지키기</button>
           <label class="autoroll" id="autoWrap"><input type="checkbox" id="autoChk"> ⚡ 자동 굴리기</label>
           <div class="reactzone" id="reactzone" style="display:none">
             <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
@@ -433,6 +462,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <button class="opt on" data-c="3">3개</button>
           <button class="opt" data-c="4">4개</button>
           <button class="opt" data-c="5">5개</button>
+        </div>
+        <div class="lbl">아이템전 <small style="font-weight:700;color:var(--muted)">— 전원 '칩 지키기' 2개씩</small></div>
+        <div class="opts" id="optItems">
+          <button class="opt on" data-items="0">끄기</button>
+          <button class="opt" data-items="1">🛡 아이템전</button>
         </div>
         <button class="btn" id="startBtn" style="margin-top:14px">시작</button>
       </div>
@@ -566,6 +600,15 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.startChips = start;
       this.pot = 0;
       this.maxPot = 0;
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '칩 지키기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         좌·중·우는 굴리면 즉시 반영돼서 '다시 굴리기'가 규칙에 안 맞는다
+         → 굴리기 **전에** 켜두면 이번 굴림에서 나갈 칩 1개를 막아주는 방식으로 만들었다. */
+      this.itemsOn = !!opt.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opt.itemCharges != null ? opt.itemCharges | 0 : 2));
+      this.items = [];
+      this.shield = [];             // 자리별 '이번 굴림 보호' 예약 여부
+      this.shieldSeq = 0; this.lastShield = null;   // 막은 순간 연출용
       this.turn = 0;
       this.phase = 'roll';          // 'roll' | 'over'
       this.winner = null;
@@ -587,6 +630,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     start() {
       if (this._dead) return;
       this.gameStartTime = Date.now();
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.shield = this.players.map(() => false);
       this.turn = this._firstAlive(0);
       this._emit();
       this._maybeAI();
@@ -598,19 +643,40 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if (this._dead || this.phase !== 'roll') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0 || seat !== this.turn) return;
-      if (!a || a.type !== 'roll') return;
+      if (a.type === 'shield') { this._arm(seat); return; }
+      if (a.type !== 'roll') return;
       this._clearTimer();
       this._doRoll(seat);
+    }
+    /* 아이템전 '칩 지키기' 예약 — 굴리기 전에만, 내 차례에만, 이미 켜뒀으면 무시(중복 소모 방지).
+       개수는 전원이 똑같이 받으므로(엔진이 지급) 돈으로 유리해질 여지가 없다. */
+    _arm(seat) {
+      if (!this.itemsOn) return;
+      if (this.phase !== 'roll' || seat !== this.turn) return;
+      if (this.shield[seat]) return;
+      if (!(this.items[seat] > 0)) return;
+      this.items[seat]--;
+      this.shield[seat] = true;
+      this._emit();
     }
     _doRoll(seat) {
       this._clearTimer();
       if (this._dead || this.phase !== 'roll') return;
       const n = Math.min(3, this.chips[seat]);
       const dice = [], moves = [];
+      let guard = !!this.shield[seat];          // 이번 굴림에서 딱 한 번 막는다
       for (let i = 0; i < n; i++) {
         const f = this.rollFace(); dice.push(f);
+        if (guard && (f === 'L' || f === 'R' || f === 'C')) {
+          guard = false;                        // 한 번만 쓰고 소진
+          this.shieldSeq++;
+          this.lastShield = { seq: this.shieldSeq, seat, face: f };
+          moves.push({ f, to: seat, blocked: true });   // 칩은 그대로 — 클라가 '막았다'로 표시
+          continue;
+        }
         const mv = this._apply(f, seat); if (mv) moves.push(mv);
       }
+      this.shield[seat] = false;                // 예약은 이번 굴림에만 유효
       this.lastRoll = { seat, name: this.players[seat].name, dice, moves };
       this.rollSeq++;
       if (this.aliveCount() <= 1) {
@@ -637,7 +703,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if (this._dead || this.phase !== 'roll') return;
       const p = this.players[this.turn];
       if (p && (p.ai || !p.connected)) {
-        this._timer = setTimeout(() => this._doRoll(this.turn), this.aiFast ? 130 : this.aiMs);
+        this._timer = setTimeout(() => {
+          if (this._dead || this.phase !== 'roll') return;
+          const seat = this.turn;
+          /* 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+             칩이 1~2개면 한 번 나가는 게 곧 탈락이라 그때 쓴다. 넉넉할 땐 아껴둔다. */
+          if (this.itemsOn && this.items[seat] > 0 && !this.shield[seat] && this.chips[seat] <= 2) this._arm(seat);
+          this._doRoll(seat);
+        }, this.aiFast ? 130 : this.aiMs);
       } else if (this.turnMs > 0) {
         this._timer = setTimeout(() => { if (!this._dead && this.phase === 'roll') this._doRoll(this.turn); }, this.turnMs);
       }
@@ -650,6 +723,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game: 'lcr', phase: this.phase, turn: this.turn, pot: this.pot, maxPot: this.maxPot, winner: this.winner,
         startChips: this.startChips, rollSeq: this.rollSeq,
+        itemsOn: this.itemsOn, items: (this.items || []).slice(), shield: (this.shield || []).slice(),
+        lastShield: this.lastShield ? { ...this.lastShield } : null,
         lastRoll: this.lastRoll ? { seat: this.lastRoll.seat, name: this.lastRoll.name, dice: this.lastRoll.dice.slice(), moves: this.lastRoll.moves.map(m => ({ ...m })) } : null,
         players: this.players.map((p, i) => ({ pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: i, chips: this.chips[i], alive: this.chips[i] > 0 }))
       };
@@ -993,6 +1068,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else { btn.disabled=true; const who=S.players[S.turn];
       if(online && who && !who.ai && who.connected===false) btn.textContent='🤖 접속 끊김 · AI가 대신 두는 중';
       else btn.textContent=(who?dispName(who):'상대')+' 차례…'; }
+    // 아이템전 '칩 지키기' — 내 차례 · 굴리기 전 · 남은 개수가 있을 때만 보인다
+    (function(){ const ib=$('itemShield'); if(!ib) return;
+      const n = (S.itemsOn && S.items) ? (S.items[ms]|0) : 0;
+      const armed = !!(S.shield && S.shield[ms]);
+      const usable = !!S.itemsOn && ms>=0 && S.phase==='roll' && S.turn===ms && !busy && (n>0 || armed);
+      ib.style.display = usable ? 'block' : 'none';
+      ib.disabled = armed || n<=0;
+      ib.textContent = armed ? '🛡 지키기 켜짐 — 굴려!' : '🛡 칩 지키기 ('+n+')'; })();
   }
   function rollText(lr){
     if(!lr||!lr.dice.length) return '';
@@ -1102,7 +1185,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     applySeathint();
     $('modePill').textContent='· AI 대전';
     const aiMs = PMS(cfg.speed==='fast' ? 550 : 1500);   // 빠름: 6인도 라운드가 짧게
-    engine=new LCRCore.LCREngine({ players, startChips:cfg.chips, aiMs, onState:()=>{ S=engine.serialize(MYPID); render(); } });
+    engine=new LCRCore.LCREngine({ players, startChips:cfg.chips, aiMs, itemsOn:!!cfgItems, onState:()=>{ S=engine.serialize(MYPID); render(); } });
     engine.start();
   }
   function doRoll(){
@@ -1113,6 +1196,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     setTimeout(()=>{ busy=false; if(S)updateRollBtn(); }, 260);
   }
   $('rollBtn').onclick=doRoll;
+  $('itemShield').onclick=()=>{ const s=S; if(!s||!s.itemsOn||busy||s.phase!=='roll') return;
+    const ms=mySeat(); if(ms<0||s.turn!==ms) return;
+    if(online) wsSend({t:'action',a:{type:'shield'}}); else engine.action(s.players[ms].pid,{type:'shield'});
+    try{ window.PACE&&PACE.toast('🛡 칩 1개를 지킨다'); }catch(e){} };
+  // 아이템전 설정(로컬) — 켜면 전원 같은 개수를 받는다
+  let cfgItems=false;
+  (function(){ const box=$('optItems'); if(!box) return;
+    box.querySelectorAll('.opt').forEach(function(o){ o.onclick=function(){
+      box.querySelectorAll('.opt').forEach(function(x){x.classList.remove('on')});
+      o.classList.add('on'); cfgItems = o.dataset.items==='1'; }; }); })();
   /* ===== 키보드 조작 — 내 차례에 Space/Enter로 굴리기 + 정보 모달 Esc 닫기 ===== */
   document.addEventListener('keydown',e=>{
     if(e.isComposing || e.keyCode===229) return;
@@ -1271,9 +1364,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     row.innerHTML=h;
     if(amHost) row.querySelectorAll('.stake-chip').forEach(function(b){ b.onclick=function(){ try{wsSend({t:'setStake',stake:b.dataset.v});}catch(e){} }; });
   }
+  // 아이템전 허용 토글 — 호스트만. 산 개수와 무관하게 엔진이 전원에게 같은 개수를 준다.
+  function renderItemsOpt(lb){
+    let row=$('itemsRow');
+    if(!row){ const sr=$('stakeRow'); if(!sr) return; row=document.createElement('div'); row.id='itemsRow'; row.style.margin='6px 0 2px'; sr.parentNode.insertBefore(row, sr.nextSibling); }
+    if(!lb){ row.innerHTML=''; return; }
+    const amHost=(lb.members||[]).some(x=>x.pid===MYPID&&x.host);
+    const on=!!lb.itemsOn;
+    row.innerHTML='<div class="stake-lbl">🛡 아이템전 <small>'+(amHost?'호스트가 켜고 끔':(on?'허용됨':'꺼짐'))+'</small></div>'+
+      '<div class="stake-chips"><button class="stake-chip'+(on?' on':'')+'" id="itemsToggleBtn"'+(amHost?'':' disabled')+'>'+(on?'아이템전 — 전원 2개씩':'끄기')+'</button></div>';
+    if(amHost){ const b=$('itemsToggleBtn'); if(b) b.onclick=()=>{ try{wsSend({t:'setItems',v:!on});}catch(e){} }; }
+  }
   function renderLobby(){
     if(!lobby)return;
     renderStake(lobby);
+    renderItemsOpt(lobby);
     $('setupOv').classList.remove('on'); $('game').style.display='none'; document.body.classList.remove('ingame'); $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none';
     $('lobbyOv').classList.add('on');
     $('lobbyCode').textContent=lobby.code;
@@ -1337,7 +1442,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   })();
   $('startBtn').onclick=startLocal;
   function saveName(v){ if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name,startChips:cfg.chips})); };
+  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name,startChips:cfg.chips,itemsOn:!!cfgItems})); };
   function normCode(v){ return (v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); }
   // 코드칸: 입력 즉시 대문자+영숫자 4자리로 정규화 + Enter로 참가
   (function(){ const jc=$('joinCode'); if(!jc)return;

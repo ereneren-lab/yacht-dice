@@ -198,6 +198,25 @@
   .sheetbox h2{margin:0 0 6px;font-size:22px;color:var(--gold)}
   .rulebox{font-size:12.5px;line-height:1.7;color:var(--ink);text-align:left}
   .rulebox b{color:var(--brass)}
+  /* 셋업(전적·룰·베팅 옵션)이 길어 짧은 화면에서 '판 시작'이 화면 밖으로 밀렸다
+     — 실측 360x640 +202px · 640x360 +464px · 844x390 +434px 에서 버튼에 아예 닿지 못했다.
+     알까기(#startRow)와 같은 방식으로 셋업 동안만 화면 하단에 고정한다.
+     body.ingame이 붙으면(판 시작) 해제되므로 게임 화면에는 안 뜬다. */
+  body:not(.ingame) #startBtn{ position:fixed; left:14px; right:14px; width:auto; margin:0; z-index:20;
+    bottom:calc(10px + env(safe-area-inset-bottom,0px)); box-shadow:0 10px 28px rgba(0,0,0,.5) }
+  body:not(.ingame) #setup{ padding-bottom:64px }   /* 76px이면 390x844가 0→+8px로 넘쳤다 — 버튼 높이(52)+여유만 */
+  /* 가로로 돌린 폰 — 높이가 360~390px뿐이라 [판 · 안내 · 베팅바]를 세로로 쌓을 수 없다(+227px).
+     왼쪽에 판(팟+내 패), 오른쪽에 안내와 베팅 버튼을 놓아 2단으로 만든다. */
+  @media (orientation:landscape) and (max-height:520px){
+    .app{ padding:6px 10px 6px }
+    .topbar{ margin-bottom:4px }
+    .iconbtn{ width:32px;height:32px;font-size:14px }
+    body.ingame #game{ display:grid; grid-template-columns:minmax(0,1fr) 250px;
+      gap:6px 12px; align-items:start; margin-top:2px }
+    #game > .tablewrap{ grid-column:1; grid-row:1 / span 2 }
+    #game > .note   { grid-column:2; grid-row:1 }
+    #game > .betbar { grid-column:2; grid-row:2 }
+  }
 </style>
 </head>
 <body>
@@ -238,6 +257,7 @@
     <div class="row" id="optRules">
       <div class="opt" data-r="jabi">🎭 잡이(암행어사·땡잡이·구사)</div>
       <div class="opt" data-r="ttaeng">💰 땡값</div>
+      <div class="opt" data-r="itemsOn">🃏 아이템전 (한 장 다시 ×2)</div>
     </div>
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="10" placeholder="너의 별명">
@@ -430,6 +450,13 @@
       this.onState = opt.onState || function () {};
       this.aiMs = opt.aiMs != null ? opt.aiMs : 900;
       this.manualAI = !!opt.manualAI;
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 장 다시'를 받는다(판마다 재지급).
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         효과: 내 패 한 장을 덱에서 새로 받은 장으로 바꾼다. 섯다는 온라인이 없어 로컬 전용이다. */
+      this.itemsOn = !!opt.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opt.itemCharges != null ? opt.itemCharges | 0 : 2));
+      this.items = [];
+      this.redrawSeq = 0; this.lastRedraw = null;   // 연출용
       this.dealerSeat = 0;
       this.handNo = 0;
       this.actionSeq = 0;    // 베팅 액션 순번(클라 칩 연출 트리거용)
@@ -454,6 +481,8 @@
       this.deck = shuffle(makeDeck(), this.rng);
       this.deckIdx = 0;
       this.hands = this.players.map(() => []);
+      // 아이템전은 **판마다** 전원 같은 개수로 다시 지급한다(구사 재딜에서는 안 채운다 — 아래 _redeal 참고)
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
       this.inHand = this.players.map(p => p.chips > 0);   // 이번 판 참가 여부
       this.folded = this.players.map(() => false);
       this.allin = this.players.map(() => false);
@@ -539,7 +568,9 @@
       if (this._dead || this.phase !== 'bet') return;
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0 || seat !== this.turn) return;
-      if (!a || typeof a !== 'object' || a.type !== 'bet') return;
+      if (!a || typeof a !== 'object') return;
+      if (a.type === 'redraw') { this._doRedraw(seat, a.idx); return; }
+      if (a.type !== 'bet') return;
       this._clearTimer();
       const mode = a.mode;
       const chips = this.players[seat].chips;
@@ -709,6 +740,39 @@
       if (!p || !p.ai) return false;
       this._aiAct(this.turn); return true;
     }
+    /* 아이템전 '한 장 다시' — 내 패 한 장을 덱의 새 장으로 바꾼다.
+       판이 아이템전이 아니거나 내 몫을 다 썼으면 무시한다(개수는 전원 동일 지급).
+       내 차례(베팅 차례)에만 쓸 수 있고, 덱이 마르면 쓰지 않는다(아이템 낭비 방지). */
+    _doRedraw(seat, idx) {
+      if (!this.itemsOn) return;
+      if (this.phase !== 'bet' || seat !== this.turn) return;
+      if (this.folded[seat] || !this.inHand[seat]) return;
+      if (!(this.items[seat] > 0)) return;
+      const h = this.hands[seat];
+      if (!h || !h.length) return;
+      if (this.deckIdx >= this.deck.length) return;
+      let i = idx | 0;
+      if (i < 0 || i >= h.length) i = 0;
+      const old = h[i];
+      h[i] = this.deck[this.deckIdx++];
+      this.items[seat]--;
+      this.redrawSeq++;
+      this.lastRedraw = { seq: this.redrawSeq, seat, idx: i };   // 어떤 장이었는지는 남기지 않는다(정보 누출)
+      this._emit();
+    }
+    /* AI가 '한 장 다시'를 쓸지 — 패가 확실히 나쁠 때만.
+       바꿀 장은 가치가 낮은 쪽(월이 작고 광이 아닌 것)을 고른다. */
+    _aiRedrawIdx(seat) {
+      const h = this.hands[seat];
+      if (!h || !h.length) return -1;
+      let worst = 0, ws = Infinity;
+      for (let i = 0; i < h.length; i++) {
+        const c = h[i];
+        const s = c.month + (c.gwang ? 20 : 0);
+        if (s < ws) { ws = s; worst = i; }
+      }
+      return worst;
+    }
     _handStrength(seat) {
       const h = this.hands[seat];
       if (this.round === 1 || h.length < 2) {   // 1장만: 월/광으로 대략
@@ -723,6 +787,12 @@
     }
     _aiAct(seat) {
       const diff = this.players[seat].aiDiff;
+      /* 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+         패가 확실히 나쁠 때(강도 0.25 미만)만 한 장 바꾼다. 바꾼 뒤 강도를 다시 잰다. */
+      if (this.itemsOn && this.items[seat] > 0 && this._handStrength(seat) < 0.25) {
+        const i = this._aiRedrawIdx(seat);
+        if (i >= 0) this._doRedraw(seat, i);
+      }
       const st = this._handStrength(seat);
       const r = this.rng();
       const toCall = this.bet - (this.contrib[seat] || 0);
@@ -758,6 +828,8 @@
         game: 'seotda', phase: this.phase, handNo: this.handNo,
         pot: this.pot, bet: this.bet, turn: this.turn, round: this.round,
         dealerSeat: this.dealerSeat, jabi: this.jabi, ante: this.ante,
+        itemsOn: this.itemsOn, items: (this.items || []).slice(),
+        lastRedraw: this.lastRedraw ? { ...this.lastRedraw } : null,
         winner: this.winner,
         lastAction: this.lastAction || null,
         lastResult: this.lastResult || null,
@@ -901,7 +973,7 @@ function startGame(){
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
   for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true,aiDiff:cfg.diff});
   engine=new Core.SeotdaEngine({
-    players, ante:cfg.ante, startChips:cfg.chips, jabi:cfg.jabi, ttaengValue:cfg.ttaeng,
+    players, ante:cfg.ante, startChips:cfg.chips, jabi:cfg.jabi, ttaengValue:cfg.ttaeng, itemsOn:!!cfg.itemsOn,
     manualAI:true, aiMs:PMS(900), rng:Core.mulberry32(Math.floor(Math.random()*2147483000)+1),
     onState(){ S=engine.serialize(MYPID); render(); drive(); }
   });
@@ -1196,6 +1268,24 @@ function renderBetbar(){
     return `<button class="bbtn ${cls}" data-m="${mode}" ${on?'':'disabled'}><span class="bi">${icon}</span><span class="bn">${label}</span><span class="ba">${on?(amt[mode]||''):''}</span></button>`;
   }).join('');
   bar.querySelectorAll('.bbtn').forEach(b=>{ b.onclick=()=>{ let m=b.dataset.m; if(m==='ping'&&(S.validActions||[]).indexOf('ping')<0&&(S.validActions||[]).indexOf('check')>=0)m='check'; act(m); }; });
+  /* 아이템전 '한 장 다시' — 내 차례에만, 남은 개수만큼. 바꿀 장은 탭해서 고른다(기본 첫 장).
+     베팅 버튼 줄 뒤에 한 줄로 붙여, 좁은 화면에서도 버튼 줄이 깨지지 않게 한다. */
+  if(S.itemsOn){
+    const n=(S.items&&S.items[ms]|0)||0;
+    if(myTurn && n>0){
+      const cards=(me&&me.cards)?me.cards.length:0;
+      const wrap=document.createElement('div');
+      wrap.style.cssText='display:flex;gap:6px;margin-top:6px;width:100%';
+      for(let i=0;i<Math.max(1,cards);i++){
+        const b=document.createElement('button');
+        b.className='bbtn'; b.style.cssText='flex:1;border-color:var(--gold,#d9a441)';
+        b.innerHTML='<span class="bi">🃏</span><span class="bn">'+(cards>1?(i+1)+'번째 다시':'한 장 다시')+'</span><span class="ba">'+n+'개</span>';
+        b.onclick=()=>{ try{ engine.action(S.players[ms].pid,{type:'redraw',idx:i}); }catch(e){} };
+        wrap.appendChild(b);
+      }
+      bar.appendChild(wrap);
+    }
+  }
 }
 function renderNote(){
   const n=$('note');

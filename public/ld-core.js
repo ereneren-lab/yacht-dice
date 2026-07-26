@@ -29,9 +29,12 @@
     const p = wild ? 1/3 : 1/6;
     const total = view.totalDice;
     const my = view.players[seat].dice || [];
-    const myLen = my.length;
-    const unknown = total - myLen;
-    const myMatch = f => my.filter(d=>d===f || (wild && d===1)).length;
+    /* 아이템전 '훔쳐보기'로 알아낸 상대 주사위도 '아는 눈'에 넣는다.
+       이렇게 하면 아래 확률 계산(unknown/myMatch)이 그대로 쓰이면서 판단이 정확해진다
+       → AI 전용 분기를 따로 만들 필요가 없다. 사람도 같은 정보를 화면에서 본다. */
+    const known = my.concat(view.peeked || []);
+    const unknown = Math.max(0, total - known.length);
+    const myMatch = f => known.filter(d=>d===f || (wild && d===1)).length;
     const bid = view.bid;
     if(!bid){
       let bestF=2, bestC=-1;
@@ -89,6 +92,14 @@
         aiDiff:p.aiDiff||'normal', connected:p.connected!==false,
         dice:[], alive:true, seat:i
       }));
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '훔쳐보기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         효과: 상대 주사위 1개를 나에게만 공개. 공개는 그 라운드 동안 유지되고 새 라운드에 지워진다. */
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
+      this.items = this.players.map(()=>this.itemsOn?this.itemCharges:0);
+      this.peeks = {};        // 보는 사람 seat → [{t:상대seat, i:주사위번호}]
+      this.peekSeq = 0; this.lastPeek = null;   // 연출용
       this.phase='bid'; this.turn=0; this.bid=null; this.lastResult=null;
       this._busy=false; this._dead=false; this._timer=null; this._turnTimer=null;
       this.turnDeadline=0;              // 제한시간 있는 사람 턴의 마감 시각(ms). 0 = 없음
@@ -109,6 +120,7 @@
       // ensure alive players who never rolled get startDice
       this.players.forEach(p=>{ if(p.alive && p.dice.length===0) p.dice=Array.from({length:this.startDice},()=>this._d()); });
       this.bid=null; this.lastResult=null; this.phase='bid';
+      this.peeks = {};   // 주사위를 새로 굴렸으니 지난 라운드의 훔쳐본 정보는 무효
       this.turn = this.players[starter] && this.players[starter].alive ? starter : this._nextAlive(starter);
       this._maybeAI();   // 먼저 턴 마감시각을 잡아야 emit에 turnLeft가 실린다
       this._emit();
@@ -126,7 +138,13 @@
     _aiTurn(){
       if(this._dead || this.phase!=='bid') { this._busy=false; return; }
       const seat=this.turn;
-      const view = this.serialize(this.players[seat].pid); // AI sees only its own dice
+      /* 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+         정보가 가장 값어치 있는 순간은 '도전할지 말지' 고민할 때(=이미 베팅이 올라와 있을 때)라
+         그때 라운드당 한 번만 쓴다. 아껴 죽지도, 첫 턴에 털리지도 않는다. */
+      if(this.itemsOn && this.items[seat]>0 && this.bid && !(this.peeks[seat]||[]).length){
+        this._doPeek(seat);
+      }
+      const view = this.serialize(this.players[seat].pid); // 자기 주사위 + 훔쳐본 것만 보인다
       const a = aiDecide(view, seat, this.players[seat].aiDiff, this.wild, this.spotOn);
       this._busy=false;
       this._apply(seat, a);
@@ -173,7 +191,51 @@
       } else if(a.type==='calza'){
         if(!this.bid || !this.spotOn) return;
         this._resolveCalza(seat);
+      } else if(a.type==='peek'){
+        this._doPeek(seat, a.target);
       }
+    }
+
+    /* 아이템전 '훔쳐보기' — 상대 주사위 1개를 **나에게만** 공개한다.
+       판이 아이템전이 아니거나 내 몫을 다 썼으면 무시한다(개수는 전원 동일하게 지급). */
+    _doPeek(seat, target){
+      if(!this.itemsOn) return;
+      if(this.phase!=='bid') return;
+      if(!(this.items[seat]>0)) return;
+      const mine = this.peeks[seat] || (this.peeks[seat]=[]);
+      // 표적: 지정이 없으면 주사위가 가장 많이 남은 상대(정보 가치가 가장 큼)
+      let t = (target!=null) ? (target|0) : -1;
+      const okTarget = s => s>=0 && s<this.players.length && s!==seat && this.players[s].alive && this.players[s].dice.length>0;
+      if(!okTarget(t)){
+        t = -1; let bestN = 0;
+        for(const p of this.players){
+          if(p.seat===seat || !p.alive) continue;
+          const left = p.dice.length - mine.filter(x=>x.t===p.seat).length;   // 아직 안 본 것만 셈
+          if(left>0 && p.dice.length>bestN){ bestN=p.dice.length; t=p.seat; }
+        }
+      }
+      if(t<0) return;                                   // 볼 게 없으면 아이템을 쓰지 않는다(낭비 방지)
+      const seen = mine.filter(x=>x.t===t).map(x=>x.i);
+      const cand = this.players[t].dice.map((_,i)=>i).filter(i=>seen.indexOf(i)<0);
+      if(!cand.length) return;
+      const i = cand[Math.floor(this.rng()*cand.length)];
+      this.items[seat]--;
+      mine.push({ t, i });
+      this.peekSeq++;
+      this.lastPeek = { seq:this.peekSeq, by:seat, target:t, value:this.players[t].dice[i] };
+      this._emit();
+    }
+
+    /* 이 사람이 훔쳐본 상대 주사위 눈 목록 — serialize와 AI가 함께 쓴다.
+       주사위를 잃어 배열이 짧아졌을 수 있으니 인덱스 유효성을 매번 확인한다. */
+    _peekedValues(seat){
+      const mine = this.peeks[seat] || [];
+      const out = [];
+      for(const x of mine){
+        const p = this.players[x.t];
+        if(p && p.alive && x.i < p.dice.length) out.push(p.dice[x.i]);
+      }
+      return out;
     }
 
     _loseDie(seat){ const p=this.players[seat]; if(p.dice.length>0) p.dice.pop(); if(p.dice.length===0) p.alive=false; }
@@ -229,7 +291,17 @@
 
     serialize(viewerPid){
       const reveal = this.phase==='reveal' || this.phase==='over';
+      const vSeat = this.players.findIndex(p=>p.pid===viewerPid);
+      // 훔쳐본 정보는 **보는 사람 것만** 실어 보낸다 — 남의 정보가 스냅샷에 섞이면 그게 곧 정보 누출이다
+      const myPeeks = vSeat>=0 ? (this.peeks[vSeat]||[]).map(x=>{
+        const p=this.players[x.t];
+        return (p && p.alive && x.i<p.dice.length) ? { seat:x.t, i:x.i, v:p.dice[x.i] } : null;
+      }).filter(Boolean) : [];
       return {
+        itemsOn:this.itemsOn, items:(this.items||[]).slice(),
+        peeked: myPeeks.map(x=>x.v),      // aiDecide가 '아는 눈'으로 쓴다
+        myPeeks: myPeeks,                 // 클라가 어느 주사위인지 표시하는 데 쓴다
+        lastPeek: this.lastPeek && vSeat===this.lastPeek.by ? {...this.lastPeek} : null,
         gameStartTime: this.gameStartTime||0,   // 판 고유키 — 클라가 '같은 판 결과 중복 기록'을 막는 데 쓴다
         game:'ld', phase:this.phase, turn:this.turn, bid:this.bid?{...this.bid}:null,
         wild:this.wild, spotOn:this.spotOn, totalDice:this._totalDice(),

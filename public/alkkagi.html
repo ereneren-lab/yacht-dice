@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>알까기 · 주사위 골목</title>
+<!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
+<script src="tutorial.js"></script>
+<script>try{TUT.init({game:"alkkagi",steps:[{"art":"⚫","title":"목표","body":"내 돌을 튕겨서 <b>상대 돌을 판 밖으로</b> 밀어내는 게임이야.<br>상대 돌이 전부 떨어지면 승리!"},{"art":"👆","title":"조준하고 당기기","body":"내 돌을 <b>누른 채 반대 방향으로 끌면</b> 조준선이 나와.<br>많이 끌수록 세게 날아가 — 손을 떼면 발사!"},{"art":"💥","title":"낙사 주의","body":"세게 치면 <b>내 돌도 같이</b> 판 밖으로 나갈 수 있어.<br>힘 조절이 실력이야 — 살살 밀어내는 것도 좋은 수."},{"art":"🎯","title":"팁","body":"판 <b>가장자리에 있는 상대 돌</b>부터 노리면 적은 힘으로 떨어뜨릴 수 있어.<br>자세한 규칙은 상단 <b>?</b>에서."}]})}catch(e){}</script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
@@ -148,6 +151,11 @@
     bottom:calc(10px + env(safe-area-inset-bottom,0px)) }
   body:not(.ingame) #startRow #startBtn{ box-shadow:0 10px 28px rgba(0,0,0,.5) }
   body:not(.ingame) #setup{ padding-bottom:76px }
+  /* 가로로 돌린 폰 — 판(캔버스)은 가로에 잘 맞아 넘침이 27px뿐이었다.
+     레이아웃을 건드릴 필요 없이 죽은 아래 여백만 줄이면 들어간다. */
+  @media (orientation:landscape) and (max-height:520px){
+    body.ingame .app{ padding:6px 8px 6px; min-height:0 }
+  }
 </style>
 </head>
 <body>

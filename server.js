@@ -158,10 +158,10 @@ function startEngine(room){
   } else if (room.game === 'ld'){
     // 숨김정보: 멤버마다 자기 시점 상태를 따로 보냄
     const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
-    room.engine = new LDEngine({ aiFast:!!room.aiFast, players, spotOn:room.spotOn!==false, diceCount:([3,5].includes(room.diceCount)?room.diceCount:5), wild:room.wild!==false, turnMs:45000, onState });
+    room.engine = new LDEngine({ aiFast:!!room.aiFast, itemsOn:!!room.itemsOn, players, spotOn:room.spotOn!==false, diceCount:([3,5].includes(room.diceCount)?room.diceCount:5), wild:room.wild!==false, turnMs:45000, onState });
   } else if (room.game === 'lcr'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
-    room.engine = new LCREngine({ aiFast:!!room.aiFast, players, startChips:([3,4,5].includes(room.startChips)?room.startChips:3), turnMs:45000, aiMs:1400, onState });
+    room.engine = new LCREngine({ aiFast:!!room.aiFast, itemsOn:!!room.itemsOn, players, startChips:([3,4,5].includes(room.startChips)?room.startChips:3), turnMs:45000, aiMs:1400, onState });
   } else if (room.game === 'yut'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
     room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes||undefined, dailyRule:(room.dailyOn===false?false:undefined), limitMs:(room.timer||0)*60000, turnMs:60000, aiMs:1100, onState });
@@ -256,7 +256,7 @@ wss.on('connection', (ws) => {
       const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : (m.game === 'alkkagi') ? 'alkkagi' : 'yacht';
       const code = newCode(), pid = rid();
       const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':game==='alkkagi'?'alkkagi':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
-        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);

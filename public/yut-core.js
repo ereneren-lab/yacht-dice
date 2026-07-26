@@ -375,6 +375,89 @@
       pl.items.splice(idx, 1);
       this._emit(); this._maybeAI();
     }
+    /* 아이템전에서 AI가 쓸 아이템을 고른다 — 없으면 null.
+       사람만 아이템을 쓰고 AI는 2장을 들고 죽는 판은 공정하지 않다(v1.227 이전이 그랬다).
+       판단은 각 아이템의 '지금 값어치'가 확실할 때만 — 아껴 죽는 것도, 첫 턴에 털리는 것도 막는다.
+         push  … 상대 말이 나와 있고, 그중 가장 많이 전진한 말이 절반 이상 왔을 때
+         rethrow … 이번 턴 굴림이 도(1) 하나뿐이고 그걸로 잡을 것도 없을 때(버리는 턴 살리기)
+         shield … 내 말이 나와 있고 상대 사정거리(뒤 1~5칸)에 걸린 말이 있을 때 */
+    _aiPickItem(seat) {
+      if (!this.itemBattle) return null;
+      const owner = this._pieceOwner(seat);
+      const pl = this.players[owner];
+      const have = (pl.items || []);
+      if (!have.length) return null;
+
+      // ── push: 가장 앞선 상대 말을 처음으로 돌려보낸다
+      if (have.includes('push')) {
+        let best = null;
+        for (const op of this.players) {
+          if (op.seat === seat) continue;
+          if (this.teamMode && op.team === pl.team) continue;
+          if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue;
+          for (const opc of (op.pieces || [])) {
+            if (opc.done || !opc.out) continue;
+            const prog = this._progressOf(opc);
+            if (prog >= 10 && (!best || prog > best.prog)) best = { prog, targetSeat: op.seat, targetPieceId: opc.id };
+          }
+        }
+        if (best) return { item: 'push', targetSeat: best.targetSeat, targetPieceId: best.targetPieceId };
+      }
+      // ── rethrow: 버리는 턴 살리기
+      if (have.includes('rethrow') && this.phase === 'move' &&
+          this.pending.length === 1 && this.pending[0] <= 1 && !this._canCaptureNow(seat)) {
+        return { item: 'rethrow' };
+      }
+      // ── shield: 잡힐 위기일 때만
+      if (have.includes('shield') && this.shieldSide !== owner) {
+        for (const pc of pl.pieces) {
+          if (pc.done || !pc.out) continue;
+          if (this._catchRisk(pc.node, seat, pl)) return { item: 'shield' };
+        }
+      }
+      return null;
+    }
+    /* AI가 고른 아이템을 실제로 쓴다 — 썼으면 true.
+       useItem이 _emit + _maybeAI를 다시 걸어 주므로 호출부는 쓰고 빠지면 된다.
+       아이템은 쓸 때마다 재고에서 빠지므로(useItem의 splice) 재귀는 재고 수만큼에서 멈춘다. */
+    _aiUseItem(p) {
+      if (!this.itemBattle) return false;
+      const pick = this._aiPickItem(this.turn);
+      if (!pick) return false;
+      this.useItem(p.pid, pick);
+      return true;
+    }
+    /* 말이 얼마나 왔나(대략) — push 표적 고르기용. 완주 직전일수록 크다. */
+    _progressOf(pc) {
+      if (pc.done) return 100;
+      if (!pc.out) return 0;
+      if (pc.route === 'sc5' || pc.route === 'sc10') return 14 + pc.node;   // 지름길은 더 앞선 것으로 본다
+      return pc.node;
+    }
+    /* 지금 pending에 든 수로 상대 말을 잡을 수 있나 — 후보 열거는 _bestMove와 같은 규칙(step+지름길).
+       _bestMove의 반환값에는 잡기 여부가 안 담기므로(점수에만 반영) 따로 본다. */
+    _canCaptureNow(seat) {
+      const pl = this.players[this._pieceOwner(seat)];
+      for (const s of this.pending) {
+        for (const pc of pl.pieces) {
+          if (pc.done) continue;
+          const dirs = isBranch(pc.node, pc.route) ? ['shortcut', null] : [null];
+          for (const dir of dirs) {
+            const r = step(pc.node, pc.route, pc.out, s, dir);
+            if (r.noMove || r.done) continue;
+            for (const op of this.players) {
+              if (op.seat === seat) continue;
+              if (this.teamMode && op.team === pl.team) continue;
+              if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue;
+              for (const opc of op.pieces) {
+                if (!opc.done && opc.out && opc.node === r.node) return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
     _anyMovable(seat) {
       const pl = this.players[this._pieceOwner(seat)];
       for (const s of this.pending) {
@@ -540,9 +623,19 @@
       }
       if (this.phase === 'throw' && auto) {
         const power = (p.aiDiff === 'hard') ? 0.82 : null; // 고수: 윷 확률 up
-        this._timer = setTimeout(() => this.doThrow(p.pid, power), ms);
+        this._timer = setTimeout(() => {
+          if (this._dead || this.phase !== 'throw') return;
+          // 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
+          // useItem이 다시 _maybeAI를 걸어 주므로 여기선 쓰고 빠지면 된다.
+          const it = this._aiUseItem(p);
+          if (it) return;
+          this.doThrow(p.pid, power);
+        }, ms);
       } else if (this.phase === 'move' && auto) {
         this._timer = setTimeout(() => {
+          if (this._dead || this.phase !== 'move') return;
+          const it = this._aiUseItem(p);
+          if (it) return;
           const mv = this._bestMove(this.turn);
           if (mv) this.doMove(p.pid, mv.pieceId, mv.pendingIndex, mv.dir);
           else this._endTurn();
@@ -575,6 +668,7 @@
         eventTiles: Object.assign({}, this.eventTiles), eventTypes: this.eventTypes.slice(), pitOn: this.pitOn, dailyRule: this.dailyRule,
         eventFx: this.eventFx ? { ...this.eventFx } : null,
         itemBattle: this.itemBattle, speedStart: this.speedStart, shieldSide: this.shieldSide, itemFx: this.itemFx ? { ...this.itemFx } : null,
+
         limitMs: this.limitMs, gameStartTime: this.gameStartTime, timedOut: this.timedOut,
         turnMs: this.turnMs, turnDeadline: this.turnDeadline || 0,
         decideOrder: this.decideOrder,

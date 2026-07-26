@@ -88,6 +88,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 
   .cards{display:flex; flex-direction:column; gap:13px}
   .cat-h{ display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin:24px 2px 12px }
+  /* 카테고리 필터 — 게임 13종이 4개 묶음으로 나뉘어 있는데도 전부 세로로 늘어서
+     360px에서 페이지가 화면 4.8장(3043px)이었다. 칩으로 한 묶음만 보면 한 화면에 가깝게 줄어든다.
+     '전체'가 기본이라 아무것도 숨지 않는다(고른 값은 alley_cat에 기억). */
+  .catfilter{ display:flex;gap:7px;flex-wrap:wrap;margin:4px 2px 2px }
+  .catfilter .tchip{ padding:6px 12px;font-size:12.5px }
+  .catfilter .tchip .n{ font-size:10.5px;font-weight:800;opacity:.75;margin-left:5px }
+  @media (max-width:480px){ .catfilter .tchip{ padding:6px 10px;font-size:12px } }
   .cat-h:first-of-type{ margin-top:6px }
   .cat-h::after{ content:'';flex:1;height:1px;background:var(--line) }
   .cat-h .cnt{ font-size:11.5px;font-weight:800;color:var(--brass);background:color-mix(in srgb,var(--brass) 13%,transparent);border-radius:999px;padding:1px 9px }
@@ -353,28 +360,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     <h1>주사위 골목<span class="en">Dice Alley</span></h1>
   </div>
   <p class="lede">뒷골목 주사위 도박장에 온 걸 환영해. 한 판 고르고 들어와.</p>
-  <details class="profilebox" id="profileBox">
-    <summary class="psum"><span class="pav" id="pavPreview">🎲</span><span class="pname empty" id="pnamePreview">프로필 설정</span><span class="pedit"></span></summary>
-    <div class="pbody">
-      <div class="pfield">
-        <label class="plbl" for="profName">이름 (온라인 참가 시 기본 닉네임)</label>
-        <input id="profName" class="pin" maxlength="12" placeholder="닉네임" autocomplete="off" aria-label="이름">
-      </div>
-      <div class="pfield">
-        <span class="plbl">아바타</span>
-        <div class="avgrid" id="avGrid"></div>
-        <div class="avgrid"><input id="profAvatarCustom" class="pin" style="width:auto;max-width:120px" maxlength="4" placeholder="직접 입력 🎲" aria-label="아바타 직접 입력"></div>
-      </div>
-    </div>
-  </details>
-  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
-  <div class="levelcard" id="levelCard"></div>
-  <div class="statstrip" id="statStrip"></div>
-  <details class="allstats" id="allStats"><summary class="assum">📊 내 전적 — 13게임 전체</summary><div class="asbody" id="asBody"></div></details>
-  <div class="achshelf" id="achShelf"></div>
-  <div class="dailygoals" id="dailyGoals"></div>
+  <!-- 허브가 할 일은 '게임 고르기'다. 프로필·코인·전적·테마가 위에 있어서
+       360px에서 게임 카드가 602px 아래로 밀렸고, 카테고리 칩조차 497px 아래였다(스크롤해야 필터를 씀).
+       → 초보에게 필요한 안내·방코드만 위에 두고, '내 정보' 묶음은 게임 아래로 내렸다. -->
   <div class="firstnote" id="firstNote"><span class="fe">🎲</span><span><b>처음이라면</b> — 혼자 <b>AI</b>랑 붙어봐도 되고, 친구가 준 <b>방 코드</b>를 아래에 입력해 바로 참가할 수도 있어.</span></div>
-  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
   <div class="joinbar">
     <span class="jlbl">🔑 방 코드로 참가</span>
     <input id="joinCode" maxlength="4" placeholder="예: ABCD" autocomplete="off" autocapitalize="characters" inputmode="text" aria-label="방 코드">
@@ -382,8 +371,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     <span class="jmsg" id="joinMsg" role="status"></span>
   </div>
 
-  <h3 class="cat-h">🎲 주사위 게임 <span class="cnt">4</span></h3>
-  <div class="cards">
+  <div class="catfilter" id="catFilter" role="tablist" aria-label="게임 종류 고르기">
+    <button class="tchip on" data-cat="all">전체<span class="n">13</span></button>
+    <button class="tchip" data-cat="dice">🎲 주사위<span class="n">4</span></button>
+    <button class="tchip" data-cat="trad">🪀 전통·보드<span class="n">2</span></button>
+    <button class="tchip" data-cat="hwatu">🎴 화투<span class="n">1</span></button>
+    <button class="tchip" data-cat="card">🃏 카드<span class="n">6</span></button>
+  </div>
+
+  <h3 class="cat-h" data-cat="dice">🎲 주사위 게임 <span class="cnt">4</span></h3>
+  <div class="cards" data-cat="dice">
     <a class="gcard" href="kb.html">
       <div class="gtop">
         <div class="ic">🦴</div>
@@ -417,8 +414,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
   </div>
 
-  <h3 class="cat-h">🪀 전통·보드 <span class="cnt">2</span></h3>
-  <div class="cards">
+  <h3 class="cat-h" data-cat="trad">🪀 전통·보드 <span class="cnt">2</span></h3>
+  <div class="cards" data-cat="trad">
     <a class="gcard" href="yut.html">
       <div class="gtop">
         <div class="ic">🐎</div>
@@ -435,8 +432,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
   </div>
 
-  <h3 class="cat-h">🎴 화투 게임 <span class="cnt">1</span></h3>
-  <div class="cards">
+  <h3 class="cat-h" data-cat="hwatu">🎴 화투 게임 <span class="cnt">1</span></h3>
+  <div class="cards" data-cat="hwatu">
     <a class="gcard" href="seotda.html">
       <div class="gtop">
         <div class="ic">🎴</div>
@@ -446,8 +443,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </a>
   </div>
 
-  <h3 class="cat-h">🃏 카드 게임 <span class="cnt">6</span></h3>
-  <div class="cards">
+  <h3 class="cat-h" data-cat="card">🃏 카드 게임 <span class="cnt">6</span></h3>
+  <div class="cards" data-cat="card">
     <a class="gcard" href="blackjack.html">
       <div class="gtop">
         <div class="ic">♠️</div>
@@ -491,6 +488,29 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       <div class="meta"><span class="pill">3~4인</span><span class="pill">AI</span><span class="pill">🆕</span></div>
     </a>
   </div>
+
+  <!-- 내 정보 — 게임을 고른 뒤에 보는 것들이라 카드 아래로 내렸다(위 주석 참고) -->
+  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
+  <details class="profilebox" id="profileBox">
+    <summary class="psum"><span class="pav" id="pavPreview">🎲</span><span class="pname empty" id="pnamePreview">프로필 설정</span><span class="pedit"></span></summary>
+    <div class="pbody">
+      <div class="pfield">
+        <label class="plbl" for="profName">이름 (온라인 참가 시 기본 닉네임)</label>
+        <input id="profName" class="pin" maxlength="12" placeholder="닉네임" autocomplete="off" aria-label="이름">
+      </div>
+      <div class="pfield">
+        <span class="plbl">아바타</span>
+        <div class="avgrid" id="avGrid"></div>
+        <div class="avgrid"><input id="profAvatarCustom" class="pin" style="width:auto;max-width:120px" maxlength="4" placeholder="직접 입력 🎲" aria-label="아바타 직접 입력"></div>
+      </div>
+    </div>
+  </details>
+  <div class="levelcard" id="levelCard"></div>
+  <div class="statstrip" id="statStrip"></div>
+  <details class="allstats" id="allStats"><summary class="assum">📊 내 전적 — 13게임 전체</summary><div class="asbody" id="asBody"></div></details>
+  <div class="achshelf" id="achShelf"></div>
+  <div class="dailygoals" id="dailyGoals"></div>
+  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
 
   <!-- 프리미엄(광고 제거) -->
   <div class="premrow" id="premRow">
@@ -859,6 +879,46 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     if(v){ curAv=v; set('alley_avatar',v); } else { curAv=''; set('alley_avatar',''); }
     refreshPreview(); markChips();
   });
+})();</script>
+<script>(function(){
+  // 카테고리 필터 — 칩을 누르면 그 묶음만 보인다. 기본은 '전체'라 아무것도 숨지 않는다.
+  // 게임 13종을 세로로 다 늘어놓으면 360px에서 페이지가 화면 4.8장이라 뒤쪽 게임은 사실상 안 보였다.
+  var KEY = 'alley_cat';
+  var bar = document.getElementById('catFilter');
+  if (!bar) return;
+  var chips = bar.querySelectorAll('.tchip');
+  // h3.cat-h 와 .cards 를 data-cat 으로 짝지어 둔다(형제 순서에 기대지 않게)
+  function groups(){ return document.querySelectorAll('.cat-h[data-cat], .cards[data-cat]'); }
+
+  function apply(cat, remember){
+    var any = false;
+    Array.prototype.forEach.call(groups(), function(el){
+      var show = (cat === 'all' || el.getAttribute('data-cat') === cat);
+      el.style.display = show ? '' : 'none';
+      if (show) any = true;
+    });
+    // 혹시 없는 카테고리가 저장돼 있었다면 전체로 되돌린다(빈 화면 방지)
+    if (!any) { apply('all', false); cat = 'all'; }
+    Array.prototype.forEach.call(chips, function(c){
+      var on = c.getAttribute('data-cat') === cat;
+      c.classList.toggle('on', on);
+      c.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    if (remember) { try { localStorage.setItem(KEY, cat); } catch(e){} }
+  }
+
+  Array.prototype.forEach.call(chips, function(c){
+    c.setAttribute('role', 'tab');
+    c.addEventListener('click', function(){
+      var cat = c.getAttribute('data-cat');
+      apply(cat, true);
+      try { window.AL && AL.ev('허브_카테고리', { 종류: cat }); } catch(e){}
+    });
+  });
+
+  var saved = 'all';
+  try { saved = localStorage.getItem(KEY) || 'all'; } catch(e){}
+  apply(saved, false);
 })();</script>
 <script>(function(){
   // 계측 — 허브에서 어느 게임으로 갔는지(퍼널: 진입 → 게임 선택)
