@@ -116,6 +116,32 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
 
+  /**
+   * 설정 키 통일 마이그레이션 (2026-07-26)
+   * 소리·닉네임이 게임마다 다른 키를 써서 "허브에서 음소거했는데 카드게임은 소리 남",
+   * "게임마다 이름 다시 입력"이 났다. 공통 키로 모으되, 쓰던 값은 한 번만 옮겨 온다.
+   */
+  (function migrate() {
+    try {
+      var moves = [
+        ['alley_sound', ['seotda_sound', 'bj_sound', 'bc_sound', 'hl_sound', 'ip_sound', 'om_sound', 'oc_sound']],
+        ['alley_name',  ['seotda_name', 'alk_name', 'ip_name', 'om_name', 'oc_name']]
+      ];
+      // 알까기만 의미가 뒤집힌 키('alk_mute' 1=음소거)를 썼다 → 공통 의미(0=음소거)로 변환
+      if (localStorage.getItem('alley_sound') == null && localStorage.getItem('alk_mute') != null) {
+        localStorage.setItem('alley_sound', localStorage.getItem('alk_mute') === '1' ? '0' : '1');
+      }
+      for (var i = 0; i < moves.length; i++) {
+        var dst = moves[i][0], srcs = moves[i][1];
+        if (localStorage.getItem(dst) != null) continue;      // 공통 값이 이미 있으면 그게 정답
+        for (var j = 0; j < srcs.length; j++) {
+          var v = localStorage.getItem(srcs[j]);
+          if (v != null) { localStorage.setItem(dst, v); break; }
+        }
+      }
+    } catch (e) {}
+  })();
+
   global.PACE = PACE;
   // 게임 코드가 짧게 부르는 이름. pace.js가 아예 안 뜨면 각 HTML의 폴백(n=>n)이 대신 들어간다.
   global.PMS = function (n) { try { return PACE.ms(n); } catch (e) { return n; } };

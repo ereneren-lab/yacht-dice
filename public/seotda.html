@@ -28,7 +28,8 @@
   .topbar .title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden}
   .topbar .title .dot{width:9px;height:9px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass)}
   .spacer{flex:1}
-  .iconbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn{position:relative;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn::after{ content:'';position:absolute;inset:-4px }
   .iconbtn:hover{background:var(--panel2)}
   .hubx{font-size:18px}
 
@@ -800,13 +801,13 @@ const fmt=n=>{ n=Math.round(n); if(n>=100000000)return (n/100000000).toFixed(n%1
 
 // ===== 효과음 (WebAudio 합성, 파일 0) =====
 const SFX=(function(){
-  let ctx=null, on=true; try{ on=localStorage.getItem('seotda_sound')!=='0'; }catch(e){}
+  let ctx=null, on=true; try{ on=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   function ac(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ctx&&ctx.state==='suspended'){try{ctx.resume();}catch(e){}} return ctx; }
   function tone(freq,dur,type,gain,when){ const c=ac(); if(!c||!on)return; const t=c.currentTime+(when||0); const o=c.createOscillator(),g=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(gain||0.14,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.03); }
   function noise(dur,gain,ff,when){ const c=ac(); if(!c||!on)return; const t=c.currentTime+(when||0); const len=Math.floor(c.sampleRate*dur); const buf=c.createBuffer(1,len,c.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len); const n=c.createBufferSource(); n.buffer=buf; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=ff||2600; f.Q.value=0.7; const g=c.createGain(); g.gain.setValueAtTime(gain||0.2,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); n.connect(f); f.connect(g); g.connect(c.destination); n.start(t); n.stop(t+dur+0.02); }
   return {
     on(){ return on; }, resume(){ ac(); },
-    toggle(){ on=!on; try{localStorage.setItem('seotda_sound',on?'1':'0');}catch(e){} return on; },
+    toggle(){ on=!on; try{localStorage.setItem('alley_sound',on?'1':'0');}catch(e){} return on; },
     deal(){ noise(0.085,0.16,3400); },                                     // 착 (카드 슬라이드)
     chip(){ tone(1500,0.07,'triangle',0.1); tone(2200,0.05,'sine',0.07,0.02); }, // 짤랑
     peek(){ tone(560,0.05,'sine',0.09); tone(760,0.05,'sine',0.06,0.03); },
@@ -820,7 +821,7 @@ const SFX=(function(){
 
 let engine=null, S=null, driveT=null, peeked=[false,false], lastHandNo=-1;
 const cfg={ n:3, diff:'normal', ante:200, chips:10000, jabi:false, ttaeng:false, name:'' };
-try{ cfg.name=localStorage.getItem('seotda_name')||''; }catch(e){}
+try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
 try{ cfg.diff=localStorage.getItem('seotda_diff')||'normal'; }catch(e){}
 
 // 테마
@@ -889,7 +890,7 @@ window.addEventListener('beforeunload',cashOut);
 
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
-  try{ localStorage.setItem('seotda_name',cfg.name); localStorage.setItem('seotda_diff',cfg.diff); }catch(e){}
+  try{ localStorage.setItem('alley_name',cfg.name); localStorage.setItem('seotda_diff',cfg.diff); }catch(e){}
   // 바이인: 보유 머니에서 시작 칩만큼. 부족하면 무료 지급.
   if(getWallet() < cfg.chips) setWallet(getWallet()+Math.max(100000,cfg.chips));
   walletBuyIn=cfg.chips; setWallet(getWallet()-cfg.chips);

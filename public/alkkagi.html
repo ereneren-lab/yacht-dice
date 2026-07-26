@@ -34,7 +34,8 @@
   .topbar .title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden}
   .topbar .title .dot{width:9px;height:9px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass)}
   .spacer{flex:1}
-  .iconbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn{position:relative;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn::after{ content:'';position:absolute;inset:-4px }
   .iconbtn:hover{background:var(--panel2)}
   /* 내기(스테이크) 로비 선택 UI */
   .stakeRow{ margin:2px 0 12px }
@@ -137,6 +138,14 @@
   /* 토스트 */
   .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;color:var(--ink);z-index:30;pointer-events:none;opacity:0;transition:opacity .18s}
   .toast.on{opacity:1}
+
+  /* 셋업이 길어 시작 버튼이 접힌 아래로 내려간다 — 스크롤해도 항상 손 닿게 고정 */
+  /* 셋업이 길어 '시작'이 접힌 아래로 내려간다. sticky는 부모(패널) 밖으로 못 나가서
+     레벨바까지 있는 이 화면에선 소용없다 → 셋업 동안만 화면 하단에 고정한다. */
+  body:not(.ingame) #startRow{ position:fixed; left:14px; right:14px; margin:0; z-index:20;
+    bottom:calc(10px + env(safe-area-inset-bottom,0px)) }
+  body:not(.ingame) #startRow #startBtn{ box-shadow:0 10px 28px rgba(0,0,0,.5) }
+  body:not(.ingame) #setup{ padding-bottom:76px }
 </style>
 </head>
 <body>
@@ -205,7 +214,7 @@
       </div>
       <div class="lbl">이름</div>
       <input type="text" id="myName" maxlength="12" placeholder="너의 별명">
-      <div class="row" style="margin-top:14px">
+      <div class="row" id="startRow" style="margin-top:14px">
         <button class="btn" id="startBtn">시작</button>
       </div>
     </div>
@@ -922,7 +931,7 @@ try{ const t=localStorage.getItem('alk_theme'); if(t) document.documentElement.d
 themeBtn.onclick=()=>{ const cur=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=cur; try{localStorage.setItem('alk_theme',cur);}catch(e){} };
 
 // 사운드 (Web Audio · 짧은 톤 · 자산 없음)
-let soundOn = (function(){try{return localStorage.getItem('alk_mute')!=='1';}catch(e){return true;}})();
+let soundOn = (function(){try{return localStorage.getItem('alley_sound')!=='0';}catch(e){return true;}})();   // 공통 키(다른 게임과 같은 의미: 0=음소거)
 const SFX = (()=>{
   let ctx;
   const ac = ()=>{ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); return ctx; };
@@ -950,9 +959,9 @@ const SFX = (()=>{
 })();
 // 음소거 버튼
 const muteBtn = document.createElement('button');
-muteBtn.className = 'iconbtn'; muteBtn.title = '소리 켜기/끄기'; muteBtn.textContent = soundOn?'🔊':'🔇';
+muteBtn.id = 'muteBtn'; muteBtn.className = 'iconbtn'; muteBtn.title = '소리 켜기/끄기'; muteBtn.textContent = soundOn?'🔊':'🔇';
 $('helpBtn').parentNode.insertBefore(muteBtn, $('helpBtn'));
-muteBtn.onclick = ()=>{ soundOn = !soundOn; muteBtn.textContent = soundOn?'🔊':'🔇'; try{localStorage.setItem('alk_mute', soundOn?'0':'1');}catch(e){} };
+muteBtn.onclick = ()=>{ soundOn = !soundOn; muteBtn.textContent = soundOn?'🔊':'🔇'; try{localStorage.setItem('alley_sound', soundOn?'1':'0');}catch(e){} };
 
 // 조준 가이드 켜기/끄기 (setup 초기화보다 먼저 정의돼야 함)
 let guideOn = (function(){try{return localStorage.getItem('alk_guide')!=='0';}catch(e){return true;}})();
@@ -990,7 +999,7 @@ function renderLevel(){
 renderLevel();
 
 // 셋업 옵션 상태
-const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), special:(function(){try{const v=localStorage.getItem('alk_special'); if(['none','bomb','giant','magnet'].includes(v))return v; return localStorage.getItem('alk_bomb')==='1'?'bomb':'none';}catch(e){return 'none';}})(), rule:(function(){try{const v=localStorage.getItem('alk_rule'); return ['none','doubleShot','wind'].includes(v)?v:'none';}catch(e){return 'none';}})(), myName: (function(){try{return localStorage.getItem('alk_name')||'';}catch(e){return '';}})() };
+const cfg={ mode:'ai', diff:'normal', preset:'standard', surface:(function(){try{const v=localStorage.getItem('alk_surface'); return ['board','ice','grass'].includes(v)?v:'board';}catch(e){return 'board';}})(), special:(function(){try{const v=localStorage.getItem('alk_special'); if(['none','bomb','giant','magnet'].includes(v))return v; return localStorage.getItem('alk_bomb')==='1'?'bomb':'none';}catch(e){return 'none';}})(), rule:(function(){try{const v=localStorage.getItem('alk_rule'); return ['none','doubleShot','wind'].includes(v)?v:'none';}catch(e){return 'none';}})(), myName: (function(){try{return localStorage.getItem('alley_name')||'';}catch(e){return '';}})() };
 function bindOpts(rootId, key, cb){
   const root=$(rootId); if(!root) return;
   root.querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>{
@@ -1196,7 +1205,7 @@ function copyText(t){ try{ navigator.clipboard.writeText(t); toast('🔗 초대 
 // 온라인 셋업 버튼들
 $('createBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'호스트';
-  cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
+  cfg.myName=name; try{localStorage.setItem('alley_name',name);}catch(e){}
   online=true; $('onErr').textContent='';
   connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface, specials:(onlineCfg.special&&onlineCfg.special!=='none'?[onlineCfg.special]:[]), rule:(onlineCfg.rule!=='none'?onlineCfg.rule:null)}));
 };
@@ -1204,14 +1213,14 @@ $('joinBtn').onclick=()=>{
   const name = ($('onName').value||'').trim()||'게스트';
   const code = ($('joinCode').value||'').trim().toUpperCase();
   if(!code){ $('onErr').textContent='방 코드를 입력해줘'; return; }
-  cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
+  cfg.myName=name; try{localStorage.setItem('alley_name',name);}catch(e){}
   online=true; $('onErr').textContent='';
   connect(()=>wsSend({t:'join', code, name}));
 };
 
 function startGame(){
   const name=($('myName').value||'').trim()||'나';
-  cfg.myName=name; try{localStorage.setItem('alk_name',name);}catch(e){}
+  cfg.myName=name; try{localStorage.setItem('alley_name',name);}catch(e){}
   let players;
   if(cfg.mode==='team'){
     // 2v2: 좌석 0,2=우리 팀(나+AI 파트너) / 1,3=상대(AI 둘). 턴 0→1→2→3.

@@ -27,7 +27,8 @@
   .topbar .title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden}
   .topbar .title .dot{width:9px;height:9px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass)}
   .spacer{flex:1}
-  .iconbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn{position:relative;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn::after{ content:'';position:absolute;inset:-4px }
   .iconbtn:hover{background:var(--panel2)}
   .hubx{font-size:18px}
 
@@ -225,13 +226,13 @@ const AI_NAMES=['호구','타짜','물주','왕눈이','새우깡','판돌이'];
 
 // ===== 효과음 =====
 const SFX=(function(){
-  let ctx=null,on=true; try{on=localStorage.getItem('oc_sound')!=='0';}catch(e){}
+  let ctx=null,on=true; try{on=localStorage.getItem('alley_sound')!=='0';}catch(e){}
   function ac(){ if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(ctx&&ctx.state==='suspended'){try{ctx.resume();}catch(e){}} return ctx; }
   function tone(f,d,t,g,w){ const c=ac(); if(!c||!on)return; const s=c.currentTime+(w||0); const o=c.createOscillator(),gn=c.createGain(); o.type=t||'sine'; o.frequency.setValueAtTime(f,s); gn.gain.setValueAtTime(.0001,s); gn.gain.exponentialRampToValueAtTime(g||.13,s+.008); gn.gain.exponentialRampToValueAtTime(.0001,s+d); o.connect(gn); gn.connect(c.destination); o.start(s); o.stop(s+d+.03); }
   function noise(d,g,ff,w){ const c=ac(); if(!c||!on)return; const s=c.currentTime+(w||0); const len=Math.floor(c.sampleRate*d); const b=c.createBuffer(1,len,c.sampleRate); const dd=b.getChannelData(0); for(let i=0;i<len;i++)dd[i]=(Math.random()*2-1)*(1-i/len); const n=c.createBufferSource(); n.buffer=b; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=ff||2800; const gn=c.createGain(); gn.gain.setValueAtTime(g||.18,s); gn.gain.exponentialRampToValueAtTime(.0001,s+d); n.connect(f); f.connect(gn); gn.connect(c.destination); n.start(s); n.stop(s+d+.02); }
   return {
     on(){return on;}, resume(){ac();},
-    toggle(){on=!on; try{localStorage.setItem('oc_sound',on?'1':'0');}catch(e){} return on;},
+    toggle(){on=!on; try{localStorage.setItem('alley_sound',on?'1':'0');}catch(e){} return on;},
     deal(){ noise(.08,.15,3400); },
     play(){ noise(.05,.1,2600); tone(760,.05,'triangle',.06,.02); },
     draw(){ noise(.06,.12,2200); },
@@ -364,7 +365,7 @@ function simGame(n){
 
 // ===== UI 상태 =====
 const cfg={ n:3, name:'' };
-try{ cfg.name=localStorage.getItem('oc_name')||''; }catch(e){}
+try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
 const MYSEAT=0;
 let ST=null, players=[], busy=false, lastAct=[], pendingDrawn=null, pickJokerCard=null;
 
@@ -381,7 +382,7 @@ $('myName').value=cfg.name;
 
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
-  try{ localStorage.setItem('oc_name',cfg.name); }catch(e){}
+  try{ localStorage.setItem('alley_name',cfg.name); }catch(e){}
   players=[{name:cfg.name,ai:false}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
   for(let i=1;i<cfg.n;i++) players.push({name:nm[i-1],ai:true});

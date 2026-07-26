@@ -955,6 +955,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   @media (max-width:480px){ .meta-chip{ max-width:120px;font-size:9.5px } }
   /* 좁은 폰(≤400px)은 상단바 아이콘이 4개라 레벨칩이 "Lv.1 ·"까지 짜부라진다 → 게임 중엔 숨김(레벨은 셋업·결과 화면에 있음) */
   @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
+
+  /* 셋업이 길어 시작 버튼이 접힌 아래로 내려간다 — 스크롤해도 항상 손 닿게 고정 */
+  #startLocal,#startOnline{ position:sticky; bottom:calc(10px + env(safe-area-inset-bottom,0px)); z-index:6; box-shadow:0 8px 24px rgba(0,0,0,.35) }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">

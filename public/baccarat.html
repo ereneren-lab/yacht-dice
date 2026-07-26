@@ -27,7 +27,8 @@
   .topbar .title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden}
   .topbar .title .dot{width:9px;height:9px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass)}
   .spacer{flex:1}
-  .iconbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn{position:relative;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .iconbtn::after{ content:'';position:absolute;inset:-4px }
   .iconbtn:hover{background:var(--panel2)}
   .hubx{font-size:18px}
 
@@ -222,13 +223,13 @@ const $=id=>document.getElementById(id);
 
 // ===== 효과음 (WebAudio 합성) =====
 const SFX=(function(){
-  let ctx=null,on=true; try{on=localStorage.getItem('bc_sound')!=='0';}catch(e){}
+  let ctx=null,on=true; try{on=localStorage.getItem('alley_sound')!=='0';}catch(e){}
   function ac(){ if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(ctx&&ctx.state==='suspended'){try{ctx.resume();}catch(e){}} return ctx; }
   function tone(f,d,t,g,w){ const c=ac(); if(!c||!on)return; const s=c.currentTime+(w||0); const o=c.createOscillator(),gn=c.createGain(); o.type=t||'sine'; o.frequency.setValueAtTime(f,s); gn.gain.setValueAtTime(.0001,s); gn.gain.exponentialRampToValueAtTime(g||.13,s+.008); gn.gain.exponentialRampToValueAtTime(.0001,s+d); o.connect(gn); gn.connect(c.destination); o.start(s); o.stop(s+d+.03); }
   function noise(d,g,ff,w){ const c=ac(); if(!c||!on)return; const s=c.currentTime+(w||0); const len=Math.floor(c.sampleRate*d); const b=c.createBuffer(1,len,c.sampleRate); const dd=b.getChannelData(0); for(let i=0;i<len;i++)dd[i]=(Math.random()*2-1)*(1-i/len); const n=c.createBufferSource(); n.buffer=b; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=ff||2800; const gn=c.createGain(); gn.gain.setValueAtTime(g||.18,s); gn.gain.exponentialRampToValueAtTime(.0001,s+d); n.connect(f); f.connect(gn); gn.connect(c.destination); n.start(s); n.stop(s+d+.02); }
   return {
     on(){return on;}, resume(){ac();},
-    toggle(){on=!on; try{localStorage.setItem('bc_sound',on?'1':'0');}catch(e){} return on;},
+    toggle(){on=!on; try{localStorage.setItem('alley_sound',on?'1':'0');}catch(e){} return on;},
     deal(){ noise(.08,.15,3400); },
     chip(){ tone(1500,.07,'triangle',.1); tone(2200,.05,'sine',.06,.02); },
     win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.26,'triangle',.12,i*.08)); },
