@@ -205,6 +205,14 @@
   body:not(.ingame) #startBtn{ position:fixed; left:14px; right:14px; width:auto; margin:0; z-index:20;
     bottom:calc(10px + env(safe-area-inset-bottom,0px)); box-shadow:0 10px 28px rgba(0,0,0,.5) }
   body:not(.ingame) #setup{ padding-bottom:64px }   /* 76px이면 390x844가 0→+8px로 넘쳤다 — 버튼 높이(52)+여유만 */
+  /* 짧은 화면 셋업 압축 — 내용이 라벨 6개 + 옵션 행 5개로 전부 '시작에 필요한 것'이라
+     옵션은 건드리지 않고 여백·글자만 줄인다. 시작 버튼은 위에서 하단 고정했다. */
+  @media (max-height:780px){
+    #setup .lbl{ margin:8px 0 3px; font-size:12px }
+    #setup .row{ gap:5px }
+    #setup .opt{ padding:7px 9px; font-size:12px }
+    #setup h3{ font-size:15px; margin:5px 0 3px }
+  }
   /* 가로로 돌린 폰 — 높이가 360~390px뿐이라 [판 · 안내 · 베팅바]를 세로로 쌓을 수 없다(+227px).
      왼쪽에 판(팟+내 패), 오른쪽에 안내와 베팅 버튼을 놓아 2단으로 만든다. */
   @media (orientation:landscape) and (max-height:520px){

@@ -157,6 +157,18 @@
     body.ingame .app{ padding:2px 8px 2px; min-height:0 }
     body.ingame .topbar{ margin-bottom:2px; padding-bottom:4px }
   }
+  /* 셋업이 짧은 화면에서 크게 넘친다(360x640에서 +659px). 다만 967px 중 대부분이
+     '판을 시작하는 데 필요한 옵션'(표면·특수·규칙 행이 각 102px, 라벨 7개)이라 옵션은 건드리지 않는다.
+     → 레벨바(부가 정보, 허브·결과 화면에 있다)만 접고 라벨·칩 여백을 줄인다.
+     시작 버튼은 이미 화면 하단에 고정돼 있어 스크롤과 무관하게 닿는다. */
+  @media (max-height:900px){
+    #setup #levelBar{ display:none }
+    #setup .lbl{ margin:8px 0 3px; font-size:12px }
+    #setup .row{ gap:5px }
+    #setup .opt{ padding:7px 9px; font-size:12px }
+    #setup h3{ font-size:15px; margin:5px 0 3px }
+    #setup .warn{ font-size:11px }
+  }
 </style>
 </head>
 <body>

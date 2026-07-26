@@ -962,6 +962,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 좁은 폰(≤400px)은 상단바 아이콘이 4개라 레벨칩이 "Lv.1 ·"까지 짜부라진다 → 게임 중엔 숨김(레벨은 셋업·결과 화면에 있음) */
   @media (max-width:400px){ body.ingame .meta-chip{ display:none } }
 
+  /* 셋업의 '내 기록 · 테마' 접기 — 레벨·전적·업적·테마·위장안내가 471px를 먹으면서
+     정작 판을 시작하는 옵션을 화면 밖으로 밀었다(390x844에서 +378px).
+     숨기는 게 아니라 접는다 — 한 번 탭하면 열리고, 화면이 충분히 길면 아래 JS가 기본으로 열어둔다. */
+  .setup-extra{ margin:0 0 12px }
+  .setup-extra > summary{ cursor:pointer; list-style:none; font-size:12.5px; font-weight:800;
+    color:var(--muted); background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:9px 12px; display:flex; align-items:center; justify-content:space-between }
+  .setup-extra > summary::-webkit-details-marker{ display:none }
+  .setup-extra > summary::after{ content:'▾'; transition:transform .15s }
+  .setup-extra[open] > summary::after{ transform:rotate(180deg) }
+  .setup-extra > summary:hover{ color:var(--ink) }
+  .setup-extra[open] > summary{ margin-bottom:10px }
   /* 셋업이 길어 시작 버튼이 접힌 아래로 내려간다 — 스크롤해도 항상 손 닿게 고정 */
   #startLocal,#startOnline{ position:sticky; bottom:calc(10px + env(safe-area-inset-bottom,0px)); z-index:6; box-shadow:0 8px 24px rgba(0,0,0,.35) }
   /* ⚠️ 위 sticky는 짧은 화면에서 전혀 듣지 않는다 — 버튼이 #localCfg의 **마지막 자식**이라
@@ -1020,7 +1032,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     /* 가로로 돌리면 높이가 360~390px뿐인데 셋업 위쪽 진행 정보(레벨·전적·업적)와
        위장 모드 안내가 377px를 먹는다. 판을 시작하는 데 필요한 정보가 아니므로 접는다
        (레벨·전적·업적은 허브와 결과 화면에서 그대로 볼 수 있다). */
-    #setup #levelBar, #setup #statsbar, #setup #achbar, #setup .excel-tip{ display:none }
+    #setup .setup-extra{ display:none }   /* 가로는 세로 공간이 아예 없다 — 접기 요약줄까지 감춘다 */
     #setup #startLocal, #setup #startOnline{
       position:fixed; left:50%; right:auto; transform:translateX(-50%);
       bottom:calc(12px + env(safe-area-inset-bottom,0px));
@@ -1122,11 +1134,22 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     <!-- SETUP -->
     <div class="card" id="setup">
       <button class="rules-link" id="setupRules">📖 규칙 자세히 보기</button>
-      <div class="levelbar" id="levelBar"></div>
-      <div class="statsbar" id="statsbar"></div>
-      <div class="achbar" id="achbar"></div>
-      <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
-      <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켠 뒤 <span class="k">`</span> 나 <span class="k">Esc</span>로 즉시 껐다 켜고, <span class="k">Shift+`</span>로 엑셀↔포토샵 전환, <b>파일</b> 탭/메뉴로도 나옵니다.</div>
+      <!-- 레벨·전적·업적·테마는 '판을 시작하는 데 필요한 것'이 아니라 471px를 먹으면서 옵션을 화면 밖으로 밀었다
+           (390x844에서 셋업 +378px). 숨기지 않고 접어둔다 — 한 번 탭하면 열리고, 큰 화면에선 기본으로 열린다.
+           ⚠️ 안쪽 요소 id는 그대로다(renderStats/renderLevel/renderAch가 getElementById로 찾는다). -->
+      <details class="setup-extra" id="setupExtra">
+        <summary>📊 내 기록 · 테마</summary>
+        <div class="levelbar" id="levelBar"></div>
+        <div class="statsbar" id="statsbar"></div>
+        <div class="achbar" id="achbar"></div>
+        <div class="themerow"><span class="tlbl">테마</span><div class="chips" id="themeChips"></div></div>
+        <div class="excel-tip">🕵️ <b>엑셀</b>·<b>포토샵</b> 테마 = 몰래 모드(엑셀 스프레드시트 / 포토샵 작업창 위장). 켠 뒤 <span class="k">`</span> 나 <span class="k">Esc</span>로 즉시 껐다 켜고, <span class="k">Shift+`</span>로 엑셀↔포토샵 전환, <b>파일</b> 탭/메뉴로도 나옵니다.</div>
+      </details>
+      <script>/* 화면이 충분히 길면 '내 기록 · 테마'를 기본으로 열어둔다(좁거나 짧으면 접힌 채). */
+      (function(){ try{ var d=document.getElementById('setupExtra');
+        /* 문턱을 1200px로 잡은 이유: 이 블록이 펼쳐지면 471px가 더 붙는다.
+           940px로 잡았더니 768x1024(태블릿)에서 열려 셋업이 오히려 +149px 넘쳤다. */
+        if(d && window.matchMedia('(min-height:1200px)').matches) d.open=true; }catch(e){} })();</script>
       <div class="tabs">
         <button id="tabLocal" class="on">로컬 / AI</button>
         <button id="tabOnline">온라인</button>
