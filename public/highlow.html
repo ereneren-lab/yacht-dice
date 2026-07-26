@@ -6,6 +6,8 @@
 <title>하이로우 · 주사위 골목</title>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
+<script src="stats.js"></script>
+<script src="wallet.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
@@ -362,8 +364,22 @@ $('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
 document.querySelectorAll('#optChips .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optChips .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.chips=+o.dataset.c; });
 document.querySelectorAll('#optGoal .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optGoal .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.goalMult=+o.dataset.g; });
 
+
+// 지갑에서 바이인 — 모자라면 있는 만큼, 바닥이면 임시 구제(상점 붙기 전까지)
+let buyInOpen=false;   // 바이인이 열려 있나 — 중도 이탈 환급/이중 환급 방지
+function cashOut(){ try{ if(buyInOpen&&window.AW){ AW.add(bank); buyInOpen=false; } }catch(e){} }
+// 게임 도중 탭을 닫거나 허브로 나가도 칩을 잃지 않게 되돌려준다
+window.addEventListener('pagehide', cashOut);
+function buyIn(need){
+  try{
+    if(!window.AW) return need;
+    if(AW.get() < 100) AW.charge(50000);
+    buyInOpen=true;
+    return AW.take(Math.min(need, AW.get()));
+  }catch(e){ return need; }
+}
 function startGame(){
-  bank=cfg.chips; goal=cfg.chips*cfg.goalMult; bet=0; pot=0; streak=0; hist=[]; cur=null; deck=makeDeck();
+  bank=buyIn(cfg.chips); goal=cfg.chips*cfg.goalMult; bet=0; pot=0; streak=0; hist=[]; cur=null; deck=makeDeck();
   $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
   document.body.classList.add('ingame');
   try{SFX.resume();}catch(e){}
@@ -476,6 +492,8 @@ function endGame(won){
   $('resBody').innerHTML = won
     ? `축하해요! 목표 <b style="color:var(--gold)">${goal.toLocaleString()}</b>칩을 넘겼어요.<br>최종 <b style="color:var(--gold)">${bank.toLocaleString()}</b>칩`
     : `칩이 바닥났어요. 다음엔 욕심을 조금만 줄여봐요!`;
+  try{ if(window.AW){ cashOut(); var _b=$('resBody'); if(_b) _b.innerHTML += '<div style="margin-top:8px">💰 보유 코인 <b style="color:var(--gold)">'+AW.fmt()+'</b></div>'; } }catch(e){}
+  try{ window.AS&&AS.finish('highlow', won, bank); }catch(e){}   // resBody를 채운 뒤에 붙여야 전적 줄이 안 지워진다
   $('resultOv').classList.add('on');
   render();
   if(won) coinRain();

@@ -6,6 +6,8 @@
 <title>섯다 · 주사위 골목</title>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
+<script src="stats.js"></script>
+<script src="wallet.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 계측 보류(2026-07-22) — 다른 게임과 같은 기준으로 로딩만 꺼둔다.
@@ -842,8 +844,8 @@ $('optRules').querySelectorAll('.opt').forEach(o=>{ o.onclick=()=>{ o.classList.
 $('myName').value=cfg.name;
 
 // ===== 보유 머니(지갑) =====
-function getWallet(){ try{ const v=parseInt(localStorage.getItem('seotda_wallet'),10); return isNaN(v)?100000:v; }catch(e){ return 100000; } }
-function setWallet(v){ v=Math.max(0,Math.round(v)); try{localStorage.setItem('seotda_wallet',String(v));}catch(e){} refreshWallet(); return v; }
+function getWallet(){ try{ return window.AW?AW.get():100000; }catch(e){ return 100000; } }   // 공통 코인(wallet.js)
+function setWallet(v){ v=Math.max(0,Math.round(v)); try{ window.AW&&AW.set(v); }catch(e){} refreshWallet(); return v; }
 function refreshWallet(){ const w=getWallet(); const a=$('walletAmt'); if(a)a.textContent=fmt(w); const c=$('chargeBtn'); if(c)c.style.display=(w<1000)?'inline-block':'none'; }
 let walletBuyIn=null;
 function cashOut(){ if(walletBuyIn==null)return; const ms=mySeat(); const chips=(S&&ms>=0&&S.players[ms])?S.players[ms].chips:0; setWallet(getWallet()+chips); walletBuyIn=null; }
@@ -1248,6 +1250,7 @@ function showResult(){
   $('resTitle').textContent = iWon?'🏆 최종 우승!':'게임 종료';
   $('resBody').innerHTML = (p?`<b style="color:var(--brass)">${esc(p.name)}</b>님이 모든 칩을 차지했어요.`:'')+
     `<br>${S.handNo}판 진행 · 💰 보유 머니 <b style="color:var(--gold)">${fmt(after)}</b>`;
+  try{ window.AS&&AS.finish('seotda', !!iWon, after); }catch(e){}
   $('resultOv').classList.add('on');
   if(iWon){ try{coinRain();}catch(e){} }
 }

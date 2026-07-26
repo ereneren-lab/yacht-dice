@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>주사위 골목 — Dice Alley</title>
+<!-- 통합 코인 지갑(상점의 토대) -->
+<script src="wallet.js"></script>
 <!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
      게임 콘텐츠 수정을 앱 재제출 없이 반영한다. 웹·오프라인·이미 원격일 땐 아무것도 안 함(no-op).
      번들 우선이라 오프라인에서도 켜지고(애플 4.2 안전), 온라인일 때만 최신으로 갈아탄다. -->
@@ -309,6 +311,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 
   /* 접근성: 모션 최소화 선호 시 전환·애니메이션 억제 */
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important} }
+  .coinbar{display:flex;align-items:center;gap:8px;justify-content:center;margin:2px 2px 14px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel),var(--bg2));font-weight:800;font-size:13.5px;color:var(--muted)}
+  .coinbar b{color:var(--gold,#d8a93a);font-size:17px}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -344,6 +348,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       </div>
     </div>
   </details>
+  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b></div>
   <div class="levelcard" id="levelCard"></div>
   <div class="statstrip" id="statStrip"></div>
   <div class="achshelf" id="achShelf"></div>
