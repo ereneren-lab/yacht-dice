@@ -133,6 +133,7 @@
       this.difficulty = opts.difficulty || 'normal';
       this.TURN_MS = (typeof opts.turnMs === 'number') ? opts.turnMs : 45000;  // 0 = 시간 제한 없음(로컬)
       this.AID = opts.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // AI 템포 배수(pace: 공통 진행 속도 배수, pace.js)
+      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
       this.onRoll = opts.onRoll || function(){};
@@ -210,6 +211,12 @@
       const seat=this._seat(pid);
       if(seat<0||seat!==this.current) return;
       if(a.type==='roll'){ if(this.rollsLeft>0) this._doRoll(); }
+      else if(a.type==='extraRoll'){
+        // 상점 소모품 '한 번 더 굴리기'(4번째 굴림). 온라인은 방 옵션이 열려야 먹는다.
+        if(!this.itemsOn) return;
+        if(!this.rolled || this.rollsLeft>0) return;   // 아직 굴릴 게 남았으면 쓸 이유가 없다
+        this.rollsLeft=1; this._doRoll();
+      }
       else if(a.type==='hold'){ this._hold(a.i); }
       else if(a.type==='pick'){ this._commit(seat,a.cat); }
     }

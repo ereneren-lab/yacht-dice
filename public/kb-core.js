@@ -59,6 +59,7 @@
       this.TURN_MS = opts.turnMs || 45000;
       this.aiFast = !!opts.aiFast;
       this.AID = this.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // pace: 공통 진행 속도 배수(pace.js)
+      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
       // exactly 2 seats
       const ps = (opts.players||[]).slice(0,2);
       while(ps.length<2) ps.push({ pid:'p'+ps.length, name:'P'+(ps.length+1), ai:true });
@@ -109,6 +110,13 @@
         if(this.phase!=='roll') return;
         this.die=this._die(); this.onRoll(seat,this.die); this.phase='place';
         // refresh deadline for the place step
+        this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
+      } else if(a.type==='reroll'){
+        // 상점 소모품 '다시 굴리기'. 온라인은 방 옵션(itemsOn)을 켜기 전엔 무시 —
+        // 안 그러면 아이템 산 사람이 서버 권위 엔진에서 그냥 이기게 된다.
+        if(!this.itemsOn) return;
+        if(this.phase!=='place' || this.die==null) return;
+        this.die=this._die(); this.onRoll(seat,this.die);
         this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
       } else if(a.type==='place'){
         if(this.phase!=='place') return;

@@ -102,7 +102,7 @@ function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
   return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room), cap:capOf(room),
-    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, specials:room.specials, rule:room.rule, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false, stake:room.stake||'',
+    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, specials:room.specials, rule:room.rule, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false, stake:room.stake||'', itemsOn:!!room.itemsOn,
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
@@ -153,7 +153,7 @@ function startEngine(room){
   const players = room.members.filter(m=>!m.spectator).map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, aiDiff:room.difficulty, team:m.team }));
   if (room.game === 'kb'){
     const onState = (s)=> broadcast(room, { t:'state', state:s });
-    room.engine = new KBEngine({ aiFast:!!room.aiFast, players, onState,
+    room.engine = new KBEngine({ aiFast:!!room.aiFast, itemsOn:!!room.itemsOn, players, onState,
       onRoll: (seat, value)=> broadcast(room, { t:'kbroll', seat, value }) });
   } else if (room.game === 'ld'){
     // 숨김정보: 멤버마다 자기 시점 상태를 따로 보냄
@@ -170,7 +170,7 @@ function startEngine(room){
     room.engine = new AlkkagiEngine({ aiFast:!!room.aiFast, players, preset:(['mini','standard','battle'].includes(room.preset)?room.preset:'standard'), surface:room.surface, specials:room.specials, rule:room.rule, aiMs:900, onState });
   } else {
     const onState = (s)=> broadcast(room, { t:'state', state:s });
-    room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, players, onState,
+    room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, itemsOn:!!room.itemsOn, players, onState,
       onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }) });
   }
   room.engine.start();
@@ -320,6 +320,10 @@ wss.on('connection', (ws) => {
 
     } else if (m.t === 'setFast') {
       if (ws.meta.pid===hostPid(room)){ room.aiFast=!!m.v; sendLobby(room); }
+
+    } else if (m.t === 'setItems') {
+      // 상점 소모품 허용 — 호스트만, 로비에서만. 기본은 꺼짐(아이템 산 사람만 유리해지는 걸 막는다).
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){ room.itemsOn=!!m.v; sendLobby(room); }
 
     } else if (m.t === 'addAI') {
       const cap = capOf(room);

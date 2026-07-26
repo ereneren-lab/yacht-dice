@@ -115,7 +115,8 @@
   var GROUPS=[
     {slot:'dice',  title:'🎲 주사위 스킨',  sub:'주사위가 나오는 5게임에 전부 적용'},
     {slot:'pack',  title:'😀 아바타 팩',    sub:'허브 프로필에서 고를 수 있게 된다'},
-    {slot:'title', title:'🏮 칭호',         sub:'이름 옆에 붙는다'}
+    {slot:'title', title:'🏮 칭호',         sub:'이름 옆에 붙는다'},
+    {slot:'use',   title:'🔄 소모품',       sub:'판에 직접 쓰는 아이템. 혼자/AI 판에서 바로 쓸 수 있고, 온라인은 방장이 켠 방에서만 먹는다'}
   ];
 
   function diePreview(it){
@@ -135,13 +136,14 @@
       host.appendChild(h);
       var grid=document.createElement('div'); grid.className='grid';
       items.forEach(function(it){
-        var owned=SHOP.owned(it.id), eq=SHOP.equipped(it.slot)===it.id;
+        var isUse=(it.slot==='use'), have=isUse?SHOP.count(it.use):0;
+        var owned=!isUse&&SHOP.owned(it.id), eq=!isUse&&SHOP.equipped(it.slot)===it.id;
         var c=document.createElement('div'); c.className='card'+(owned?' have':'');
         c.innerHTML='<div class="ic">'+it.icon+'</div>'+
-          '<div class="mid"><div class="nm">'+it.name+'</div><div class="ds">'+it.desc+'</div>'+diePreview(it)+'</div>'+
-          '<div class="act">'+(owned?'':'<span class="price">🪙 '+it.price.toLocaleString()+'</span>')+
-          '<button class="btn '+(owned?(eq?'on':''):'buy')+'" data-id="'+it.id+'" data-act="'+(owned?(it.slot==='pack'?'has':'equip'):'buy')+'">'+
-          (owned?(it.slot==='pack'?'보유 중':(eq?'장착 중':'장착')):'구매')+'</button></div>';
+          '<div class="mid"><div class="nm">'+it.name+(isUse&&have?' <span style="color:var(--win);font-size:12px">· 보유 '+have+'개</span>':'')+'</div><div class="ds">'+it.desc+'</div>'+diePreview(it)+'</div>'+
+          '<div class="act">'+((owned&&!isUse)?'':'<span class="price">🪙 '+it.price.toLocaleString()+'</span>')+
+          '<button class="btn '+((owned&&!isUse)?(eq?'on':''):'buy')+'" data-id="'+it.id+'" data-act="'+((owned&&!isUse)?(it.slot==='pack'?'has':'equip'):'buy')+'">'+
+          ((owned&&!isUse)?(it.slot==='pack'?'보유 중':(eq?'장착 중':'장착')):'구매')+'</button></div>';
         grid.appendChild(c);
       });
       host.appendChild(grid);

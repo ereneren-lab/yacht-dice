@@ -21,6 +21,12 @@
     { id:'pack_animal', slot:'pack',   name:'동물 아바타 팩', icon:'🐯', price:4000, desc:'🐯 🐰 🐻 🦊 🐼 🐸', avatars:['🐯','🐰','🐻','🦊','🐼','🐸'] },
     { id:'pack_ghost',  slot:'pack',   name:'요괴 아바타 팩', icon:'👹', price:6000, desc:'👹 👺 👻 💀 🦇 🕯️', avatars:['👹','👺','👻','💀','🦇','🕯️'] },
     { id:'pack_lucky',  slot:'pack',   name:'행운 아바타 팩', icon:'🍀', price:9000, desc:'🍀 🌙 ⭐ 🔥 💎 🪙', avatars:['🍀','🌙','⭐','🔥','💎','🪙'] },
+    // ── 소모품 (슬롯: use) — 판에 직접 개입한다. 여러 번 살 수 있고 쓰면 준다.
+    //    로컬/AI에서는 바로 쓸 수 있고, 온라인은 방 옵션(itemsOn)이 열려야 엔진이 받아준다.
+    { id:'use_reroll3', slot:'use', use:'reroll', qty:3,  name:'다시 굴리기 ×3', icon:'🔄', price:5000,
+      desc:'너클본즈: 굴린 눈을 무르고 다시 · 요트: 4번째 굴림' },
+    { id:'use_reroll10',slot:'use', use:'reroll', qty:10, name:'다시 굴리기 ×10', icon:'🔄', price:15000,
+      desc:'10개 묶음 — 3개짜리보다 개당 싸다' },
     // ── 칭호 (슬롯: title) — 이름 옆에 붙는다
     { id:'title_boss',  slot:'title',  name:'골목대장', icon:'🏮', price:10000, desc:'이름 옆에 «골목대장»' },
     { id:'title_streak',slot:'title',  name:'연승왕',   icon:'🔥', price:15000, desc:'이름 옆에 «연승왕»' },
@@ -32,8 +38,9 @@
       var d = JSON.parse(localStorage.getItem(KEY)) || {};
       if (!Array.isArray(d.owned)) d.owned = [];
       if (!d.equip || typeof d.equip !== 'object') d.equip = {};
+      if (!d.use || typeof d.use !== 'object') d.use = {};   // 소모품 개수 {reroll:n}
       return d;
-    } catch (e) { return { owned: [], equip: {} }; }
+    } catch (e) { return { owned: [], equip: {}, use: {} }; }
   }
   function write(d) {
     try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
@@ -53,11 +60,16 @@
     buy: function (id) {
       var it = SHOP.item(id);
       if (!it) return { ok: false, why: '없는 물건' };
-      if (SHOP.owned(id)) return { ok: false, why: '이미 가지고 있어' };
+      if (it.slot !== 'use' && SHOP.owned(id)) return { ok: false, why: '이미 가지고 있어' };   // 소모품은 여러 번 산다
       var coin = global.AW ? AW.get() : 0;
       if (coin < it.price) return { ok: false, why: '코인이 ' + (it.price - coin).toLocaleString() + ' 모자라' };
       if (global.AW) AW.add(-it.price);
       var d = read();
+      if (it.slot === 'use') {
+        d.use[it.use] = (d.use[it.use] || 0) + it.qty;
+        write(d);
+        return { ok: true, item: it, count: d.use[it.use] };
+      }
       d.owned.push(id);
       if (it.slot === 'dice' || it.slot === 'title') d.equip[it.slot] = id;   // 사면 바로 장착
       write(d);
@@ -70,6 +82,17 @@
       if (!it || !SHOP.owned(id) || it.slot === 'pack') return false;
       var d = read();
       d.equip[it.slot] = (d.equip[it.slot] === id) ? '' : id;
+      write(d);
+      return true;
+    },
+
+    /** 소모품 보유 개수 */
+    count: function (use) { return read().use[use] || 0; },
+    /** 소모품 1개 사용. 없으면 false — 호출부는 이 값으로 판단하면 된다. */
+    spend: function (use) {
+      var d = read();
+      if (!d.use[use]) return false;
+      d.use[use]--;
       write(d);
       return true;
     },

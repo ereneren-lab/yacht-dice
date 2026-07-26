@@ -568,6 +568,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   <div style="max-width:340px;margin:16px auto 0" id="rollWrap" style="display:none">
     <button class="btn" id="rollBtn">굴리기</button>
+    <button class="btn" id="itemReroll" style="display:none;margin-top:8px;font-size:13px">🔄 다시 굴리기</button>
   </div>
 </div>
 
@@ -812,6 +813,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.TURN_MS = opts.turnMs || 45000;
       this.aiFast = !!opts.aiFast;
       this.AID = this.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // pace: 공통 진행 속도 배수(pace.js)
+      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
       // exactly 2 seats
       const ps = (opts.players||[]).slice(0,2);
       while(ps.length<2) ps.push({ pid:'p'+ps.length, name:'P'+(ps.length+1), ai:true });
@@ -862,6 +864,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(this.phase!=='roll') return;
         this.die=this._die(); this.onRoll(seat,this.die); this.phase='place';
         // refresh deadline for the place step
+        this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
+      } else if(a.type==='reroll'){
+        // 상점 소모품 '다시 굴리기'. 온라인은 방 옵션(itemsOn)을 켜기 전엔 무시 —
+        // 안 그러면 아이템 산 사람이 서버 권위 엔진에서 그냥 이기게 된다.
+        if(!this.itemsOn) return;
+        if(this.phase!=='place' || this.die==null) return;
+        this.die=this._die(); this.onRoll(seat,this.die);
         this.deadline = now()+this.TURN_MS; this._armTimer(); this._emit();
       } else if(a.type==='place'){
         if(this.phase!=='place') return;
@@ -1225,7 +1234,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     mySeat = 0;
     S=null; prevBoards=null; lastSeq=0; busy=false;
     setModePill(); showGame();
-    engine = new KBCore.KBEngine({ players, aiFast:false, pace:(window.PACE?PACE.mult():1),
+    engine = new KBCore.KBEngine({ players, aiFast:false, pace:(window.PACE?PACE.mult():1), itemsOn:true,
       onState: s=>onState(s),
       onRoll: (seat,val)=>tumble(val) });
     engine.start();
@@ -1388,6 +1397,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     row.innerHTML=h;
     if(amHost) row.querySelectorAll('.stake-chip').forEach(function(b){ b.onclick=function(){ try{wsSend({t:'setStake',stake:b.dataset.v});}catch(e){} }; });
   }
+  // 상점 소모품 허용 토글 — 호스트만, 기본 꺼짐. 아이템 산 사람만 유리해지는 걸 막는다.
+  function renderItemsOpt(lb){
+    let row=$('itemsRow');
+    if(!row){ const sr=$('stakeRow'); if(!sr) return; row=document.createElement('div'); row.id='itemsRow'; row.style.margin='6px 0 2px'; sr.parentNode.insertBefore(row, sr.nextSibling); }
+    if(!lb){ row.innerHTML=''; return; }
+    const amHost=(lb.members||[]).some(x=>x.pid===myPid&&x.host);
+    const on=!!lb.itemsOn;
+    row.innerHTML='<div class="stake-lbl">🔄 상점 아이템 <small>'+(amHost?'호스트가 켜고 끔':(on?'허용됨':'꺼짐'))+'</small></div>'+
+      '<div class="stake-chips"><button class="stake-chip'+(on?' on':'')+'" id="itemsToggleBtn"'+(amHost?'':' disabled')+'>'+(on?'켜짐 — 다시 굴리기 사용 가능':'꺼짐')+'</button></div>';
+    if(amHost){ const b=$('itemsToggleBtn'); if(b) b.onclick=()=>{ try{wsSend({t:'setItems',v:!on});}catch(e){} }; }
+  }
   function renderLobby(){
     if(!lobby) return;
     $('setupOv').classList.remove('on'); $('arena').style.display='none'; document.body.classList.remove('ingame'); $('rollWrap').style.display='none'; $('kbMode').style.display='none'; $('resultOv').classList.remove('on'); resetRematchUI(); $('endBtn').style.display='none'; $('lobbyOv').classList.add('on');
@@ -1400,6 +1420,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     amHostFlag = lobby.members.some(x=>x.host && x.pid===myPid);
     { const lc=$('lobbyClose'); if(lc) lc.style.display = amHostFlag ? 'block' : 'none'; }   // 방 파하기: 호스트만
     renderStake(lobby);   // 내기 선택 영역
+    renderItemsOpt(lobby);   // 상점 아이템 허용(호스트만)
     const host = $('members'); host.innerHTML='';
     lobby.members.forEach(mem=>{
       const d=document.createElement('div'); d.className='member'+(mem.waiting?' waiting':'');
@@ -1612,6 +1633,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     rb.disabled = !myTurnRoll;
     rb.textContent = (s.phase==='place' && canControl(s.turn,s)) ? '줄을 선택해' : '굴리기';
     $('rollWrap').style.display = spectating ? 'none' : 'block';
+    // 상점 소모품 — 온라인은 방 옵션(itemsOn)이 열리기 전까지 안 보인다
+    (function(){ const ib=$('itemReroll'); if(!ib) return;
+      let n=0; try{ n=window.SHOP?SHOP.count('reroll'):0; }catch(e){}
+      const itemsAllowed = !online() || !!(lobby && lobby.itemsOn);
+      const usable = itemsAllowed && !isOver(s) && !busy && s.phase==='place' && canControl(s.turn,s) && n>0;
+      ib.style.display = usable ? 'block' : 'none';
+      ib.textContent = '🔄 다시 굴리기 ('+n+')'; })();
     // label
     if(spectating) setLabel('👀 <b>관전 중</b> — 다음 판부터 참여해요');
     else updateLabel(s);
@@ -1804,6 +1832,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ---------- dispatch ----------
   $('rollBtn').onclick = ()=>dispatchRoll();
+  $('itemReroll').onclick = ()=>{ const s=S; if(!s||busy||s.phase!=='place'||isOver(s)) return;
+    if(!canControl(s.turn,s)) return;
+    if(online() && !(lobby&&lobby.itemsOn)) return;
+    try{ if(!window.SHOP||!SHOP.spend('reroll')) return; }catch(e){ return; }
+    if(online()) wsSend({t:'action',a:{type:'reroll'}}); else engine.action(s.players[s.turn].pid,{type:'reroll'});
+    try{ window.PACE&&PACE.toast('🔄 다시 굴렸어'); }catch(e){} };
   function dispatchRoll(){ const s=S; if(!s||busy||s.phase!=='roll'||isOver(s)) return; if(!canControl(s.turn,s)) return;
     if(online()) wsSend({t:'action',a:{type:'roll'}}); else engine.action(s.players[s.turn].pid,{type:'roll'}); }
   function dispatchPlace(col){ const s=S; if(!s||busy||s.phase!=='place'||isOver(s)) return; const seat=s.turn; if(!canControl(seat,s)) return;

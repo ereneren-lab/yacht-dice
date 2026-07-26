@@ -1114,6 +1114,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <div class="lbl mt" data-setlbl="diff">AI 난이도 <span id="diffHostOnly" style="letter-spacing:0;color:var(--muted)"></span></div>
           <div class="chips" id="diffO"></div>
           <div class="optrow" style="margin-top:8px"><div class="toggle" id="fastToggleO"><div class="switch"></div>AI 빠르게</div></div>
+          <div class="optrow" style="margin-top:8px"><div class="toggle" id="itemToggleO"><div class="switch"></div>🔄 상점 아이템 허용</div></div>
           <div class="lbl mt" data-setlbl="members">참가자</div>
           <div class="members" id="members"></div>
           <div class="stakeRow" id="stakeRow"></div>
@@ -1142,6 +1143,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
               <div class="dice2d" id="dice2d"></div>
             </div>
             <button class="btn rollbtn" id="rollBtn">굴리기</button>
+            <button class="btn" id="itemReroll" style="display:none;margin-top:8px;font-size:13px">🔄 한 번 더</button>
             <div class="hint" id="hint">주사위를 굴려 시작하세요.</div>
             <div class="reactzone" id="reactzone" style="display:none">
               <button class="reacttoggle" id="reactToggle">😀 반응 &amp; 한마디</button>
@@ -1370,6 +1372,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.difficulty = opts.difficulty || 'normal';
       this.TURN_MS = (typeof opts.turnMs === 'number') ? opts.turnMs : 45000;  // 0 = 시간 제한 없음(로컬)
       this.AID = opts.aiFast ? 0.45 : (opts.pace != null ? opts.pace : 1);   // AI 템포 배수(pace: 공통 진행 속도 배수, pace.js)
+      this.itemsOn = !!opts.itemsOn;   // 상점 소모품 허용(로컬/AI는 true, 온라인은 방 옵션이 열려야 true)
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
       this.onRoll = opts.onRoll || function(){};
@@ -1447,6 +1450,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const seat=this._seat(pid);
       if(seat<0||seat!==this.current) return;
       if(a.type==='roll'){ if(this.rollsLeft>0) this._doRoll(); }
+      else if(a.type==='extraRoll'){
+        // 상점 소모품 '한 번 더 굴리기'(4번째 굴림). 온라인은 방 옵션이 열려야 먹는다.
+        if(!this.itemsOn) return;
+        if(!this.rolled || this.rollsLeft>0) return;   // 아직 굴릴 게 남았으면 쓸 이유가 없다
+        this.rollsLeft=1; this._doRoll();
+      }
       else if(a.type==='hold'){ this._hold(a.i); }
       else if(a.type==='pick'){ this._commit(seat,a.cat); }
     }
@@ -1762,6 +1771,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const filled=meP?S.cats.filter(c=>meP.scores[c.id]!==null).length:0; pl.textContent=filled+'/'+S.cats.length;
       const cap=$('progressCap'); if(cap)cap.textContent=mineP?'내 기록':'이번 차례'; }   // 로컬/관전은 현재 차례 기준임을 명시
     const me=canAct(), rb=$('rollBtn'); rb.disabled=!me||S.rollsLeft<=0; rb.style.display=spec?'none':'block';
+    // 상점 소모품 '한 번 더' — 굴림을 다 쓴 뒤에만, 온라인에선 방 옵션이 열리기 전까지 숨김
+    (function(){ const ib=$('itemReroll'); if(!ib) return;
+      let n=0; try{ n=window.SHOP?SHOP.count('reroll'):0; }catch(e){}
+      const itemsAllowed = !isOnline() || !!(lobby && lobby.itemsOn);
+      const usable = itemsAllowed && !spec && me && S.rollsLeft<=0 && S.rolled && n>0;
+      ib.style.display = usable ? 'block' : 'none';
+      ib.textContent = '🔄 한 번 더 ('+n+')'; })();
     const _rth=document.documentElement.dataset.theme, xlT=_rth==='excel', psT=_rth==='photoshop';
     rb.textContent = p.ai ? (xlT?'계산 중…':psT?'처리 중…':'AI가 굴리는 중…')
       : !S.rolled ? (xlT?'계산 (F9)':psT?'적용':'굴리기')
@@ -2244,7 +2260,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('startLocal').onclick=()=>{ SFX.ensure(); MODE='local'; recorded=false; prevSnap=null; gameShown=false; lastMyTurn=false; sawPlay=false; const players=[]; localPids=[];
     for(let i=0;i<playerCount;i++){const nm=(nameVals[i]||'').trim()||((typeVals[i]==='ai'?'AI ':'플레이어 ')+(i+1));const pid='p'+i;players.push({pid,name:nm,color:COLORS[i],avatar:avatarVals[i],ai:typeVals[i]==='ai'});if(typeVals[i]!=='ai')localPids.push(pid);}
     if(!players.some(p=>!p.ai)){players[0].ai=false; toast('최소 1명은 사람으로 진행해요');}
-    eng=new GameEngine({mode:modeLocal,difficulty:diffLocal,aiFast:aiFastLocal,pace:(window.PACE?PACE.mult():1),players,turnMs:0,onState,onRoll}); eng.start();   // 로컬 핫시트는 시간 제한 없음
+    eng=new GameEngine({mode:modeLocal,difficulty:diffLocal,aiFast:aiFastLocal,pace:(window.PACE?PACE.mult():1),itemsOn:true,players,turnMs:0,onState,onRoll}); eng.start();   // 로컬 핫시트는 시간 제한 없음
   };
 
   // ========== tabs ==========
@@ -2348,6 +2364,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('modesO').querySelectorAll('button').forEach(b=>{b.disabled=!amHost();b.classList.toggle('on',b.dataset.id===lobby.mode);});
     diffChips($('diffO'),()=>lobby.difficulty,id=>{if(amHost())wsSend({t:'setDiff',d:id});},amHost());
     const fastO=$('fastToggleO'); if(fastO){ fastO.classList.toggle('on',!!lobby.aiFast); fastO.style.opacity=amHost()?'1':'.55'; fastO.onclick=()=>{ if(amHost())wsSend({t:'setFast',v:!lobby.aiFast}); }; }
+    // 상점 소모품 허용 — 호스트만 켤 수 있고 기본은 꺼짐(산 사람만 유리해지지 않게)
+    const itO=$('itemToggleO'); if(itO){ itO.classList.toggle('on',!!lobby.itemsOn); itO.style.opacity=amHost()?'1':'.55'; itO.onclick=()=>{ if(amHost())wsSend({t:'setItems',v:!lobby.itemsOn}); }; }
     $('addAiBtn').style.display=amHost()?'block':'none'; $('addAiBtn').disabled=lobby.members.length>=6;
     renderMembers();
     const start=$('startOnline'); start.style.display=amHost()?'block':'none'; start.disabled=lobby.members.length<2;
@@ -2396,6 +2414,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   ['xlLobby','psLobby'].forEach(id=>{ const b=$(id); if(b)b.onclick=()=>{ if(isOnline()&&amHost()&&confirm('이 판을 끝내고 모두 로비로 돌아갈까요?'))wsSend({t:'endGame'}); }; });
   // sendAction은 동기적으로 render를 돌려 아바타 DOM을 다시 만든다 → 클래스는 그 '뒤에' 붙여야 살아남는다
   $('rollBtn').onclick=()=>{ if(canAct()&&S.rollsLeft>0){ SFX.ensure(); sendAction({type:'roll'}); tenseCurAvatar(); } };
+  $('itemReroll').onclick=()=>{ if(!canAct()||S.rollsLeft>0||!S.rolled) return;
+    if(isOnline() && !(lobby&&lobby.itemsOn)) return;
+    try{ if(!window.SHOP||!SHOP.spend('reroll')) return; }catch(e){ return; }
+    SFX.ensure(); sendAction({type:'extraRoll'});
+    try{ window.PACE&&PACE.toast('🔄 한 번 더 굴렸어'); }catch(e){} };
   // 굴리기 직전 현재 차례 아바타가 웅크렸다 튀어오름(짧게 1회). 애니 재시작을 위해 클래스를 뗐다 붙인다.
   function tenseCurAvatar(){
     try{ if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; }catch(e){}
