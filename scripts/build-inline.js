@@ -25,6 +25,7 @@ const MAP = {
   seotda:  ['seotda-core.js',  'seotda.html'],
   indianpoker: ['indianpoker-core.js', 'indianpoker.html'],
   onecard: ['onecard-core.js',     'onecard.html'],
+  oldmaid: ['oldmaid-core.js',     'oldmaid.html'],
 };
 
 let hadError = false;

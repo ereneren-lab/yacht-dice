@@ -89,6 +89,18 @@
   .msg{text-align:center;font-size:13.5px;font-weight:800;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.6);padding:0 6px;min-height:19px}
   .msg b{color:#fff}
   .drawtray{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;max-width:100%}
+  /* 아이템전 버튼 줄 — 비어 있으면 자리를 안 먹는다(일반전에서 세로 공간을 안 뺏게) */
+  .itemrow{display:flex;justify-content:center;gap:6px}
+  .itemrow:empty{display:none}
+  .ibtn{border:1px solid rgba(255,255,255,.22);border-radius:11px;padding:7px 12px;font-size:12px;font-weight:900;
+    cursor:pointer;color:#1a1608;background:linear-gradient(180deg,#e0c05a,#b8912c);box-shadow:0 3px 8px rgba(0,0,0,.34)}
+  .ibtn:hover{filter:brightness(1.07)} .ibtn:active{transform:translateY(1px)}
+  .ibtn:disabled{opacity:.4;cursor:default;filter:grayscale(.5)}
+  /* 살짝 보기 결과 — 상대 부채에서 조커 자리를 표시한다(본 사람 화면에만 그린다) */
+  .mc.back.jokerhint{box-shadow:0 0 0 2px var(--danger),0 0 12px color-mix(in srgb,var(--danger) 65%,transparent),0 3px 7px rgba(0,0,0,.4)}
+  .mc.back.jokerhint::after{content:'🃏';color:#fff;font-size:15px}
+  .mc.back.safehint{box-shadow:0 0 0 2px var(--win),0 3px 7px rgba(0,0,0,.4)}
+  .peeknote{font-size:11px;font-weight:800;color:var(--gold);text-align:center;min-height:0}
 
   /* 내 손패(하단) */
   .mine{position:relative;z-index:2;flex:none}
@@ -148,6 +160,7 @@
     <div class="opps" id="opps"></div>
     <div class="center">
       <div class="msg" id="msg"></div>
+      <div class="itemrow" id="itemrow"></div>
       <div class="drawtray" id="drawtray"></div>
     </div>
     <div class="mine" id="mine">
@@ -167,6 +180,11 @@
       <div class="opt" data-n="3">3인</div>
       <div class="opt on" data-n="4">4인</div>
     </div>
+    <div class="lbl">아이템전</div>
+    <div class="row" id="optItems">
+      <div class="opt on" data-items="0">🚫 안 씀</div>
+      <div class="opt" data-items="1">👀 살짝 보기 ×2</div>
+    </div>
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
     <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
@@ -183,6 +201,7 @@
       <p><b>차례</b> — 자기 차례에 <b>왼쪽(다음) 사람</b>의 뒤집힌 패에서 <b>1장</b>을 뽑아요. 뽑은 카드로 짝이 생기면 바로 버려요.</p>
       <p><b>탈출</b> — 손이 비면 그 사람은 <b>세이프</b>(탈출). 계속 진행돼요.</p>
       <p><b>패배</b> — 짝이 없는 <b>조커</b>는 끝까지 남아요. 마지막에 조커를 든 <b>한 사람이 술래(패)!</b></p>
+      <p><b>👀 아이템전</b>(옵션) — 켜면 <b>모두가 똑같이 2개씩</b> '살짝 보기'를 받아요. 뽑기 <b>전</b>에 쓰면 상대 패에서 <b>조커가 몇 번째인지</b> 나에게만 보여요(없으면 '없음'). 눈 감고 집던 한 번을 눈 뜨고 집는 거예요. <b>AI도 씁니다.</b></p>
     </div>
     <button class="btn" id="rulesClose" style="margin-top:14px">알겠어</button>
   </div>
@@ -198,10 +217,396 @@
   </div>
 </div>
 
+<!-- CORE:oldmaid START (자동생성 — 직접 수정 금지, npm run build로 동기화) -->
 <script>
+/* === oldmaid-core.js — 도둑잡기 엔진 (브라우저/Node 공용) ===
+ *
+ * 숨김 정보 (코어를 만들기 전에 한 줄로 적는다 — CLAUDE.md 함정 #14):
+ *   **내 손패는 나만 본다. 남의 손패는 '장수'만 공개되고 내용은 아무도 못 본다
+ *     — 누가 조커를 들었는지가 이 게임의 전부라, 조커 위치는 절대 스냅샷에 싣지 않는다.
+ *     뽑을 카드의 정체도 뽑기 전엔 아무도 모른다.**
+ *   → 라이어·섯다·원카드와 같은 '남을 가리는' 방향이다(인디언 포커만 반대).
+ *
+ * 규칙: 52장 + 조커 1장(53장)을 라운드로빈으로 전원에게 나눈다.
+ *       손에 든 같은 숫자 2장은 짝으로 버린다(시작할 때 한 번 자동 정리).
+ *       내 차례엔 **다음 사람**의 손패에서 1장을 뽑는다. 짝이 되면 즉시 버린다.
+ *       손패가 0장이 되면 '세이프'로 빠진다. 마지막까지 카드를 든 사람(=조커 보유자)이 술래.
+ *
+ * 인터페이스:
+ *   new OMEngine({players, itemsOn, itemCharges, aiMs, pairMs, stepMs, manualAI, rng, onState})
+ *   .start() / .action(pid,a) / .serialize(viewerPid) / .setConnected(pid,b) / .destroy()
+ *   a = {type:'draw', idx} | {type:'peek'}
+ *   onState()은 인자 없이 호출된다 → 소비자가 serialize(viewerPid)를 직접 부른다(사람마다 손패가 다르다).
+ *
+ * 엔진은 '무슨 일이 있었나'만 남기고 그리지 않는다(연출은 클라가 seq 차이를 보고 만든다).
+ *   dealSeq · lastAction{seat,kind,seq} · lastPair{seat,count,seq} · lastJoker{seat,seq} · lastSafe{seat,seq}
+ *
+ * ⚠️ 순서 누출 방지 — 차례가 시작될 때 **대상의 손패를 섞는다.**
+ *    안 섞으면 방금 건네받은 카드가 늘 맨 끝에 있어서, 뽑는 쪽이 "끝자리는 방금 걔가 받은 것"을
+ *    역산할 수 있다. 실물 게임에서 패를 든 사람이 섞어서 부채로 펴는 게 바로 이것 때문이다.
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.OMCore = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const SUITS = ['♠', '♥', '♦', '♣'];
+  const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+  function shuffle(a, rng) {
+    rng = rng || Math.random;
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* 덱 — id는 덱 안에서만 유일하면 된다(0..52).
+     예전 인라인 판은 모듈 최상위 `let CID`를 썼는데, 재시작할 때마다 값이 계속 커지는
+     유령 상태였다(레시피 3: 최상위 let을 하나도 남기지 않는다). */
+  function makeDeck(rng) {
+    const d = [];
+    let id = 0;
+    for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) d.push({ r, s, joker: false, id: id++ });
+    d.push({ r: 0, s: 0, joker: true, id: id++ });
+    return shuffle(d, rng);
+  }
+
+  /* 손에서 짝(같은 숫자 2장)을 빼고 버린 카드를 돌려준다 — 순수 함수(DOM·상태 없음).
+     조커는 짝이 없으므로 영원히 남는다. 그게 이 게임의 전부다. */
+  function discardPairs(hand) {
+    const removed = [];
+    const byRank = {};
+    for (const c of hand) { if (c.joker) continue; (byRank[c.r] = byRank[c.r] || []).push(c); }
+    for (const r in byRank) {
+      const arr = byRank[r];
+      const pairs = Math.floor(arr.length / 2);
+      for (let p = 0; p < pairs * 2; p++) removed.push(arr[p]);
+    }
+    if (removed.length) {
+      const ids = new Set(removed.map(c => c.id));
+      for (let i = hand.length - 1; i >= 0; i--) if (ids.has(hand[i].id)) hand.splice(i, 1);
+    }
+    return removed;
+  }
+
+  class OMEngine {
+    constructor(opts) {
+      opts = opts || {};
+      this.rng = opts.rng || Math.random;
+      this.onState = opts.onState || function () {};
+      this.aiMs = opts.aiMs != null ? opts.aiMs : 780;
+      this.pairMs = opts.pairMs != null ? opts.pairMs : 420;   // 뽑기 → 짝 판정 사이의 '뜸'
+      this.stepMs = opts.stepMs != null ? opts.stepMs : 360;   // 짝 판정 → 다음 차례 사이
+      this.manualAI = !!opts.manualAI;
+      this.players = (opts.players || []).map((p, i) => ({
+        pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null, ai: !!p.ai,
+        aiDiff: p.aiDiff || 'normal', connected: p.connected !== false, seat: i
+      }));
+      this.N = this.players.length;
+
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '👀 살짝 보기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         효과: 이번에 뽑을 상대 패에서 **조커가 몇 번째인지**(없으면 '없음')를 나에게만 알려준다.
+         왜 이 아이템인가 — 도둑잡기의 긴장은 통째로 '눈 감고 한 장 집기'에 있다.
+         그 한 번을 눈 뜨고 집게 해주는 것이라 판단이 개입한다. 반대로 '다시 뽑기'는
+         조커를 도로 넣는 것이라 긴장 자체를 없애버려서 안 골랐다(레시피 8 기준). */
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges != null ? opts.itemCharges | 0 : 2));
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.peekSeq = 0;
+      this.peek = null;      // {seat, targetSeat, jokerIdx|null} — 이번 차례에만 유효
+
+      this.phase = 'idle';   // 'idle' | 'play' | 'gameover'
+      this.hands = []; this.out = []; this.lastAct = [];
+      this.turn = 0; this.target = -1; this.loser = -1; this.loserPid = null;
+      this.dealSeq = 0; this.actionSeq = 0;
+      this.lastAction = null; this.lastPair = null; this.lastJoker = null; this.lastSafe = null;
+      this.initialPairs = null;   // 시작 짝 정리 결과(클라가 순차 연출로 보여준다)
+      this.gameStartTime = 0;
+      this._dead = false; this._timer = null;
+    }
+
+    /* 연출용 '뜸'을 거는 자리. ms가 0 이하면 **동기로 즉시** 실행한다.
+       헤드리스 시뮬이 pairMs:0/stepMs:0으로 엔진을 완전히 동기로 돌릴 수 있게 하려는 것 —
+       안 그러면 동기 while 루프가 이벤트 루프를 안 놔줘서 짝 판정이 영영 안 돌고,
+       그게 '엔진 교착'으로 보인다(실제로 이 시뮬을 처음 돌렸을 때 그렇게 오진했다). */
+    _after(ms, fn) {
+      if (!(ms > 0)) { fn(); return; }
+      this._timer = setTimeout(fn, ms);
+    }
+
+    // ── 진행 ──────────────────────────────────────────────
+    start() { this._dead = false; this.gameStartTime = Date.now(); this._newGame(); }
+
+    _newGame() {
+      this._clearTimer();
+      if (this._dead) return;
+      const deck = makeDeck(this.rng);
+      this.hands = this.players.map(() => []);
+      this.out = this.players.map(() => false);
+      this.lastAct = this.players.map(() => '');
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.peek = null;
+      this.loser = -1; this.loserPid = null;
+      this.lastAction = null; this.lastPair = null; this.lastJoker = null; this.lastSafe = null;
+      // 라운드로빈 분배 (53장이라 인원에 따라 1장 차이가 난다 — 원래 규칙 그대로)
+      let s = 0;
+      while (deck.length) { this.hands[s % this.N].push(deck.pop()); s++; }
+
+      /* 시작 짝 정리는 **엔진이 한 번에** 끝낸다. 연출(자리마다 순차로 보여주기)은
+         initialPairs를 받은 클라가 만든다 — 엔진이 setTimeout 사슬로 게임을 진행하던
+         옛 구조(initialCleanup)를 여기서 끊었다. */
+      this.initialPairs = [];
+      for (let i = 0; i < this.N; i++) {
+        const removed = discardPairs(this.hands[i]);
+        this.initialPairs.push({ seat: i, count: removed.length, cards: removed.map(c => Object.assign({}, c)) });
+        if (this.hands[i].length === 0) { this.out[i] = true; this.lastAct[i] = '세이프'; }
+      }
+      this.phase = 'play';
+      this.dealSeq++;
+      if (this._checkEnd()) return;
+      this._beginTurn(this._firstActive(0));
+    }
+
+    // ── 좌석 헬퍼 ─────────────────────────────────────────
+    _holders() { const a = []; for (let s = 0; s < this.N; s++) if (this.hands[s].length > 0) a.push(s); return a; }
+    _active(s) { return !this.out[s] && this.hands[s].length > 0; }
+    _firstActive(from) { for (let k = 0; k < this.N; k++) { const s = (from + k) % this.N; if (this._active(s)) return s; } return from; }
+    _nextActive(from) { for (let k = 1; k <= this.N; k++) { const s = (from + k) % this.N; if (this._active(s)) return s; } return from; }
+
+    _checkEnd() {
+      // 카드를 든 사람이 1명 이하면 끝 — 그 1명이 조커를 든 술래다
+      const h = this._holders();
+      if (h.length <= 1) {
+        this.loser = h.length === 1 ? h[0] : -1;
+        this.loserPid = this.loser >= 0 ? this.players[this.loser].pid : null;
+        this.phase = 'gameover';
+        this._clearTimer();
+        this._emit();
+        return true;
+      }
+      return false;
+    }
+
+    /* 차례 시작 — 대상을 정하고 **대상의 손패를 섞는다**(순서 누출 방지, 위 주석 참고).
+       peek은 이번 차례에만 유효하므로 여기서 지운다. */
+    _beginTurn(seat) {
+      if (this._dead || this.phase !== 'play') return;
+      if (!this._active(seat)) seat = this._firstActive(seat);
+      this.turn = seat;
+      const t = this._nextActive(seat);
+      if (t === seat) { this._checkEnd(); return; }
+      this.target = t;
+      shuffle(this.hands[t], this.rng);
+      this.peek = null;
+      this._emit();
+      this._maybeAI();
+    }
+
+    validActions(seat) {
+      if (this.phase !== 'play' || this.turn !== seat) return [];
+      const acts = ['draw'];
+      if (this._canPeek(seat)) acts.push('peek');
+      return acts;
+    }
+
+    // ── 액션 ──────────────────────────────────────────────
+    action(pid, a) {
+      if (this._dead || !a || typeof a !== 'object') return;   // 클라가 a 없이 보내도 죽지 않게
+      const seat = this.players.findIndex(p => p.pid === pid);
+      if (seat < 0) return;
+      if (this.phase !== 'play' || this.turn !== seat) return;
+      if (this._isAuto(seat)) return;                          // AI 자리는 사람이 대신 못 누른다
+      if (a.type === 'peek') { this._doPeek(seat); return; }
+      if (a.type === 'draw') { this._draw(seat, a.idx | 0); return; }
+    }
+
+    _draw(seat, idx) {
+      if (this.phase !== 'play' || this.turn !== seat) return;
+      const t = this.target;
+      if (t < 0 || !this.hands[t] || !this.hands[t].length) return;
+      this._clearTimer();
+      if (!(idx >= 0 && idx < this.hands[t].length)) idx = 0;
+
+      const card = this.hands[t].splice(idx, 1)[0];
+      this.hands[seat].push(card);
+      this.lastAct[seat] = '뽑기';
+      this.peek = null;
+      this.lastAction = { seat, from: t, kind: 'draw', seq: ++this.actionSeq };
+      // 조커를 뽑았다는 사실은 **뽑은 사람에게만** 알린다(남에게 새면 게임이 무너진다)
+      if (card.joker) { this.lastJoker = { seat, seq: this.actionSeq }; }
+      // 대상이 손패를 다 털면 세이프
+      if (this.hands[t].length === 0 && !this.out[t]) {
+        this.out[t] = true; this.lastAct[t] = '세이프';
+        this.lastSafe = { seat: t, seq: this.actionSeq };
+      }
+      this._emit();   // ① 카드가 옮겨간 순간 — 클라가 '날아가는' 연출을 할 틈을 준다
+
+      this._after(this.pairMs, () => this._resolvePairs(seat));
+    }
+
+    // ② 방금 뽑은 카드로 짝이 맞는지 — 잠깐 뜸을 들인 뒤 판정한다(연출용 사이)
+    _resolvePairs(seat) {
+      this._clearTimer();
+      if (this._dead || this.phase !== 'play') return;
+      const removed = discardPairs(this.hands[seat]);
+      if (removed.length) {
+        this.lastAct[seat] = '짝!';
+        this.lastPair = { seat, count: removed.length, cards: removed.map(c => Object.assign({}, c)), seq: ++this.actionSeq };
+      }
+      if (this.hands[seat].length === 0 && !this.out[seat]) {
+        this.out[seat] = true; this.lastAct[seat] = '세이프';
+        this.lastSafe = { seat, seq: ++this.actionSeq };
+      }
+      this._emit();
+      this._after(this.stepMs > 0 ? this.stepMs + (removed.length ? 160 : 0) : 0, () => {
+        this._clearTimer();
+        if (this._dead || this.phase !== 'play') return;
+        this.lastAct = this.players.map(() => '');
+        if (this._checkEnd()) return;
+        this._beginTurn(this._nextActive(seat));
+      });
+    }
+
+    // ── 아이템전: 👀 살짝 보기 ────────────────────────────
+    /* 아이템전이 아니거나 내 몫을 다 썼으면 무시한다(개수는 전원 동일 지급).
+       내 차례에, 아직 안 뽑았을 때만 — 뽑고 나서 보는 건 아무 의미가 없다. */
+    _canPeek(seat) {
+      return !!(this.itemsOn && this.phase === 'play' && this.turn === seat &&
+                this.items[seat] > 0 && !this.peek &&
+                this.target >= 0 && this.hands[this.target] && this.hands[this.target].length > 0);
+    }
+    _doPeek(seat) {
+      if (!this._canPeek(seat)) return;
+      this.items[seat]--;
+      const t = this.target;
+      const idx = this.hands[t].findIndex(c => c.joker);
+      // jokerIdx가 null이면 '이 사람은 조커를 안 들었다' — 그것도 값진 정보다
+      this.peek = { seat, targetSeat: t, jokerIdx: idx >= 0 ? idx : null, seq: ++this.peekSeq };
+      this.lastAct[seat] = '👀';
+      this._emit();
+    }
+
+    /* AI도 반드시 쓴다 — 사람만 쓰는 판은 공정하지 않다.
+       정보가 가장 값어치 있는 순간은 **상대 패가 적을 때**다(조커일 확률이 높다).
+       마지막 한 장은 더 조여서 쓴다 — 첫 턴에 털지도, 아끼다 조커를 집지도 않게 2단계. */
+    _aiWantPeek(seat) {
+      if (!this.itemsOn || !(this.items[seat] > 0) || this.peek) return false;
+      const t = this.target;
+      if (t < 0 || !this.hands[t] || !this.hands[t].length) return false;
+      const n = this.hands[t].length;
+      return this.items[seat] >= 2 ? n <= 4 : n <= 3;
+    }
+
+    // AI가 뽑을 자리 — peek으로 조커 위치를 알면 피한다(아이템 전용 분기 없이 같은 정보를 쓴다)
+    _aiPickIdx(seat) {
+      const t = this.target, n = this.hands[t].length;
+      if (this.peek && this.peek.seat === seat && this.peek.targetSeat === t) {
+        const j = this.peek.jokerIdx;
+        if (j == null) return Math.floor(this.rng() * n);       // 조커 없음 → 아무거나
+        if (n <= 1) return 0;                                    // 피할 데가 없다
+        let i = Math.floor(this.rng() * (n - 1));                // 조커만 빼고 고른다
+        if (i >= j) i++;
+        return i;
+      }
+      return Math.floor(this.rng() * n);
+    }
+
+    // ── AI 구동 ───────────────────────────────────────────
+    _isAuto(seat) { const p = this.players[seat]; return !!p && (p.ai || p.connected === false); }
+    _maybeAI() {
+      this._clearTimer();
+      if (this._dead || this.phase !== 'play' || this.manualAI) return;
+      if (!this._isAuto(this.turn)) return;
+      const seat = this.turn;
+      this._timer = setTimeout(() => this._aiAct(seat), this.aiMs);
+    }
+    aiTurnIfNeeded() {   // manualAI: 클라(또는 테스트)가 직접 부른다
+      if (this._dead || this.phase !== 'play' || !this._isAuto(this.turn)) return false;
+      this._aiAct(this.turn); return true;
+    }
+    _aiAct(seat) {
+      if (this._dead || this.phase !== 'play' || this.turn !== seat) return;
+      if (this._aiWantPeek(seat)) this._doPeek(seat);
+      this._draw(seat, this._aiPickIdx(seat));
+    }
+
+    // ── 스냅샷 ────────────────────────────────────────────
+    /* 남의 손패는 **스냅샷에 싣지 않는다** — 조커가 어디 있는지가 이 게임의 전부다.
+       장수만 나간다. 조커를 뽑았다는 사실도 뽑은 본인에게만 실어 보낸다. */
+    serialize(viewerPid) {
+      const v = this.players.findIndex(p => p.pid === viewerPid);
+      const reveal = this.phase === 'gameover';
+      const mine = (v >= 0 && this.hands[v]) ? this.hands[v].map(c => Object.assign({}, c)) : [];
+      const myPeek = (this.peek && this.peek.seat === v) ? Object.assign({}, this.peek) : null;
+      return {
+        game: 'oldmaid', phase: this.phase, turn: this.turn, target: this.target,
+        dealSeq: this.dealSeq, gameStartTime: this.gameStartTime,
+        itemsOn: this.itemsOn, items: this.items.slice(),
+        canPeek: v >= 0 ? this._canPeek(v) : false,
+        myPeek,                                   // 훔쳐본 결과는 본 사람에게만
+        mySeat: v, myHand: mine,
+        // 내가 방금 조커를 집었나 — 남의 스냅샷엔 절대 안 실린다
+        myJoker: (this.lastJoker && this.lastJoker.seat === v) ? Object.assign({}, this.lastJoker) : null,
+        lastAction: this.lastAction ? Object.assign({}, this.lastAction) : null,
+        // 버린 짝은 공개 정보(실물에서도 앞면으로 버린다) — 다만 남의 것은 장수만
+        lastPair: this.lastPair
+          ? { seat: this.lastPair.seat, count: this.lastPair.count, seq: this.lastPair.seq,
+              cards: this.lastPair.seat === v ? this.lastPair.cards : null }
+          : null,
+        lastSafe: this.lastSafe ? Object.assign({}, this.lastSafe) : null,
+        initialPairs: this.initialPairs
+          ? this.initialPairs.map(p => ({ seat: p.seat, count: p.count, cards: p.seat === v ? p.cards : null }))
+          : null,
+        validActions: v >= 0 ? this.validActions(v) : [],
+        loser: this.loser, loserPid: this.loserPid,
+        players: this.players.map((p, s) => ({
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: s,
+          count: this.hands[s] ? this.hands[s].length : 0,   // 장수만 — 내용은 싣지 않는다
+          out: !!this.out[s], act: this.lastAct[s] || '',
+          items: this.items[s] || 0,                          // 남은 아이템 수는 공개 정보
+          // 술래의 패는 게임이 끝난 뒤에만 공개한다
+          hand: (reveal && s === this.loser && this.hands[s]) ? this.hands[s].map(c => Object.assign({}, c)) : null
+        }))
+      };
+    }
+
+    setConnected(pid, val) {
+      const p = this.players.find(x => x.pid === pid); if (!p) return;
+      p.connected = !!val;
+      if (!val && p.seat === this.turn && this.phase === 'play') this._maybeAI();
+      this._emit();
+    }
+
+    _emit() {
+      if (this._dead) return;
+      // 함정 #2 — 여기서 에러를 삼키면 render가 조용히 죽는다. 반드시 드러낸다.
+      try { this.onState(); }
+      catch (e) { if (typeof console !== 'undefined' && console.error) console.error('oldmaid onState error:', e && e.message, e); }
+    }
+    _clearTimer() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
+    destroy() { this._dead = true; this._clearTimer(); }
+  }
+
+  return { OMEngine, makeDeck, discardPairs, shuffle, SUITS, RANKS };
+});
+
+</script>
+<!-- CORE:oldmaid END -->
+<script>
+/* 도둑잡기 클라 — 엔진(OMCore.OMEngine)을 소비만 한다.
+   규칙·AI·상태는 전부 oldmaid-core.js에 있고, 여기는 화면과 연출만 맡는다.
+   연출은 엔진이 그려주지 않는다 — prevS ↔ S 스냅샷 차이(seq 카운터)를 보고 만든다.
+   옛 구조에서는 initialCleanup/doDraw가 setTimeout 사슬로 **게임을 진행**시켰는데,
+   이제 진행은 엔진이 하고 여기서는 그 결과를 뒤따라 그리기만 한다. */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const AI_NAMES=['호구','타짜','물주','왕눈이','새우깡','판돌이'];
+const MYPID='me';
 
 // ===== 효과음 =====
 const SFX=(function(){
@@ -217,12 +622,13 @@ const SFX=(function(){
     joker(){ tone(300,.3,'sawtooth',.08); tone(210,.42,'sawtooth',.06,.06); },
     pair(){ tone(880,.09,'triangle',.09); tone(1240,.09,'triangle',.08,.07); },
     safe(){ [660,880,1180].forEach((f,i)=>tone(f,.18,'triangle',.1,i*.06)); },
+    peek(){ tone(1180,.07,'triangle',.07); tone(1560,.09,'sine',.06,.06); },
     win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.26,'triangle',.12,i*.08)); },
     lose(){ tone(200,.4,'sawtooth',.09); noise(.25,.12,700,.02); [392,311,247].forEach((f,i)=>tone(f,.22,'sine',.07,.12+i*.1)); },
   };
 })();
 
-// ===== 연출 헬퍼 =====
+// ===== 연출 헬퍼 (엔진 분리와 무관하게 그대로 살렸다) =====
 const FXR=()=>{ try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;} };
 function rectC(sel){ const e=typeof sel==='string'?document.querySelector(sel):sel; if(!e)return null; const r=e.getBoundingClientRect(); if(!r.width)return null; return [r.left+r.width/2, r.top+r.height/2]; }
 function flyover(from,to,html,o){
@@ -243,7 +649,7 @@ function flyover(from,to,html,o){
   }
   requestAnimationFrame(fr);
 }
-function seatXY(s){ if(s===MYSEAT) return rectC('#myhand')||rectC('#mine'); return rectC('.seat[data-seat="'+s+'"] .fan')||rectC('.seat[data-seat="'+s+'"]'); }
+function seatXY(s){ if(S&&s===S.mySeat) return rectC('#myhand')||rectC('#mine'); return rectC('.seat[data-seat="'+s+'"] .fan')||rectC('.seat[data-seat="'+s+'"]'); }
 function drawFlyFX(fromSeat,toSeat){ const a=seatXY(fromSeat), b=seatXY(toSeat); if(!a||!b)return;
   flyover(a,b,'<div style="width:30px;height:44px;border-radius:6px;background:repeating-linear-gradient(45deg,#8a2f2f 0 6px,#732424 6px 12px);box-shadow:0 4px 10px rgba(0,0,0,.55)"></div>',{dur:340,arcUp:30,scaleFrom:.85,scaleTo:1,spin:12}); }
 function pairPopFX(cards){ if(FXR()||!cards||!cards.length)return; const c0=rectC('#drawtray')||rectC('.center'); if(!c0)return;
@@ -253,7 +659,7 @@ function pairPopFX(cards){ if(FXR()||!cards||!cards.length)return; const c0=rect
 function jokerFX(who){ if(FXR())return;
   const f=document.createElement('div'); f.className='jokerflash'; document.body.appendChild(f); setTimeout(()=>{try{f.remove();}catch(e){}},700);
   try{SFX.joker();}catch(e){}
-  try{ if(navigator.vibrate)navigator.vibrate(who===MYSEAT?[40,50,40]:30); }catch(e){}
+  try{ if(navigator.vibrate)navigator.vibrate((S&&who===S.mySeat)?[40,50,40]:30); }catch(e){}
   const el=document.querySelector('.seat[data-seat="'+who+'"]'); if(el){ el.classList.add('joker'); setTimeout(()=>{try{el.classList.remove('joker');}catch(e){}},520); }
 }
 function shakeFX(){ if(FXR())return; const t=$('table'); if(!t)return; t.classList.remove('fxshake'); void t.offsetWidth; t.classList.add('fxshake'); setTimeout(()=>{try{t.classList.remove('fxshake');}catch(e){}},560); }
@@ -264,29 +670,18 @@ function showBanner(title,sub,kind){
   setTimeout(()=>{ b.style.transition='opacity .3s'; b.style.opacity='0'; setTimeout(()=>{try{b.remove();}catch(e){}},320); }, 1500);
 }
 
-// ===== 카드 =====
-const SUITS=['♠','♥','♦','♣'];
-const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-let CID=0;
-function makeDeck(){
-  const d=[];
-  for(let s=0;s<4;s++) for(let r=1;r<=13;r++) d.push({r,s,joker:false,id:CID++});
-  d.push({r:0,s:0,joker:true,id:CID++});
-  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=d[i]; d[i]=d[j]; d[j]=t; }
-  return d;
-}
+// 카드 표기 상수는 코어에서 — 두 곳에 두면 반드시 갈라진다
+const SUITS=OMCore.SUITS, RANKS=OMCore.RANKS;
 function cardFaceHTML(c,cls){
   if(c.joker) return `<div class="mc joker ${cls||''}"><span class="cr">JOKER</span><span class="cbig">🃏</span></div>`;
   const red=(c.s===1||c.s===2);
   return `<div class="mc ${red?'red':'black'} ${cls||''}"><span class="cr">${RANKS[c.r-1]}<span class="cs">${SUITS[c.s]}</span></span><span class="cbig">${SUITS[c.s]}</span></div>`;
 }
-function backHTML(cls){ return `<div class="mc back ${cls||''}"></div>`; }
 
-// ===== 상태 =====
-const cfg={ n:4, name:'' };
+// ===== UI 상태 (엔진 상태 아님) =====
+const cfg={ n:4, name:'', items:false };
 try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
-const MYSEAT=0;
-let players=[], hands=[], out=[], turn=0, phase='idle', lastAct=[], busy=false, loser=-1;
+let engine=null, S=null, prevS=null, ended=false;
 
 // 테마/버튼
 (function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
@@ -296,150 +691,165 @@ $('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'�
 $('helpBtn').onclick=()=>$('rulesOv').classList.add('on');
 $('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
 
-document.querySelectorAll('#optN .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optN .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.n=+o.dataset.n; });
+function sel(box,el,fn){ document.querySelectorAll(box+' .opt').forEach(x=>x.classList.remove('on')); el.classList.add('on'); fn(); }
+document.querySelectorAll('#optN .opt').forEach(o=>o.onclick=()=>sel('#optN',o,()=>cfg.n=+o.dataset.n));
+document.querySelectorAll('#optItems .opt').forEach(o=>o.onclick=()=>sel('#optItems',o,()=>cfg.items=o.dataset.items==='1'));
 $('myName').value=cfg.name;
 
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
   try{ localStorage.setItem('alley_name',cfg.name); }catch(e){}
-  players=[{name:cfg.name,ai:false}];
+  const players=[{pid:MYPID,name:cfg.name}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
-  for(let i=1;i<cfg.n;i++) players.push({name:nm[i-1],ai:true});
+  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true});
+  if(engine){ try{engine.destroy();}catch(e){} }
+  prevS=null; S=null; ended=false;
+  engine=new OMCore.OMEngine({
+    players, itemsOn:!!cfg.items,
+    aiMs:PMS(780), pairMs:PMS(420), stepMs:PMS(360),
+    onState(){ S=engine.serialize(MYPID); render(); applyFx(); prevS=S; }
+  });
   $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
   document.body.classList.add('ingame');
   try{SFX.resume();}catch(e){}
-  newGame();
+  engine.start();
 }
 $('startBtn').onclick=startGame;
-$('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); };
+$('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
 
-// 손에서 짝 제거 → 버린 카드 배열 반환
-function discardPairs(hand){
-  const removed=[];
-  const byRank={};
-  for(const c of hand){ if(c.joker) continue; (byRank[c.r]=byRank[c.r]||[]).push(c); }
-  for(const r in byRank){
-    const arr=byRank[r];
-    const pairs=Math.floor(arr.length/2);
-    for(let p=0;p<pairs*2;p++) removed.push(arr[p]);
+// ===== 연출 — 스냅샷 차이로 만든다 =====
+function applyFx(){
+  if(!S) return;
+  const isNew = !prevS || S.dealSeq!==prevS.dealSeq;
+  if(isNew){
+    try{SFX.deal();}catch(e){}
+    // 시작 짝 정리 — 엔진은 한 번에 끝냈고, 여기서 순차 연출만 얹는다
+    const mine=(S.initialPairs||[]).find(p=>p.seat===S.mySeat);
+    if(mine&&mine.cards&&mine.cards.length){ setTimeout(()=>{ try{SFX.pair();pairPopFX(mine.cards);}catch(e){} }, PMS(420)); }
   }
-  if(removed.length){
-    const ids=new Set(removed.map(c=>c.id));
-    for(let i=hand.length-1;i>=0;i--) if(ids.has(hand[i].id)) hand.splice(i,1);
+  // 뽑기 — 카드가 날아가는 연출
+  if(S.lastAction && (!prevS || !prevS.lastAction || S.lastAction.seq!==prevS.lastAction.seq)){
+    const a=S.lastAction;
+    if(a.kind==='draw'){ try{ drawFlyFX(a.from, a.seat); SFX.draw(); }catch(e){} }
   }
-  return removed;
+  // 내가 조커를 집었다 — 나에게만 온다
+  if(S.myJoker && (!prevS || !prevS.myJoker || S.myJoker.seq!==prevS.myJoker.seq)){
+    setTimeout(()=>{ try{jokerFX(S.mySeat);}catch(e){} }, PMS(280));
+  }
+  // 짝 버림
+  if(S.lastPair && (!prevS || !prevS.lastPair || S.lastPair.seq!==prevS.lastPair.seq)){
+    try{ SFX.pair(); if(S.lastPair.cards) pairPopFX(S.lastPair.cards); }catch(e){}
+  }
+  // 세이프
+  if(S.lastSafe && (!prevS || !prevS.lastSafe || S.lastSafe.seq!==prevS.lastSafe.seq)){
+    try{SFX.safe();}catch(e){}
+  }
+  // 살짝 보기 결과
+  if(S.myPeek && (!prevS || !prevS.myPeek || S.myPeek.seq!==prevS.myPeek.seq)){
+    try{SFX.peek();}catch(e){}
+  }
+  if(S.phase==='gameover' && !ended){ ended=true; setTimeout(endGame, PMS(600)); }
 }
 
-function newGame(){
-  const deck=makeDeck();
-  hands=players.map(()=>[]);
-  out=players.map(()=>false);
-  lastAct=players.map(()=>'');
-  loser=-1; phase='play'; busy=false;
-  // 라운드로빈 분배
-  let s=0; while(deck.length){ hands[s%players.length].push(deck.pop()); s++; }
-  try{SFX.deal();}catch(e){}
-  render();
-  // 초기 짝 정리(순차 연출)
-  busy=true;
-  setTimeout(()=>initialCleanup(0), PMS(500));
+// ===== 렌더 =====
+function render(){
+  if(!S) return;
+  const MYSEAT=S.mySeat;
+  const myTurn = S.phase==='play' && S.turn===MYSEAT;
+  const peek = (S.myPeek && S.myPeek.seat===MYSEAT) ? S.myPeek : null;
+
+  // 상대 — 장수만 보인다(내용은 스냅샷에 아예 없다)
+  const opps=$('opps'); opps.innerHTML='';
+  for(const p of S.players){
+    if(p.seat===MYSEAT) continue;
+    const isTarget = myTurn && S.target===p.seat;
+    const el=document.createElement('div');
+    el.className='seat'+(p.out?' out':'')+((S.turn===p.seat&&S.phase==='play'&&!p.out)?' turn':'')
+      +(isTarget?' target':'')+((S.phase==='gameover'&&S.loser===p.seat)?' loser':'');
+    el.dataset.seat=p.seat;
+    /* 부채는 **실제 장수만큼** 그린다 — 옛 코드는 5장만 그려놓고 뽑기는 무작위 인덱스라
+       클릭한 카드와 실제로 뽑히는 카드가 달랐다. 이제 data-i가 진짜 인덱스다. */
+    let fan='';
+    for(let i=0;i<p.count;i++){
+      let cls='mc back';
+      if(isTarget) cls+=' pick';
+      if(peek && peek.targetSeat===p.seat){ cls += (peek.jokerIdx===i)?' jokerhint':' safehint'; }
+      fan+=`<div class="${cls}" data-t="${p.seat}" data-i="${i}"></div>`;
+    }
+    const itemBadge=(S.itemsOn&&p.items>0)?` <span style="font-size:9px;color:var(--gold)">👀${p.items}</span>`:'';
+    el.innerHTML=`<div class="pbox">`+
+      `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
+      `<div class="pname">${esc(p.name)}${itemBadge}</div>`+
+      (p.out? `<div class="safe">세이프</div>` : `<div class="pcount">🃏 ${p.count}장</div><div class="fan">${fan}</div>`)+
+      (p.act&&!p.out? `<div class="pact show">${esc(p.act)}</div>`:'')+
+      `</div>`;
+    opps.appendChild(el);
+  }
+  // 타깃 클릭 — 이제 누른 그 카드를 실제로 뽑는다
+  if(myTurn){
+    opps.querySelectorAll('.mc.pick').forEach(el=>{
+      el.onclick=()=>{
+        if(!S||S.phase!=='play'||S.turn!==S.mySeat) return;
+        engine.action(MYPID,{type:'draw', idx:+el.dataset.i});
+      };
+    });
+  }
+  renderMsg(peek);
+  renderItems();
+
+  // 내 손패
+  const my=S.myHand||[];
+  const me=S.players[MYSEAT];
+  const myItem=(S.itemsOn&&me&&me.items>0)?` <span style="font-size:10px;color:var(--gold)">👀${me.items}</span>`:'';
+  $('myLabel').innerHTML=(me?('🧑 '+esc(me.name)):'')+myItem
+    +(me&&me.out?' · <span style="color:var(--win)">세이프 ✅</span>':(myTurn?' · <b style="color:var(--gold)">내 차례</b>':''));
+  $('myCount').textContent = my.length? `${my.length}장` : '';
+  $('myhand').innerHTML = my.length
+    ? my.map(c=>cardFaceHTML(c,'big')).join('')
+    : ((me&&me.out)?'<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패를 다 버렸어요 🎉</div>':'');
 }
 
-function initialCleanup(i){
-  if(i>=players.length){ // 정리 끝 → 게임 진행
-    // 손 빈 사람은 즉시 세이프
-    for(let s=0;s<players.length;s++) if(hands[s].length===0) out[s]=true;
-    busy=false;
-    if(checkEnd()) return;
-    turn=firstActive(0);
-    $('msg').textContent='';
-    render(); nextStep();
+function renderMsg(peek){
+  const MYSEAT=S.mySeat;
+  if(S.phase==='gameover'){ $('msg').textContent='판 종료'; return; }
+  if(S.players[MYSEAT] && S.players[MYSEAT].out){ $('msg').innerHTML='<span style="color:var(--win)">세이프!</span> 남은 사람들을 지켜봐요'; return; }
+  if(S.turn!==MYSEAT){ $('msg').innerHTML=`<b>${esc(S.players[S.turn].name)}</b>님이 뽑는 중…`; return; }
+  const t=S.players[S.target];
+  if(peek){
+    const note = peek.jokerIdx==null
+      ? `👀 <b style="color:var(--win)">${esc(t?t.name:'')}</b>에겐 조커가 <b>없어요</b> — 아무거나!`
+      : `👀 <b style="color:var(--danger)">${peek.jokerIdx+1}번째</b>가 조커! 피해서 뽑으세요`;
+    $('msg').innerHTML=note;
     return;
   }
-  const removed=discardPairs(hands[i]);
-  if(removed.length){ try{SFX.pair();}catch(e){} if(i===MYSEAT){ try{pairPopFX(removed);}catch(e){} } }
-  render();
-  setTimeout(()=>initialCleanup(i+1), PMS(removed.length?360:120));
+  $('msg').innerHTML=`<b>${esc(t?t.name:'')}</b>의 패에서 한 장 뽑으세요 👆`;
 }
 
-function activeCount(){ let c=0; for(let s=0;s<players.length;s++) if(!out[s]&&hands[s].length>0) c++; return c; }
-function firstActive(from){ for(let k=0;k<players.length;k++){ const s=(from+k)%players.length; if(!out[s]&&hands[s].length>0) return s; } return from; }
-function nextActive(from){ for(let k=1;k<=players.length;k++){ const s=(from+k)%players.length; if(!out[s]&&hands[s].length>0) return s; } return from; }
-
-function checkEnd(){
-  // 손패가 남은 사람이 1명 이하 → 종료
-  const holders=[]; for(let s=0;s<players.length;s++) if(hands[s].length>0) holders.push(s);
-  if(holders.length<=1){
-    loser = holders.length===1 ? holders[0] : -1;
-    endGame();
-    return true;
-  }
-  return false;
+/* 아이템전 '👀 살짝 보기' — 내 차례에, 남은 개수가 있고, 아직 이번 차례에 안 썼을 때만.
+   canPeek 판정은 엔진이 한다(클라가 규칙을 다시 쓰면 반드시 갈라진다). */
+function renderItems(){
+  const row=$('itemrow'); if(!row) return;
+  if(!S.itemsOn || !S.canPeek){ row.innerHTML=''; return; }
+  const me=S.players[S.mySeat];
+  row.innerHTML=`<button class="ibtn" id="peekBtn">👀 살짝 보기 (${me?me.items:0})</button>`;
+  $('peekBtn').onclick=()=>{ if(engine) engine.action(MYPID,{type:'peek'}); };
 }
 
-// 한 스텝: turn 플레이어가 target(다음 사람)에게서 1장 뽑기
-function nextStep(){
-  if(phase!=='play') return;
-  if(checkEnd()) return;
-  // turn 유효화
-  if(out[turn]||hands[turn].length===0) turn=firstActive(turn);
-  const target=nextActive(turn);
-  if(target===turn){ checkEnd(); return; }
-  render();
-  if(players[turn].ai){
-    busy=true;
-    setTimeout(()=>{ const idx=Math.floor(Math.random()*hands[target].length); doDraw(turn,target,idx); }, PMS(780));
-  } else {
-    // 사람 차례 → target 패를 클릭해 뽑기
-    busy=false;
-    $('msg').innerHTML=`<b>${esc(players[target].name)}</b>의 패에서 한 장 뽑으세요 👆`;
-    render();
-  }
-}
-
-function doDraw(from,target,idx){
-  if(phase!=='play') return;
-  if(idx<0||idx>=hands[target].length) idx=0;
-  try{ drawFlyFX(target, from); }catch(e){}
-  const card=hands[target].splice(idx,1)[0];
-  hands[from].push(card);
-  try{SFX.draw();}catch(e){}
-  if(card.joker){ setTimeout(()=>{try{jokerFX(from);}catch(e){}}, 300); }
-  lastAct[from]='뽑기';
-  // target 세이프 체크
-  if(hands[target].length===0 && !out[target]){ out[target]=true; lastAct[target]='세이프'; try{SFX.safe();}catch(e){} }
-  render();
-  // 방금 뽑은 카드로 짝 검사
-  busy=true;
-  setTimeout(()=>{
-    const before=hands[from].length;
-    const removed=discardPairs(hands[from]);
-    if(removed.length){ try{SFX.pair();}catch(e){} try{pairPopFX(removed);}catch(e){} lastAct[from]='짝!'; }
-    if(hands[from].length===0 && !out[from]){ out[from]=true; lastAct[from]='세이프'; try{SFX.safe();}catch(e){} }
-    render();
-    setTimeout(()=>{
-      lastAct=lastAct.map(()=> '');
-      if(checkEnd()) return;
-      turn=nextActive(from);
-      render(); nextStep();
-    }, PMS(removed.length?520:340));
-  }, PMS(420));
-}
-
+/* 결과 — 인자 없이 부를 수 있어야 한다(verify-stats.js가 직접 호출한다). */
 function endGame(){
-  phase='over';
-  render();
+  const loser=S?S.loser:-1, MYSEAT=S?S.mySeat:0;
   if(loser===MYSEAT){
     $('resTitle').textContent='🃏 앗, 술래!';
     $('resBody').innerHTML=`마지막까지 <b style="color:var(--danger)">조커</b>를 들고 있었어요…<br>다음 판엔 짝을 더 빨리 버려봐요!`;
     try{SFX.lose();}catch(e){}
     try{ shakeFX(); showBanner('🃏 술래 확정!','조커를 들고 말았어요','lose'); }catch(e){}
   } else if(loser>=0){
+    const nm=S.players[loser]?S.players[loser].name:'';
     $('resTitle').textContent='🎉 세이프!';
-    $('resBody').innerHTML=`술래는 <b style="color:var(--brass)">${esc(players[loser].name)}</b>! 당신은 무사히 탈출했어요.`;
+    $('resBody').innerHTML=`술래는 <b style="color:var(--brass)">${esc(nm)}</b>! 당신은 무사히 탈출했어요.`;
     try{SFX.win();}catch(e){}
     coinRain();
-    try{ showBanner('🎉 세이프!','술래는 '+esc(players[loser].name),'win'); }catch(e){}
+    try{ showBanner('🎉 세이프!','술래는 '+esc(nm),'win'); }catch(e){}
   } else {
     $('resTitle').textContent='게임 종료';
     $('resBody').innerHTML='무승부로 끝났어요.';
@@ -447,47 +857,6 @@ function endGame(){
   try{ if(window.AW){ AW.reward(loser!==MYSEAT); var _b=$('resBody'); if(_b) _b.innerHTML += '<div style="margin-top:8px">💰 보유 코인 <b style="color:var(--gold)">'+AW.fmt()+'</b></div>'; } }catch(e){}
   try{ window.AS&&AS.finish('oldmaid', loser!==MYSEAT); }catch(e){}
   setTimeout(()=>$('resultOv').classList.add('on'), PMS(900));
-}
-
-// ===== 렌더 =====
-function render(){
-  // 상대
-  const opps=$('opps'); opps.innerHTML='';
-  for(let s=0;s<players.length;s++){
-    if(s===MYSEAT) continue;
-    const p=players[s];
-    const isTarget = phase==='play' && !busy && !players[turn].ai && turn===MYSEAT && nextActive(MYSEAT)===s;
-    const el=document.createElement('div');
-    el.className='seat'+(out[s]?' out':'')+(turn===s&&phase==='play'&&!out[s]?' turn':'')+(isTarget?' target':'')+(phase==='over'&&loser===s?' loser':'');
-    el.dataset.seat=s;
-    // 뒷면 부채(최대 5장 표시)
-    const shown=Math.min(hands[s].length,5);
-    let fan=''; for(let i=0;i<shown;i++){ const clickable=isTarget; fan+=`<div class="mc back${clickable?' pick':''}" data-t="${s}" data-i="${i}"></div>`; }
-    el.innerHTML=`<div class="pbox">`+
-      `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
-      `<div class="pname">${esc(p.name)}</div>`+
-      (out[s]? `<div class="safe">세이프</div>` : `<div class="pcount">🃏 ${hands[s].length}장</div><div class="fan">${fan}</div>`)+
-      (lastAct[s]&&!out[s]? `<div class="pact show">${lastAct[s]}</div>`:'')+
-      `</div>`;
-    opps.appendChild(el);
-  }
-  // 타깃 클릭 핸들러
-  if(phase==='play' && !busy && turn===MYSEAT && !players[MYSEAT].ai){
-    const tgt=nextActive(MYSEAT);
-    opps.querySelectorAll('.mc.pick').forEach(el=>{
-      el.onclick=()=>{
-        if(phase!=='play'||busy||turn!==MYSEAT) return;
-        // 실제 인덱스는 랜덤(부채는 앞 5장만 보여주므로) — 클릭 위치는 연출, 뽑기는 무작위
-        const idx=Math.floor(Math.random()*hands[tgt].length);
-        doDraw(MYSEAT,tgt,idx);
-      };
-    });
-  }
-  // 내 손패
-  const my=hands[MYSEAT]||[];
-  $('myLabel').innerHTML=`${players[MYSEAT]?('🧑 '+esc(players[MYSEAT].name)):''}`+(out[MYSEAT]?' · <span style="color:var(--win)">세이프 ✅</span>':(turn===MYSEAT&&phase==='play'?' · <b style="color:var(--gold)">내 차례</b>':''));
-  $('myCount').textContent = my.length? `${my.length}장` : (out[MYSEAT]?'':'');
-  $('myhand').innerHTML = my.length? my.map(c=>cardFaceHTML(c,'big'+(c.joker?' ':''))).join('') : (out[MYSEAT]?'<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패를 다 버렸어요 🎉</div>':'');
 }
 
 function coinRain(){
@@ -498,9 +867,6 @@ function coinRain(){
     setTimeout(()=>{ c.style.transform='translateY('+(innerHeight+90)+'px) rotate('+rot.toFixed(0)+'deg)'; }, delay);
     setTimeout(()=>{try{c.remove();}catch(e){}}, 2200); }
 }
-
-// 로직 노출(헤드리스 검증용)
-if(typeof module!=='undefined'&&module.exports){ module.exports={makeDeck,discardPairs}; }
 </script>
 </body>
 </html>

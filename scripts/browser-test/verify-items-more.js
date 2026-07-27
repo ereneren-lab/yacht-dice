@@ -306,7 +306,105 @@ const CLOSE_TUT = `try{ if(window.TUT) TUT.close();
     await p.close();
   }
 
+  /* ───────────── 도둑잡기 — 살짝 보기 ─────────────
+     조커가 어디 있는지가 이 게임의 전부라, 아이템 검증도 거기에 맞춘다:
+     ① 쓰기 전엔 상대 부채가 전부 밋밋한 뒷면이고 ② 쓰면 조커 자리에만 표시가 붙고
+     ③ 그 표시가 **실제 조커 위치와 일치**해야 한다(엔진 내부와 대조).
+     ④ 그리고 남의 화면엔 절대 안 새야 한다. */
+  console.log('\n=== 도둑잡기 · 살짝 보기 ===');
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/oldmaid.html');
+      await p.wait(900); await p.eval(CLOSE_TUT); await p.wait(200);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(1600);
+
+      const base = await p.eval(`return { itemsOn:!!(S&&S.itemsOn), items:S?S.items.slice():null,
+                                          turn:S?S.turn:-1, mySeat:S?S.mySeat:-1 };`);
+      if (on) {
+        const uniq = Array.from(new Set(base.items || []));
+        if (!base.itemsOn) bad('도둑잡기: itemsOn이 엔진에 전달되지 않았다');
+        else if (uniq.length !== 1 || uniq[0] !== 2) bad('도둑잡기: 지급 불균등/2개 아님 — ' + JSON.stringify(base.items));
+        else ok('전원 동일 지급 · items=' + JSON.stringify(base.items));
+      } else if ((base.items || []).some(x => x !== 0)) {
+        bad('도둑잡기: 껐는데 지급됨 — ' + JSON.stringify(base.items));
+      } else ok('꺼짐 → 지급 0');
+
+      /* 내 차례로 세워두고, **조커를 대상 손에 심는다.**
+         안 심으면 대상이 조커를 안 들고 있는 판이 걸려서 '조커 없음' 분기만 밟고 끝난다
+         — 정작 제일 중요한 단언(표시 위치 == 실제 조커 위치)이 조용히 안 돌아간다.
+         (함정 #16: 표본을 못 모은 것과 단언이 통과한 것은 다른 사건이다.) */
+      await p.eval(`
+        engine.manualAI = true;
+        if(S.turn!==S.mySeat){ engine._beginTurn(S.mySeat); }
+        var t = engine.target;
+        var js = engine.hands.findIndex(function(h){return h.some(function(c){return c.joker;});});
+        if(js !== t && js >= 0 && t >= 0){
+          var i = engine.hands[js].findIndex(function(c){return c.joker;});
+          var jk = engine.hands[js].splice(i,1)[0];
+          engine.hands[t].splice(Math.floor(engine.hands[t].length/2), 0, jk);   // 끝자리 말고 가운데
+        }
+        engine._emit();
+        return true;`);
+      await p.wait(300);
+
+      const s1 = await p.eval(`var b=document.getElementById('peekBtn');
+        return { has:!!b, txt:b?b.textContent:'', canPeek:S.canPeek,
+                 hints: document.querySelectorAll('#opps .mc.back.jokerhint, #opps .mc.back.safehint').length };`);
+      if (s1.hints) bad('도둑잡기: 아이템을 쓰기도 전에 조커 힌트가 보인다 (정보 누출)');
+      else ok('쓰기 전 → 힌트 없음');
+
+      if (!on) {
+        if (s1.has) bad('도둑잡기: 껐는데 👀 버튼이 보인다'); else ok('꺼짐 → 버튼 없음');
+      } else if (!s1.has) {
+        bad(`도둑잡기: 켰는데 버튼이 없다 (canPeek=${s1.canPeek})`);
+      } else {
+        ok('켜짐 → 버튼 "' + s1.txt.trim() + '"');
+        const n0 = +(s1.txt.match(/\((\d+)\)/) || [])[1];
+        await p.click('#peekBtn'); await p.wait(600);
+        const s2 = await p.eval(`
+          var t = S.target;
+          var realJoker = engine.hands[t].findIndex(function(c){return c.joker;});
+          var hinted = document.querySelector('#opps .seat[data-seat="'+t+'"] .mc.back.jokerhint');
+          var hintIdx = hinted ? +hinted.dataset.i : null;
+          return { items:S.items.slice(), peek:S.myPeek, realJoker:realJoker,
+                   hintIdx:hintIdx, btn:!!document.getElementById('peekBtn'),
+                   msg:(document.getElementById('msg')||{}).textContent||'' };`);
+        if (!(s2.items[0] === n0 - 1)) bad(`도둑잡기: 개수가 안 줄었다 (${n0}→${s2.items[0]})`);
+        else ok(`남은 개수 ${n0}→${s2.items[0]}`);
+        if (!s2.peek) bad('도둑잡기: myPeek이 스냅샷에 없다');
+        else {
+          const realIdx = s2.realJoker >= 0 ? s2.realJoker : null;
+          // 핵심 — 알려준 위치가 실제 조커 위치와 같아야 한다(거짓 정보면 아이템이 무의미)
+          if (realIdx == null) bad('도둑잡기: 조커를 심었는데 대상이 안 들고 있다 — 양성 케이스를 못 밟았다');
+          else if (s2.peek.jokerIdx !== realIdx) bad(`도둑잡기: 알려준 조커 위치 ${s2.peek.jokerIdx} ≠ 실제 ${realIdx}`);
+          else ok(`정확: 조커가 ${realIdx}번째임을 맞게 알려줌`);
+          if (realIdx != null && s2.hintIdx !== realIdx) bad(`도둑잡기: 화면 표시(${s2.hintIdx})가 실제(${realIdx})와 다르다`);
+          else if (realIdx != null) ok('화면에도 그 자리에 🃏 표시됨');
+          if (!s2.msg || !/조커/.test(s2.msg)) bad('도둑잡기: 결과가 안내문에 안 나온다 — "' + s2.msg + '"');
+          else ok('안내문 — "' + s2.msg.trim() + '"');
+        }
+        if (s2.btn) bad('도둑잡기: 한 차례에 두 번 쓸 수 있다(버튼이 남아 있음)');
+        else ok('한 차례 1회 제한 — 버튼 사라짐');
+
+        // 남의 스냅샷엔 절대 안 실려야 한다
+        const leak = await p.eval(`
+          var other = engine.players.find(function(p){return p.pid!=='me';});
+          var s = engine.serialize(other.pid);
+          return { myPeek: s.myPeek, jokerInBlob: /"joker":true/.test(JSON.stringify(
+            Object.assign({}, s, {myHand:null, myPeek:null, myJoker:null}))) };`);
+        if (leak.myPeek) bad('도둑잡기: 내가 훔쳐본 결과가 남의 스냅샷에 실렸다');
+        else if (leak.jokerInBlob) bad('도둑잡기: 남의 스냅샷에 조커 카드가 노출됐다');
+        else ok('남의 스냅샷엔 누출 없음');
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('도둑잡기 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('도둑잡기 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
   await cdp.close();
-  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 6종 통과');
+  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 7종 통과');
   process.exit(fails ? 1 : 0);
 })();

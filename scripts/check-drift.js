@@ -24,6 +24,7 @@ const CASES = [
   ['seotda',  'seotda-core.js',  'seotda.html'],
   ['indianpoker', 'indianpoker-core.js', 'indianpoker.html'],
   ['onecard', 'onecard-core.js', 'onecard.html'],
+  ['oldmaid', 'oldmaid-core.js', 'oldmaid.html'],
 ];
 
 // 블록/라인 주석과 모든 공백 제거
