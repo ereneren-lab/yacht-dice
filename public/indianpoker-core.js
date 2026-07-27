@@ -185,6 +185,9 @@
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0) return;
       if (a.type === 'peek') { this._doPeek(seat); return; }
+      /* 온라인에서 '다음 판'을 누르는 사람이 정해져 있지 않다 — 앉아 있는 누구든 넘길 수 있게 한다.
+         판이 끝난 뒤(result)에만 먹히므로 진행 중에 눌러도 아무 일도 없다. */
+      if (a.type === 'nextHand') { if (this.phase === 'result') this.nextHand(); return; }
       if (this.phase !== 'bet' || this.turn !== seat) return;
       if (this._isAuto(seat)) return;                          // AI 자리는 사람이 대신 못 누른다
       this._bet(seat, a.type === 'bet' ? a.mode : a.type);     // {type:'bet',mode} 우선, 옛 형식도 받는다

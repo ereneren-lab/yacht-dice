@@ -20,9 +20,9 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 | 좌·중·우(LCR) | `public/lcr.html` | `public/lcr-core.js` | ✅ |
 | 알까기 | `public/alkkagi.html` | `public/alkkagi-core.js` | ✅ |
 | 섯다 | `public/seotda.html` | `public/seotda-core.js` | — (로컬/AI) |
-| 인디언 포커 | `public/indianpoker.html` | `public/indianpoker-core.js` | — (로컬/AI · v1.232 코어 분리) |
-| 원카드 | `public/onecard.html` | `public/onecard-core.js` | — (로컬/AI · v1.233 코어 분리) |
-| 도둑잡기 | `public/oldmaid.html` | `public/oldmaid-core.js` | — (로컬/AI · v1.234 코어 분리) |
+| 인디언 포커 | `public/indianpoker.html` | `public/indianpoker-core.js` | ✅ (v1.237 · net.js) |
+| 원카드 | `public/onecard.html` | `public/onecard-core.js` | ✅ (v1.237 · net.js) |
+| 도둑잡기 | `public/oldmaid.html` | `public/oldmaid-core.js` | ✅ (v1.237 · net.js) |
 | 카드 3종 | `blackjack`·`baccarat`·`highlow`.html | (코어 없음 — HTML 안) | — |
 | 허브 | `public/index.html` | — | — |
 
@@ -194,6 +194,26 @@ git add -A && git commit -m "..." && git push
    → 연출용 딜레이는 `_after(ms, fn)`처럼 **ms가 0 이하면 동기 실행**하도록 두고,
    시뮬은 `pairMs:0, stepMs:0`으로 엔진을 통째로 동기로 돌릴 것. 하네스를 비트는 것보다
    엔진을 테스트 가능하게 만드는 쪽이 낫다.
+
+## 🌐 온라인 공용 모듈 `net.js` (v1.237)
+
+온라인 9종 중 **카드 3종(인디언·원카드·도둑잡기)만** 이 모듈을 쓴다.
+기존 6종(윷·요트·너클본즈·라이어·좌중우·알까기)은 여전히 각자 인라인 로비 코드를 갖고 있다.
+
+- **왜 만들었나** — 6종이 같은 로비 코드를 각자 갖고 있어서, 3벌을 더 만들면 같은 코드가
+  9벌이 되고 아래 함정을 고칠 때 9곳을 고쳐야 했다.
+- **모듈이 대신 지켜주는 것**: 함정 #8(자리 소유권 — sessionStorage 우선 + BroadcastChannel)과
+  **함정 #3(판 종료 → 로비 전환)**. `_inGame`을 스스로 추적해 `onGameEnd`를 `onLobby`보다 **먼저** 부른다.
+- **UI도 자체 주입한다**(tutorial.js와 같은 방식) — `NET.ui.mount()`가 방 만들기/참가 화면과
+  대기실을 만든다. 게임 HTML엔 `🌐 온라인` 버튼 하나만 추가하면 된다.
+- 붙이는 법 — `<script src="net.js"></script>` 후 `NET.init({game,ns,on:{state,lobby,gameEnd,...}})`
+  + `NET.ui.mount({sub,minPlayers,createPayload})`. 액션은 `act(a)` 한 곳으로 모아
+  `online ? NET.action(a) : engine.action(MYPID,a)`로 가른다.
+- **코어 분리가 선행 조건이다** — 로컬 엔진과 서버가 **같은 스냅샷 모양**을 주므로
+  `render()`/`applyFx()`를 그대로 재사용한다. 온라인용 렌더를 따로 만들지 않았다.
+- ⚠️ 숨김정보 게임은 서버에서 `broadcast`가 아니라 **멤버마다 `serialize(pid)`** 로 보낸다.
+  broadcast로 하면 남의 손패·조커 위치가 전원에게 가서 게임이 통째로 무너진다.
+- 검사: **`npm run test:cardonline`**(2탭 e2e) · `npm run test:online`(서버 e2e, 누출 단언 포함)
 
 ## 📖 튜토리얼 (공용 모듈 · v1.227)
 

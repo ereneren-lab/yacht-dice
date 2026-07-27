@@ -11,6 +11,7 @@
 <script src="pace.js"></script>
 <script src="stats.js"></script>
 <script src="wallet.js"></script>
+<script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
@@ -201,6 +202,7 @@
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
     <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
+    <button class="btn ghost" id="onlineBtn" style="margin-top:8px">🌐 친구와 온라인으로</button>
     <div class="warn">🃏 마지막 1장이 되면 자동으로 "원카드!" 외쳐요.</div>
   </div>
 </div>
@@ -760,6 +762,46 @@ function startGame(){
   engine.start();
 }
 $('startBtn').onclick=startGame;
+
+/* ===== 온라인 (net.js) =====
+   로컬 엔진과 **같은 render()/applyFx()** 를 쓴다 — 스냅샷이 서버에서 오느냐 로컬 엔진에서
+   오느냐만 다르고 그리는 코드는 하나다. 코어를 분리해둔 덕에 이게 가능하다.
+   자리 소유권(함정 #8)·판 종료 → 로비 전환(함정 #3)은 net.js가 처리한다. */
+let online=false;
+function enterOnlineGame(){
+  online=true; prevS=null; S=null; ended=false; pickJokerId=null;
+  if(engine){ try{engine.destroy();}catch(e){} engine=null; }
+  NET.ui.closeLobby(); NET.ui.closeJoin();
+  $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
+  document.body.classList.add('ingame');
+}
+function leaveOnlineGame(){
+  online=false; S=null; prevS=null; ended=false;
+  document.body.classList.remove('ingame');
+  $('resultOv').classList.remove('on');
+  $('setupOv').classList.add('on');
+}
+NET.init({ game:'onecard', ns:'oc', on:{
+  state(st){
+    enterOnlineGame();
+    S=st; render(); applyFx(); prevS=S;
+  },
+  lobby(room){ NET.ui.renderLobby(room); },
+  gameEnd(){ leaveOnlineGame(); },          // 함정 #3 — net.js가 먼저 불러준다
+  error(msg,fatal){ NET.ui.error(msg,fatal); if(fatal) leaveOnlineGame(); },
+  roomClosed(){ NET.ui.toast('방이 닫혔어요'); leaveOnlineGame(); },
+  toast(m){ NET.ui.toast(m); },
+  wake(m,r){ NET.ui.wake(m,r); }, wakeHide(){ NET.ui.wakeHide(); },
+}});
+NET.ui.mount({
+  sub:'같은 무늬·숫자를 내며 손패를 먼저 털어요',
+  minPlayers:2,
+  createPayload:()=>({ itemsOn:!!cfg.items }),
+  onLeaveGame:leaveOnlineGame,
+});
+$('onlineBtn').onclick=()=>NET.ui.openJoin();
+// 이 탭에 자리가 남아 있으면 자동 재접속(다른 탭이 쓰는 중이면 포기 — 함정 #8)
+try{ NET.bootRejoin(); }catch(e){}
 $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
 
 // ===== 연출 — 엔진은 '무슨 일이 있었나'만 남기고, 화면이 스냅샷 차이로 만든다 =====
@@ -896,7 +938,7 @@ function renderItems(){
   if(!S.itemsOn || !S.canShield){ row.innerHTML=''; return; }
   const me=S.players[S.mySeat];
   row.innerHTML=`<button class="abtn" id="shieldBtn"><span class="ai">🛡</span><span class="an">공격 ${S.attack}장 막기 (남은 ${me?me.items:0}개)</span></button>`;
-  $('shieldBtn').onclick=()=>{ if(engine) engine.action(MYPID,{type:'shield'}); };
+  $('shieldBtn').onclick=()=>act({type:'shield'});
 }
 
 function renderActs(){
@@ -908,26 +950,29 @@ function renderActs(){
     const playable=va.indexOf('play')>=0;
     acts.innerHTML=(playable?`<button class="abtn draw" disabled><span class="ai">👆</span><span class="an">뽑은 카드 내기</span></button>`:'')+
       `<button class="abtn pass" id="passBtn"><span class="ai">✋</span><span class="an">넘기기</span></button>`;
-    $('passBtn').onclick=()=>engine.action(MYPID,{type:'pass'});
+    $('passBtn').onclick=()=>act({type:'pass'});
     return;
   }
   if(S.attack>0){
     const canDef=va.indexOf('play')>=0;
     acts.innerHTML=`<button class="abtn take" id="takeBtn"><span class="ai">🛡️</span><span class="an">받기 (+${S.attack}장)</span></button>`+
       (canDef?`<button class="abtn pass" disabled><span class="ai">👆</span><span class="an">또는 2·조커로 방어</span></button>`:'');
-    $('takeBtn').onclick=()=>engine.action(MYPID,{type:'take'});
+    $('takeBtn').onclick=()=>act({type:'take'});
     return;
   }
   const canAny=va.indexOf('play')>=0;
   acts.innerHTML=`<button class="abtn draw" id="drawBtn"><span class="ai">🎴</span><span class="an">${canAny?'뽑기(패스)':'카드 뽑기'}</span></button>`;
-  $('drawBtn').onclick=()=>engine.action(MYPID,{type:'draw'});
+  $('drawBtn').onclick=()=>act({type:'draw'});
 }
+
+/* 액션 한 곳 — 온라인이면 서버로, 로컬이면 엔진으로. 나머지 코드는 이 함수만 부른다. */
+function act(a){ if(online) NET.action(a); else if(engine) engine.action(MYPID,a); }
 
 function humanPlay(card){
   if(!S||S.phase!=='play'||S.turn!==S.mySeat) return;
   if(!card.playable) return;
   if(card.joker){ pickJokerId=card.id; render(); return; }   // 무늬를 먼저 고른다
-  engine.action(MYPID,{type:'play',cardId:card.id});
+  act({type:'play',cardId:card.id});
 }
 
 function renderSuitPick(){
@@ -937,7 +982,7 @@ function renderSuitPick(){
   [0,1,2,3].forEach(s=>{
     const rd=(s===1||s===2);
     const b=document.createElement('button'); b.className='suitopt '+(rd?'rd':'bk'); b.textContent=SUITS[s];
-    b.onclick=()=>{ const id=pickJokerId; pickJokerId=null; engine.action(MYPID,{type:'play',cardId:id,suit:s}); };
+    b.onclick=()=>{ const id=pickJokerId; pickJokerId=null; act({type:'play',cardId:id,suit:s}); };
     wrap.appendChild(b);
   });
   $('acts').appendChild(wrap);

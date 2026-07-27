@@ -11,6 +11,7 @@
 <script src="pace.js"></script>
 <script src="stats.js"></script>
 <script src="wallet.js"></script>
+<script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
@@ -194,6 +195,7 @@
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
     <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
+    <button class="btn ghost" id="onlineBtn" style="margin-top:8px">🌐 친구와 온라인으로</button>
     <div class="warn">⚠️ <b>가상 재화만</b> 사용하는 오락용 게임입니다.</div>
   </div>
 </div>
@@ -413,6 +415,9 @@
       const seat = this.players.findIndex(p => p.pid === pid);
       if (seat < 0) return;
       if (a.type === 'peek') { this._doPeek(seat); return; }
+      /* 온라인에서 '다음 판'을 누르는 사람이 정해져 있지 않다 — 앉아 있는 누구든 넘길 수 있게 한다.
+         판이 끝난 뒤(result)에만 먹히므로 진행 중에 눌러도 아무 일도 없다. */
+      if (a.type === 'nextHand') { if (this.phase === 'result') this.nextHand(); return; }
       if (this.phase !== 'bet' || this.turn !== seat) return;
       if (this._isAuto(seat)) return;                          // AI 자리는 사람이 대신 못 누른다
       this._bet(seat, a.type === 'bet' ? a.mode : a.type);     // {type:'bet',mode} 우선, 옛 형식도 받는다
@@ -715,6 +720,40 @@ function startGame(){
   engine.start();
 }
 $('startBtn').onclick=startGame;
+
+/* ===== 온라인 (net.js) =====
+   로컬 엔진과 **같은 render()/applyFx()** 를 쓴다 — 스냅샷이 서버에서 오느냐 로컬 엔진에서
+   오느냐만 다르고 그리는 코드는 하나다. 코어를 분리해둔 덕에 이게 가능하다.
+   자리 소유권(함정 #8)·판 종료 → 로비 전환(함정 #3)은 net.js가 처리한다. */
+let online=false;
+function enterOnlineGame(){
+  online=true; prevS=null; S=null;
+  if(engine){ try{engine.destroy();}catch(e){} engine=null; }
+  NET.ui.closeLobby(); NET.ui.closeJoin();
+  $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
+  document.body.classList.add('ingame');
+}
+function leaveOnlineGame(){
+  online=false; S=null; prevS=null;
+  document.body.classList.remove('ingame');
+  $('resultOv').classList.remove('on');
+  $('setupOv').classList.add('on');
+}
+/* 액션 한 곳 — 온라인이면 서버로, 로컬이면 엔진으로. 나머지 코드는 이 함수만 부른다. */
+function act(a){ if(online) NET.action(a); else if(engine) engine.action(MYPID,a); }
+NET.init({ game:'indianpoker', ns:'ip', on:{
+  state(st){ enterOnlineGame(); S=st; render(); applyFx(); prevS=S; },
+  lobby(room){ NET.ui.renderLobby(room); },
+  gameEnd(){ leaveOnlineGame(); },          // 함정 #3 — net.js가 먼저 불러준다
+  error(msg,fatal){ NET.ui.error(msg,fatal); if(fatal) leaveOnlineGame(); },
+  roomClosed(){ NET.ui.toast('방이 닫혔어요'); leaveOnlineGame(); },
+  toast(m){ NET.ui.toast(m); },
+  wake(m,r){ NET.ui.wake(m,r); }, wakeHide(){ NET.ui.wakeHide(); },
+}});
+NET.ui.mount({ sub:'남의 카드는 보이고 내 카드만 안 보이는 심리전', minPlayers:2, createPayload:()=>({ itemsOn:!!cfg.items, startChips:cfg.chips }), onLeaveGame:leaveOnlineGame });
+$('onlineBtn').onclick=()=>NET.ui.openJoin();
+// 이 탭에 자리가 남아 있으면 자동 재접속(다른 탭이 쓰는 중이면 포기 — 함정 #8)
+try{ NET.bootRejoin(); }catch(e){}
 $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
 
 // ===== 연출 — 엔진은 '무슨 일이 있었나'만 남기고, 화면이 스냅샷 차이로 만든다 =====
@@ -816,7 +855,7 @@ function renderBetbar(){
     const on=myTurn&&valid.indexOf(mode)>=0;
     return `<button class="bbtn ${cls}" data-m="${mode}" ${on?'':'disabled'}><span class="bi">${ic}</span><span class="bn">${name}</span><span class="ba">${on&&(mode==='call'||mode==='raise')?amt:''}</span></button>`;
   }).join('');
-  bar.querySelectorAll('.bbtn').forEach(b=>b.onclick=()=>{ if(engine&&S.phase==='bet'&&S.turn===MYSEAT) engine.action(MYPID,{type:'bet',mode:b.dataset.m}); });
+  bar.querySelectorAll('.bbtn').forEach(b=>b.onclick=()=>{ if(S.phase==='bet'&&S.turn===MYSEAT) act({type:'bet',mode:b.dataset.m}); });
 }
 /* 아이템전 '🔍 내 카드 보기' — 내 차례에, 남은 개수가 있고, 이 판에 아직 안 썼을 때만 뜬다.
    canPeek 판정은 엔진이 한다(화면은 그 결과만 그린다 — 규칙이 두 곳에 생기지 않게). */
@@ -825,11 +864,11 @@ function renderItembar(){
   if(!S.itemsOn || !S.canPeek){ row.innerHTML=''; return; }
   const n=(S.items&&S.items[MYSEAT]|0)||0;
   row.innerHTML=`<button class="bbtn" id="itemPeek"><span class="bi">🔍</span><span class="bn">내 카드 보기 (${n})</span></button>`;
-  $('itemPeek').onclick=()=>{ try{ engine.action(MYPID,{type:'peek'}); }catch(e){} };
+  $('itemPeek').onclick=()=>{ try{ act({type:'peek'}); }catch(e){} };
 }
 function renderNext(){
   $('betbar').innerHTML=`<button class="bbtn call" id="nextBtn" style="border-color:transparent"><span class="bi">▶</span><span class="bn">다음 판</span><span class="ba"></span></button>`;
-  $('nextBtn').onclick=()=>{ if(engine) engine.nextHand(); };
+  $('nextBtn').onclick=()=>{ if(online) NET.send({t:'action',a:{type:'nextHand'}}); else if(engine) engine.nextHand(); };
 }
 
 function endGame(){

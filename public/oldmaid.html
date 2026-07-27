@@ -11,6 +11,7 @@
 <script src="pace.js"></script>
 <script src="stats.js"></script>
 <script src="wallet.js"></script>
+<script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 로컬/AI 전용 단독 프로토타입 (온라인·서버 미연동). 계측 보류(다른 게임과 동일 기준).
@@ -188,6 +189,7 @@
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
     <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
+    <button class="btn ghost" id="onlineBtn" style="margin-top:8px">🌐 친구와 온라인으로</button>
     <div class="warn">🃏 조커를 든 채 끝나면 술래! 짝을 부지런히 버리세요.</div>
   </div>
 </div>
@@ -715,6 +717,40 @@ function startGame(){
   engine.start();
 }
 $('startBtn').onclick=startGame;
+
+/* ===== 온라인 (net.js) =====
+   로컬 엔진과 **같은 render()/applyFx()** 를 쓴다 — 스냅샷이 서버에서 오느냐 로컬 엔진에서
+   오느냐만 다르고 그리는 코드는 하나다. 코어를 분리해둔 덕에 이게 가능하다.
+   자리 소유권(함정 #8)·판 종료 → 로비 전환(함정 #3)은 net.js가 처리한다. */
+let online=false;
+function enterOnlineGame(){
+  online=true; prevS=null; S=null;
+  if(engine){ try{engine.destroy();}catch(e){} engine=null; }
+  NET.ui.closeLobby(); NET.ui.closeJoin();
+  $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
+  document.body.classList.add('ingame');
+}
+function leaveOnlineGame(){
+  online=false; S=null; prevS=null;
+  document.body.classList.remove('ingame');
+  $('resultOv').classList.remove('on');
+  $('setupOv').classList.add('on');
+}
+/* 액션 한 곳 — 온라인이면 서버로, 로컬이면 엔진으로. 나머지 코드는 이 함수만 부른다. */
+function act(a){ if(online) NET.action(a); else if(engine) engine.action(MYPID,a); }
+NET.init({ game:'oldmaid', ns:'om', on:{
+  state(st){ enterOnlineGame(); S=st; render(); applyFx(); prevS=S; },
+  lobby(room){ NET.ui.renderLobby(room); },
+  gameEnd(){ leaveOnlineGame(); },          // 함정 #3 — net.js가 먼저 불러준다
+  error(msg,fatal){ NET.ui.error(msg,fatal); if(fatal) leaveOnlineGame(); },
+  roomClosed(){ NET.ui.toast('방이 닫혔어요'); leaveOnlineGame(); },
+  toast(m){ NET.ui.toast(m); },
+  wake(m,r){ NET.ui.wake(m,r); }, wakeHide(){ NET.ui.wakeHide(); },
+}});
+NET.ui.mount({ sub:'조커를 마지막까지 든 사람이 술래!', minPlayers:3, createPayload:()=>({ itemsOn:!!cfg.items }), onLeaveGame:leaveOnlineGame });
+$('onlineBtn').onclick=()=>NET.ui.openJoin();
+// 이 탭에 자리가 남아 있으면 자동 재접속(다른 탭이 쓰는 중이면 포기 — 함정 #8)
+try{ NET.bootRejoin(); }catch(e){}
 $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
 
 // ===== 연출 — 스냅샷 차이로 만든다 =====
@@ -790,7 +826,7 @@ function render(){
     opps.querySelectorAll('.mc.pick').forEach(el=>{
       el.onclick=()=>{
         if(!S||S.phase!=='play'||S.turn!==S.mySeat) return;
-        engine.action(MYPID,{type:'draw', idx:+el.dataset.i});
+        act({type:'draw', idx:+el.dataset.i});
       };
     });
   }
@@ -832,7 +868,7 @@ function renderItems(){
   if(!S.itemsOn || !S.canPeek){ row.innerHTML=''; return; }
   const me=S.players[S.mySeat];
   row.innerHTML=`<button class="ibtn" id="peekBtn">👀 살짝 보기 (${me?me.items:0})</button>`;
-  $('peekBtn').onclick=()=>{ if(engine) engine.action(MYPID,{type:'peek'}); };
+  $('peekBtn').onclick=()=>act({type:'peek'});
 }
 
 /* 결과 — 인자 없이 부를 수 있어야 한다(verify-stats.js가 직접 호출한다). */
