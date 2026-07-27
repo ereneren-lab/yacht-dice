@@ -9,7 +9,7 @@ const CASES = [
   { g:'highlow',     call:'endGame(false)', win:false },
   { g:'indianpoker', call:'endGame()',      win:null },
   { g:'oldmaid',     call:'endGame()',      win:null },
-  { g:'onecard',     call:'(ST.winner=MYSEAT,endGame())', fn:'endGame', win:null },
+  { g:'onecard',     call:'endGame()',      win:null },
   { g:'seotda',      call:'showResult()',   win:null },
 ];
 (async () => {

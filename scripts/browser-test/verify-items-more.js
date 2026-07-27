@@ -224,7 +224,89 @@ const CLOSE_TUT = `try{ if(window.TUT) TUT.close();
     await p.close();
   }
 
+  /* ───────────── 원카드 — 공격 막기 ─────────────
+     🛡은 '공격이 쌓였고 + 내 차례 + 이어칠 2·조커가 없을 때'만 뜬다. 그냥 두면
+     한 판에 몇 번 올까 말까 한 상태라 자연 플레이로는 표본이 안 잡힌다
+     (함정 #16: 표본을 못 모은 것과 단언이 깨진 것은 다른 사건이다 — 여기선 아예
+      "판정 불가"가 되어 통과로 위장될 위험이 있다).
+     → 엔진을 직접 그 상태로 세워놓고 검증한다. 화이트박스지만 **엔진이 실제로 돌린
+       상태**라서 규칙을 우회하지는 않는다. AI 타이머는 manualAI로 멈춰 상태를 고정한다. */
+  console.log('\n=== 원카드 · 공격 막기 ===');
+  // 공격 5장이 쌓였고 내 손엔 이어칠 카드(2·조커)가 없는 상태로 엔진을 세운다
+  const OC_FORCE = `
+    engine.manualAI = true;                    // AI 타이머 정지 — 상태를 고정한다
+    engine.attack = 5; engine.turn = 0; engine.pendingDrawn = null;
+    engine.hands[0] = engine.hands[0].filter(function(c){ return !(c.joker || c.r === 2); });
+    if (!engine.hands[0].length) engine.hands[0] = [{r:7,s:0,joker:false,id:900}];
+    engine._emit();
+    return { hand: engine.hands[0].length, attack: engine.attack };`;
+
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/onecard.html');
+      await p.wait(900); await p.eval(CLOSE_TUT); await p.wait(200);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(1400);
+
+      const base = await p.eval(`return { itemsOn: !!(S&&S.itemsOn), items: S?S.items.slice():null,
+                                          hand: S?S.myHand.length:0 };`);
+      if (on) {
+        // 전원 같은 개수 지급 (돈으로 유리해지지 않게 — 5종 공통 규약)
+        const uniq = Array.from(new Set(base.items || []));
+        if (!base.itemsOn) bad('원카드: itemsOn이 엔진에 전달되지 않았다');
+        else if (uniq.length !== 1 || uniq[0] !== 2) bad('원카드: 지급이 불균등하거나 2개가 아니다 — ' + JSON.stringify(base.items));
+        else ok('전원 동일 지급 · items=' + JSON.stringify(base.items));
+      } else {
+        if (base.items && base.items.some(x => x !== 0)) bad('원카드: 껐는데 아이템이 지급됐다 — ' + JSON.stringify(base.items));
+        else ok('꺼짐 → 지급 0');
+      }
+
+      const f = await p.eval(OC_FORCE); await p.wait(300);
+      const s1 = await p.eval(`var b=document.getElementById('shieldBtn');
+        return { has: !!b, txt: b?b.textContent:'', attack: S?S.attack:0, canShield: S?S.canShield:false };`);
+
+      if (!on) {
+        if (s1.has) bad('원카드: 아이템전을 껐는데 🛡 버튼이 보인다'); else ok('꺼짐 → 공격 5장이 쌓여도 버튼 없음');
+      } else if (!s1.has) {
+        bad(`원카드: 켰는데 🛡 버튼이 없다 (attack=${s1.attack} canShield=${s1.canShield})`);
+      } else {
+        ok('공격 ' + s1.attack + '장 상황 → 버튼 "' + s1.txt.trim() + '"');
+        const before = { hand: f.hand, items: (await p.eval(`return S.items.slice();`)) };
+        await p.click('#shieldBtn'); await p.wait(500);
+        const s2 = await p.eval(`return { attack:S.attack, items:S.items.slice(), hand:S.myHand.length,
+                                          turn:S.turn, shield:S.lastShield?S.lastShield.blocked:null,
+                                          btn: !!document.getElementById('shieldBtn') };`);
+        if (s2.attack !== 0) bad(`원카드: 🛡을 썼는데 공격이 남아 있다 (${s2.attack}장)`);
+        else ok('공격 스택 5 → 0');
+        // 핵심 — 막았으면 카드를 먹지 않아야 한다. 여기가 '받기'와 갈리는 지점이다.
+        if (s2.hand !== before.hand) bad(`원카드: 🛡을 썼는데 카드를 먹었다 (${before.hand}→${s2.hand}장)`);
+        else ok(`카드를 먹지 않음 (${s2.hand}장 그대로)`);
+        if (!(s2.items[0] === before.items[0] - 1)) bad(`원카드: 개수가 안 줄었다 (${before.items[0]}→${s2.items[0]})`);
+        else ok(`남은 개수 ${before.items[0]}→${s2.items[0]}`);
+        if (s2.turn === 0) bad('원카드: 🛡을 썼는데 차례가 안 넘어갔다');
+        else ok('차례가 다음 사람에게 넘어감 (seat ' + s2.turn + ')');
+        if (s2.shield !== 5) bad('원카드: lastShield.blocked가 5가 아니다 — ' + s2.shield);
+        else ok('연출용 lastShield 기록됨 (blocked=5)');
+
+        // 두 번째 사용 → 0개가 되고, 그 다음엔 버튼이 사라져야 한다
+        await p.eval(OC_FORCE); await p.wait(300);
+        await p.click('#shieldBtn').catch(() => {}); await p.wait(500);
+        const s3 = await p.eval(`return { items:S.items.slice() };`);
+        if (s3.items[0] !== 0) bad(`원카드: 두 번째 사용 후 0이 아니다 (${s3.items[0]})`);
+        else ok('두 번째 사용 → 0개');
+        await p.eval(OC_FORCE); await p.wait(300);
+        const s4 = await p.eval(`return { btn: !!document.getElementById('shieldBtn'), canShield:S.canShield };`);
+        if (s4.btn) bad('원카드: 다 썼는데 🛡 버튼이 남아 있다');
+        else ok('다 쓰면 버튼 사라짐');
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('원카드 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('원카드 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
   await cdp.close();
-  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 5종 통과');
+  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 6종 통과');
   process.exit(fails ? 1 : 0);
 })();

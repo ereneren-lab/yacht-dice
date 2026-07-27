@@ -24,6 +24,7 @@ const MAP = {
   alkkagi: ['alkkagi-core.js', 'alkkagi.html'],
   seotda:  ['seotda-core.js',  'seotda.html'],
   indianpoker: ['indianpoker-core.js', 'indianpoker.html'],
+  onecard: ['onecard-core.js',     'onecard.html'],
 };
 
 let hadError = false;

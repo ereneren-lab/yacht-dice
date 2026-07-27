@@ -21,12 +21,13 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 | 알까기 | `public/alkkagi.html` | `public/alkkagi-core.js` | ✅ |
 | 섯다 | `public/seotda.html` | `public/seotda-core.js` | — (로컬/AI) |
 | 인디언 포커 | `public/indianpoker.html` | `public/indianpoker-core.js` | — (로컬/AI · v1.232 코어 분리) |
-| 카드 5종 | `blackjack`·`baccarat`·`highlow`·`onecard`·`oldmaid`.html | (코어 없음 — HTML 안) | — |
+| 원카드 | `public/onecard.html` | `public/onecard-core.js` | — (로컬/AI · v1.233 코어 분리) |
+| 카드 4종 | `blackjack`·`baccarat`·`highlow`·`oldmaid`.html | (코어 없음 — HTML 안) | — |
 | 허브 | `public/index.html` | — | — |
 
 서버는 게임 엔진을 `require`해서 방마다 인스턴스 1개를 돌린다(권위 서버). 클라는 상태 스냅샷을 받아 렌더만 한다.
 
-## ⚠️ 엔진 이중 구조 (제일 중요) — 코어가 있는 **8종 전부**
+## ⚠️ 엔진 이중 구조 (제일 중요) — 코어가 있는 **9종 전부**
 
 **코어가 있는 게임 엔진은 `*-core.js`(서버가 `require`)와 해당 HTML 안 인라인 사본(브라우저용) 두 곳에 동일하게 존재한다.** 한쪽만 고치면 로컬/온라인 동작이 갈린다(드리프트).
 
@@ -36,7 +37,7 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 - UMD 래퍼가 Node에선 `module.exports`, 브라우저에선 `window.YutCore` / `LCRCore` 등으로 갈라주므로 **같은 소스를 양쪽에 그대로** 쓸 수 있다.
 - `lcr`의 인라인 사본은 과거 한 줄로 압축한 다른 포맷이었으나, **빌드 도입 시 core 원본으로 정규화**되어 이제 5종 모두 core와 동일 포맷이다.
 
-동기화 확인법 — **`npm run check:drift`** (커밋/배포 전 실행, **8종** OK 확인 · 드리프트면 exit 1).
+동기화 확인법 — **`npm run check:drift`** (커밋/배포 전 실행, **9종** OK 확인 · 드리프트면 exit 1).
 게임을 새로 코어 분리하면 `scripts/build-inline.js`의 `MAP`과 `scripts/check-drift.js`의 `CASES` **양쪽에** 추가해야 한다(한쪽만 넣으면 검사에서 조용히 빠진다).
 ⚠️ CORE 마커는 START/END **사이에 최소 한 줄**이 있어야 정규식이 잡는다 — 두 줄을 붙여 넣으면 "마커 없음"으로 실패한다.
 
@@ -65,7 +66,7 @@ node server.js                                  # 먼저 서버
 node scripts/browser-test/verify-fx.js          # 자동 단언(출발칸 잔상·페이드·reduced-motion·예외)
 node scripts/browser-test/capture.js hold       # 연출을 눈으로 — out/*.png
 node scripts/browser-test/verify-online.js      # 탭 2개 = 사람 2명(채팅 왕복·자리 소유권·재접속)
-node scripts/browser-test/verify-analytics.js   # 계측 퍼널(빠름) · --full 붙이면 윷 한 판을 실제로 끝까지
+node scripts/browser-test/verify-analytics.js   # 계측 퍼널 30개 단언 (~4분)
 ```
 
 **연출을 검증할 땐 `scripts/browser-test/README.md`를 먼저 읽을 것.** 특히 아래 #7.
@@ -104,6 +105,12 @@ git add -A && git commit -m "..." && git push
   `verify-analytics.js`가 그 줄을 읽어 단언한다.
 - ⚠️ `{게임}` 같은 커스텀 속성은 Plausible 요금제에 따라 대시보드에서 안 보일 수 있다.
   **게임별 구분은 페이지 주소로도 나오므로** 속성은 보너스다.
+
+**검증 상태 (정직하게).** `verify-analytics.js` 30개 단언 통과.
+`게임시작`·`허브_카드클릭`은 실제 브라우저에서 발화를 봤다.
+**`1판완료`은 정적 배선 단언까지만 검증됐다** — `AL.done`이 `games++` 바로 앞에 있음은
+보장되나 실제 발화를 브라우저에서 보지는 못했다(`--full` 미완성, 아래 함정 참고).
+→ **배포 후 Plausible 대시보드에서 `1판완료`이 실제로 찍히는지 한 번 눈으로 확인할 것.**
 
 ## 🕳️ 반복해서 터진 함정 (같은 실수 금지)
 
@@ -149,6 +156,35 @@ git add -A && git commit -m "..." && git push
 
 15. **첫 방문 오버레이가 자동 테스트를 깨뜨린다** — 튜토리얼·규칙이 처음 방문에 자동으로 떠서 시작 버튼 클릭을 막는다. 감사·테스트는 시작 전에 `TUT.close()` + `#helpClose/#rulesClose`를 먼저 눌러야 한다.
 
+16. **게임에 새 '선택 단계'를 넣으면 e2e 드라이버가 조용히 굳는다** — v1.160이 "여러 끗수가
+   남았을 때 판에서 목적지 고르기"(`.stepghost`)를 추가했는데 `yut-drive.js`의
+   `resolveDirection`은 옛 지름길 오버레이(`#dirSt`)만 알았다. 그 결과 드라이버가 말을 누른 뒤
+   아무것도 고르지 않아 게임이 "어디로 갈지 골라주세요"에서 멈췄다.
+   **실측: 8분 동안 진행 1턴 / 대기 942회.** 실패가 아니라 **침묵**으로 나타난다 —
+   단언이 깨지는 게 아니라 게임이 진행되지 않은 채 시간만 흐른다.
+   (다행히 `verify-fx.js`는 이 경우를 `skip()`으로 "판정 불가"라고 찍고 **종료코드 2**를 낸다.
+   통과로 위장되지는 않는다. 새 테스트를 쓸 때도 이 구분을 반드시 따라할 것 —
+   "표본을 못 모은 것"과 "단언이 깨진 것"은 다른 사건이다.)
+   → **플레이 흐름에 새 인터랙션 단계를 추가하면 `yut-drive.js`를 같이 고칠 것.**
+   드라이버 수정 후에는 "실제로 몇 턴이 진행됐는지"를 로그로 확인할 것(0턴 통과 방지).
+
+17. **장시간 CDP 세션은 끊긴다 — 재시도를 반드시 감쌀 것** — 윷을 몇 분 이상 연속으로 돌리면
+   `"CDP 소켓이 끊겼다"` / `"브라우저 프로세스 종료"`로 크로미움이 죽는다.
+   `verify-fx.js`가 이미 이유를 적어뒀다: **이 환경은 메모리가 빠듯하다.**
+   그래서 `verify-fx.js`는 `run()`을 try/catch로 감싸 4초 쉬고 **1회 재시도**한다.
+   → **풀게임을 도는 새 테스트를 쓸 땐 이 재시도 래퍼를 그대로 복사할 것.**
+   래퍼 없이 짜서 3회 연속 죽고 "원인 미규명"으로 오진한 적 있다(2026-07-22).
+
+18. **최상위 `let`/`const`는 `window`에 안 올라간다 — CDP 드라이버가 조용히 굳는다 (v1.233)** —
+   함정 #13의 짝이다. #13이 "IIFE 안이라 못 읽는다"였다면 이건 **IIFE 밖인데도 `window`엔 없다**는 것.
+   클래식 스크립트 최상위의 `let S`는 전역 **렉시컬** 환경에 들어가 `window.S`가 **undefined**다
+   (`var`였다면 올라간다). 그래서 `if(!window.S) return;`로 시작하는 드라이버는 **매 틱 즉시 빠져나가**
+   아무것도 안 한 채 시간만 흘린다 — 원카드 완주 테스트가 6조합 × 60초를 그렇게 날렸다.
+   화면은 멀쩡히 "내 차례"를 그리고 있어서 **게임 버그로 오진하기 딱 좋다.**
+   → CDP에서 페이지 변수를 볼 땐 **`typeof X !== 'undefined'`로 맨 이름을 참조**할 것
+   (`window.X`가 아니라). 기존 테스트들이 `var _S=(typeof S!=='undefined')?S:null;`를 쓰는 게 이 이유다.
+   그리고 함정 #16대로 **"실제로 몇 턴 진행됐는지"를 반드시 로그로 남길 것** — 0턴이면 통과가 아니다.
+
 ## 📖 튜토리얼 (공용 모듈 · v1.227)
 
 13게임 전부 단계별 튜토리얼이 있다. 4종(kb·ld·lcr·섯다)은 **자체 구현**을, 나머지 9종은 **공용 모듈**을 쓴다.
@@ -163,7 +199,7 @@ git add -A && git commit -m "..." && git push
 - 단계 내용은 `scripts/add-tutorials.js`에 모여 있다(멱등 — 다시 돌려도 중복 삽입 안 됨).
 - 첫 방문 1회만 자동 오픈(`alley_tut_<game>`), `body.ingame`이면 안 뜬다. 검사: **`npm run test:tutorial`**
 
-## 🎁 아이템전 (8종)
+## 🎁 아이템전 (9종)
 
 | 게임 | 아이템 | 액션 |
 |---|---|---|
@@ -175,6 +211,7 @@ git add -A && git commit -m "..." && git push
 | 섯다 | 🃏 한 장 다시 | `{type:'redraw',idx}` (로컬 전용) |
 | 알까기 | 🎯 한 번 더 튕기기 | `{type:'extraShot'}` (조준 **전** 예약) |
 | 인디언 포커 | 🔍 내 카드 보기 | `{type:'peek'}` (내 차례 · 한 판 1회 · 로컬 전용) |
+| 원카드 | 🛡 공격 막기 | `{type:'shield'}` (공격이 쌓였을 때만 · 카드를 안 먹고 넘김) |
 
 **규칙(재성님 지시)**: 아이템은 **아이템전에서만** · **전원 같은 개수**(엔진이 지급) · 상점에서 개수 판매 금지 · **AI도 반드시 쓴다.**
 - 윷은 별도 아이템을 추가하지 않았다 — 이미 아이템전이 있어서 같은 이름 두 시스템이 되면 헷갈린다. 대신 **AI가 `useItem`을 한 번도 부르지 않던 공정성 버그**를 고쳤다(v1.227).

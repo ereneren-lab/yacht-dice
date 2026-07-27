@@ -134,6 +134,11 @@
   .abtn.take{background:linear-gradient(180deg,#c05252,#8a3030)}
   .abtn.pass{background:linear-gradient(180deg,#6a7a5a,#47542f)}
   .abtn.uno{background:linear-gradient(180deg,#e0a840,#b07d1a);color:#1a1608}
+  /* 아이템전 버튼 줄 — 행동 버튼 위에 따로 둔다(좁은 화면에서 버튼 줄이 깨지지 않게) */
+  .itemrow{display:flex;gap:6px;margin-bottom:6px}
+  .itemrow:empty{display:none}
+  .itemrow .abtn{flex-direction:row;gap:6px;padding:9px 8px;font-size:12.5px;
+    background:linear-gradient(180deg,#c9a13f,#96731d);border-color:rgba(255,255,255,.22)}
 
   /* 무늬 선택 */
   .suitpick{display:flex;gap:10px;justify-content:center;margin-top:6px}
@@ -172,6 +177,7 @@
   </div>
 
   <div class="dock">
+    <div class="itemrow" id="itemrow"></div>
     <div class="acts" id="acts"></div>
   </div>
 </div>
@@ -186,6 +192,11 @@
       <div class="opt" data-n="2">2인</div>
       <div class="opt on" data-n="3">3인</div>
       <div class="opt" data-n="4">4인</div>
+    </div>
+    <div class="lbl">아이템전</div>
+    <div class="row" id="optItems">
+      <div class="opt on" data-items="0">🚫 안 씀</div>
+      <div class="opt" data-items="1">🛡 공격 막기 ×2</div>
     </div>
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
@@ -209,6 +220,7 @@
         · <b>조커</b> — 아무 데나 낼 수 있는 만능 + 다음 사람 <b>5장</b> 먹기, 무늬 지정</p>
       <p><b>공격 방어</b> — 공격받은 사람이 <b>2</b>나 <b>조커</b>가 있으면 이어 내서 누적, 없으면 쌓인 장수를 다 먹고 스킵돼요.</p>
       <p><b>승리</b> — 손패를 먼저 <b>0장</b>으로 만든 사람이 승리!</p>
+      <p><b>🛡 아이템전</b>(옵션) — 켜면 <b>모두가 똑같이 2개씩</b> '공격 막기'를 받아요. 쌓인 공격을 <b>0으로 지우고</b> 카드를 안 먹은 채 넘어가요. 지금 <b>+2</b>에 쓸지, 뒤에 올 <b>조커 +5</b>를 위해 아껴둘지가 승부처. <b>AI도 씁니다.</b></p>
     </div>
     <button class="btn" id="rulesClose" style="margin-top:14px">알겠어</button>
   </div>
@@ -224,10 +236,468 @@
   </div>
 </div>
 
+<!-- CORE:onecard START (자동생성 — 직접 수정 금지, npm run build로 동기화) -->
 <script>
+/* === onecard-core.js — 원카드 엔진 (브라우저/Node 공용) ===
+ *
+ * 숨김 정보 (코어를 만들기 전에 한 줄로 적는다 — CLAUDE.md 함정 #14):
+ *   **내 손패는 나만 본다. 남의 손패는 '장수'만 공개되고 내용은 아무도 못 본다.
+ *     더미(draw)는 전원 못 본다. 버림패 맨 위·지정 무늬·공격 스택·방향은 전원 공개.**
+ *   → 라이어·섯다와 같은 '남을 가리는' 방향이다(인디언 포커만 반대).
+ *     남의 손패는 화면에서 안 그리는 걸론 부족하고 **스냅샷에 싣지도 않는다.**
+ *
+ * 규칙: 52장 + 조커 2장. 각자 7장. 버림패 맨 위와 같은 무늬 or 같은 숫자를 낸다.
+ *       못 내면 1장 뽑고, 뽑은 게 낼 수 있으면 내거나 넘긴다.
+ *       특수: 2=공격+2 · A(1)=스킵 · J(11)=한번더 · Q(12)=방향전환(2인은 한번더)
+ *             조커=만능+공격5, 무늬 지정. 공격은 2/조커로 이어치기(누적), 못 막으면 다 먹고 스킵.
+ *       손패 0장이 되면 승리.
+ *
+ * 인터페이스:
+ *   new OCEngine({players, itemsOn, itemCharges, aiMs, rng, manualAI, onState})
+ *   .start() / .action(pid,a) / .serialize(viewerPid) / .setConnected(pid,b) / .destroy()
+ *   a = {type:'play', cardId, suit?} | {type:'draw'} | {type:'pass'} | {type:'take'} | {type:'shield'}
+ *       suit는 조커를 낼 때만 쓴다(0~3). 무늬 선택은 클라가 먼저 받아 액션에 실어 보낸다
+ *       — 엔진에 '무늬 고르는 중' 같은 UI 하위상태를 만들지 않기 위해서다.
+ *   onState()은 인자 없이 호출된다 → 소비자가 serialize(viewerPid)를 직접 부른다(사람마다 손패가 다르다).
+ *
+ * 엔진은 '무슨 일이 있었나'만 남기고 그리지 않는다(연출은 클라가 seq 차이를 보고 만든다).
+ *   dealSeq(새 판 딜) · lastAction{seat,kind,card,amount,seq} · lastShield{seq,seat,blocked}
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.OCCore = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const SUITS = ['♠', '♥', '♦', '♣'];          // 0,3=black · 1,2=red
+  const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const SPECIAL_TAG = { 1: '스킵', 2: '공격2', 11: '한번더', 12: '방향' };
+  const JOKER_ATTACK = 5;
+  const HAND_SIZE = 7;
+
+  /* 덱 — id는 덱 안에서만 유일하면 된다(0..53).
+     예전 인라인 판은 모듈 최상위 `let CID`를 썼는데, 재시작할 때마다 값이 계속 커지는
+     유령 상태였다(레시피 3: 최상위 let을 하나도 남기지 않는다). */
+  function makeDeck(rng) {
+    rng = rng || Math.random;
+    const d = [];
+    let id = 0;
+    for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) d.push({ r, s, joker: false, id: id++ });
+    d.push({ r: 0, s: 0, joker: true, jk: 'B', id: id++ });
+    d.push({ r: 0, s: 1, joker: true, jk: 'R', id: id++ });
+    return shuffle(d, rng);
+  }
+
+  // 셔플·AI 난수는 반드시 주입 rng로 (Math.random 직접 호출 금지 — 5종 규약)
+  function shuffle(a, rng) {
+    rng = rng || Math.random;
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function isSpecial(c) { return !!c && (c.joker || c.r === 1 || c.r === 2 || c.r === 11 || c.r === 12); }
+
+  /* 낼 수 있나 — 순수 함수. 판정에 필요한 건 전부 공개 정보라
+     클라(내 손패 강조)와 엔진(합법수 계산)이 같은 함수를 쓴다. */
+  function canPlayOn(card, top, reqSuit, attack) {
+    if (!card || !top) return false;
+    if (attack > 0) return card.joker || card.r === 2;   // 공격 중엔 이어치기만
+    if (card.joker) return true;                          // 조커는 만능
+    const es = (reqSuit != null) ? reqSuit : (top.joker ? null : top.s);
+    const er = top.joker ? null : top.r;
+    return card.s === es || (er != null && card.r === er);
+  }
+
+  /* AI 판단 — 엔진이 만든 view(=그 자리에서 본 serialize)만 보고 결정한다.
+     사람이 화면에서 보는 정보와 정확히 같은 것만 본다(남의 손패는 장수뿐). */
+  function aiPickMove(view, legal, rng) {
+    rng = rng || Math.random;
+    if (view.attack > 0) return legal[0];                 // 공격 중엔 무조건 이어치기
+    // 상대 중 최소 손패 — 누가 곧 이길 것 같으면 공격/스킵으로 끊는다
+    let oppMin = 99;
+    for (const p of view.players) if (p.seat !== view.mySeat) oppMin = Math.min(oppMin, p.count);
+    const specials = legal.filter(isSpecial), normals = legal.filter(c => !isSpecial(c));
+    if (oppMin <= 1 && specials.length) {
+      return specials.find(c => c.r === 2 || c.joker) || specials.find(c => c.r === 1) || specials[0];
+    }
+    // 평소엔 일반 카드부터 내고 특수는 아껴둠(조커는 최후)
+    if (normals.length) return normals[Math.floor(rng() * normals.length)];
+    const nonJoker = specials.filter(c => !c.joker);
+    if (nonJoker.length) return nonJoker[0];
+    return legal[0];
+  }
+
+  // 조커를 낼 때 지정할 무늬 — 내 손에 가장 많은 무늬
+  function aiPickSuit(hand) {
+    const cnt = [0, 0, 0, 0];
+    for (const c of hand) if (!c.joker) cnt[c.s]++;
+    let best = 0;
+    for (let s = 1; s < 4; s++) if (cnt[s] > cnt[best]) best = s;
+    return best;
+  }
+
+  class OCEngine {
+    constructor(opts) {
+      opts = opts || {};
+      this.rng = opts.rng || Math.random;
+      this.onState = opts.onState || function () {};
+      this.aiMs = opts.aiMs != null ? opts.aiMs : 780;
+      this.manualAI = !!opts.manualAI;
+      this.players = (opts.players || []).map((p, i) => ({
+        pid: p.pid, name: p.name || ('P' + (i + 1)), avatar: p.avatar || null, ai: !!p.ai,
+        aiDiff: p.aiDiff || 'normal', connected: p.connected !== false, seat: i
+      }));
+      this.N = this.players.length;
+
+      /* 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '🛡 공격 막기'를 받는다.
+         상점에서 산 개수와 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
+         효과: 쌓인 공격(2·조커 누적)을 0으로 지우고 카드를 안 먹은 채 차례를 넘긴다.
+         왜 이 아이템인가 — 원카드에서 판을 가장 크게 뒤집는 건 '조커 맞고 +5장 먹는 순간'이다.
+         그래서 '지금 +2에 쓸까, 뒤에 올지 모를 +5를 위해 아껴둘까'가 진짜 선택이 된다
+         (레시피 8: 이름이 예쁜 것보다 '선택이 되는가'가 기준). */
+      this.itemsOn = !!opts.itemsOn;
+      this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges != null ? opts.itemCharges | 0 : 2));
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.shieldSeq = 0; this.lastShield = null;
+
+      this.phase = 'idle';        // 'idle' | 'play' | 'gameover'
+      this.hands = []; this.draw = []; this.discard = [];
+      this.dir = 1; this.turn = 0; this.attack = 0; this.reqSuit = null;
+      this.lastAct = []; this.pendingDrawn = null;   // {seat, card} — 뽑은 카드를 낼지 넘길지 고르는 중
+      this.winner = null; this.winnerSeat = -1;
+      this.dealSeq = 0; this.actionSeq = 0; this.lastAction = null;
+      this.gameStartTime = 0;
+      this._dead = false; this._timer = null;
+    }
+
+    // ── 진행 ──────────────────────────────────────────────
+    start() { this._dead = false; this.gameStartTime = Date.now(); this._newGame(); }
+
+    _newGame() {
+      this._clearTimer();
+      if (this._dead) return;
+      const deck = makeDeck(this.rng);
+      this.hands = this.players.map(() => []);
+      for (let k = 0; k < HAND_SIZE; k++) for (let i = 0; i < this.N; i++) this.hands[i].push(deck.pop());
+      // 시작 카드는 특수카드가 아닌 일반 카드가 나올 때까지 (첫 수부터 공격/스킵이면 사고다)
+      let startCard = deck.pop();
+      while (deck.length && isSpecial(startCard)) { deck.unshift(startCard); startCard = deck.pop(); }
+      this.discard = [startCard];
+      this.draw = deck;
+      this.dir = 1; this.turn = 0; this.attack = 0; this.reqSuit = null;
+      this.lastAct = this.players.map(() => '');
+      this.pendingDrawn = null;
+      this.winner = null; this.winnerSeat = -1;
+      this.lastAction = null; this.lastShield = null;
+      this.items = this.players.map(() => this.itemsOn ? this.itemCharges : 0);
+      this.phase = 'play';
+      this.dealSeq++;
+      this._emit();
+      this._maybeAI();
+    }
+
+    // ── 카드/좌석 헬퍼 ────────────────────────────────────
+    top() { return this.discard[this.discard.length - 1]; }
+    _nextSeat(from, steps) { let s = from; for (let k = 0; k < steps; k++) s = (s + this.dir + this.N) % this.N; return s; }
+    legalMoves(seat) {
+      const t = this.top();
+      return (this.hands[seat] || []).filter(c => canPlayOn(c, t, this.reqSuit, this.attack));
+    }
+    // 더미가 마르면 버림패(맨 위 1장 남기고)를 섞어 되쓴다
+    _reshuffle() {
+      if (this.draw.length > 0) return;
+      if (this.discard.length <= 1) return;
+      const t = this.discard.pop();
+      const rest = this.discard;
+      this.discard = [t];
+      this.draw = shuffle(rest, this.rng);
+    }
+    _drawCard(seat) {
+      this._reshuffle();
+      if (this.draw.length === 0) return null;
+      const c = this.draw.pop();
+      this.hands[seat].push(c);
+      return c;
+    }
+
+    validActions(seat) {
+      if (this.phase !== 'play' || this.turn !== seat) return [];
+      const acts = [];
+      if (this.pendingDrawn && this.pendingDrawn.seat === seat) {
+        // 뽑은 카드를 낼 수 있으면 '내기', 아니면 '넘기기'만
+        if (canPlayOn(this.pendingDrawn.card, this.top(), this.reqSuit, this.attack)) acts.push('play');
+        acts.push('pass');
+        return acts;
+      }
+      if (this.attack > 0) {
+        if (this.legalMoves(seat).length) acts.push('play');
+        acts.push('take');
+        if (this._canShield(seat)) acts.push('shield');
+        return acts;
+      }
+      if (this.legalMoves(seat).length) acts.push('play');
+      acts.push('draw');
+      return acts;
+    }
+
+    // ── 액션 ──────────────────────────────────────────────
+    action(pid, a) {
+      if (this._dead || !a || typeof a !== 'object') return;   // 클라가 a 없이 보내도 죽지 않게
+      const seat = this.players.findIndex(p => p.pid === pid);
+      if (seat < 0) return;
+      if (this.phase !== 'play' || this.turn !== seat) return;
+      if (this._isAuto(seat)) return;                          // AI 자리는 사람이 대신 못 누른다
+      switch (a.type) {
+        case 'play': {
+          const hand = this.hands[seat];
+          const card = hand.find(c => c.id === a.cardId);
+          if (!card) return;
+          // 뽑은 카드를 고르는 중이면 그 카드만 낼 수 있다
+          if (this.pendingDrawn && this.pendingDrawn.seat === seat && this.pendingDrawn.card.id !== card.id) return;
+          if (!canPlayOn(card, this.top(), this.reqSuit, this.attack)) return;
+          this._play(seat, card, a.suit);
+          return;
+        }
+        case 'draw':   this._draw(seat); return;
+        case 'pass':   this._pass(seat); return;
+        case 'take':   this._take(seat); return;
+        case 'shield': this._shield(seat); return;
+      }
+    }
+
+    _play(seat, card, suit) {
+      this._clearTimer();
+      const h = this.hands[seat];
+      const idx = h.findIndex(c => c.id === card.id);
+      if (idx < 0) return;
+      h.splice(idx, 1);
+      this.discard.push(card);
+      this.reqSuit = null;
+      this.pendingDrawn = null;
+      this.lastAct[seat] = this._actLabel(card);
+      this.lastAction = { seat, kind: 'play', card: Object.assign({}, card), amount: 0, seq: ++this.actionSeq };
+
+      // 손패를 다 털면 그 자리에서 끝 — 마지막 장의 효과는 적용하지 않는다(이미 이겼다)
+      if (h.length === 0) { this._finish(seat); return; }
+
+      let advance = 1, skip = false;
+      if (card.joker) { this.attack += JOKER_ATTACK; this.reqSuit = (suit == null) ? card.s : (suit | 0); }
+      else if (card.r === 2) { this.attack += 2; }
+      else if (card.r === 1) { skip = true; }
+      else if (card.r === 11) { advance = 0; }                       // 한 번 더
+      else if (card.r === 12) { this.dir *= -1; if (this.N === 2) advance = 0; }
+      if (advance !== 0) this.turn = this._nextSeat(seat, skip ? 2 : 1);
+      this._emit();
+      this._maybeAI();
+    }
+
+    _draw(seat) {
+      if (this.attack > 0) return;                 // 공격 중엔 '받기'지 '뽑기'가 아니다
+      if (this.pendingDrawn) return;
+      this._clearTimer();
+      const c = this._drawCard(seat);
+      this.lastAction = { seat, kind: 'draw', card: null, amount: 1, seq: ++this.actionSeq };
+      if (c && canPlayOn(c, this.top(), this.reqSuit, this.attack)) {
+        this.pendingDrawn = { seat, card: c };     // 낼지 넘길지는 본인이 고른다
+        this.lastAct[seat] = '뽑기';
+        this._emit();
+        this._maybeAI();
+        return;
+      }
+      this.lastAct[seat] = '뽑기';
+      this.turn = this._nextSeat(seat, 1);
+      this._emit();
+      this._maybeAI();
+    }
+
+    _pass(seat) {
+      this._clearTimer();
+      this.pendingDrawn = null;
+      this.lastAct[seat] = '넘김';
+      this.lastAction = { seat, kind: 'pass', card: null, amount: 0, seq: ++this.actionSeq };
+      this.turn = this._nextSeat(seat, 1);
+      this._emit();
+      this._maybeAI();
+    }
+
+    _take(seat) {
+      if (this.attack <= 0) return;
+      this._clearTimer();
+      const n = this.attack;
+      this.attack = 0;
+      let got = 0;
+      for (let k = 0; k < n; k++) { if (this._drawCard(seat) == null) break; got++; }
+      this.lastAct[seat] = '+' + got + '장';
+      this.lastAction = { seat, kind: 'take', card: null, amount: got, seq: ++this.actionSeq };
+      this.turn = this._nextSeat(seat, 1);
+      this._emit();
+      this._maybeAI();
+    }
+
+    // ── 아이템전: 🛡 공격 막기 ────────────────────────────
+    /* 아이템전이 아니거나 내 몫을 다 썼으면 무시한다(개수는 전원 동일 지급).
+       공격이 실제로 쌓여 있을 때만 — 공격이 없으면 막을 게 없어서 그냥 낭비다. */
+    _canShield(seat) {
+      return !!(this.itemsOn && this.phase === 'play' && this.turn === seat &&
+                this.attack > 0 && this.items[seat] > 0 && !this.pendingDrawn);
+    }
+    _shield(seat) {
+      if (!this._canShield(seat)) return;
+      this._clearTimer();
+      const blocked = this.attack;
+      this.items[seat]--;
+      this.attack = 0;
+      this.shieldSeq++;
+      this.lastShield = { seq: this.shieldSeq, seat, blocked };
+      this.lastAct[seat] = '🛡 막음';
+      this.lastAction = { seat, kind: 'shield', card: null, amount: blocked, seq: ++this.actionSeq };
+      this.turn = this._nextSeat(seat, 1);   // 카드를 안 먹고 차례만 넘긴다
+      this._emit();
+      this._maybeAI();
+    }
+
+    /* AI도 반드시 쓴다 — 사람만 쓰는 판은 공정하지 않다.
+       이어치기(2·조커)로 막을 수 있으면 아이템을 아끼고, 정말 못 막을 때만 쓴다.
+       그리고 마지막 한 장은 더 큰 공격에만 — 첫 +2에 털어버리지도, 아끼다 +5를 맞지도 않게 2단계. */
+    _aiWantShield(seat) {
+      if (!this.itemsOn || !(this.items[seat] > 0)) return false;
+      if (this.attack <= 0) return false;
+      if (this.legalMoves(seat).length) return false;      // 카드로 막을 수 있으면 안 쓴다
+      const big = this.items[seat] >= 2 ? 4 : 5;           // 마지막 한 장은 조커급(+5)에만
+      return this.attack >= big;
+    }
+
+    // ── AI 구동 ───────────────────────────────────────────
+    _isAuto(seat) { const p = this.players[seat]; return !!p && (p.ai || p.connected === false); }
+    _maybeAI() {
+      this._clearTimer();
+      if (this._dead || this.phase !== 'play' || this.manualAI) return;
+      if (!this._isAuto(this.turn)) return;
+      const seat = this.turn;
+      this._timer = setTimeout(() => this._aiAct(seat), this.aiMs);
+    }
+    aiTurnIfNeeded() {   // manualAI: 클라가 연출을 끝낸 뒤 직접 부른다
+      if (this._dead || this.phase !== 'play' || !this._isAuto(this.turn)) return false;
+      this._aiAct(this.turn); return true;
+    }
+    _aiAct(seat) {
+      if (this._dead || this.phase !== 'play' || this.turn !== seat) return;
+
+      // 뽑은 카드를 고르는 중이면 — 낼 수 있으면 내고 아니면 넘긴다
+      if (this.pendingDrawn && this.pendingDrawn.seat === seat) {
+        const c = this.pendingDrawn.card;
+        if (canPlayOn(c, this.top(), this.reqSuit, this.attack)) {
+          this._play(seat, c, c.joker ? aiPickSuit(this.hands[seat]) : null);
+        } else this._pass(seat);
+        return;
+      }
+
+      if (this.attack > 0) {
+        const legal = this.legalMoves(seat);
+        if (legal.length) { const c = legal[0]; this._play(seat, c, c.joker ? aiPickSuit(this.hands[seat]) : null); return; }
+        if (this._aiWantShield(seat)) { this._shield(seat); return; }
+        this._take(seat);
+        return;
+      }
+
+      const legal = this.legalMoves(seat);
+      if (legal.length) {
+        const view = this.serialize(this.players[seat].pid);   // 사람이 보는 것과 같은 정보만 본다
+        const c = aiPickMove(view, legal, this.rng) || legal[0];
+        this._play(seat, c, c.joker ? aiPickSuit(this.hands[seat]) : null);
+        return;
+      }
+      this._draw(seat);
+    }
+
+    _actLabel(card) {
+      if (card.joker) return '조커! ' + SUITS[card.s === 1 ? 1 : 0];
+      if (card.r === 2) return '공격2';
+      if (card.r === 1) return '스킵';
+      if (card.r === 11) return '한번더';
+      if (card.r === 12) return '방향';
+      return '냄';
+    }
+
+    _finish(seat) {
+      this._clearTimer();
+      this.phase = 'gameover';
+      this.winnerSeat = seat;
+      this.winner = this.players[seat] ? this.players[seat].pid : null;
+      this._emit();
+    }
+
+    // ── 스냅샷 ────────────────────────────────────────────
+    /* 남의 손패는 **스냅샷에 싣지 않는다**(화면에서 안 그리는 걸론 부족 — 있으면 그게 곧 누출이다).
+       더미(draw)도 내용 없이 장수만 나간다. */
+    serialize(viewerPid) {
+      const v = this.players.findIndex(p => p.pid === viewerPid);
+      const t = this.top();
+      const myHand = (v >= 0 && this.hands[v]) ? this.hands[v].map(c => Object.assign({}, c, {
+        playable: this.phase === 'play' && this.turn === v &&
+          (this.pendingDrawn ? (this.pendingDrawn.seat === v && this.pendingDrawn.card.id === c.id) : true) &&
+          canPlayOn(c, t, this.reqSuit, this.attack)
+      })) : [];
+      return {
+        game: 'onecard', phase: this.phase, turn: this.turn, dir: this.dir,
+        attack: this.attack, reqSuit: this.reqSuit,
+        top: t ? Object.assign({}, t) : null,
+        drawCount: this.draw.length, discardCount: this.discard.length,
+        dealSeq: this.dealSeq, gameStartTime: this.gameStartTime,
+        itemsOn: this.itemsOn, items: this.items.slice(),
+        canShield: v >= 0 ? this._canShield(v) : false,
+        lastShield: this.lastShield ? Object.assign({}, this.lastShield) : null,
+        lastAction: this.lastAction ? Object.assign({}, this.lastAction) : null,
+        mySeat: v,
+        myHand,
+        // 뽑은 카드를 고르는 중 — 그 사람에게만 알린다(남에겐 무슨 카드를 뽑았는지 비밀)
+        myPendingDrawnId: (this.pendingDrawn && this.pendingDrawn.seat === v) ? this.pendingDrawn.card.id : null,
+        pendingSeat: this.pendingDrawn ? this.pendingDrawn.seat : -1,
+        validActions: v >= 0 ? this.validActions(v) : [],
+        winner: this.winner, winnerSeat: this.winnerSeat,
+        players: this.players.map((p, s) => ({
+          pid: p.pid, name: p.name, avatar: p.avatar, ai: p.ai, connected: p.connected, seat: s,
+          count: this.hands[s] ? this.hands[s].length : 0,   // 장수만 — 내용은 싣지 않는다
+          act: this.lastAct[s] || '',
+          items: this.items[s] || 0                          // 누가 아이템이 몇 개 남았는지는 공개 정보
+        }))
+      };
+    }
+
+    setConnected(pid, val) {
+      const p = this.players.find(x => x.pid === pid); if (!p) return;
+      p.connected = !!val;
+      if (!val && p.seat === this.turn && this.phase === 'play') this._maybeAI();
+      this._emit();
+    }
+
+    _emit() {
+      if (this._dead) return;
+      // 함정 #2 — 여기서 에러를 삼키면 render가 조용히 죽는다. 반드시 드러낸다.
+      try { this.onState(); }
+      catch (e) { if (typeof console !== 'undefined' && console.error) console.error('onecard onState error:', e && e.message, e); }
+    }
+    _clearTimer() { if (this._timer) { clearTimeout(this._timer); this._timer = null; } }
+    destroy() { this._dead = true; this._clearTimer(); }
+  }
+
+  return { OCEngine, makeDeck, shuffle, canPlayOn, isSpecial, aiPickMove, aiPickSuit, SUITS, RANKS, SPECIAL_TAG, HAND_SIZE, JOKER_ATTACK };
+});
+
+</script>
+<!-- CORE:onecard END -->
+<script>
+/* 원카드 클라 — 엔진(OCCore.OCEngine)을 소비만 한다.
+   게임 규칙·AI·상태는 전부 onecard-core.js에 있고, 여기는 화면과 연출만 맡는다.
+   연출은 엔진이 그려주지 않는다 — prevS ↔ S 스냅샷 차이(seq 카운터)를 보고 만든다. */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const AI_NAMES=['호구','타짜','물주','왕눈이','새우깡','판돌이'];
+const MYPID='me';
 
 // ===== 효과음 =====
 const SFX=(function(){
@@ -243,136 +713,20 @@ const SFX=(function(){
     draw(){ noise(.06,.12,2200); },
     special(){ tone(880,.08,'square',.07); tone(1240,.09,'triangle',.07,.06); },
     attack(){ tone(200,.14,'sawtooth',.09); tone(150,.16,'square',.07,.05); },
+    shield(){ tone(300,.1,'square',.08); tone(620,.14,'triangle',.1,.07); tone(880,.16,'sine',.08,.15); },
     uno(){ [784,1047].forEach((f,i)=>tone(f,.16,'triangle',.11,i*.09)); },
     win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.26,'triangle',.12,i*.08)); },
     lose(){ tone(200,.4,'sawtooth',.09); noise(.25,.12,700,.02); [392,311,247].forEach((f,i)=>tone(f,.22,'sine',.07,.12+i*.1)); },
   };
 })();
 
-// ===== 카드 =====
-const SUITS=['♠','♥','♦','♣'];     // 0,3=black · 1,2=red
-const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const SPECIAL_TAG={1:'스킵',2:'공격2',11:'한번더',12:'방향'};
-let CID=0;
-function makeDeck(){
-  const d=[];
-  for(let s=0;s<4;s++) for(let r=1;r<=13;r++) d.push({r,s,joker:false,id:CID++});
-  d.push({r:0,s:0,joker:true,jk:'B',id:CID++});
-  d.push({r:0,s:1,joker:true,jk:'R',id:CID++});
-  return d;
-}
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function isSpecial(c){ return c.joker||c.r===1||c.r===2||c.r===11||c.r===12; }
+// 카드 표기 상수는 코어에서 가져온다 — 두 곳에 두면 반드시 갈라진다
+const SUITS=OCCore.SUITS, RANKS=OCCore.RANKS, SPECIAL_TAG=OCCore.SPECIAL_TAG;
 
-// ===== 순수 엔진 (헤드리스 검증 가능) =====
-function initGame(n){
-  const deck=shuffle(makeDeck());
-  const st={ hands:[], draw:[], discard:[], dir:1, turn:0, attack:0, reqSuit:null, n, over:false, winner:-1 };
-  for(let i=0;i<n;i++) st.hands.push([]);
-  for(let k=0;k<7;k++) for(let i=0;i<n;i++) st.hands[i].push(deck.pop());
-  // 시작 카드: 특수카드가 아닌 일반 카드가 나올 때까지
-  let start=deck.pop();
-  while(deck.length && isSpecial(start)){ deck.unshift(start); start=deck.pop(); }
-  st.discard.push(start);
-  st.draw=deck;
-  return st;
-}
-function topCard(st){ return st.discard[st.discard.length-1]; }
-function effSuit(st){ if(st.reqSuit!=null) return st.reqSuit; const t=topCard(st); return t.joker?null:t.s; }
-function effRank(st){ const t=topCard(st); return t.joker?null:t.r; }
-function canPlay(st,card){
-  if(st.attack>0) return card.joker||card.r===2;
-  if(card.joker) return true;
-  const es=effSuit(st), er=effRank(st);
-  return card.s===es || (er!=null && card.r===er);
-}
-function legalMoves(st,seat){ return st.hands[seat].filter(c=>canPlay(st,c)); }
-function nextSeat(st,from,steps){ let s=from; for(let k=0;k<steps;k++) s=(s+st.dir+st.n)%st.n; return s; }
-function reshuffle(st){
-  if(st.draw.length>0) return;
-  if(st.discard.length<=1) return;
-  const top=st.discard.pop();
-  const rest=st.discard; st.discard=[top];
-  st.draw=shuffle(rest);
-}
-function applyPlay(st,seat,card,chosenSuit){
-  const h=st.hands[seat]; const idx=h.indexOf(card); if(idx<0) return {err:true};
-  h.splice(idx,1); st.discard.push(card); st.reqSuit=null;
-  let effect='';
-  if(card.joker){ effect='joker'; }
-  else if(card.r===2){ effect='attack2'; }
-  else if(card.r===1){ effect='skip'; }
-  else if(card.r===11){ effect='again'; }
-  else if(card.r===12){ effect='reverse'; }
-  if(h.length===0){ st.over=true; st.winner=seat; return {win:true, effect}; }
-  // 효과 적용
-  let advance=1, skip=false;
-  if(card.joker){ st.attack+=5; st.reqSuit=chosenSuit==null?card.s:chosenSuit; }
-  else if(card.r===2){ st.attack+=2; }
-  else if(card.r===1){ skip=true; }
-  else if(card.r===11){ advance=0; }
-  else if(card.r===12){ st.dir*=-1; if(st.n===2) advance=0; }
-  if(advance!==0) st.turn=nextSeat(st,seat,skip?2:1);
-  return {win:false, effect};
-}
-function takeAttack(st,seat){
-  const n=st.attack; st.attack=0;
-  for(let k=0;k<n;k++){ reshuffle(st); if(st.draw.length===0) break; st.hands[seat].push(st.draw.pop()); }
-  st.turn=nextSeat(st,seat,1);
-  return n;
-}
-function drawOne(st,seat){ reshuffle(st); if(st.draw.length===0) return null; const c=st.draw.pop(); st.hands[seat].push(c); return c; }
-function aiPickSuit(st,seat){
-  const cnt=[0,0,0,0];
-  for(const c of st.hands[seat]) if(!c.joker) cnt[c.s]++;
-  let best=0; for(let s=1;s<4;s++) if(cnt[s]>cnt[best]) best=s;
-  return best;
-}
-function aiPickMove(st,seat,legal){
-  // 공격 상황: 스택 카드 우선(있으면 무조건 이어치기)
-  if(st.attack>0) return legal[0];
-  // 상대가 1장이면 공격/스킵 우선
-  const oppMin=Math.min.apply(null, st.hands.map((h,i)=>i===seat?99:h.length));
-  const specials=legal.filter(isSpecial), normals=legal.filter(c=>!isSpecial(c));
-  if(oppMin<=1 && specials.length){
-    const atk=specials.find(c=>c.r===2||c.joker) || specials.find(c=>c.r===1) || specials[0];
-    return atk;
-  }
-  // 평소엔 일반 카드부터 내고 특수는 아껴둠(조커는 최후)
-  if(normals.length) return normals[Math.floor(Math.random()*normals.length)];
-  const nonJoker=specials.filter(c=>!c.joker);
-  if(nonJoker.length) return nonJoker[0];
-  return legal[0];
-}
-// 완전 자동 시뮬(종료성 검증용)
-function simGame(n){
-  const st=initGame(n);
-  let guard=0;
-  while(!st.over){
-    if(++guard>6000){ // 안전망: 교착이면 최소 손패 승
-      let best=0; for(let i=1;i<st.n;i++) if(st.hands[i].length<st.hands[best].length) best=i;
-      st.over=true; st.winner=best; return {winner:best, turns:guard, capped:true};
-    }
-    const seat=st.turn;
-    const legal=legalMoves(st,seat);
-    if(st.attack>0){
-      if(legal.length) applyPlay(st,seat,legal[0], legal[0].joker?aiPickSuit(st,seat):null);
-      else takeAttack(st,seat);
-      continue;
-    }
-    if(legal.length){ const c=aiPickMove(st,seat,legal); applyPlay(st,seat,c, c.joker?aiPickSuit(st,seat):null); continue; }
-    const drawn=drawOne(st,seat);
-    if(drawn && canPlay(st,drawn)){ applyPlay(st,seat,drawn, drawn.joker?aiPickSuit(st,seat):null); }
-    else st.turn=nextSeat(st,seat,1);
-  }
-  return {winner:st.winner, turns:guard, capped:false};
-}
-
-// ===== UI 상태 =====
-const cfg={ n:3, name:'' };
+// ===== UI 상태 (엔진 상태 아님) =====
+const cfg={ n:3, name:'', items:false };
 try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
-const MYSEAT=0;
-let ST=null, players=[], busy=false, lastAct=[], pendingDrawn=null, pickJokerCard=null;
+let engine=null, S=null, prevS=null, pickJokerId=null, ended=false;
 
 // 테마/버튼
 (function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
@@ -382,143 +736,73 @@ $('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'�
 $('helpBtn').onclick=()=>$('rulesOv').classList.add('on');
 $('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
 
-document.querySelectorAll('#optN .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optN .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.n=+o.dataset.n; });
+function sel(box,el,fn){ document.querySelectorAll(box+' .opt').forEach(x=>x.classList.remove('on')); el.classList.add('on'); fn(); }
+document.querySelectorAll('#optN .opt').forEach(o=>o.onclick=()=>sel('#optN',o,()=>cfg.n=+o.dataset.n));
+document.querySelectorAll('#optItems .opt').forEach(o=>o.onclick=()=>sel('#optItems',o,()=>cfg.items=o.dataset.items==='1'));
 $('myName').value=cfg.name;
 
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
   try{ localStorage.setItem('alley_name',cfg.name); }catch(e){}
-  players=[{name:cfg.name,ai:false}];
+  const players=[{pid:MYPID,name:cfg.name}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
-  for(let i=1;i<cfg.n;i++) players.push({name:nm[i-1],ai:true});
+  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true});
+  if(engine){ try{engine.destroy();}catch(e){} }
+  prevS=null; S=null; pickJokerId=null; ended=false;
+  engine=new OCCore.OCEngine({
+    players, itemsOn:!!cfg.items, aiMs:PMS(780),
+    onState(){ S=engine.serialize(MYPID); render(); applyFx(); prevS=S; }
+  });
   $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
   document.body.classList.add('ingame');
   try{SFX.resume();}catch(e){}
-  newGame();
+  $('msg').innerHTML='카드를 나눠요…';
+  engine.start();
 }
 $('startBtn').onclick=startGame;
-$('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); };
+$('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
 
-function newGame(){
-  ST=initGame(players.length);
-  lastAct=players.map(()=>''); busy=false; pendingDrawn=null; pickJokerCard=null;
-  try{SFX.deal();}catch(e){}
-  $('msg').innerHTML='카드를 나눠요…';
-  render();
-  busy=true;
-  setTimeout(()=>{ busy=false; tick(); }, PMS(700));
-}
-
-// ===== UI 진행 =====
-function flashAct(seat,txt,warn){ lastAct[seat]=txt; }
-function clearActsSoon(){ setTimeout(()=>{ lastAct=lastAct.map(()=> ''); render(); }, PMS(500)); }
-
-function announceUno(seat){
-  if(ST.hands[seat].length===1){ lastAct[seat]='원카드!'; try{SFX.uno();}catch(e){} return true; }
-  return false;
-}
-
-function tick(){
-  if(!ST||ST.over){ return; }
-  render();
-  const seat=ST.turn;
-  if(players[seat].ai){ busy=true; setTimeout(()=>aiTurn(seat), PMS(780)); }
-  else { busy=false; humanPrompt(); }
-}
-
-function afterMove(){
-  render();
-  if(ST.over){ setTimeout(endGame, PMS(700)); return; }
-  setTimeout(tick, PMS(620));
-}
-
-function aiTurn(seat){
-  if(ST.over) return;
-  const legal=legalMoves(ST,seat);
-  if(ST.attack>0){
-    if(legal.length){ const c=legal[0]; playByAI(seat,c); }
-    else { const n=takeAttack(ST,seat); flashAct(seat,'+'+n+'장'); try{SFX.attack();}catch(e){} afterMove(); }
-    return;
+// ===== 연출 — 엔진은 '무슨 일이 있었나'만 남기고, 화면이 스냅샷 차이로 만든다 =====
+function applyFx(){
+  if(!S) return;
+  // 새 판 딜
+  if(!prevS || S.dealSeq!==prevS.dealSeq){ try{SFX.deal();}catch(e){} }
+  // 액션 소리 — seq가 바뀐 순간에만 (재렌더로 소리가 겹치지 않게)
+  if(S.lastAction && (!prevS || !prevS.lastAction || S.lastAction.seq!==prevS.lastAction.seq)){
+    const a=S.lastAction;
+    try{
+      if(a.kind==='play'){ const c=a.card;
+        if(c.joker||c.r===2) SFX.attack();
+        else if(OCCore.isSpecial(c)) SFX.special();
+        else SFX.play();
+      }
+      else if(a.kind==='draw') SFX.draw();
+      else if(a.kind==='take') SFX.attack();
+      else if(a.kind==='shield') SFX.shield();
+    }catch(e){}
   }
-  if(legal.length){ const c=aiPickMove(ST,seat,legal); playByAI(seat,c); return; }
-  // 못 냄 → 뽑기
-  const drawn=drawOne(ST,seat);
-  try{SFX.draw();}catch(e){}
-  if(drawn && canPlay(ST,drawn)){ playByAI(seat,drawn); }
-  else { flashAct(seat,'뽑기'); ST.turn=nextSeat(ST,seat,1); afterMove(); }
-}
-
-function playByAI(seat,card){
-  const suit=card.joker?aiPickSuit(ST,seat):null;
-  const res=applyPlay(ST,seat,card,suit);
-  soundFor(card);
-  flashAct(seat, actLabel(card));
-  if(!res.win) announceUno(seat);
-  afterMove();
-}
-
-function soundFor(card){ try{ if(card.joker||card.r===2){SFX.attack();} else if(isSpecial(card)){SFX.special();} else {SFX.play();} }catch(e){} }
-function actLabel(card){ if(card.joker) return '조커! '+SUITS[card.s===1?1:0]; if(card.r===2) return '공격2'; if(card.r===1) return '스킵'; if(card.r===11) return '한번더'; if(card.r===12) return '방향'; return '냄'; }
-
-// ===== 사람 차례 =====
-function humanPrompt(){
-  if(ST.attack>0){
-    const legal=legalMoves(ST,MYSEAT);
-    if(legal.length) $('msg').innerHTML=`⚠️ 공격 <b>${ST.attack}장</b>! 2나 조커로 방어하거나 받으세요`;
-    else $('msg').innerHTML=`⚠️ 공격 <b>${ST.attack}장</b>! 방어 카드가 없어요 — 받기`;
-  } else {
-    $('msg').innerHTML='<b>내 차례</b> — 낼 카드를 고르거나 뽑으세요';
+  // 🛡 막음 — 배너로 한 번 알린다
+  if(S.lastShield && (!prevS || !prevS.lastShield || S.lastShield.seq!==prevS.lastShield.seq)){
+    shieldBanner(S.lastShield);
   }
-  render();
-}
-
-function humanPlay(card){
-  if(busy||ST.turn!==MYSEAT||ST.over) return;
-  if(!canPlay(ST,card)) return;
-  if(card.joker){ pickJokerCard=card; render(); return; } // 무늬 선택
-  doHumanPlay(card,null);
-}
-function doHumanPlay(card,suit){
-  pendingDrawn=null; pickJokerCard=null;
-  const res=applyPlay(ST,MYSEAT,card,suit);
-  soundFor(card);
-  flashAct(MYSEAT, actLabel(card));
-  if(!res.win) announceUno(MYSEAT);
-  busy=true;
-  afterMove();
-}
-function humanDraw(){
-  if(busy||ST.turn!==MYSEAT||ST.over||ST.attack>0) return;
-  const drawn=drawOne(ST,MYSEAT);
-  try{SFX.draw();}catch(e){}
-  if(drawn && canPlay(ST,drawn)){ pendingDrawn=drawn; render(); }  // 낼지 넘길지 선택
-  else { flashAct(MYSEAT,'뽑기'); pendingDrawn=null; ST.turn=nextSeat(ST,MYSEAT,1); busy=true; afterMove(); }
-}
-function humanPass(){
-  if(busy||ST.turn!==MYSEAT||ST.over) return;
-  pendingDrawn=null; ST.turn=nextSeat(ST,MYSEAT,1); busy=true; afterMove();
-}
-function humanTake(){
-  if(busy||ST.turn!==MYSEAT||ST.over||ST.attack<=0) return;
-  const n=takeAttack(ST,MYSEAT); flashAct(MYSEAT,'+'+n+'장'); try{SFX.attack();}catch(e){}
-  busy=true; afterMove();
-}
-
-function endGame(){
-  const w=ST.winner;
-  if(w===MYSEAT){
-    $('resTitle').textContent='🎉 승리!';
-    $('resBody').innerHTML='손패를 모두 털었어요! 완벽한 마무리 👏';
-    try{SFX.win();}catch(e){}
-    coinRain();
-  } else {
-    $('resTitle').textContent='아쉽네요';
-    $('resBody').innerHTML=`<b style="color:var(--brass)">${esc(players[w].name)}</b>님이 먼저 손패를 털었어요.`;
-    try{SFX.lose();}catch(e){}
+  // "원카드!" — 손패가 1장이 되는 순간
+  if(prevS){
+    for(const p of S.players){
+      const before=prevS.players[p.seat];
+      if(before && before.count!==1 && p.count===1){ try{SFX.uno();}catch(e){} break; }
+    }
   }
-  try{ if(window.AW){ AW.reward(w===MYSEAT); var _b=$('resBody'); if(_b) _b.innerHTML += '<div style="margin-top:8px">💰 보유 코인 <b style="color:var(--gold)">'+AW.fmt()+'</b></div>'; } }catch(e){}
-  try{ window.AS&&AS.finish('onecard', w===MYSEAT); }catch(e){}
-  setTimeout(()=>$('resultOv').classList.add('on'), PMS(800));
+  // 종료
+  if(S.phase==='gameover' && !ended){ ended=true; setTimeout(endGame, PMS(700)); }
+}
+
+function shieldBanner(sh){
+  const who=S.players[sh.seat];
+  const el=document.createElement('div');
+  el.className='shieldbanner';
+  el.innerHTML=`🛡 <b>${esc(who?who.name:'')}</b> 공격 ${sh.blocked}장 막음!`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ try{el.remove();}catch(e){} }, 1400);
 }
 
 // ===== 렌더 =====
@@ -528,66 +812,122 @@ function cardFaceHTML(c,cls){
   const tag=SPECIAL_TAG[c.r]?`<span class="tag">${SPECIAL_TAG[c.r]}</span>`:'';
   return `<div class="mc ${red?'red':'black'} ${cls||''}"><span class="cr">${RANKS[c.r-1]}<span class="cs">${SUITS[c.s]}</span></span><span class="cbig">${SUITS[c.s]}</span>${tag}</div>`;
 }
-function backHTML(cls){ return `<div class="mc back ${cls||''}"></div>`; }
 
 function render(){
-  if(!ST) return;
-  // 상대
+  if(!S) return;
+  const MYSEAT=S.mySeat;
+  // 상대 — 장수만 보인다(내용은 스냅샷에 아예 없다)
   const opps=$('opps'); opps.innerHTML='';
-  for(let s=0;s<players.length;s++){
-    if(s===MYSEAT) continue;
-    const p=players[s];
-    const cnt=ST.hands[s].length;
+  for(const p of S.players){
+    if(p.seat===MYSEAT) continue;
+    const cnt=p.count;
     const el=document.createElement('div');
-    el.className='seat'+((ST.turn===s&&!ST.over)?' turn':'')+(cnt===1?' one':'');
-    const shown=Math.min(cnt,4);
-    let fan=''; for(let i=0;i<shown;i++) fan+=`<div class="mc back sm"></div>`;
-    const warnCls=(lastAct[s]==='원카드!')?' warnone':'';
+    el.className='seat'+((S.turn===p.seat&&S.phase==='play')?' turn':'')+(cnt===1?' one':'');
+    let fan=''; for(let i=0;i<Math.min(cnt,4);i++) fan+=`<div class="mc back sm"></div>`;
+    const itemBadge=(S.itemsOn&&p.items>0)?`<span class="itembadge">🛡${p.items}</span>`:'';
     el.innerHTML=`<div class="pbox">`+
       `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
-      `<div class="pname">${esc(p.name)}</div>`+
+      `<div class="pname">${esc(p.name)}${itemBadge}</div>`+
       `<div class="pcount">🃏 ${cnt}장</div><div class="fan">${fan}</div>`+
-      (lastAct[s]? `<div class="pact show${warnCls}">${lastAct[s]}</div>`:'')+
+      (p.act? `<div class="pact show">${esc(p.act)}</div>`:'')+
+      (cnt===1? `<div class="pact show warnone">원카드!</div>`:'')+
       `</div>`;
     opps.appendChild(el);
   }
   // 중앙 더미/버림
-  $('drawSlot').innerHTML = ST.draw.length? `<div class="mc back big drawpile" id="drawPileEl"></div>` : `<div class="mc big" style="opacity:.3"></div>`;
-  const top=topCard(ST);
-  $('discardSlot').innerHTML = cardFaceHTML(top,'big');
+  $('drawSlot').innerHTML = S.drawCount? `<div class="mc back big drawpile" id="drawPileEl"></div>` : `<div class="mc big" style="opacity:.3"></div>`;
+  $('discardSlot').innerHTML = S.top? cardFaceHTML(S.top,'big') : '';
   // 뱃지
   const bd=[];
-  if(ST.attack>0) bd.push(`<span class="attackbadge">⚔️ 공격 ${ST.attack}장</span>`);
-  if(ST.reqSuit!=null){ const rd=(ST.reqSuit===1||ST.reqSuit===2); bd.push(`<span class="suitbadge" style="color:${rd?'#e8696b':'#fff'}">지정 ${SUITS[ST.reqSuit]}</span>`); }
-  bd.push(`<span class="dirbadge">${ST.dir>0?'↻ 시계':'↺ 반시계'}</span>`);
+  if(S.attack>0) bd.push(`<span class="attackbadge">⚔️ 공격 ${S.attack}장</span>`);
+  if(S.reqSuit!=null){ const rd=(S.reqSuit===1||S.reqSuit===2); bd.push(`<span class="suitbadge" style="color:${rd?'#e8696b':'#fff'}">지정 ${SUITS[S.reqSuit]}</span>`); }
+  bd.push(`<span class="dirbadge">${S.dir>0?'↻ 시계':'↺ 반시계'}</span>`);
   $('badges').innerHTML=bd.join('');
   // 내 손패
-  const my=ST.hands[MYSEAT]||[];
-  const myTurn=ST.turn===MYSEAT&&!busy&&!ST.over;
-  $('myLabel').innerHTML=`🧑 ${esc(players[MYSEAT].name)}`+(myTurn?' · <b style="color:var(--gold)">내 차례</b>':'');
+  const my=S.myHand||[];
+  const myTurn=S.turn===MYSEAT&&S.phase==='play';
+  const me=S.players[MYSEAT];
+  const myItem=(S.itemsOn&&me&&me.items>0)?` <span class="itembadge">🛡${me.items}</span>`:'';
+  $('myLabel').innerHTML=`🧑 ${esc(me?me.name:'나')}`+myItem+(myTurn?' · <b style="color:var(--gold)">내 차례</b>':'');
   $('myCount').textContent = `${my.length}장`;
-  // 무늬 선택중이면 별도 UI
-  if(pickJokerCard){
-    $('myhand').innerHTML = my.map(c=> cardFaceHTML(c, c===pickJokerCard?'':'dim')).join('');
+
+  if(pickJokerId!=null){
+    $('myhand').innerHTML = my.map(c=> cardFaceHTML(c, c.id===pickJokerId?'':'dim')).join('');
     renderSuitPick();
-  } else {
-    $('myhand').innerHTML = my.map(c=>{
-      let cls='';
-      if(myTurn){
-        if(pendingDrawn){ cls = (c===pendingDrawn)?'pick justdrew':'dim'; }
-        else { cls = canPlay(ST,c)?'pick':'dim'; }
-      }
-      return cardFaceHTML(c,cls);
-    }).join('') || '<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패 없음 🎉</div>';
-    if(myTurn){
-      Array.from($('myhand').children).forEach((el,i)=>{
-        const c=my[i]; if(!c) return;
-        if(pendingDrawn){ if(c===pendingDrawn) el.onclick=()=>humanPlay(c); }
-        else if(canPlay(ST,c)) el.onclick=()=>humanPlay(c);
-      });
-    }
-    renderActs();
+    $('itemrow').innerHTML='';
+    return;
   }
+
+  $('myhand').innerHTML = my.map(c=>{
+    let cls='';
+    if(myTurn) cls = c.playable ? (c.id===S.myPendingDrawnId?'pick justdrew':'pick') : 'dim';
+    return cardFaceHTML(c,cls);
+  }).join('') || '<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패 없음 🎉</div>';
+  if(myTurn){
+    Array.from($('myhand').children).forEach((el,i)=>{
+      const c=my[i]; if(!c||!c.playable) return;
+      el.onclick=()=>humanPlay(c);
+    });
+  }
+  renderMsg();
+  renderItems();
+  renderActs();
+}
+
+function renderMsg(){
+  const MYSEAT=S.mySeat;
+  if(S.phase==='gameover'){ $('msg').innerHTML='판 종료'; return; }
+  if(S.turn!==MYSEAT){ $('msg').innerHTML=`<b>${esc(S.players[S.turn].name)}</b>님 차례…`; return; }
+  if(S.myPendingDrawnId!=null){ $('msg').innerHTML='뽑은 카드를 <b>내거나</b> 넘기세요'; return; }
+  if(S.attack>0){
+    const canDef=(S.myHand||[]).some(c=>c.playable);
+    if(canDef) $('msg').innerHTML=`⚠️ 공격 <b>${S.attack}장</b>! 2·조커로 방어하거나 받으세요`;
+    else if(S.canShield) $('msg').innerHTML=`⚠️ 공격 <b>${S.attack}장</b>! 방어 카드가 없어요 — 🛡로 막거나 받기`;
+    else $('msg').innerHTML=`⚠️ 공격 <b>${S.attack}장</b>! 방어 카드가 없어요 — 받기`;
+    return;
+  }
+  $('msg').innerHTML='<b>내 차례</b> — 낼 카드를 고르거나 뽑으세요';
+}
+
+/* 아이템전 '🛡 공격 막기' — 공격이 쌓였고, 남은 개수가 있고, 내 차례일 때만 뜬다.
+   canShield 판정은 엔진이 한다(클라가 규칙을 다시 쓰면 반드시 갈라진다). */
+function renderItems(){
+  const row=$('itemrow'); if(!row) return;
+  if(!S.itemsOn || !S.canShield){ row.innerHTML=''; return; }
+  const me=S.players[S.mySeat];
+  row.innerHTML=`<button class="abtn" id="shieldBtn"><span class="ai">🛡</span><span class="an">공격 ${S.attack}장 막기 (남은 ${me?me.items:0}개)</span></button>`;
+  $('shieldBtn').onclick=()=>{ if(engine) engine.action(MYPID,{type:'shield'}); };
+}
+
+function renderActs(){
+  const acts=$('acts');
+  const va=S.validActions||[];
+  const myTurn=S.turn===S.mySeat&&S.phase==='play';
+  if(!myTurn){ acts.innerHTML=`<button class="abtn pass" disabled><span class="ai">⏳</span><span class="an">상대 차례…</span></button>`; return; }
+  if(S.myPendingDrawnId!=null){
+    const playable=va.indexOf('play')>=0;
+    acts.innerHTML=(playable?`<button class="abtn draw" disabled><span class="ai">👆</span><span class="an">뽑은 카드 내기</span></button>`:'')+
+      `<button class="abtn pass" id="passBtn"><span class="ai">✋</span><span class="an">넘기기</span></button>`;
+    $('passBtn').onclick=()=>engine.action(MYPID,{type:'pass'});
+    return;
+  }
+  if(S.attack>0){
+    const canDef=va.indexOf('play')>=0;
+    acts.innerHTML=`<button class="abtn take" id="takeBtn"><span class="ai">🛡️</span><span class="an">받기 (+${S.attack}장)</span></button>`+
+      (canDef?`<button class="abtn pass" disabled><span class="ai">👆</span><span class="an">또는 2·조커로 방어</span></button>`:'');
+    $('takeBtn').onclick=()=>engine.action(MYPID,{type:'take'});
+    return;
+  }
+  const canAny=va.indexOf('play')>=0;
+  acts.innerHTML=`<button class="abtn draw" id="drawBtn"><span class="ai">🎴</span><span class="an">${canAny?'뽑기(패스)':'카드 뽑기'}</span></button>`;
+  $('drawBtn').onclick=()=>engine.action(MYPID,{type:'draw'});
+}
+
+function humanPlay(card){
+  if(!S||S.phase!=='play'||S.turn!==S.mySeat) return;
+  if(!card.playable) return;
+  if(card.joker){ pickJokerId=card.id; render(); return; }   // 무늬를 먼저 고른다
+  engine.action(MYPID,{type:'play',cardId:card.id});
 }
 
 function renderSuitPick(){
@@ -597,33 +937,30 @@ function renderSuitPick(){
   [0,1,2,3].forEach(s=>{
     const rd=(s===1||s===2);
     const b=document.createElement('button'); b.className='suitopt '+(rd?'rd':'bk'); b.textContent=SUITS[s];
-    b.onclick=()=>doHumanPlay(pickJokerCard,s);
+    b.onclick=()=>{ const id=pickJokerId; pickJokerId=null; engine.action(MYPID,{type:'play',cardId:id,suit:s}); };
     wrap.appendChild(b);
   });
-  // acts 영역에 표시
   $('acts').appendChild(wrap);
 }
 
-function renderActs(){
-  const acts=$('acts');
-  const myTurn=ST.turn===MYSEAT&&!busy&&!ST.over;
-  if(!myTurn){ acts.innerHTML=`<button class="abtn pass" disabled><span class="ai">⏳</span><span class="an">상대 차례…</span></button>`; return; }
-  if(ST.attack>0){
-    const legal=legalMoves(ST,MYSEAT);
-    acts.innerHTML=`<button class="abtn take" id="takeBtn"><span class="ai">🛡️</span><span class="an">받기 (+${ST.attack}장)</span></button>`+
-      (legal.length?`<button class="abtn pass" disabled><span class="ai">👆</span><span class="an">또는 2·조커로 방어</span></button>`:'');
-    $('takeBtn').onclick=humanTake;
-    return;
+/* 결과 — 인자 없이 부를 수 있어야 한다(verify-stats.js가 직접 호출한다). */
+function endGame(){
+  const w=(S&&S.winnerSeat>=0)?S.winnerSeat:-1;
+  const iWon=(w===(S?S.mySeat:0));
+  if(iWon){
+    $('resTitle').textContent='🎉 승리!';
+    $('resBody').innerHTML='손패를 모두 털었어요! 완벽한 마무리 👏';
+    try{SFX.win();}catch(e){}
+    coinRain();
+  } else {
+    const nm=(S&&w>=0&&S.players[w])?S.players[w].name:'상대';
+    $('resTitle').textContent='아쉽네요';
+    $('resBody').innerHTML=`<b style="color:var(--brass)">${esc(nm)}</b>님이 먼저 손패를 털었어요.`;
+    try{SFX.lose();}catch(e){}
   }
-  if(pendingDrawn){
-    acts.innerHTML=`<button class="abtn draw" disabled><span class="ai">👆</span><span class="an">뽑은 카드 내기</span></button>`+
-      `<button class="abtn pass" id="passBtn"><span class="ai">✋</span><span class="an">넘기기</span></button>`;
-    $('passBtn').onclick=humanPass;
-    return;
-  }
-  const canAny=legalMoves(ST,MYSEAT).length>0;
-  acts.innerHTML=`<button class="abtn draw" id="drawBtn"><span class="ai">🎴</span><span class="an">${canAny?'뽑기(패스)':'카드 뽑기'}</span></button>`;
-  $('drawBtn').onclick=humanDraw;
+  try{ if(window.AW){ AW.reward(iWon); var _b=$('resBody'); if(_b) _b.innerHTML += '<div style="margin-top:8px">💰 보유 코인 <b style="color:var(--gold)">'+AW.fmt()+'</b></div>'; } }catch(e){}
+  try{ window.AS&&AS.finish('onecard', iWon); }catch(e){}
+  setTimeout(()=>$('resultOv').classList.add('on'), PMS(800));
 }
 
 function coinRain(){
@@ -634,9 +971,6 @@ function coinRain(){
     setTimeout(()=>{ c.style.transform='translateY('+(innerHeight+90)+'px) rotate('+rot.toFixed(0)+'deg)'; }, delay);
     setTimeout(()=>{try{c.remove();}catch(e){}}, 2200); }
 }
-
-// 로직 노출(헤드리스 검증용)
-if(typeof module!=='undefined'&&module.exports){ module.exports={makeDeck,initGame,legalMoves,applyPlay,takeAttack,drawOne,canPlay,simGame,aiPickMove,aiPickSuit}; }
 </script>
 </body>
 </html>
