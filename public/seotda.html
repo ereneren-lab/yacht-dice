@@ -8,6 +8,7 @@
 <script src="pace.js"></script>
 <script src="stats.js"></script>
 <script src="wallet.js"></script>
+<script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
 <!-- 계측 보류(2026-07-22) — 다른 게임과 같은 기준으로 로딩만 꺼둔다.
@@ -201,6 +202,16 @@
   /* 셋업 접기 (v1.239) — 짧은 화면(특히 가로)에서 옵션이 판을 화면 밖으로 밀었다.
      숨기는 게 아니라 접는다: 큰 화면에선 기본으로 펴져 있고, 짧은 화면에서만 접힌다.
      여는 건 한 번 탭. 기본값으로 바로 시작하고 싶은 사람은 열 필요도 없다. */
+  /* 가로(짧은 화면) 압축 — 접어도 남는 것들을 줄인다. 실측 640×360에서 +47px였다.
+     ⚠️ 반드시 max-height로 건다 — max-width로 걸면 가로 회전 때(폭은 넓고 높이는 짧다)
+     정작 필요한 순간에 안 걸린다(CLAUDE.md 함정 #8). */
+  @media (max-height:430px){
+    #setup .warn{display:none}
+    #setup h3{margin:8px 0 4px !important;font-size:14px}
+    #setup .wallet{padding:6px 10px;margin-bottom:6px}
+    #setup .setup-opts{margin-top:8px}
+    #setup .row{margin-top:8px !important}
+  }
   .setup-opts{border:1px solid var(--line);border-radius:12px;margin:12px 0 0;background:rgba(0,0,0,.12)}
   .setup-opts>summary{cursor:pointer;list-style:none;padding:11px 13px;font-size:12.5px;font-weight:900;
     color:var(--brass);display:flex;align-items:center;gap:7px;user-select:none}
@@ -301,7 +312,11 @@
     <input type="text" id="myName" maxlength="10" placeholder="너의 별명">
       </div>
     </details>
-    <div class="row" style="margin-top:14px"><button class="btn" id="startBtn">판 시작</button></div>
+    <!-- 시작·온라인을 한 줄에 둔다 — 줄을 하나 더 쓰면 짧은 화면에서 다시 넘친다(실측 +55px) -->
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="startBtn" style="flex:2">판 시작</button>
+      <button class="btn ghost" id="onlineBtn" style="flex:1">🌐 온라인</button>
+    </div>
     <div class="warn">⚠️ <b>가상 재화만</b> 사용합니다. 실제 돈과 무관한 오락용 게임이에요.</div>
   </div>
 
@@ -1043,9 +1058,54 @@ function startGame(){
   engine.start();
 }
 $('startBtn').onclick=startGame;
+
+/* ===== 온라인 (net.js) =====
+   로컬과 **같은 render()/drive()** 를 쓴다 — 스냅샷이 서버에서 오느냐 로컬 엔진에서
+   오느냐만 다르다. 자리 소유권(함정 #8)·판 종료 → 로비 전환(함정 #3)은 net.js가 처리한다.
+   ⚠️ 지갑(walletBuyIn)은 로컬 전용이다. 온라인은 startGame()을 안 거치므로 null로 남고
+      cashOut()이 no-op이 된다 — 온라인 칩이 보유 머니로 흘러들지 않는다. */
+let online=false;
+function enterOnlineGame(){
+  online=true; S=null;
+  if(engine){ try{engine.destroy();}catch(e){} engine=null; }
+  clearTimeout(driveT);
+  NET.ui.closeLobby(); NET.ui.closeJoin();
+  $('setup').style.display='none'; $('game').style.display=''; document.body.classList.add('ingame');
+  $('resultOv').classList.remove('on');
+  try{ SFX.resume(); }catch(e){}
+}
+function leaveOnlineGame(){
+  online=false; S=null; clearTimeout(driveT);
+  document.body.classList.remove('ingame');
+  $('resultOv').classList.remove('on');
+  $('game').style.display='none'; $('setup').style.display='';
+  refreshWallet();
+}
+NET.init({ game:'seotda', ns:'sd', on:{
+  state(st){ enterOnlineGame(); S=st; render(); drive(); },
+  lobby(room){ NET.ui.renderLobby(room); },
+  gameEnd(){ leaveOnlineGame(); },          // 함정 #3 — net.js가 먼저 불러준다
+  error(msg,fatal){ NET.ui.error(msg,fatal); if(fatal) leaveOnlineGame(); },
+  roomClosed(){ NET.ui.toast('방이 닫혔어요'); leaveOnlineGame(); },
+  toast(m){ NET.ui.toast(m); },
+  wake(m,r){ NET.ui.wake(m,r); }, wakeHide(){ NET.ui.wakeHide(); },
+}});
+NET.ui.mount({
+  sub:'같은 방에서 패를 숨기고 돈을 걸어요',
+  minPlayers:2,
+  createPayload:()=>({ sdAnte:cfg.ante, sdChips:cfg.chips, jabi:!!cfg.jabi, ttaeng:!!cfg.ttaeng, itemsOn:!!cfg.itemsOn }),
+  onLeaveGame:leaveOnlineGame,
+});
+$('onlineBtn').onclick=()=>NET.ui.openJoin();
+// 이 탭에 자리가 남아 있으면 자동 재접속(다른 탭이 쓰는 중이면 포기 — 함정 #8)
+try{ NET.bootRejoin(); }catch(e){}
 $('againBtn').onclick=()=>{ cashOut(); $('resultOv').classList.remove('on'); document.body.classList.remove('ingame'); $('game').style.display='none'; $('setup').style.display=''; refreshWallet(); };
 
-function mySeat(){ return S? S.players.findIndex(p=>p.pid===MYPID):-1; }
+/* 내 자리 — 로컬은 MYPID('me'), 온라인은 서버가 준 NET.pid다.
+   이걸 안 가르면 온라인에서 findIndex가 -1을 내고 render가 undefined를 읽다 죽는다
+   (화면 앞부분은 이미 그려진 뒤라 '게임은 되는데 일부만 안 됨'으로 나타난다 — 함정 #2). */
+function myPid(){ return (online && typeof NET!=='undefined' && NET.pid) ? NET.pid : MYPID; }
+function mySeat(){ if(!S) return -1; const p=myPid(); return S.players.findIndex(x=>x.pid===p); }
 
 // 플레이어 슬롯 좌표(%). me(seat0)는 하단 고정, 상대는 위쪽 호에 분산.
 const OPP_POS={1:[[50,15]],2:[[20,20],[80,20]],3:[[14,26],[50,12],[86,26]],4:[[11,40],[28,15],[72,15],[89,40]]};
@@ -1089,7 +1149,7 @@ function render(){
     el.innerHTML=`<div class="pact${act?' show':''}">${act||''}</div>`+
       `<div class="pbox">`+
         `${S.dealerSeat===o.s?'<span class="dealer">선</span>':''}`+
-        `<div class="pav">${o.p.avatar?`<img src="${o.p.avatar}">`:'🤖'}</div>`+
+        `<div class="pav">${avatarHTML(o.p)}</div>`+
         `<div class="pname">${esc(o.p.name)}</div><div class="pchip">💰 ${fmt(o.p.chips)}</div>`+
       `</div>`+
       `<div class="cards">${cards}</div>`+
@@ -1197,6 +1257,14 @@ function chipPileHTML(pot){
   return h;
 }
 // ── 쪼기(squeeze): 손으로 카드를 위로 밀어 까기 ──
+/* 아바타 — 로컬은 없고(null), 온라인은 서버가 **이모지**('🦊' 등)를 준다.
+   예전 코드는 무조건 <img src>로 감쌌는데, 이모지를 src에 넣으면 404가 난다.
+   경로처럼 보일 때만 이미지로 쓰고 아니면 글자로 그린다. */
+function avatarHTML(p){
+  const a = p && p.avatar;
+  if(!a) return p && p.ai ? '🤖' : '🧑';
+  return /[\/.]/.test(a) ? `<img src="${a}" alt="">` : a;
+}
 function cardSrc(c){ if(!c) return 'assets/hwatu/back.png'; return 'assets/hwatu/'+c.month+'_'+((c.id%2===0)?1:2)+'.png'; }
 function attachSqueeze(){
   document.querySelectorAll('#mine .squeeze:not(.shown)').forEach(sq=>{
@@ -1340,7 +1408,7 @@ function renderBetbar(){
         const b=document.createElement('button');
         b.className='bbtn'; b.style.cssText='flex:1;border-color:var(--gold,#d9a441)';
         b.innerHTML='<span class="bi">🃏</span><span class="bn">'+(cards>1?(i+1)+'번째 다시':'한 장 다시')+'</span><span class="ba">'+n+'개</span>';
-        b.onclick=()=>{ try{ engine.action(S.players[ms].pid,{type:'redraw',idx:i}); }catch(e){} };
+        b.onclick=()=>{ try{ sendAct({type:'redraw',idx:i}); }catch(e){} };
         wrap.appendChild(b);
       }
       bar.appendChild(wrap);
@@ -1356,13 +1424,23 @@ function renderNote(){
   n.innerHTML = S.turn===ms ? `<b>내 차례</b> · ${S.round}라운드` : `${esc(cur?cur.name:'상대')} 베팅 중… · ${S.round}라운드`;
 }
 
-function act(mode){ if(engine&&S&&S.phase==='bet'&&S.turn===mySeat()) engine.action(MYPID,{type:'bet',mode}); }
+/* 액션 한 곳 — 온라인이면 서버로, 로컬이면 엔진으로. 나머지 코드는 이 함수만 부른다. */
+function sendAct(a){ if(online) NET.action(a); else if(engine) engine.action(MYPID,a); }   // 온라인은 서버가 pid를 안다
+function act(mode){ if(S&&S.phase==='bet'&&S.turn===mySeat()) sendAct({type:'bet',mode}); }
 
+/* 로컬은 클라가 엔진을 민다(연출을 다 보여준 뒤 다음 수로 넘기려고 manualAI를 쓴다).
+   **온라인은 서버가 주인이라 클라가 밀면 안 된다** — 연출만 하고 진행은 서버에 맡긴다. */
 function drive(){
   clearTimeout(driveT);
   if(!S) return;
   if(S.phase==='gameover'){ showResult(); return; }
-  if(S.phase==='handover'){ showHandBanner(); const d=(S.lastResult&&S.lastResult.jabiWin)?4800:(S.lastResult&&S.lastResult.hands?3900:3000); driveT=setTimeout(()=>{ if(engine) engine.nextHand(); }, d); return; }
+  if(S.phase==='handover'){
+    showHandBanner();
+    if(online) return;                       // 다음 판은 서버가 알아서 넘긴다
+    const d=(S.lastResult&&S.lastResult.jabiWin)?4800:(S.lastResult&&S.lastResult.hands?3900:3000);
+    driveT=setTimeout(()=>{ if(engine) engine.nextHand(); }, d); return;
+  }
+  if(online) return;                          // AI도 서버가 돌린다
   if(S.phase==='bet'){
     const cur=S.players[S.turn];
     if(cur&&cur.ai){ driveT=setTimeout(()=>{ if(engine&&S&&S.phase==='bet'&&S.players[S.turn]&&S.players[S.turn].ai) engine.aiTurnIfNeeded(); }, PMS(850)); }
@@ -1373,7 +1451,7 @@ function banner(t,s,ms){ const b=$('banner'); b.style.display='flex'; b.innerHTM
 function showHandBanner(){
   const r=S.lastResult; if(!r) return;
   if(r.redeal){ banner('🔄 재경기!', (r.reason||'구사')+' 등장!', 1700); try{SFX.jabi();}catch(e){} return; }
-  const iWon=(r.winners||[]).indexOf(MYPID)>=0;
+  const iWon=(r.winners||[]).indexOf(myPid())>=0;   // 온라인은 서버가 준 pid로 판정
   const winNames=(r.winners||[]).map(pid=>{ const p=S.players.find(x=>x.pid===pid); return p?p.name:''; });
   let handName=''; if(r.hands){ const w=r.hands.find(h=>r.winners.indexOf(S.players[h.seat].pid)>=0); if(w)handName=w.name; }
   // 승자 좌석 강조 + AI 반응 이모지
@@ -1393,7 +1471,7 @@ function showHandBanner(){
 }
 function showResult(){
   const win=S.winner; const p=S.players.find(x=>x.pid===win);
-  const iWon=win===MYPID;
+  const iWon=win===myPid();                        // 온라인은 서버가 준 pid로 판정
   const before=getWallet();
   cashOut();                 // 남은 칩을 보유 머니로 정산
   const after=getWallet(), delta=after-(before);   // 이 게임 순손익(칩 반환분)

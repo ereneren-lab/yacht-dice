@@ -120,6 +120,15 @@ const HIDDEN_INFO = {
     return { pass: noHands && different, what:'남의 손패·더미 미포함 · 둘의 손패가 다름',
              detail:`hands/draw없음=${noHands} 손패다름=${different}` };
   },
+  // 섯다 — 판이 끝나기 전엔 남의 패가 안 보여야 한다
+  seotda: (a, b) => {
+    if (!a || !b) return { pass:false, what:'스냅샷 없음' };
+    const myCards = p => (p.players.find(x => x.pid === p.players[p.mySeat!=null?p.mySeat:0].pid)||{});
+    const mineA = JSON.stringify(a.players.map(p => p.cards));
+    const mineB = JSON.stringify(b.players.map(p => p.cards));
+    // 두 사람이 받는 players[].cards가 서로 달라야 한다(각자 자기 것만 보임)
+    return { pass: mineA !== mineB, what:'사람마다 보이는 패가 다름', detail:`동일=${mineA===mineB}` };
+  },
   oldmaid: (a, b) => {
     if (!a || !b) return { pass:false, what:'스냅샷 없음' };
     const strip = s => JSON.stringify(Object.assign({}, s, { myHand:null, myPeek:null, myJoker:null, initialPairs:null }));
@@ -197,7 +206,7 @@ async function runReconnect() {
   for (let i = 0; i < 30 && !(await ping()); i++) await wait(300);
   if (!(await ping())) { console.error('서버 기동 실패'); kill(); process.exit(1); }
 
-  for (const g of ['yut', 'yacht', 'kb', 'ld', 'lcr', 'indianpoker', 'onecard', 'oldmaid']) {
+  for (const g of ['yut', 'yacht', 'kb', 'ld', 'lcr', 'indianpoker', 'onecard', 'oldmaid', 'seotda']) {
     await runGame(g, g === 'yut');   // 윷만 끝까지 플레이(액션 형식이 게임마다 달라서)
   }
   await runReconnect();

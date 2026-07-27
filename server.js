@@ -15,6 +15,7 @@ const { AlkkagiEngine } = require('./public/alkkagi-core.js');
 const { IPEngine } = require('./public/indianpoker-core.js');
 const { OCEngine } = require('./public/onecard-core.js');
 const { OMEngine } = require('./public/oldmaid-core.js');
+const { SeotdaEngine } = require('./public/seotda-core.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -113,16 +114,18 @@ function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
 // 게임별 최소 인원. lcr은 좌/우가 서로 다른 사람이어야 성립하므로 3인부터.
 /* 온라인이 되는 게임 목록. 하우스 상대 3종(블랙잭·바카라·하이로우)은 여기 없다 —
    상대가 딜러라 사람끼리 붙을 게 없어서 온라인이 의미가 없다. */
-const ONLINE_GAMES = new Set(['kb','ld','lcr','yut','alkkagi','yacht','indianpoker','onecard','oldmaid']);
+const ONLINE_GAMES = new Set(['kb','ld','lcr','yut','alkkagi','yacht','indianpoker','onecard','oldmaid','seotda']);
 /* ⚠️ startChips는 게임마다 의미도 범위도 다르다 — 좌·중·우는 3~5칩, 인디언 포커는 5~20칩.
    v1.236에선 방 생성 검증이 좌·중·우 범위([3,4,5])만 보고 있어서 인디언이 무엇을 보내든
    기본값으로 떨어졌다(→ 온라인 인디언은 늘 50칩이었다). 게임별로 갈라서 본다. */
 const IP_CHIPS = [5, 10, 20];
+const SD_ANTE  = [100, 200, 500, 1000];            // 섯다 앤티
+const SD_CHIPS = [5000, 10000, 30000, 100000];     // 섯다 시작 칩(가상 머니)
 const MIN_PLAYERS = { lcr: 3, oldmaid: 3 };   // 도둑잡기는 2인이면 서로 뽑기만 반복돼 판이 안 선다
 function minPlayers(room){ return MIN_PLAYERS[room.game] || 2; }
 function playableCount(room){ return room.members.filter(m=>!m.spectator).length; }
 // 게임별 정원(사람+AI). yut 팀전은 4, 개인전 6. 관전은 정원 위로 SPECTATOR_SLACK명까지.
-const CAP = { kb:2, ld:4, lcr:6, yut:6, yacht:8, alkkagi:2, indianpoker:6, onecard:4, oldmaid:5 };
+const CAP = { kb:2, ld:4, lcr:6, yut:6, yacht:8, alkkagi:2, indianpoker:6, onecard:4, oldmaid:5, seotda:5 };
 const SPECTATOR_SLACK = 8;
 const MAX_ROOMS = 500;
 function capOf(room){ return room.game==='yut' ? (room.teamMode?4:6) : (CAP[room.game]||8); }
@@ -190,6 +193,16 @@ function startEngine(room){
     const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
     room.engine = new OMEngine({ players, itemsOn:!!room.itemsOn,
       aiMs:room.aiFast?300:780, pairMs:room.aiFast?120:420, stepMs:room.aiFast?120:360, onState });
+  } else if (room.game === 'seotda'){
+    /* 숨김정보: 판이 끝나기 전엔 남의 패를 못 본다 → 멤버마다 serialize(pid).
+       manualAI는 켜지 않는다 — 로컬 클라는 연출 뒤 직접 aiTurnIfNeeded()를 부르지만,
+       온라인에선 서버가 주인이라 엔진이 스스로 돌아야 한다(코어가 manualAI=false면 자체 진행). */
+    const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
+    room.engine = new SeotdaEngine({ players, itemsOn:!!room.itemsOn,
+      ante:(SD_ANTE.includes(room.sdAnte)?room.sdAnte:200),
+      startChips:(SD_CHIPS.includes(room.sdChips)?room.sdChips:10000),
+      jabi:!!room.jabi, ttaengValue:!!room.ttaeng,
+      aiMs:room.aiFast?300:900, onState });
   } else if (room.game === 'alkkagi'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
     room.engine = new AlkkagiEngine({ aiFast:!!room.aiFast, players, preset:(['mini','standard','battle'].includes(room.preset)?room.preset:'standard'), surface:room.surface, specials:room.specials, rule:room.rule, aiMs:900, onState });
@@ -282,7 +295,7 @@ wss.on('connection', (ws) => {
       const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
       const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
-        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:10) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:10) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, sdAnte:(SD_ANTE.includes(m.sdAnte)?m.sdAnte:200), sdChips:(SD_CHIPS.includes(m.sdChips)?m.sdChips:10000), jabi:!!m.jabi, ttaeng:!!m.ttaeng, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);

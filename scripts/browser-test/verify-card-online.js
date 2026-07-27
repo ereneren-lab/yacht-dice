@@ -40,7 +40,10 @@ async function run(game, opts){
     const leak=await opts.hidden(A,B);
     ok('숨김정보 — '+leak.what, leak.pass, leak.detail||'');
     await A.eval(`NET.endGame(); return true;`); await A.wait(2000);
-    const back=await A.eval(`return { setup:document.getElementById('setupOv').classList.contains('on'), inGame:NET.inGame(), ingameCls:document.body.classList.contains('ingame') };`);
+    const sel=opts.setupSel||'#setupOv';
+    const back=await A.eval(`var e=document.querySelector(${JSON.stringify('#setupOv')}), f=document.querySelector(${JSON.stringify('#setup')});
+      var shown = e ? e.classList.contains('on') : (f ? getComputedStyle(f).display!=='none' : false);
+      return { setup:shown, inGame:NET.inGame(), ingameCls:document.body.classList.contains('ingame') };`);
     ok('판 종료 → 셋업 복귀 (함정 #3)', back.setup && !back.inGame && !back.ingameCls, JSON.stringify(back));
     for(const [n,p] of [['A',A],['B',B]]){
       const e=p.errors.filter(x=>!/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(x));
@@ -72,6 +75,13 @@ async function run(game, opts){
       return { pass:a.mine===null&&b.mine===null&&a.opp.some(c=>c!=null),
                what:'내 카드만 가려짐(남의 카드는 보임)', detail:`A.myCard=${a.mine} 남의카드=${JSON.stringify(a.opp)}` };
     }});
-  console.log(bad ? `\n❌ 실패 ${bad}건` : '\n✅ 카드 3종 온라인 전부 통과');
+  // 섯다 — 셋업 컨테이너가 #setup(오버레이가 아니라 카드)이라 복귀 판정이 다르다
+  await run('seotda', { label:'섯다 온라인', phase:'bet', setupSel:'#setup',
+    hidden: async(A,B)=>{
+      const a=await A.eval(`return JSON.stringify(S.players.map(p=>p.cards));`);
+      const b=await B.eval(`return JSON.stringify(S.players.map(p=>p.cards));`);
+      return { pass:a!==b, what:'사람마다 보이는 패가 다름' };
+    }});
+  console.log(bad ? `\n❌ 실패 ${bad}건` : '\n✅ 온라인 카드 4종 전부 통과');
   process.exit(bad?1:0);
 })();

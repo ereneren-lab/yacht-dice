@@ -19,7 +19,7 @@ Claude Code가 매 세션 시작 시 읽는 프로젝트 안내서. 아키텍처
 | 라이어 다이스 | `public/ld.html` | `public/ld-core.js` | ✅ |
 | 좌·중·우(LCR) | `public/lcr.html` | `public/lcr-core.js` | ✅ |
 | 알까기 | `public/alkkagi.html` | `public/alkkagi-core.js` | ✅ |
-| 섯다 | `public/seotda.html` | `public/seotda-core.js` | — (로컬/AI) |
+| 섯다 | `public/seotda.html` | `public/seotda-core.js` | ✅ (v1.240 · net.js) |
 | 인디언 포커 | `public/indianpoker.html` | `public/indianpoker-core.js` | ✅ (v1.237 · net.js) |
 | 원카드 | `public/onecard.html` | `public/onecard-core.js` | ✅ (v1.237 · net.js) |
 | 도둑잡기 | `public/oldmaid.html` | `public/oldmaid-core.js` | ✅ (v1.237 · net.js) |
@@ -197,7 +197,7 @@ git add -A && git commit -m "..." && git push
 
 ## 🌐 온라인 공용 모듈 `net.js` (v1.237)
 
-온라인 9종 중 **카드 3종(인디언·원카드·도둑잡기)만** 이 모듈을 쓴다.
+온라인 10종 중 **카드 4종(인디언·원카드·도둑잡기·섯다)만** 이 모듈을 쓴다.
 기존 6종(윷·요트·너클본즈·라이어·좌중우·알까기)은 여전히 각자 인라인 로비 코드를 갖고 있다.
 
 - **왜 만들었나** — 6종이 같은 로비 코드를 각자 갖고 있어서, 3벌을 더 만들면 같은 코드가
