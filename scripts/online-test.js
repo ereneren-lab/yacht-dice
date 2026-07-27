@@ -57,8 +57,8 @@ async function runGame(game, playFully) {
     if (!await until(() => B.pid)) return ok(`[${game}] 참가`, false);
     if (!await until(() => A.lobby && A.lobby.members.length === 2)) return ok(`[${game}] 로비 동기화`, false);
 
-    // lcr은 3명부터라 AI를 하나 채운다
-    if (game === 'lcr') { A.send({ t: 'addAI' }); await until(() => A.lobby && A.lobby.members.length >= 3, 3000); }
+    // lcr·도둑잡기는 3명부터라 AI를 하나 채운다
+    if (game === 'lcr' || game === 'oldmaid') { A.send({ t: 'addAI' }); await until(() => A.lobby && A.lobby.members.length >= 3, 3000); }
 
     A.send({ t: 'start' });
     if (!await until(() => A.state && B.state)) return ok(`[${game}] 게임 시작·상태 수신`, false);
@@ -89,9 +89,47 @@ async function runGame(game, playFully) {
           await until(() => A.lobby && A.lobby.phase === 'lobby' && B.lobby && B.lobby.phase === 'lobby', 5000));
       }
     }
+    /* 숨김정보 게임은 **사람마다 다른 스냅샷**을 받아야 한다.
+       둘이 똑같은 걸 받으면 그건 브로드캐스트로 새고 있다는 뜻이다. */
+    if (HIDDEN_INFO[game]) {
+      await wait(400);
+      const chk = HIDDEN_INFO[game](A.state, B.state);
+      ok(`[${game}] 숨김정보 — ${chk.what}`, chk.pass, chk.detail || '');
+    }
     ok(`[${game}] 클라 에러 없음`, A.errors.length + B.errors.length === 0, [...A.errors, ...B.errors].join(','));
   } finally { A.close(); B.close(); await wait(200); }
 }
+
+/* 게임별 숨김정보 판정 — '남의 것이 내 스냅샷에 실려 오나'를 본다.
+   화면에서 안 그리는 걸론 부족하다. 스냅샷에 있으면 그게 곧 누출이다. */
+const HIDDEN_INFO = {
+  // 인디언 포커만 방향이 반대다: 남의 카드는 보이고 **내 카드만** 안 보인다
+  indianpoker: (a, b) => {
+    if (!a || !b) return { pass:false, what:'스냅샷 없음' };
+    const aMe = a.players.find(p => p.pid === a.players[0].pid);
+    const mineHidden = a.myCard == null && b.myCard == null;
+    const oppVisible = a.players.some(p => p.card != null);
+    return { pass: mineHidden && oppVisible, what:'내 카드만 가려짐(남의 카드는 보임)',
+             detail:`A.myCard=${a.myCard} B.myCard=${b.myCard} 남의카드보임=${oppVisible}` };
+  },
+  onecard: (a, b) => {
+    if (!a || !b) return { pass:false, what:'스냅샷 없음' };
+    const blob = JSON.stringify(a);
+    const noHands = !/"hands"\s*:/.test(blob) && !/"draw"\s*:\s*\[/.test(blob);
+    const different = JSON.stringify(a.myHand) !== JSON.stringify(b.myHand);
+    return { pass: noHands && different, what:'남의 손패·더미 미포함 · 둘의 손패가 다름',
+             detail:`hands/draw없음=${noHands} 손패다름=${different}` };
+  },
+  oldmaid: (a, b) => {
+    if (!a || !b) return { pass:false, what:'스냅샷 없음' };
+    const strip = s => JSON.stringify(Object.assign({}, s, { myHand:null, myPeek:null, myJoker:null, initialPairs:null }));
+    const noJoker = !/"joker"\s*:\s*true/.test(strip(a)) && !/"joker"\s*:\s*true/.test(strip(b));
+    const noOtherHand = a.players.every(p => p.seat === a.mySeat || p.hand == null);
+    const different = JSON.stringify(a.myHand) !== JSON.stringify(b.myHand);
+    return { pass: noJoker && noOtherHand && different, what:'조커 위치 미노출 · 남의 손패 미포함',
+             detail:`조커안보임=${noJoker} 남의손패없음=${noOtherHand} 손패다름=${different}` };
+  },
+};
 
 /* 재접속 시나리오 — 모바일 화면 잠금으로 소켓이 죽은 뒤 새 소켓으로 돌아오는 흐름.
    서버의 close 소유권 검사(v1.128)가 없으면 '재접속했는데 화면이 안 움직임'이 된다. */
@@ -159,7 +197,7 @@ async function runReconnect() {
   for (let i = 0; i < 30 && !(await ping()); i++) await wait(300);
   if (!(await ping())) { console.error('서버 기동 실패'); kill(); process.exit(1); }
 
-  for (const g of ['yut', 'yacht', 'kb', 'ld', 'lcr']) {
+  for (const g of ['yut', 'yacht', 'kb', 'ld', 'lcr', 'indianpoker', 'onecard', 'oldmaid']) {
     await runGame(g, g === 'yut');   // 윷만 끝까지 플레이(액션 형식이 게임마다 달라서)
   }
   await runReconnect();

@@ -12,6 +12,9 @@ const { LDEngine } = require('./public/ld-core.js');
 const { LCREngine } = require('./public/lcr-core.js');
 const { YutEngine } = require('./public/yut-core.js');
 const { AlkkagiEngine } = require('./public/alkkagi-core.js');
+const { IPEngine } = require('./public/indianpoker-core.js');
+const { OCEngine } = require('./public/onecard-core.js');
+const { OMEngine } = require('./public/oldmaid-core.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -108,11 +111,14 @@ function lobbyPayload(room){
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
 
 // 게임별 최소 인원. lcr은 좌/우가 서로 다른 사람이어야 성립하므로 3인부터.
-const MIN_PLAYERS = { lcr: 3 };
+/* 온라인이 되는 게임 목록. 하우스 상대 3종(블랙잭·바카라·하이로우)은 여기 없다 —
+   상대가 딜러라 사람끼리 붙을 게 없어서 온라인이 의미가 없다. */
+const ONLINE_GAMES = new Set(['kb','ld','lcr','yut','alkkagi','yacht','indianpoker','onecard','oldmaid']);
+const MIN_PLAYERS = { lcr: 3, oldmaid: 3 };   // 도둑잡기는 2인이면 서로 뽑기만 반복돼 판이 안 선다
 function minPlayers(room){ return MIN_PLAYERS[room.game] || 2; }
 function playableCount(room){ return room.members.filter(m=>!m.spectator).length; }
 // 게임별 정원(사람+AI). yut 팀전은 4, 개인전 6. 관전은 정원 위로 SPECTATOR_SLACK명까지.
-const CAP = { kb:2, ld:4, lcr:6, yut:6, yacht:8, alkkagi:2 };
+const CAP = { kb:2, ld:4, lcr:6, yut:6, yacht:8, alkkagi:2, indianpoker:6, onecard:4, oldmaid:5 };
 const SPECTATOR_SLACK = 8;
 const MAX_ROOMS = 500;
 function capOf(room){ return room.game==='yut' ? (room.teamMode?4:6) : (CAP[room.game]||8); }
@@ -165,6 +171,21 @@ function startEngine(room){
   } else if (room.game === 'yut'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
     room.engine = new YutEngine({ aiFast:!!room.aiFast, players, markers:room.markers||4, goal:(room.goal||room.markers||4), teamMode:!!room.teamMode, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes||undefined, dailyRule:(room.dailyOn===false?false:undefined), limitMs:(room.timer||0)*60000, turnMs:60000, aiMs:1100, onState });
+  } else if (room.game === 'indianpoker'){
+    // 숨김정보: 이 게임만 '보는 사람 자신'을 가린다(남의 카드는 다 보임) — 코어 주석 참고
+    const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
+    room.engine = new IPEngine({ players, itemsOn:!!room.itemsOn,
+      startChips:([10,20,30,50,100].includes(room.startChips)?room.startChips:50),
+      aiMs:room.aiFast?300:850, showdownMs:room.aiFast?200:520, onState });
+  } else if (room.game === 'onecard'){
+    // 숨김정보: 내 손패는 나만 — 남의 손패는 장수만 나간다
+    const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
+    room.engine = new OCEngine({ players, itemsOn:!!room.itemsOn, aiMs:room.aiFast?300:780, onState });
+  } else if (room.game === 'oldmaid'){
+    // 숨김정보: 조커가 어디 있는지가 전부 — 남의 손패는 장수만 나간다
+    const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
+    room.engine = new OMEngine({ players, itemsOn:!!room.itemsOn,
+      aiMs:room.aiFast?300:780, pairMs:room.aiFast?120:420, stepMs:room.aiFast?120:360, onState });
   } else if (room.game === 'alkkagi'){
     const onState = ()=> broadcast(room, { t:'state', state: room.engine.serialize() });
     room.engine = new AlkkagiEngine({ aiFast:!!room.aiFast, players, preset:(['mini','standard','battle'].includes(room.preset)?room.preset:'standard'), surface:room.surface, specials:room.specials, rule:room.rule, aiMs:900, onState });
@@ -253,9 +274,10 @@ wss.on('connection', (ws) => {
     if (m.t === 'create') {
       if (rooms.size >= MAX_ROOMS) return send(ws, { t:'error', code:'busy', msg:'서버가 혼잡해요. 잠시 후 다시 시도해줘.' });
       detachFromRoom(ws);   // 이전 방 정리(반복 생성 시 유령 방 누수 방지)
-      const game = (m.game === 'kb') ? 'kb' : (m.game === 'ld') ? 'ld' : (m.game === 'lcr') ? 'lcr' : (m.game === 'yut') ? 'yut' : (m.game === 'alkkagi') ? 'alkkagi' : 'yacht';
+      // 화이트리스트에 없으면 요트로 떨어진다(옛 삼항 사슬과 동작 동일 · 게임이 늘어 Set으로 정리)
+      const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='kb'?'kb':game==='ld'?'ld':game==='lcr'?'lcr':game==='yut'?'yut':game==='alkkagi'?'alkkagi':'yacht_kr', difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
         dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
