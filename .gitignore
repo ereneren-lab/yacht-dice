@@ -2,6 +2,9 @@ node_modules/
 npm-debug.log
 .DS_Store
 
+# electron-builder 산출물 (npm run dist:mac 등) — DMG 하나가 100MB다
+dist/
+
 # Capacitor — cap sync가 public/에서 재생성하는 복사본·생성물 (원본은 public/)
 android/app/src/main/assets/public/
 android/app/src/main/assets/capacitor.config.json
