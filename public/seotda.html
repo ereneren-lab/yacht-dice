@@ -198,6 +198,19 @@
   .sheetbox h2{margin:0 0 6px;font-size:22px;color:var(--gold)}
   .rulebox{font-size:12.5px;line-height:1.7;color:var(--ink);text-align:left}
   .rulebox b{color:var(--brass)}
+  /* 셋업 접기 (v1.239) — 짧은 화면(특히 가로)에서 옵션이 판을 화면 밖으로 밀었다.
+     숨기는 게 아니라 접는다: 큰 화면에선 기본으로 펴져 있고, 짧은 화면에서만 접힌다.
+     여는 건 한 번 탭. 기본값으로 바로 시작하고 싶은 사람은 열 필요도 없다. */
+  .setup-opts{border:1px solid var(--line);border-radius:12px;margin:12px 0 0;background:rgba(0,0,0,.12)}
+  .setup-opts>summary{cursor:pointer;list-style:none;padding:11px 13px;font-size:12.5px;font-weight:900;
+    color:var(--brass);display:flex;align-items:center;gap:7px;user-select:none}
+  .setup-opts>summary::-webkit-details-marker{display:none}
+  .setup-opts>summary::after{content:'▾';margin-left:auto;transition:transform .18s}
+  .setup-opts[open]>summary::after{transform:rotate(180deg)}
+  .setup-opts>summary:hover{color:var(--gold)}
+  .setup-opts .inner{padding:0 13px 13px}
+  .setup-opts .inner>.lbl:first-child{margin-top:2px}
+
   /* 셋업(전적·룰·베팅 옵션)이 길어 짧은 화면에서 '판 시작'이 화면 밖으로 밀렸다
      — 실측 360x640 +202px · 640x360 +464px · 844x390 +434px 에서 버튼에 아예 닿지 못했다.
      알까기(#startRow)와 같은 방식으로 셋업 동안만 화면 하단에 고정한다.
@@ -263,6 +276,9 @@
       <button class="opt" id="tutBtn" style="flex:1">📖 게임 방법 · 튜토리얼</button>
     </div>
     <h3 style="margin-top:14px">새 판 · 섯다</h3>
+    <details class="setup-opts">
+      <summary>⚙️ 판 설정 바꾸기</summary>
+      <div class="inner">
     <div class="lbl">인원 (나 + AI)</div>
     <div class="row" id="optN"></div>
     <div class="lbl">AI 실력</div>
@@ -283,6 +299,8 @@
     </div>
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="10" placeholder="너의 별명">
+      </div>
+    </details>
     <div class="row" style="margin-top:14px"><button class="btn" id="startBtn">판 시작</button></div>
     <div class="warn">⚠️ <b>가상 재화만</b> 사용합니다. 실제 돈과 무관한 오락용 게임이에요.</div>
   </div>
@@ -886,6 +904,26 @@
 <!-- CORE:seotda END -->
 
 <script>
+/* 셋업 옵션 접기 (v1.239) — 짧은 화면(특히 가로)에서 옵션이 판을 화면 밖으로 밀었다.
+   **높이 숫자를 추측하지 않는다.** 일단 펼쳐보고 실제로 넘치면 접는다 —
+   게임마다 옵션 길이가 달라서(알까기는 844px 세로에서도 넘쳤다) 고정 임계값은 반드시 틀린다.
+   사용자가 한 번이라도 직접 여닫으면 그 뜻을 따르고 더는 건드리지 않는다. */
+(function(){
+  try{
+    var d=document.querySelector('.setup-opts'); if(!d) return;
+    var overflowing=function(){ var e=document.documentElement; return e.scrollHeight > innerHeight + 2; };
+    var fit=function(){
+      if(d.dataset.touched) return;
+      d.open=true;
+      if(overflowing()) d.open=false;
+    };
+    d.addEventListener('toggle', function(){ if(!d.dataset.auto) d.dataset.touched='1'; });
+    var run=function(){ d.dataset.auto='1'; fit(); delete d.dataset.auto; };
+    if(document.readyState==='loading') addEventListener('DOMContentLoaded',run); else run();
+    addEventListener('resize', run); addEventListener('orientationchange', function(){ setTimeout(run,150); });
+  }catch(e){}
+})();
+
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const MYPID='me';

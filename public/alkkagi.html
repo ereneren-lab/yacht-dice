@@ -73,6 +73,17 @@
   .opt:hover{border-color:color-mix(in srgb,var(--brass) 45%,var(--line))}
   .opt:active{transform:translateY(1px)}
   .opt.on{border-color:var(--brass);color:var(--brass);background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 22%,var(--panel2)),color-mix(in srgb,var(--brass) 11%,var(--panel2)));box-shadow:0 4px 12px color-mix(in srgb,var(--brass) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.12)}
+  /* 셋업 접기 (v1.239) — 짧은 화면(특히 가로)에서 옵션이 판을 화면 밖으로 밀었다.
+     숨기는 게 아니라 접는다: 큰 화면에선 기본으로 펴져 있고, 짧은 화면에서만 접힌다. */
+  .setup-opts{border:1px solid var(--line);border-radius:12px;margin:12px 0 0;background:rgba(0,0,0,.12)}
+  .setup-opts>summary{cursor:pointer;list-style:none;padding:11px 13px;font-size:12.5px;font-weight:900;
+    color:var(--brass);display:flex;align-items:center;gap:7px;user-select:none}
+  .setup-opts>summary::-webkit-details-marker{display:none}
+  .setup-opts>summary::after{content:'\25BE';margin-left:auto;transition:transform .18s}
+  .setup-opts[open]>summary::after{transform:rotate(180deg)}
+  .setup-opts>summary:hover{color:var(--gold)}
+  .setup-opts .inner{padding:0 13px 13px}
+  .setup-opts .inner>.lbl:first-child{margin-top:2px}
   .lbl{font-size:11px;font-weight:900;color:color-mix(in srgb,var(--brass) 78%,var(--muted));margin:14px 0 5px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:6px}
   .lbl::before{content:'';width:3px;height:11px;background:var(--brass);border-radius:2px;opacity:.75;flex:none}
   input[type="text"]{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;width:100%;font-family:inherit}
@@ -206,6 +217,9 @@
     <!-- 로컬 셋업 -->
     <div id="localCfg">
       <h3>새 판</h3>
+      <details class="setup-opts">
+        <summary>⚙️ 판 설정 바꾸기</summary>
+        <div class="inner">
       <div class="lbl">모드</div>
       <div class="row" id="optMode">
         <div class="opt on" data-m="ai">AI 대전</div>
@@ -257,6 +271,8 @@
       </div>
       <div class="lbl">이름</div>
       <input type="text" id="myName" maxlength="12" placeholder="너의 별명">
+        </div>
+      </details>
       <div class="row" id="startRow" style="margin-top:14px">
         <button class="btn" id="startBtn">시작</button>
       </div>
@@ -987,6 +1003,26 @@
 <!-- CORE:alkkagi END -->
 
 <script>
+/* 셋업 옵션 접기 (v1.239) — 짧은 화면(특히 가로)에서 옵션이 판을 화면 밖으로 밀었다.
+   **높이 숫자를 추측하지 않는다.** 일단 펼쳐보고 실제로 넘치면 접는다 —
+   게임마다 옵션 길이가 달라서(알까기는 844px 세로에서도 넘쳤다) 고정 임계값은 반드시 틀린다.
+   사용자가 한 번이라도 직접 여닫으면 그 뜻을 따르고 더는 건드리지 않는다. */
+(function(){
+  try{
+    var d=document.querySelector('.setup-opts'); if(!d) return;
+    var overflowing=function(){ var e=document.documentElement; return e.scrollHeight > innerHeight + 2; };
+    var fit=function(){
+      if(d.dataset.touched) return;
+      d.open=true;
+      if(overflowing()) d.open=false;
+    };
+    d.addEventListener('toggle', function(){ if(!d.dataset.auto) d.dataset.touched='1'; });
+    var run=function(){ d.dataset.auto='1'; fit(); delete d.dataset.auto; };
+    if(document.readyState==='loading') addEventListener('DOMContentLoaded',run); else run();
+    addEventListener('resize', run); addEventListener('orientationchange', function(){ setTimeout(run,150); });
+  }catch(e){}
+})();
+
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
