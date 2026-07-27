@@ -132,6 +132,11 @@
   .abtn.stand{background:linear-gradient(180deg,#c05252,#8a3030)}
   .abtn.dbl{background:linear-gradient(180deg,#e0a840,#b07d1a)}
   .abtn.deal{background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 85%,#fff),var(--brass));color:#1a1608}
+  /* 아이템전 버튼 줄 — 비어 있으면 자리를 안 먹는다(일반전에서 세로 공간을 안 뺏게) */
+  .itemrow{display:flex;gap:6px;margin-bottom:6px}
+  .itemrow:empty{display:none}
+  .itemrow .abtn{flex-direction:row;gap:6px;padding:9px 8px;font-size:12.5px;
+    background:linear-gradient(180deg,#c9a13f,#96731d)}
   .clearbet{background:none;border:none;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;text-decoration:underline;margin-top:6px;width:100%}
 
   /* 코인 비 */
@@ -179,6 +184,7 @@
       <button class="cchip c100" data-v="100">100</button>
       <button class="cchip c500" data-v="500">500</button>
     </div>
+    <div class="itemrow" id="itemrow"></div>
     <div class="acts" id="acts"></div>
     <button class="clearbet" id="clearBet" style="display:none">베팅 초기화</button>
   </div>
@@ -201,6 +207,11 @@
       <div class="opt on" data-g="3">3배</div>
       <div class="opt" data-g="5">5배</div>
     </div>
+    <div class="lbl">아이템전</div>
+    <div class="row" id="optItems">
+      <div class="opt on" data-items="0">🚫 안 씀</div>
+      <div class="opt" data-items="1">👀 딜러 패 보기 ×2</div>
+    </div>
     <button class="btn" id="startBtn" style="margin-top:16px">게임 시작</button>
     <div class="warn">⚠️ <b>가상 재화만</b> 사용하는 오락용 게임입니다.</div>
   </div>
@@ -216,6 +227,7 @@
       <p><b>블랙잭</b> — 처음 2장이 A+10값이면 블랙잭! 배당 <b>1.5배</b>.</p>
       <p><b>진행</b> — 베팅 → 2장씩 딜(딜러 1장은 뒷면) → <b>히트</b>(더 받기)/<b>스탠드</b>(멈춤)/<b>더블</b>(베팅 2배·1장만). 내가 멈추면 딜러는 <b>17 이상</b>이 될 때까지 받아요.</p>
       <p><b>승패</b> — 버스트 안 한 쪽 중 21에 가까운 쪽이 승. 같으면 <b>푸시</b>(무·베팅 반환).</p>
+      <p><b>👀 아이템전</b>(옵션) — 켜면 <b>2개</b>의 '딜러 패 보기'를 받아요. 내 차례에 쓰면 딜러의 <b>뒷면 카드</b>가 보여요. 한 판에 한 번 — 애매한 16에서 히트할지 정할 때 쓰세요.</p>
     </div>
     <button class="btn" id="rulesClose" style="margin-top:14px">알겠어</button>
   </div>
@@ -323,8 +335,12 @@ function flipDealerHidden(){
 }
 
 // ===== 상태 =====
-const cfg={ chips:1000, goalMult:3 };
+const cfg={ chips:1000, goalMult:3, items:false };
 let bank=0, goal=0, bet=0, shoe=[], player=[], dealer=[], phase='bet', doubled=false;
+/* 아이템전 — 켜면 '👀 딜러 패 보기'를 정해진 개수만큼 받는다(상점 판매 없음).
+   하우스 상대 게임이라 상대 AI가 없다 → '전원 같은 개수' 규약은 나 하나에 적용된다.
+   효과: 딜러의 뒷면 카드를 이번 판 동안 나에게 보여준다. 판당 1회. */
+let itemsOn=false, items=0, peeked=false;
 let animP=0, animD=0, dealerShownPrev=false;   // 카드 등장/딜러 히든 플립 추적
 
 // 테마
@@ -338,6 +354,7 @@ $('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
 // 셋업
 document.querySelectorAll('#optChips .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optChips .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.chips=+o.dataset.c; });
 document.querySelectorAll('#optGoal .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optGoal .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.goalMult=+o.dataset.g; });
+document.querySelectorAll('#optItems .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optItems .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.items=o.dataset.items==='1'; });
 
 
 // 지갑에서 바이인 — 모자라면 있는 만큼, 바닥이면 임시 구제(상점 붙기 전까지)
@@ -355,6 +372,7 @@ function buyIn(need){
 }
 function startGame(){
   bank=buyIn(cfg.chips); goal=cfg.chips*cfg.goalMult; bet=0; shoe=makeShoe();
+  itemsOn=!!cfg.items; items=itemsOn?2:0; peeked=false;
   $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
   document.body.classList.add('ingame');
   try{SFX.resume();}catch(e){}
@@ -454,10 +472,26 @@ function endGame(won){
   if(won) coinRain();
 }
 
+/* 아이템전 '👀 딜러 패 보기' — 내 차례에, 남은 개수가 있고, 이 판에 아직 안 썼을 때만 뜬다.
+   딜러의 뒷면 카드를 나에게만 공개한다(판당 1회). 하우스 상대라 상대 AI는 없다. */
+function renderItem(){
+  const row=$('itemrow'); if(!row) return;
+  if(!itemsOn || phase!=='player' || items<=0 || peeked || dealer.length<2){ row.innerHTML=''; return; }
+  row.innerHTML=`<button class="abtn" id="peekBtn"><span class="ai">👀</span><span class="an">딜러 패 보기 (${items})</span></button>`;
+  $('peekBtn').onclick=doPeek;
+}
+function doPeek(){
+  if(!itemsOn || phase!=='player' || items<=0 || peeked || dealer.length<2) return;
+  items--; peeked=true;
+  try{SFX.flip();}catch(e){}
+  try{ showBanner('👀 딜러의 뒷장', RANKS[dealer[1].r-1]+SUITS[dealer[1].s], ''); }catch(e){}
+  render();
+}
+
 // ===== 렌더 =====
 function render(){
   const dealerHidden = (phase==='player'||phase==='bet');
-  $('dealerHand').innerHTML = dealer.map((c,i)=>cardHTML(c, dealerHidden&&i===1, i>=animD?i-animD:-1)).join('') || '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
+  $('dealerHand').innerHTML = dealer.map((c,i)=>cardHTML(c, dealerHidden&&i===1&&!peeked, i>=animD?i-animD:-1)).join('') || '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
   $('playerHand').innerHTML = player.map((c,i)=>cardHTML(c,false, i>=animP?i-animP:-1)).join('') || '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
   animD=dealer.length; animP=player.length;
   // 딜러 히든 카드 공개 = 플립 연출
@@ -466,7 +500,10 @@ function render(){
   dealerShownPrev = nowShown;
   // 총합
   const dt=$('dealerTotal'), ptt=$('playerTotal');
-  if(dealer.length){ if(dealerHidden){ dt.textContent=handValue([dealer[0]])+' + ?'; dt.className='total'; }
+  if(dealer.length){ if(dealerHidden){
+      // 훔쳐봤으면 숨은 카드까지 더한 실제 합을 보여준다(나에게만)
+      dt.textContent = peeked ? (handValue(dealer)+' 👀') : (handValue([dealer[0]])+' + ?');
+      dt.className='total'; }
     else { const dv=handValue(dealer); dt.textContent=dv+(dv>21?' 버스트':(isBlackjack(dealer)?' BJ':'')); dt.className='total'+(dv>21?' bust':(isBlackjack(dealer)?' bj':'')); } }
   else { dt.textContent='—'; dt.className='total'; }
   if(player.length){ const pv=handValue(player); ptt.textContent=pv+(pv>21?' 버스트':(isBlackjack(player)?' BJ':'')); ptt.className='total'+(pv>21?' bust':(isBlackjack(player)?' bj':'')); }
@@ -483,6 +520,7 @@ function render(){
   if(phase==='bet'){
     acts.innerHTML=`<button class="abtn deal" id="dealBtn" ${bet>0?'':'disabled'}><span class="ai">🃏</span><span class="an">딜 (베팅 ${bet.toLocaleString()})</span></button>`;
     $('dealBtn').onclick=deal;
+    renderItem();
   } else if(phase==='player'){
     const canDbl=player.length===2&&bank>=bet;
     acts.innerHTML=
@@ -490,6 +528,7 @@ function render(){
       `<button class="abtn stand" id="standBtn"><span class="ai">✋</span><span class="an">스탠드</span></button>`+
       `<button class="abtn dbl" id="dblBtn" ${canDbl?'':'disabled'}><span class="ai">✖️2</span><span class="an">더블</span></button>`;
     $('hitBtn').onclick=hit; $('standBtn').onclick=stand; $('dblBtn').onclick=double;
+    renderItem();
   } else {
     acts.innerHTML=`<button class="abtn deal" disabled><span class="ai">⏳</span><span class="an">${phase==='dealer'?'딜러 차례…':'정산 중…'}</span></button>`;
   }

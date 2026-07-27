@@ -404,7 +404,161 @@ const CLOSE_TUT = `try{ if(window.TUT) TUT.close();
     await p.close();
   }
 
+  /* ───────────── B갈래 3종 (하우스 상대) ─────────────
+     블랙잭·바카라·하이로우는 코어가 없고 HTML 안에서 직접 돈다. 상대가 하우스라
+     **AI 상대가 없어서** '전원 같은 개수'는 나 하나에 적용된다(공정성 문제가 생길 상대가 없다).
+     그래서 여기선 지급·표시·소모·효과 네 가지만 본다. */
+  console.log('\n=== 블랙잭 · 딜러 패 보기 ===');
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/blackjack.html');
+      await p.wait(900); await p.eval(CLOSE_TUT); await p.wait(200);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(900);
+      // 베팅하고 딜 — 아이템 버튼은 내 차례(player)에만 뜬다
+      await p.eval(`document.querySelector('.cchip').click(); return true;`); await p.wait(250);
+      await p.click('#dealBtn'); await p.wait(1500);
+
+      const s1 = await p.eval(`var b=document.getElementById('peekBtn');
+        return { has:!!b, txt:b?b.textContent:'', phase:phase, items:items, itemsOn:itemsOn,
+                 backs: document.querySelectorAll('#dealerHand .pc.back').length,
+                 total:(document.getElementById('dealerTotal')||{}).textContent||'' };`);
+      if (!on) {
+        if (s1.itemsOn || s1.items) bad('블랙잭: 껐는데 지급됨 — items=' + s1.items);
+        else ok('꺼짐 → 지급 0');
+        if (s1.has) bad('블랙잭: 껐는데 👀 버튼이 보인다'); else ok('꺼짐 → 버튼 없음');
+      } else if (s1.phase !== 'player') {
+        console.log(`   · 즉시 정산된 판(블랙잭/버스트) — phase=${s1.phase}, 이번 회차는 건너뜀`);
+      } else {
+        if (s1.items !== 2) bad('블랙잭: 지급이 2가 아니다 — ' + s1.items); else ok('지급 2개');
+        if (!s1.backs) bad('블랙잭: 딜러 뒷면 카드가 없다(검증 전제가 깨짐)');
+        else ok('쓰기 전 → 딜러 뒷면 가려짐 · 합 "' + s1.total.trim() + '"');
+        if (!s1.has) bad('블랙잭: 켰는데 버튼이 없다');
+        else {
+          ok('버튼 "' + s1.txt.trim() + '"');
+          await p.click('#peekBtn'); await p.wait(700);
+          const s2 = await p.eval(`
+            var real = handValue(dealer);
+            return { items:items, peeked:peeked, btn:!!document.getElementById('peekBtn'),
+                     backs:document.querySelectorAll('#dealerHand .pc.back').length,
+                     total:(document.getElementById('dealerTotal')||{}).textContent||'', real:real };`);
+          if (s2.items !== 1) bad(`블랙잭: 개수가 안 줄었다 (2→${s2.items})`); else ok('남은 개수 2→1');
+          if (s2.backs) bad('블랙잭: 썼는데 딜러 카드가 그대로 뒷면이다'); else ok('딜러 뒷장 공개됨');
+          // 보여준 합이 실제 딜러 합과 같아야 한다(거짓 정보면 아이템이 무의미)
+          if (s2.total.replace(/[^0-9]/g, '') !== String(s2.real)) bad(`블랙잭: 표시 합 "${s2.total}" ≠ 실제 ${s2.real}`);
+          else ok(`표시 합이 실제와 일치 (${s2.real})`);
+          if (s2.btn) bad('블랙잭: 한 판에 두 번 쓸 수 있다'); else ok('판당 1회 제한 — 버튼 사라짐');
+        }
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('블랙잭 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('블랙잭 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
+  console.log('\n=== 바카라 · 첫 패 엿보기 ===');
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/baccarat.html');
+      await p.wait(900); await p.eval(CLOSE_TUT); await p.wait(200);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(900);
+
+      const s1 = await p.eval(`var b=document.getElementById('peekBtn');
+        return { has:!!b, txt:b?b.textContent:'', items:items, itemsOn:itemsOn, phase:phase };`);
+      if (!on) {
+        if (s1.itemsOn || s1.items) bad('바카라: 껐는데 지급됨 — items=' + s1.items); else ok('꺼짐 → 지급 0');
+        if (s1.has) bad('바카라: 껐는데 🔮 버튼이 보인다'); else ok('꺼짐 → 버튼 없음');
+      } else if (!s1.has) {
+        bad(`바카라: 켰는데 버튼이 없다 (phase=${s1.phase} items=${s1.items})`);
+      } else {
+        if (s1.items !== 2) bad('바카라: 지급이 2가 아니다 — ' + s1.items); else ok('지급 2개');
+        ok('버튼 "' + s1.txt.trim() + '"');
+        // 엿본 카드가 **실제로 다음에 뽑히는 장**인지 — 슈 맨 위와 대조한다
+        const s2 = await p.eval(`
+          var topBefore = shoe[shoe.length-1];
+          document.getElementById('peekBtn').click();
+          return { items:items, peek:peekCard, topBefore:topBefore,
+                   same: peekCard && topBefore && peekCard.id===topBefore.id,
+                   msg:(document.getElementById('msg')||{}).textContent||'',
+                   btn:!!document.getElementById('peekBtn') };`);
+        if (s2.items !== 1) bad(`바카라: 개수가 안 줄었다 (2→${s2.items})`); else ok('남은 개수 2→1');
+        if (!s2.peek) bad('바카라: peekCard가 안 잡혔다');
+        else if (!s2.same) bad('바카라: 엿본 카드가 슈 맨 위와 다르다 — 거짓 정보');
+        else ok('엿본 카드 = 실제로 다음에 뽑힐 장 (플레이어 첫 장)');
+        if (!/첫 장/.test(s2.msg)) bad('바카라: 결과가 안내문에 안 나온다 — "' + s2.msg + '"');
+        else ok('안내문 — "' + s2.msg.trim() + '"');
+        if (s2.btn) bad('바카라: 한 판에 두 번 쓸 수 있다'); else ok('판당 1회 제한 — 버튼 사라짐');
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('바카라 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('바카라 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
+  console.log('\n=== 하이로우 · 목숨 ===');
+  for (const on of [false, true]) {
+    const p = await cdp.newPage(430, 900);
+    try {
+      await p.goto('http://localhost:3000/highlow.html');
+      await p.wait(900); await p.eval(CLOSE_TUT); await p.wait(200);
+      if (on) await p.eval(`document.querySelector('#optItems .opt[data-items="1"]').click(); return true;`);
+      await p.click('#startBtn'); await p.wait(800);
+      await p.eval(`document.querySelector('.cchip').click(); return true;`); await p.wait(250);
+      await p.click('#dealBtn'); await p.wait(1400);
+
+      const s1 = await p.eval(`var b=document.getElementById('shieldBtn');
+        return { has:!!b, txt:b?b.textContent:'', items:items, itemsOn:itemsOn, phase:phase, pot:pot };`);
+      if (!on) {
+        if (s1.itemsOn || s1.items) bad('하이로우: 껐는데 지급됨 — items=' + s1.items); else ok('꺼짐 → 지급 0');
+        if (s1.has) bad('하이로우: 껐는데 🛟 버튼이 보인다'); else ok('꺼짐 → 버튼 없음');
+      } else if (!s1.has) {
+        bad(`하이로우: 켰는데 버튼이 없다 (phase=${s1.phase} items=${s1.items})`);
+      } else {
+        if (s1.items !== 2) bad('하이로우: 지급이 2가 아니다 — ' + s1.items); else ok('지급 2개');
+        ok('버튼 "' + s1.txt.trim() + '"');
+        await p.click('#shieldBtn'); await p.wait(500);
+        const s2 = await p.eval(`var b=document.getElementById('shieldBtn');
+          return { items:items, shield:shield, txt:b?b.textContent:'', dis:b?!!b.disabled:false };`);
+        if (s2.items !== 1) bad(`하이로우: 개수가 안 줄었다 (2→${s2.items})`); else ok('남은 개수 2→1');
+        if (!s2.shield) bad('하이로우: 예약이 안 걸렸다');
+        else ok('예약됨 → "' + s2.txt.trim() + '"');
+        if (!s2.dis) bad('하이로우: 예약 후에도 또 눌린다(중복 소모)'); else ok('중복 예약 차단됨');
+
+        /* 핵심 — 틀렸을 때 정말로 팟을 지키는가.
+           덱을 조작해 **반드시 틀리는 추측**을 만든다(자연 플레이로는 언제 틀릴지 모른다). */
+        const s3 = await p.eval(`
+          var potBefore = pot, streakBefore = streak;
+          // 현재 카드보다 확실히 낮은 카드를 다음 장으로 심고 '하이'를 누른다 → 무조건 오답
+          var lower = null;
+          for(var i=0;i<deck.length;i++){ if(val(deck[i]) < val(cur)) { lower = deck.splice(i,1)[0]; break; } }
+          if(!lower) return { skip:true };
+          deck.push(lower);
+          guess('H');
+          return { skip:false, potBefore:potBefore, streakBefore:streakBefore };`);
+        if (s3.skip) console.log('   · 현재 카드보다 낮은 장이 덱에 없어 오답 검증은 건너뜀');
+        else {
+          await p.wait(1600);
+          const s4 = await p.eval(`return { pot:pot, streak:streak, shield:shield, phase:phase,
+            msg:(document.getElementById('msg')||{}).textContent||'' };`);
+          if (s4.pot !== s3.potBefore) bad(`하이로우: 🛟인데 팟이 줄었다 (${s3.potBefore}→${s4.pot})`);
+          else ok(`틀렸는데 팟 유지 (${s4.pot})`);
+          if (s4.streak !== s3.streakBefore) bad(`하이로우: 🛟인데 연승이 초기화됐다 (${s3.streakBefore}→${s4.streak})`);
+          else ok(`연승도 유지 (${s4.streak})`);
+          if (s4.phase !== 'guess') bad(`하이로우: 🛟인데 판이 끝났다 (phase=${s4.phase})`);
+          else ok('판이 계속됨');
+          if (s4.shield) bad('하이로우: 목숨이 소모되지 않았다(무한 방어)'); else ok('목숨은 소모됨');
+        }
+      }
+      const errs = p.errors.filter(e => !/favicon|vibrate|plausible|ERR_BLOCKED|net::/i.test(e));
+      if (errs.length) bad('하이로우 콘솔 에러: ' + errs[0].slice(0, 140));
+    } catch (e) { bad('하이로우 예외: ' + e.message.slice(0, 110)); }
+    await p.close();
+  }
+
   await cdp.close();
-  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 7종 통과');
+  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 신규 아이템 10종 통과');
   process.exit(fails ? 1 : 0);
 })();

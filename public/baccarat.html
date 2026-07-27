@@ -123,6 +123,11 @@
   .abtn:disabled{opacity:.3;cursor:default;filter:grayscale(.5);box-shadow:none}
   .abtn .ai{font-size:16px} .abtn .an{font-size:11px;font-weight:800;opacity:.9}
   .abtn.deal{background:linear-gradient(180deg,color-mix(in srgb,var(--brass) 85%,#fff),var(--brass));color:#1a1608}
+  /* 아이템전 버튼 줄 — 비어 있으면 자리를 안 먹는다(일반전에서 세로 공간을 안 뺏게) */
+  .itemrow{display:flex;gap:6px;margin-bottom:6px}
+  .itemrow:empty{display:none}
+  .itemrow .abtn{flex-direction:row;gap:6px;padding:9px 8px;font-size:12.5px;
+    background:linear-gradient(180deg,#c9a13f,#96731d)}
   .clearbet{background:none;border:none;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;text-decoration:underline;margin-top:6px;width:100%}
 
   .coinrain{position:fixed;top:-40px;z-index:80;pointer-events:none;font-size:26px;will-change:transform;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
@@ -170,6 +175,7 @@
       <button class="cchip c100" data-v="100">100</button>
       <button class="cchip c500" data-v="500">500</button>
     </div>
+    <div class="itemrow" id="itemrow"></div>
     <div class="acts" id="acts"></div>
     <button class="clearbet" id="clearBet" style="display:none">베팅 초기화</button>
   </div>
@@ -192,6 +198,11 @@
       <div class="opt on" data-g="3">3배</div>
       <div class="opt" data-g="5">5배</div>
     </div>
+    <div class="lbl">아이템전</div>
+    <div class="row" id="optItems">
+      <div class="opt on" data-items="0">🚫 안 씀</div>
+      <div class="opt" data-items="1">🔮 첫 패 엿보기 ×2</div>
+    </div>
     <button class="btn" id="startBtn" style="margin-top:16px">게임 시작</button>
     <div class="warn">⚠️ <b>가상 재화만</b> 사용하는 오락용 게임입니다.</div>
   </div>
@@ -208,6 +219,7 @@
       <p><b>승패</b> — <b>9에 가까운 쪽</b>이 승. 같으면 타이.</p>
       <p><b>배당</b> — 플레이어 <b>1:1</b> · 뱅커 <b>1:1(커미션 5%)</b> · 타이 <b>8:1</b>. 플레이어·뱅커에 걸었는데 타이가 나오면 <b>반환(푸시)</b>.</p>
       <p><b>종료</b> — 목표 금액에 도달하면 승리, 칩이 바닥나면 패배.</p>
+      <p><b>🔮 아이템전</b>(옵션) — 켜면 <b>2개</b>의 '첫 패 엿보기'를 받아요. <b>베팅 전</b>에 쓰면 슈 맨 위 카드(<b>플레이어의 첫 장</b>)가 보여요. 9에 가까우면 플레이어 쪽이 유리 — 어디에 걸지 정할 때 쓰세요.</p>
     </div>
     <button class="btn" id="rulesClose" style="margin-top:14px">알겠어</button>
   </div>
@@ -288,8 +300,14 @@ function bacRound(deck){
 }
 
 // ===== 상태 =====
-const cfg={ chips:1000, goalMult:3 };
+const cfg={ chips:1000, goalMult:3, items:false };
 let bank=0, goal=0, bets={P:0,B:0,T:0}, sel='P', shoe=[], P=[], B=[], phase='bet';
+/* 아이템전 — 켜면 '🔮 첫 패 엿보기'를 정해진 개수만큼 받는다(상점 판매 없음).
+   하우스 상대 게임이라 상대 AI가 없다 → '전원 같은 개수' 규약은 나 하나에 적용된다.
+   효과: 슈 맨 위(=플레이어에게 갈 첫 장)를 베팅 전에 보여준다. 판당 1회.
+   왜 이 아이템인가 — 바카라에서 사람이 내리는 결정은 'P/B/T 중 어디에 거나' 하나뿐이다.
+   그 하나를 정보에 근거해 내리게 해주는 것이라 판단이 개입한다. */
+let itemsOn=false, items=0, peekCard=null;
 
 // 테마/버튼
 (function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
@@ -302,6 +320,7 @@ $('rulesClose').onclick=()=>$('rulesOv').classList.remove('on');
 // 셋업
 document.querySelectorAll('#optChips .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optChips .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.chips=+o.dataset.c; });
 document.querySelectorAll('#optGoal .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optGoal .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.goalMult=+o.dataset.g; });
+document.querySelectorAll('#optItems .opt').forEach(o=>o.onclick=()=>{ document.querySelectorAll('#optItems .opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); cfg.items=o.dataset.items==='1'; });
 
 
 // 지갑에서 바이인 — 모자라면 있는 만큼, 바닥이면 임시 구제(상점 붙기 전까지)
@@ -319,6 +338,7 @@ function buyIn(need){
 }
 function startGame(){
   bank=buyIn(cfg.chips); goal=cfg.chips*cfg.goalMult; bets={P:0,B:0,T:0}; sel='P'; shoe=makeShoe();
+  itemsOn=!!cfg.items; items=itemsOn?2:0; peekCard=null;
   $('setupOv').classList.remove('on'); $('resultOv').classList.remove('on');
   document.body.classList.add('ingame');
   try{SFX.resume();}catch(e){}
@@ -331,7 +351,7 @@ function betTotal(){ return bets.P+bets.B+bets.T; }
 function draw(){ if(shoe.length<20) shoe=makeShoe(); return shoe.pop(); }
 
 function toBetPhase(){
-  phase='bet'; bets={P:0,B:0,T:0}; P=[]; B=[];
+  phase='bet'; bets={P:0,B:0,T:0}; P=[]; B=[]; peekCard=null;
   $('msg').textContent='스팟에 칩을 걸고 딜하세요';
   render();
 }
@@ -445,6 +465,26 @@ function render(){
   } else {
     acts.innerHTML=`<button class="abtn deal" disabled><span class="ai">⏳</span><span class="an">${phase==='result'?'정산 중…':'딜 중…'}</span></button>`;
   }
+  renderItem();
+}
+
+/* 아이템전 '🔮 첫 패 엿보기' — 베팅 단계에, 남은 개수가 있고, 이 판에 아직 안 썼을 때만 뜬다.
+   슈 맨 위 카드가 플레이어의 첫 장이 된다(bacRound가 deck.pop()을 그 순서로 부른다). */
+function renderItem(){
+  const row=$('itemrow'); if(!row) return;
+  if(!itemsOn || phase!=='bet' || items<=0 || peekCard){ row.innerHTML=''; return; }
+  row.innerHTML=`<button class="abtn" id="peekBtn"><span class="ai">🔮</span><span class="an">첫 패 엿보기 (${items})</span></button>`;
+  $('peekBtn').onclick=doPeek;
+}
+function doPeek(){
+  if(!itemsOn || phase!=='bet' || items<=0 || peekCard) return;
+  if(shoe.length<20) shoe=makeShoe();
+  items--;
+  peekCard=shoe[shoe.length-1];            // pop 될 다음 장 = 플레이어의 첫 장
+  try{SFX.reveal();}catch(e){}
+  const v=bval(peekCard);
+  $('msg').innerHTML=`🔮 플레이어 첫 장 <b>${RANKS[peekCard.r-1]}${SUITS[peekCard.s]}</b> — 바카라 값 <b>${v}</b>`;
+  render();
 }
 
 function coinRain(){
