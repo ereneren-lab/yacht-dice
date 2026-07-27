@@ -82,11 +82,20 @@ function pickPiece(page) {
   `);
 }
 
-/** 지름길/직진 선택 오버레이가 떠 있으면 직진 */
+/**
+ * 말을 누른 뒤 남은 선택을 정리한다.
+ *  1) v1.160 '어디로 갈지' 목적지 고스트 — 판 위 후보 칸(.stepghost) 중 첫 번째를 고른다
+ *  2) 지름길/직진 오버레이(#dirSt) — 직진
+ *
+ * ⚠️ 1번이 빠지면 여러 끗수가 남은 턴에서 게임이 "어디로 갈지 골라주세요"로 멈춰
+ * 드라이버가 무한 대기한다. (v1.160 도입 후 실제로 그렇게 굳었다 — 진행 1턴 / 대기 942회)
+ */
 function resolveDirection(page) {
   return page.eval(`
+    var gh = document.querySelector('#pieceLayer .stepghost');
+    if (gh && gh.onclick) { gh.onclick(); return 'stepghost'; }
     var st = document.getElementById('dirSt');
-    if (st && st.offsetParent !== null) { st.onclick(); return true; }
+    if (st && st.offsetParent !== null) { st.onclick(); return 'dirSt'; }
     return false;
   `);
 }

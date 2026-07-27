@@ -11,10 +11,18 @@
  * 이 스크립트는 그 '[AL] ...' 줄을 읽는다.
  *
  * 사용: node scripts/browser-test/verify-analytics.js   (서버는 알아서 띄운다)
+ *
+ * ⚠️ `--full`은 현재 미완성이다 (2026-07-22).
+ * 윷을 몇 분 이상 돌리면 크로미움이 "CDP 소켓이 끊겼다"로 죽는다. 3회 연속 재현.
+ * 브라우저 인스턴스를 하나만 쓰도록 고쳐도 동일 — 원인 미규명(장시간 CDP 세션 안정성 추정).
+ * 그래서 `1판완료`는 지금 **정적 배선 단언(5번 블록)까지만 검증된 상태**다.
+ * 그 단언은 'AL.done이 games++ 바로 앞에 있다'를 보장하므로, 화면에 전적이 오르는 한
+ * 이벤트도 나간다. 다만 '실제로 나가는 걸 봤다'는 아니다 — 배포 후 Plausible 대시보드에서
+ * 1판완료가 실제로 찍히는지 눈으로 한 번 확인할 것.
  */
 const fs = require('fs');
 const path = require('path');
-const { CDP, URL, ensureServer, startGame, playTurn } = require('./yut-drive');
+const { CDP, URL, ensureServer, startGame, playTurn, state } = require('./yut-drive');
 const { launchWithRetry } = require('./cdp');
 
 // yut-drive의 URL은 yut.html까지 포함한 전체 주소다. 우리는 다른 페이지도 열어야 하므로 origin만 뗀다.
@@ -42,7 +50,7 @@ const GAMES = [
   { slug: 'yacht', name: '요트 다이스' },
 ];
 
-(async () => {
+async function run() {
   await ensureServer();
   const cdp = await launchWithRetry();
 
@@ -135,36 +143,49 @@ const GAMES = [
       check(`${g.name} — 1판완료 훅이 전적 증가 지점에 배선됨`, wired,
             wired ? 'AL.done → games++' : (m.length !== 1 ? `games++ ${m.length}곳 (1곳이어야 함)` : '훅 없음'));
     }
+    /* ---- 6) 실제 한 판 (--full) — 윷을 끝까지 돌려 1판완료가 진짜 발화하는지 본다 ----
+     * ⚠️ 브라우저를 새로 띄우지 말고 위의 cdp를 그대로 쓴다.
+     * 앞 블록을 close()한 뒤 두 번째를 launch하면 같은 디버그 포트를 두고 경쟁해
+     * 긴 게임 도중 "CDP 소켓이 끊겼다"로 죽는다 (실측: 두 번 연속). */
+    if (process.argv.includes('--full')) {
+      console.log('\n── 실제 한 판 (윷놀이) ──');
+      // startGame은 cdp를 받아 '판이 깔린 page'를 돌려준다 (newPage·goto·시작버튼까지 처리)
+      const page = await startGame(cdp);
+
+      /* playTurn은 AI 차례엔 아무것도 안 하고 false를 반환한다.
+         그걸 턴으로 세면 예산이 대기로만 소진된다 — 실제로 움직인 것만 센다. */
+      let moves = 0, spins = 0;
+      const DEADLINE = Date.now() + 8 * 60 * 1000;
+      while (Date.now() < DEADLINE) {
+        if (alEvents(page).some(e => e.startsWith('1판완료'))) break;
+        const moved = await playTurn(page);
+        if (moved) moves++; else spins++;
+      }
+      const ev = alEvents(page).filter(e => e.startsWith('1판완료'));
+      const st = await state(page);
+      check(`실제 한 판 — 1판완료 발화 (내 턴 ${moves}회 · 대기 ${spins}회)`,
+            ev.length >= 1 && ev[0].includes('윷놀이'),
+            ev[0] || `시간 내 미종료 (over=${st.over} throwable=${st.throwable} info="${st.info}")`);
+      await page.close();
+    }
   } finally {
     await cdp.close();
   }
 
-  // ---- 6) 실제 한 판 (--full) — 윷을 끝까지 돌려 1판완료가 진짜 발화하는지 본다 ----
-  if (process.argv.includes('--full')) {
-    console.log('\n── 실제 한 판 (윷놀이) ──');
-    const cdp2 = await launchWithRetry();
-    try {
-      // startGame은 cdp를 받아 '판이 깔린 page'를 돌려준다 (newPage·goto·시작버튼까지 처리)
-      const page = await startGame(cdp2);
-
-      let turns = 0;
-      const MAX = 220;   // 무한루프 방지. 윷 한 판은 보통 이 안에 끝난다.
-      while (turns < MAX) {
-        const done = alEvents(page).some(e => e.startsWith('1판완료'));
-        if (done) break;
-        await playTurn(page);
-        turns++;
-      }
-      const ev = alEvents(page).filter(e => e.startsWith('1판완료'));
-      check(`실제 한 판 — 1판완료 발화 (${turns}턴)`, ev.length >= 1 && ev[0].includes('윷놀이'),
-            ev[0] || `${MAX}턴 안에 판이 끝나지 않음`);
-      await page.close();
-    } finally {
-      await cdp2.close();
-    }
-  }
-
   const fail = results.filter(r => !r.ok);
   console.log(`\n${fail.length ? '❌' : '✓'} ${results.length - fail.length}/${results.length} 통과`);
-  process.exit(fail.length ? 1 : 0);
-})().catch(e => { console.error('실행 실패:', e); process.exit(1); });
+  return fail.length ? 1 : 0;
+}
+
+/* 이 환경은 메모리가 빠듯해 실행 도중 CDP 소켓이 조용히 끊긴다 → 1회 재시도.
+   (verify-fx.js와 같은 패턴. 이 래퍼 없이 짰다가 3회 연속 죽었다 — CLAUDE.md 함정 #10) */
+(async () => {
+  try { process.exit(await run()); }
+  catch (e) {
+    console.error('실행 실패:', e.message.split('\n')[0], '— 재시도');
+    results.length = 0;
+    await new Promise(r => setTimeout(r, 4000));
+    try { process.exit(await run()); }
+    catch (e2) { console.error('실행 실패:', e2.message); process.exit(1); }
+  }
+})();
