@@ -37,7 +37,8 @@
     "test:onecard:play": "node scripts/browser-test/verify-onecard-play.js",
     "test:oldmaid": "node scripts/oldmaid-sim.js",
     "test:oldmaid:play": "node scripts/browser-test/verify-oldmaid-play.js",
-    "test:cardonline": "node scripts/browser-test/verify-card-online.js"
+    "test:cardonline": "node scripts/browser-test/verify-card-online.js",
+    "backup": "node scripts/backup.js"
   },
   "engines": {
     "node": ">=18"

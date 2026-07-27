@@ -76,10 +76,22 @@ node scripts/browser-test/verify-analytics.js   # 계측 퍼널 30개 단언 (~4
 ### 배포
 ```bash
 npm run build         # 엔진(*-core.js)을 고쳤다면 먼저 HTML에 동기화
-npm run check:drift   # 5종 OK 확인 (드리프트면 커밋 금지)
-git add -A && git commit -m "..." && git push
+npm run check:drift   # 10종 OK 확인 (드리프트면 커밋 금지)
+git add <내가 만진 파일> && git commit -m "..." && git push
 # → Render 자동 빌드 (몇 분) → Electron 재시작 시 반영
 ```
+
+### 백업 zip
+```bash
+npm run backup              # 바탕화면에 생성 + 최신 2개만 남기고 자동 정리
+npm run backup -- --list    # 현재 백업 목록만
+npm run backup -- --keep 5  # 유지 개수 바꾸기
+```
+⚠️ **버전마다 zip을 만들지 말 것.** 하루에 8개(24MB)가 쌓였던 적이 있다.
+이 zip들은 **전부 git 태그에서 재생성된다** — 태그가 원격에 있으면 사실상 중복이다
+(v1.237로 대조 검증: 267개 파일 목록·크기 완전 일치).
+되살리는 법: `git archive --format=zip -o out.zip <태그>`
+`backup.js`는 커밋 안 된 변경이 있으면 경고한다(`git archive`는 HEAD를 뜨므로 안 담긴다).
 
 ## 📊 계측 (Plausible · 2026-07-22 도입)
 
