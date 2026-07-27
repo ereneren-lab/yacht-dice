@@ -88,7 +88,11 @@
       opts = opts || {};
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function () {};
-      this.startChips = opts.startChips != null ? opts.startChips | 0 : 50;
+      /* 시작 칩 기본 10 (v1.238). 예전 기본 50은 탈락까지 너무 오래 걸렸다 —
+         시뮬 실측 중앙값: 50칩이면 2인 790판 · 3인 2,073판 · 4인 3,657판.
+         10칩이면 2인 35판 · 3인 82판 · 4인 144판으로 한 자리에서 끝낼 만하다.
+         (규칙은 그대로 두고 옵션 숫자만 낮췄다.) */
+      this.startChips = opts.startChips != null ? opts.startChips | 0 : 10;
       this.ante = opts.ante != null ? Math.max(1, opts.ante | 0) : 1;
       this.aiMs = opts.aiMs != null ? opts.aiMs : 850;
       this.showdownMs = opts.showdownMs != null ? opts.showdownMs : 520;

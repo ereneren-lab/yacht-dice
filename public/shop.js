@@ -32,7 +32,9 @@
       var d = JSON.parse(localStorage.getItem(KEY)) || {};
       if (!Array.isArray(d.owned)) d.owned = [];
       if (!d.equip || typeof d.equip !== 'object') d.equip = {};
-      if (!d.use || typeof d.use !== 'object') d.use = {};   // 소모품 개수 {reroll:n}
+      /* 소모품은 판매를 내렸다(v1.238에 판매·사용 코드 제거). 이 필드는 지우지 않는다 —
+         예전에 산 사람의 잔여 개수를 아래 refundConsumables()가 읽어 코인으로 돌려줘야 한다. */
+      if (!d.use || typeof d.use !== 'object') d.use = {};
       return d;
     } catch (e) { return { owned: [], equip: {}, use: {} }; }
   }
@@ -69,16 +71,11 @@
     buy: function (id) {
       var it = SHOP.item(id);
       if (!it) return { ok: false, why: '없는 물건' };
-      if (it.slot !== 'use' && SHOP.owned(id)) return { ok: false, why: '이미 가지고 있어' };   // 소모품은 여러 번 산다
+      if (SHOP.owned(id)) return { ok: false, why: '이미 가지고 있어' };
       var coin = global.AW ? AW.get() : 0;
       if (coin < it.price) return { ok: false, why: '코인이 ' + (it.price - coin).toLocaleString() + ' 모자라' };
       if (global.AW) AW.add(-it.price);
       var d = read();
-      if (it.slot === 'use') {
-        d.use[it.use] = (d.use[it.use] || 0) + it.qty;
-        write(d);
-        return { ok: true, item: it, count: d.use[it.use] };
-      }
       d.owned.push(id);
       if (it.slot === 'dice' || it.slot === 'title') d.equip[it.slot] = id;   // 사면 바로 장착
       write(d);
@@ -91,17 +88,6 @@
       if (!it || !SHOP.owned(id) || it.slot === 'pack') return false;
       var d = read();
       d.equip[it.slot] = (d.equip[it.slot] === id) ? '' : id;
-      write(d);
-      return true;
-    },
-
-    /** 소모품 보유 개수 */
-    count: function (use) { return read().use[use] || 0; },
-    /** 소모품 1개 사용. 없으면 false — 호출부는 이 값으로 판단하면 된다. */
-    spend: function (use) {
-      var d = read();
-      if (!d.use[use]) return false;
-      d.use[use]--;
       write(d);
       return true;
     },

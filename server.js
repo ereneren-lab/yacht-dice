@@ -114,6 +114,10 @@ function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
 /* 온라인이 되는 게임 목록. 하우스 상대 3종(블랙잭·바카라·하이로우)은 여기 없다 —
    상대가 딜러라 사람끼리 붙을 게 없어서 온라인이 의미가 없다. */
 const ONLINE_GAMES = new Set(['kb','ld','lcr','yut','alkkagi','yacht','indianpoker','onecard','oldmaid']);
+/* ⚠️ startChips는 게임마다 의미도 범위도 다르다 — 좌·중·우는 3~5칩, 인디언 포커는 5~20칩.
+   v1.236에선 방 생성 검증이 좌·중·우 범위([3,4,5])만 보고 있어서 인디언이 무엇을 보내든
+   기본값으로 떨어졌다(→ 온라인 인디언은 늘 50칩이었다). 게임별로 갈라서 본다. */
+const IP_CHIPS = [5, 10, 20];
 const MIN_PLAYERS = { lcr: 3, oldmaid: 3 };   // 도둑잡기는 2인이면 서로 뽑기만 반복돼 판이 안 선다
 function minPlayers(room){ return MIN_PLAYERS[room.game] || 2; }
 function playableCount(room){ return room.members.filter(m=>!m.spectator).length; }
@@ -175,7 +179,7 @@ function startEngine(room){
     // 숨김정보: 이 게임만 '보는 사람 자신'을 가린다(남의 카드는 다 보임) — 코어 주석 참고
     const onState = ()=> room.members.forEach(mm=> send(mm.ws, { t:'state', state: room.engine.serialize(mm.pid) }));
     room.engine = new IPEngine({ players, itemsOn:!!room.itemsOn,
-      startChips:([10,20,30,50,100].includes(room.startChips)?room.startChips:50),
+      startChips:(IP_CHIPS.includes(room.startChips)?room.startChips:10),
       aiMs:room.aiFast?300:850, showdownMs:room.aiFast?200:520, onState });
   } else if (room.game === 'onecard'){
     // 숨김정보: 내 손패는 나만 — 남의 손패는 장수만 나간다
@@ -278,7 +282,7 @@ wss.on('connection', (ws) => {
       const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
       const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
-        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:([3,4,5].includes(m.startChips)?m.startChips:3), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:10) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);

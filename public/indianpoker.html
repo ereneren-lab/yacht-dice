@@ -183,9 +183,9 @@
     </div>
     <div class="lbl">시작 칩</div>
     <div class="row" id="optChips">
-      <div class="opt" data-c="30">30</div>
-      <div class="opt on" data-c="50">50</div>
-      <div class="opt" data-c="100">100</div>
+      <div class="opt" data-c="5">5 · 짧게</div>
+      <div class="opt on" data-c="10">10 · 보통</div>
+      <div class="opt" data-c="20">20 · 길게</div>
     </div>
     <div class="lbl">아이템전</div>
     <div class="row" id="optItems">
@@ -318,7 +318,11 @@
       opts = opts || {};
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function () {};
-      this.startChips = opts.startChips != null ? opts.startChips | 0 : 50;
+      /* 시작 칩 기본 10 (v1.238). 예전 기본 50은 탈락까지 너무 오래 걸렸다 —
+         시뮬 실측 중앙값: 50칩이면 2인 790판 · 3인 2,073판 · 4인 3,657판.
+         10칩이면 2인 35판 · 3인 82판 · 4인 144판으로 한 자리에서 끝낼 만하다.
+         (규칙은 그대로 두고 옵션 숫자만 낮췄다.) */
+      this.startChips = opts.startChips != null ? opts.startChips | 0 : 10;
       this.ante = opts.ante != null ? Math.max(1, opts.ante | 0) : 1;
       this.aiMs = opts.aiMs != null ? opts.aiMs : 850;
       this.showdownMs = opts.showdownMs != null ? opts.showdownMs : 520;
@@ -682,7 +686,7 @@ function isRed(sym){ return sym==='♥'||sym==='♦'; }
 
 // ===== 상태 =====
 // 엔진(indianpoker-core.js)이 규칙을 갖고, 화면은 serialize 스냅샷(S)만 보고 그린다.
-const cfg={ n:3, diff:'normal', chips:50, items:false, name:'' };
+const cfg={ n:3, diff:'normal', chips:10, items:false, name:'' };
 try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
 let engine=null, S=null, prevS=null;
 
