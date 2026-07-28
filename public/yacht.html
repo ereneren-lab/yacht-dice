@@ -1964,7 +1964,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(pi===S.current&&S.rolled&&S.preview){ const prev=S.preview[catId];
       const jlock=S.joker&&S.joker.legal.indexOf(catId)<0;   // 조커 배치 제한으로 막힌 칸
       const click=canAct()&&!jlock;
-      return `<td class="preview ${cur} ${prev===0?'zero':''} ${click?'':'lock'} ${jlock?'jlock':''}"${jlock?' title="조커 규칙: 이번엔 이 칸에 넣을 수 없어"':''} ${click?`data-cat="${catId}"`:''}>${prev===0?'–':prev}</td>`; }
+      return `<td class="preview ${cur} ${prev===0?'zero':''} ${click?'':'lock'} ${jlock?'jlock':''}"${jlock?' title="조커 규칙: 이번엔 이 칸에 넣을 수 없어" data-jlock="1"':''} ${click?`data-cat="${catId}"`:''}>${prev===0?'–':prev}</td>`; }
     return `<td class="empty ${cur}">·</td>`;
   }
   // ---------- 항목 설명 ----------
@@ -2040,6 +2040,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }}catch(e){}
     try{ buildReactbar(); }catch(e){}
     $('sheet').querySelectorAll('td.preview[data-cat]').forEach(td=>{td.onclick=()=>askPick(td.dataset.cat);});
+    // 조커로 잠긴 칸 — 예전엔 눌러도 아무 반응이 없었다(title은 터치에서 안 보인다).
+    $('sheet').querySelectorAll('td.preview[data-jlock]').forEach(td=>{td.onclick=()=>{
+      const f=S&&S.joker?S.joker.face:0, up=['','에이스','듀얼','트리플','쿼드','펜타','헥사'][f]||'';
+      const legalUp = S&&S.joker&&S.joker.legal.length===1 && S.cats.find(c=>c.id===S.joker.legal[0]&&c.sec==='up');
+      toast(legalUp ? `🃏 조커 — 먼저 상단 '${up}'에 넣어야 해요` : '🃏 조커 — 이번엔 하단 칸에만 넣을 수 있어요');
+    };});
     $('sheet').querySelectorAll('.qh').forEach(q=>{q.onclick=(e)=>{e.stopPropagation();showInfo(q.dataset.c);};});
   }
 
@@ -2232,6 +2238,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     h+='<div class="hsec">하단</div>';
     rule.cats.filter(c=>c.sec==='low').forEach(c=>h+=`<div class="helprow"><b>${esc(c.label)}</b><span>${helpText(c.id,mode)}</span></div>`);
     if(rule.lowBonus&&rule.lowBonus.pts>0)h+=`<div class="helprow"><b>콤보 보너스</b><span>포카인드·풀하우스·스몰·라지 스트레이트 4종 모두 득점 시 → +${rule.lowBonus.pts}</span></div>`;
+    // 🃏 조커 — 켜져 있을 때만 설명한다. 안 그러면 "왜 이 칸에만 넣어지지?"가 되고,
+    //    잠긴 칸의 title은 폰(터치)에서 아예 안 보인다.
+    const jOn = S ? !!S.jokerOn : (isOnline()&&lobby ? !!lobby.joker : (typeof jokerLocal!=='undefined' && jokerLocal));
+    if(jOn){
+      const yName = rule.cats.some(c=>c.id==='yahtzee') ? '야찌' : '요트';
+      h+='<div class="hsec">🃏 조커 규칙</div>'
+       + `<div class="helprow"><span><b>${yName}</b> 칸을 50점으로 이미 채운 뒤 <b>또 5개 동일</b>이 나오면 조커가 돼요.</span></div>`
+       + '<div class="helprow"><b>① 상단 먼저</b><span>그 눈의 상단 칸이 비어 있으면 <b>거기에만</b> 넣을 수 있어요</span></div>'
+       + '<div class="helprow"><b>② 그다음 하단</b><span>상단이 찼으면 남은 하단 아무 칸. 이때 <b>스트레이트는 모양이 안 맞아도 만점</b></span></div>'
+       + `<div class="helprow"><b>③ 추가 보너스</b><span>조커가 될 때마다 <b>+100</b>점 (점수표의 '추가 ${yName}' 줄)</span></div>`;
+    }
     $('helpBody').innerHTML=h; $('helpOv').classList.add('show');
   }
   $('helpBtn').onclick=openHelp; $('setupRules').onclick=openHelp; $('helpClose').onclick=()=>$('helpOv').classList.remove('show');

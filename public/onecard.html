@@ -907,13 +907,39 @@ function render(){
   }).join('') || '<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패 없음 🎉</div>';
   if(myTurn){
     Array.from($('myhand').children).forEach((el,i)=>{
-      const c=my[i]; if(!c||!c.playable) return;
-      el.onclick=()=>humanPlay(c);
+      const c=my[i]; if(!c) return;
+      // 못 내는 카드도 눌리게 둔다 — 예전엔 아무 반응이 없어서 '왜 안 되지'로 끝났다.
+      // 흐리게 보이는 것만으론 이유를 알 수 없고, 폰에선 title도 안 뜬다.
+      el.onclick = c.playable ? (()=>humanPlay(c)) : (()=>whyNot(c));
     });
   }
   renderMsg();
   renderItems();
   renderActs();
+}
+
+/* 못 내는 카드를 눌렀을 때 이유를 한 줄로. 판정은 엔진의 canPlayOn 규칙을 말로 옮긴 것이다.
+   ⚠️ reqSuit·top.s는 기호가 아니라 인덱스(0~3)다 — OCCore.SUITS로 바꿔야 '♦'가 나온다. */
+function whyNot(c){
+  try{
+    const SY = (window.OCCore&&OCCore.SUITS) || ['♠','♥','♦','♣'];
+    const sym = i => (i!=null && SY[i]) ? SY[i] : '';
+    const rk  = r => ({1:'A',11:'J',12:'Q',13:'K'}[r] || String(r));
+    let msg;
+    if(S.myPendingDrawnId!=null && c.id!==S.myPendingDrawnId){
+      msg='방금 뽑은 카드를 내거나 넘겨야 해요';
+    } else if(S.attack>0){
+      msg='⚠️ 공격 중엔 2 또는 조커로만 이어칠 수 있어요';
+    } else {
+      const t=S.top||{};
+      const es=(S.reqSuit!=null)?S.reqSuit:(t.joker?null:t.s);
+      const er=t.joker?null:t.r;
+      if(es!=null && er!=null) msg=`${sym(es)} 무늬나 ${rk(er)} 숫자만 낼 수 있어요`;
+      else if(es!=null)        msg=`${sym(es)} 무늬만 낼 수 있어요`;
+      else                     msg='지금은 낼 수 없는 카드예요';
+    }
+    if(window.NET&&NET.ui&&NET.ui.toast) NET.ui.toast(msg);
+  }catch(e){}
 }
 
 function renderMsg(){
