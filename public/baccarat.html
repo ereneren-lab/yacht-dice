@@ -81,7 +81,10 @@
   /* 카드 (CSS 렌더 · 이미지 0) */
   .pc{width:48px;height:70px;border-radius:7px;background:linear-gradient(160deg,#fffefb,#eee6d3);position:relative;flex:none;
     box-shadow:0 3px 8px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.08);font-weight:900;
-    display:flex;align-items:center;justify-content:center;animation:dealIn .28s cubic-bezier(.2,1.2,.4,1) both}
+    display:flex;align-items:center;justify-content:center}
+  /* ⚠️ .pc 전체에 걸면 render()마다 이미 놓인 카드까지 다시 튄다 —
+     3장째가 나올 때 앞의 두 장이 같이 흔들렸다. '새로 놓인 한 장'만 애니메이션한다. */
+  .pc.dealnew{animation:dealIn .28s cubic-bezier(.2,1.2,.4,1) both}
   @keyframes dealIn{0%{transform:translateY(-24px) rotate(-10deg) scale(.6);opacity:0}100%{transform:none;opacity:1}}
   .pc .cr{position:absolute;top:3px;left:5px;font-size:12px;line-height:1;text-align:center}
   .pc .cr .cs{font-size:10px;display:block;margin-top:-1px}
@@ -268,10 +271,11 @@ function makeShoe(){ // 8덱 슈
 }
 function bval(c){ return c.r>=10?0:c.r; }        // A=1, 10·J·Q·K=0
 function total(hand){ return hand.reduce((a,c)=>a+bval(c),0)%10; }
-function cardHTML(c,faceDown){
-  if(faceDown) return `<div class="pc back" aria-label="뒷면"></div>`;
+function cardHTML(c,faceDown,isNew){
+  const nw = isNew ? ' dealnew' : '';
+  if(faceDown) return `<div class="pc back${nw}" aria-label="뒷면"></div>`;
   const red=(c.s===1||c.s===2);
-  return `<div class="pc ${red?'red':'black'}"><span class="cr">${RANKS[c.r-1]}<span class="cs">${SUITS[c.s]}</span></span><span class="cbig">${SUITS[c.s]}</span></div>`;
+  return `<div class="pc ${red?'red':'black'}${nw}"><span class="cr">${RANKS[c.r-1]}<span class="cs">${SUITS[c.s]}</span></span><span class="cbig">${SUITS[c.s]}</span></div>`;
 }
 
 // ===== 규칙 엔진: 한 판 카드 분배 (3rd card rule) =====
@@ -437,8 +441,8 @@ function endGame(won){
 function render(){
   const revealAll = (phase==='result');
   // 뱅커
-  $('bankerHand').innerHTML = B.length? B.map((c,i)=> i<showB?cardHTML(c,false):'').join('')||'<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>' : '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
-  $('playerHand').innerHTML = P.length? P.map((c,i)=> i<showP?cardHTML(c,false):'').join('')||'<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>' : '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
+  $('bankerHand').innerHTML = B.length? B.map((c,i)=> i<showB?cardHTML(c,false,i===showB-1):'').join('')||'<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>' : '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
+  $('playerHand').innerHTML = P.length? P.map((c,i)=> i<showP?cardHTML(c,false,i===showP-1):'').join('')||'<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>' : '<div style="color:rgba(255,255,255,.4);font-size:12px">—</div>';
   // 총점
   const bt=$('bankerTotal'), pt=$('playerTotal');
   if(showB>0){ const shown=B.slice(0,showB); const v=total(shown); const nat=(revealAll&&B.length===2&&v>=8); bt.textContent=v+(nat?' 내추럴':''); bt.className='total'+(nat?' natural':''); }

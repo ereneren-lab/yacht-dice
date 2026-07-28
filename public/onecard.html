@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>원카드 · 주사위 골목</title>
 <script src="fit-setup.js"></script>
+<script src="cardfx.js"></script>
 <!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
 <script src="tutorial.js"></script>
 <script>try{TUT.init({game:"onecard",steps:[{"art":"🔄","title":"손패 먼저 털기","body":"각자 7장으로 시작. <b>손에 든 카드를 먼저 다 내면</b> 승리!"},{"art":"🃏","title":"낼 수 있는 카드","body":"버림패 맨 위 카드와 <b>같은 무늬</b>거나 <b>같은 숫자</b>인 카드를 낼 수 있어.<br>낼 게 없으면 더미에서 한 장 가져와."},{"art":"⚡","title":"특수 카드","body":"<b>공격</b>은 상대에게 카드를 먹이고, <b>스킵</b>은 차례를 건너뛰고, <b>방향전환</b>은 순서를 뒤집어.<br>이걸 언제 쓰느냐가 승부를 가른다."},{"art":"🎯","title":"팁","body":"마지막 한 장이 남으면 <b>원카드</b>! 상대가 공격 카드를 쥐고 있을 수 있으니 방심하지 마.<br>자세한 규칙은 상단 <b>?</b>에서."}]})}catch(e){}</script>
@@ -105,7 +106,11 @@
   /* 카드 (CSS 렌더 · 이미지 0) */
   .mc{width:40px;height:57px;border-radius:6px;background:linear-gradient(160deg,#fffefb,#eee6d3);position:relative;flex:none;
     box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.08);font-weight:900;
-    display:flex;align-items:center;justify-content:center;animation:dealIn .26s cubic-bezier(.2,1.2,.4,1) both}
+    display:flex;align-items:center;justify-content:center;transition:transform .09s ease-out}
+  /* ⚠️ 예전엔 .mc 전체에 dealIn이 걸려 있어 **렌더할 때마다** 모든 카드가 튀었다.
+     render()가 innerHTML을 다시 만드니 상태가 바뀔 때마다 재생된다 — 찰짐이 아니라 산만함이었다.
+     이동 연출은 cardfx.js가 '카드가 실제로 움직인 순간'에만 준다. */
+  .mc.dealt{animation:dealIn .26s cubic-bezier(.2,1.2,.4,1) both}
   @keyframes dealIn{0%{transform:translateY(-16px) scale(.7);opacity:0}100%{transform:none;opacity:1}}
   .mc .cr{position:absolute;top:2px;left:4px;font-size:11px;line-height:1;text-align:center}
   .mc .cr .cs{font-size:9px;display:block;margin-top:-1px}
@@ -120,6 +125,9 @@
   .mc.big{width:54px;height:77px} .mc.big .cbig{font-size:30px} .mc.big.joker .cbig{font-size:32px} .mc.big .cr{font-size:13px}
   .mc.pick{cursor:pointer;animation:none;box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.08),0 0 0 2px var(--gold)}
   .mc.pick:hover{transform:translateY(-6px)}
+  /* 폰엔 hover가 없다 — 누르는 순간의 반응이 없으면 '먹통'처럼 느껴진다 */
+  .mc.pick:active{transform:translateY(-9px) scale(1.04)}
+  .mc.dim:active{transform:translateY(-3px)}
   .mc.dim{opacity:.44;filter:grayscale(.3)}
   .mc.justdrew{box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 0 2.5px var(--win)}
   @media (prefers-reduced-motion:reduce){ .mc{animation:none} }
@@ -806,6 +814,39 @@ try{ NET.bootRejoin(); }catch(e){}
 $('againBtn').onclick=()=>{ $('resultOv').classList.remove('on'); $('setupOv').classList.add('on'); document.body.classList.remove('ingame'); };
 
 // ===== 연출 — 엔진은 '무슨 일이 있었나'만 남기고, 화면이 스냅샷 차이로 만든다 =====
+/* 카드가 '가는' 연출 — 소리만 나던 자리에 움직임을 붙인다.
+   낸 카드: 그 사람 자리 → 버림패 (회전하며 아치)
+   뽑기/먹기: 더미 → 그 사람 자리
+   ⚠️ applyFx는 render() 뒤에 돈다 → 버림패엔 이미 새 카드가 있다.
+      그래서 CFX.fly가 도착지를 잠깐 숨겼다가 착지 때 되살린다(두 장으로 안 보이게). */
+function seatPoint(seat){
+  if(!S) return null;
+  if(seat===S.mySeat){
+    const h=document.getElementById('myhand');
+    if(h){ const r=h.getBoundingClientRect(); if(r.width) return {x:r.left+r.width/2, y:r.top+r.height*0.35}; }
+  }
+  const el=document.querySelector('#opps .seat[data-seat="'+seat+'"]');
+  if(el){ const r=el.getBoundingClientRect(); if(r.width) return {x:r.left+r.width/2, y:r.top+r.height/2}; }
+  return null;
+}
+function cardMotion(a){
+  if(!window.CFX || !a) return;
+  const discard=document.getElementById('discardSlot');
+  const draw=document.getElementById('drawSlot');
+  if(a.kind==='play' && a.card && discard){
+    const from=seatPoint(a.seat);
+    if(from) CFX.fly(from, discard, { html:cardFaceHTML(a.card,'big'), ms:300, spin:1, arc:.34 });
+  } else if((a.kind==='draw'||a.kind==='take') && draw){
+    const to=seatPoint(a.seat);
+    if(to){
+      const n = (a.kind==='take' && a.amount>1) ? a.amount : 1;
+      const html='<div class="mc back big"></div>';
+      if(n>1) CFX.flyMany(n, draw, to, { html, ms:280, spin:.5, arc:.28, hideTo:false, gap:70 });
+      else CFX.fly(draw, to, { html, ms:280, spin:.5, arc:.28, hideTo:false });
+    }
+  }
+}
+
 function applyFx(){
   if(!S) return;
   // 새 판 딜
@@ -813,6 +854,7 @@ function applyFx(){
   // 액션 소리 — seq가 바뀐 순간에만 (재렌더로 소리가 겹치지 않게)
   if(S.lastAction && (!prevS || !prevS.lastAction || S.lastAction.seq!==prevS.lastAction.seq)){
     const a=S.lastAction;
+    try{ cardMotion(a); }catch(e){}     // 이동 연출 (게임 로직과 무관 — 실패해도 진행엔 영향 없음)
     try{
       if(a.kind==='play'){ const c=a.card;
         if(c.joker||c.r===2) SFX.attack();
@@ -866,6 +908,7 @@ function render(){
     const cnt=p.count;
     const el=document.createElement('div');
     el.className='seat'+((S.turn===p.seat&&S.phase==='play')?' turn':'')+(cnt===1?' one':'');
+    el.dataset.seat=p.seat;                       // 연출이 '어느 자리에서 날아오나'를 찾는다
     let fan=''; for(let i=0;i<Math.min(cnt,4);i++) fan+=`<div class="mc back sm"></div>`;
     const itemBadge=(S.itemsOn&&p.items>0)?`<span class="itembadge">🛡${p.items}</span>`:'';
     el.innerHTML=`<div class="pbox">`+

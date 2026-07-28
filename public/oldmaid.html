@@ -113,7 +113,10 @@
   /* 카드 (CSS 렌더 · 이미지 0) */
   .mc{width:38px;height:54px;border-radius:6px;background:linear-gradient(160deg,#fffefb,#eee6d3);position:relative;flex:none;
     box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.08);font-weight:900;
-    display:flex;align-items:center;justify-content:center;animation:dealIn .26s cubic-bezier(.2,1.2,.4,1) both}
+    display:flex;align-items:center;justify-content:center;transition:transform .09s ease-out}
+  /* ⚠️ .mc 전체에 dealIn을 걸면 render()마다 모든 카드가 튄다 — 찰짐이 아니라 산만함이다.
+     딜처럼 '정말 새로 놓이는' 순간에만 .dealt로 준다. 이동은 drawFlyFX가 담당. */
+  .mc.dealt{animation:dealIn .26s cubic-bezier(.2,1.2,.4,1) both}
   @keyframes dealIn{0%{transform:translateY(-16px) scale(.7);opacity:0}100%{transform:none;opacity:1}}
   .mc .cr{position:absolute;top:2px;left:4px;font-size:11px;line-height:1;text-align:center}
   .mc .cr .cs{font-size:9px;display:block;margin-top:-1px}
@@ -124,6 +127,8 @@
   .mc.back{background:repeating-linear-gradient(45deg,#8a2f2f 0 6px,#732424 6px 12px);box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 2px #f2e4c4}
   .mc.back::after{content:'?';position:absolute;color:rgba(255,255,255,.55);font-size:20px}
   .mc.pick{cursor:pointer;animation:none}
+  /* 폰엔 hover가 없다 — 누르는 반응이 없으면 '먹통'처럼 느껴진다 */
+  .mc.pick:active{transform:translateY(-9px) scale(1.05)}
   .mc.pick:hover{transform:translateY(-6px);box-shadow:0 8px 16px rgba(0,0,0,.5),0 0 0 2px var(--gold)}
   .mc.big{width:46px;height:66px}
   .mc.big .cbig{font-size:28px} .mc.big.joker .cbig{font-size:30px} .mc.big .cr{font-size:13px}
