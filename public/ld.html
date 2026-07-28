@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>라이어 다이스 — 주사위 골목</title>
+<script src="fit-setup.js"></script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
@@ -263,7 +264,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .mini{font-size:11.5px;color:var(--muted);text-align:center}
 
   /* overlays */
-  .ov{position:fixed;inset:0;background:rgba(8,6,4,.74);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  /* ⚠️ overflow-y:auto + align-items:flex-start + 자식 margin:auto —
+     내용이 화면보다 크면 flex 중앙정렬은 위아래를 잘라내는데 fixed라 스크롤도 안 된다.
+     실기기 384x748에서 셋업 아래쪽(아이템전·매치)에 영영 못 닿았다(2026-07-28).
+     flex-start + margin:auto면 여유가 있을 땐 가운데, 넘칠 땐 안 잘리고 스크롤된다. */
+  .ov{position:fixed;inset:0;background:rgba(8,6,4,.74);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ov.on>*{margin:auto}
   /* 골목(홈) 링크는 첫 화면 오버레이 위로 띄워 항상 나갈 수 있게 */
   .hubx{position:relative;z-index:150}
   .ov.on{display:flex;animation:fade .2s ease}

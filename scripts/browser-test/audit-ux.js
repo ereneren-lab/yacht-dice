@@ -23,6 +23,9 @@ const { launchWithRetry } = require('./cdp');
 const VIEWS = [
   { n: '360x640 소형폰', w: 360, h: 640 },
   { n: '390x844 아이폰', w: 390, h: 844 },
+  // 실측값 — 재성님 Galaxy A16(1080x2340 @450dpi)의 앱 웹뷰. 상단바·내비바를 뺀 실제 크기다.
+  // '적당히 큰 폰'이라 안심하기 쉬운데, 세로 748은 844보다 96px 짧다.
+  { n: '384x748 갤A16앱', w: 384, h: 748 },
   { n: '496x900 레티나', w: 496, h: 900 },
   { n: '768x1024 태블릿', w: 768, h: 1024 },
   { n: '1440x900 데스크톱', w: 1440, h: 900 },
@@ -155,12 +158,20 @@ const LIST = ONLY.length ? GAMES.filter(x => ONLY.includes(x.g)) : GAMES;
   // ───────── 리포트
   const P = s => console.log(s);
   P('\n════════ ① 셋업 화면: 시작 버튼까지 스크롤 없이 닿나 ════════');
+  /* ⚠️ 판정은 '시작 버튼이 실제로 보이나'까지 본다.
+     문서 넘침(setup.v)만 보던 시절엔, 안쪽 컨테이너가 스크롤되면 문서 넘침이 0이라
+     시작 버튼이 화면 밖인데도 통과했다. 실기기(Galaxy A16 · 384x748)에서
+     윷·너클본즈·라이어·좌중우가 정확히 그 상태로 잡혔다(2026-07-28). */
   for (const G of LIST) {
     const mine = rows.filter(r => r.g === G.g);
-    const bad = mine.filter(r => r.setup && r.setup.v > 0);
+    const bad = mine.filter(r => (r.setup && r.setup.v > 0) || (r.startBtn && r.startBtn.inView === false));
     if (!bad.length) { P(`✅ ${G.g.padEnd(12)} 전 폭 OK`); continue; }
-    P(`⚠️  ${G.g.padEnd(12)} ` + bad.map(r => `${r.view} +${r.setup.v}px`).join(' · '));
-    bad.forEach(r => { if (r.startBtn && !r.startBtn.inView) P(`      └ ${r.view}: 시작 버튼이 화면 밖`); });
+    P(`⚠️  ${G.g.padEnd(12)} ` + bad.map(r => {
+      const parts = [];
+      if (r.setup && r.setup.v > 0) parts.push(`+${r.setup.v}px`);
+      if (r.startBtn && r.startBtn.inView === false) parts.push('시작버튼 화면밖');
+      return `${r.view} ${parts.join('/')}`;
+    }).join(' · '));
   }
 
   P('\n════════ ② 룰 오버레이: 글이 잘리지 않나 ════════');
