@@ -106,7 +106,7 @@ function broadcast(room, o){ room.members.forEach(m => send(m.ws, o)); }
 function lobbyPayload(room){
   const hp = hostPid(room);
   return { t:'lobby', room:{ code:room.code, game:room.game, mode:room.mode, difficulty:room.difficulty, spotOn:room.spotOn, aiFast:!!room.aiFast, phase:room.phase, min:minPlayers(room), cap:capOf(room),
-    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, specials:room.specials, rule:room.rule, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false, stake:room.stake||'', itemsOn:!!room.itemsOn,
+    markers:room.markers, goal:room.goal, timer:room.timer, diceCount:room.diceCount, wild:room.wild, startChips:room.startChips, preset:room.preset, surface:room.surface, specials:room.specials, rule:room.rule, decideOrder:room.decideOrder!==false, itemBattle:!!room.itemBattle, speedStart:!!room.speedStart, pit:room.pit!==false, eventTypes:room.eventTypes, dailyOn:room.dailyOn!==false, stake:room.stake||'', itemsOn:!!room.itemsOn, joker:!!room.joker,
     members: room.members.map((m,i)=>({ pid:m.pid, name:m.name, color:m.color, avatar:m.avatar||AVA[i%AVA.length], ai:m.ai, connected:m.connected, waiting:!!m.waiting, host:m.pid===hp, team:m.team, spectator:!!m.spectator })), teamMode:!!room.teamMode } };
 }
 function sendLobby(room){ broadcast(room, lobbyPayload(room)); }
@@ -208,7 +208,7 @@ function startEngine(room){
     room.engine = new AlkkagiEngine({ aiFast:!!room.aiFast, players, preset:(['mini','standard','battle'].includes(room.preset)?room.preset:'standard'), surface:room.surface, specials:room.specials, rule:room.rule, aiMs:900, onState });
   } else {
     const onState = (s)=> broadcast(room, { t:'state', state:s });
-    room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, itemsOn:!!room.itemsOn, players, onState,
+    room.engine = new GameEngine({ mode:room.mode, difficulty:room.difficulty, aiFast:!!room.aiFast, itemsOn:!!room.itemsOn, joker:!!room.joker, players, onState,
       onRoll: (indices, values)=> broadcast(room, { t:'roll', indices, values }) });
   }
   room.engine.start();
@@ -294,7 +294,7 @@ wss.on('connection', (ws) => {
       // 화이트리스트에 없으면 요트로 떨어진다(옛 삼항 사슬과 동작 동일 · 게임이 늘어 Set으로 정리)
       const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
         dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:10) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, sdAnte:(SD_ANTE.includes(m.sdAnte)?m.sdAnte:200), sdChips:(SD_CHIPS.includes(m.sdChips)?m.sdChips:10000), jabi:!!m.jabi, ttaeng:!!m.ttaeng, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
@@ -344,7 +344,7 @@ wss.on('connection', (ws) => {
       if (me && emo){ me.avatar=emo; if(room.engine){ const p=room.engine.players.find(pp=>pp.pid===me.pid); if(p){ p.avatar=emo; room.engine._emit&&room.engine._emit(); } } sendLobby(room); }
 
     } else if (m.t === 'setMode') {
-      if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && ['yacht_kr','yahtzee','yacht_og'].includes(m.mode)){ room.mode=m.mode; sendLobby(room); }
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby' && ['yacht_kr','yahtzee','yacht_og'].includes(m.mode)){ room.mode=m.mode; room.joker=(m.mode==='yahtzee'); sendLobby(room); }
 
     } else if (m.t === 'setDiff') {
       if (ws.meta.pid===hostPid(room) && ['easy','normal','hard'].includes(m.d)){ room.difficulty=m.d; sendLobby(room); }
@@ -359,6 +359,13 @@ wss.on('connection', (ws) => {
 
     } else if (m.t === 'setFast') {
       if (ws.meta.pid===hostPid(room)){ room.aiFast=!!m.v; sendLobby(room); }
+
+    } else if (m.t === 'setJoker') {
+      // 🃏 조커 규칙 — 호스트만, 로비에서만. 오리지널(1938)엔 이 규칙이 없어 항상 꺼짐.
+      if (ws.meta.pid===hostPid(room) && room.phase==='lobby'){
+        room.joker = ['yacht_kr','yahtzee'].includes(room.mode) ? !!m.v : false;
+        sendLobby(room);
+      }
 
     } else if (m.t === 'setItems') {
       // 상점 소모품 허용 — 호스트만, 로비에서만. 기본은 꺼짐(아이템 산 사람만 유리해지는 걸 막는다).

@@ -1191,7 +1191,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         <div class="lbl mt" data-setlbl="diff">AI 난이도</div>
         <div class="chips" id="diffL"></div>
         <div class="optrow"><div class="toggle on" id="soundToggle"><div class="switch"></div>주사위 소리</div><div class="toggle" id="fastToggleL"><div class="switch"></div>AI 빠르게</div></div>
-        <div class="optrow"><div class="toggle" id="itemToggleL"><div class="switch"></div>🔄 아이템전 — 전원 2개씩</div></div>
+        <div class="optrow"><div class="toggle" id="itemToggleL"><div class="switch"></div>🔄 아이템전 — 전원 2개씩</div><div class="toggle" id="jokerToggleL"><div class="switch"></div>🃏 조커 규칙</div></div>
           </div>
         </details>
         <button class="btn" id="startLocal">게임 시작</button>
@@ -1231,7 +1231,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
           <div class="lbl mt" data-setlbl="diff">AI 난이도 <span id="diffHostOnly" style="letter-spacing:0;color:var(--muted)"></span></div>
           <div class="chips" id="diffO"></div>
           <div class="optrow" style="margin-top:8px"><div class="toggle" id="fastToggleO"><div class="switch"></div>AI 빠르게</div></div>
-          <div class="optrow" style="margin-top:8px"><div class="toggle" id="itemToggleO"><div class="switch"></div>🔄 아이템전 — 전원 2개씩</div></div>
+          <div class="optrow" style="margin-top:8px"><div class="toggle" id="itemToggleO"><div class="switch"></div>🔄 아이템전 — 전원 2개씩</div><div class="toggle" id="jokerToggleO"><div class="switch"></div>🃏 조커 규칙</div></div>
           <div class="lbl mt" data-setlbl="members">참가자</div>
           <div class="members" id="members"></div>
           <div class="stakeRow" id="stakeRow"></div>
@@ -1406,13 +1406,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const DUMP=['aces','twos','yacht','yahtzee','threes','lStraight','sStraight','threeKind','fourKind','fullHouse','fours','fives','sixes','choice','chance'];
 
   function scoreOf(catId,d,rule){ const c=rule.cats.find(x=>x.id===catId); return c?c.score(d):0; }
-  // yahtzee 정통 규칙 — 조커/추가 야찌 보너스 판정.
-  // 5개 동일 + 야찌칸이 '이미 50점으로' 채워진 상태면 그 눈(1~6)을 반환, 아니면 0.
-  // (야찌칸이 비었거나 0점이면 조커도 보너스도 발동하지 않음)
-  function jokerFace(mode, scores, d){
-    if (mode!=='yahtzee' || scores.yahtzee!==50 || maxKind(d)<5) return 0;
+  // '5개 동일' 칸의 id는 규칙마다 다르다 — yacht_kr·yacht_og는 'yacht', yahtzee는 'yahtzee'.
+  // 조커 판정이 이 칸의 점수를 보므로, 하드코딩하면 요트 다이스에서 조커가 영영 안 걸린다.
+  const yachtId = rule => (rule.cats.some(c=>c.id==='yahtzee') ? 'yahtzee' : 'yacht');
+  // 조커 규칙 판정 — 켜져 있고 + 5개 동일 + 요트/야찌 칸이 '이미 50점으로' 채워졌으면 그 눈(1~6), 아니면 0.
+  // (그 칸이 비었거나 0점이면 조커도 추가 보너스도 발동하지 않는다 — 정통 Yahtzee와 같다)
+  // ⚠️ 옛 시그니처는 (mode, scores, d)로 야찌 모드에 잠겨 있었다. 이제 rule을 받아 모드와 무관하게 돈다.
+  function jokerFace(on, rule, scores, d){
+    if (!on || maxKind(d)<5) return 0;
+    if (scores[yachtId(rule)] !== 50) return 0;
     const c=cnt(d); for (let f=1;f<=6;f++) if (c[f]===5) return f; return 0;
   }
+  // 조커를 켤 수 있는 모드 — 오리지널(1938)엔 조커 규칙이 없어서 제외한다.
+  const JOKER_MODES = ['yacht_kr','yahtzee'];
+  const jokerDefault = mode => mode==='yahtzee';   // 야찌는 정통 규칙상 기본 켜짐(기존 동작 보존)
   function emptyScores(rule){ const s={}; rule.cats.forEach(c=>s[c.id]=null); return s; }
   function openCats(rule,scores){ return rule.cats.filter(c=>scores[c.id]===null).map(c=>c.id); }
   function bestOpen(d,open,rule){ let b=0; for (const id of open){ const s=scoreOf(id,d,rule); if (s>b) b=s; } return b; }
@@ -1452,9 +1459,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
     return bm;
   }
-  function aiPickCat(d, open, rule, scores, diff, per, ctx){
+  // sc — 칸 점수 계산기(기본은 눈 그대로). 조커 상태에선 엔진이 _scoreCat을 넘겨서
+  // 스트레이트를 만점으로 보게 한다. 안 넘기면 AI가 조커 스트레이트를 0점으로 보고 피한다.
+  function aiPickCat(d, open, rule, scores, diff, per, ctx, sc){
     per=per||PERSONAS.safe;
-    const scored = open.map(id=>({id, s:scoreOf(id,d,rule)}));
+    const S = sc || ((id,dd)=>scoreOf(id,dd,rule));
+    const scored = open.map(id=>({id, s:S(id,d)}));
     if (diff==='easy'){ scored.sort((a,b)=>b.s-a.s); return scored[0].id; }
     const curUpper = UPPER_IDS.reduce((a,id)=>a+(scores[id]||0),0);
     function value(id,s){
@@ -1492,6 +1502,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       // 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 번 더 굴리기'를 받는다.
       // 상점 보유량과 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
       this.itemsOn = !!opts.itemsOn;
+      // 🃏 조커 규칙 — 요트/야찌 칸을 50점으로 이미 채운 뒤 또 5개 동일이 나왔을 때:
+      //   ① 그 눈의 상단 칸에 강제 배치(비어 있으면) ② 상단이 찼으면 하단 아무 칸 —
+      //   이때 스트레이트는 패턴이 없어도 만점 인정 ③ 추가 야찌 +100 보너스.
+      // 오리지널(1938)은 조커 규칙이 없어 켤 수 없다. 야찌는 정통 규칙이라 기본 켜짐.
+      this.joker = (JOKER_MODES.indexOf(this.mode)<0) ? false
+                 : (opts.joker!=null ? !!opts.joker : jokerDefault(this.mode));
       this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
@@ -1513,7 +1529,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     // 조커면: (1) 그 눈의 상단 칸이 비었으면 거기에만, (2) 상단이 찼으면 남은 하단 아무 칸,
     //         (3) 하단도 다 찼으면 남은 상단 아무 칸(0점).
     _legalCats(seat,d){
-      const open=this._open(seat), f=jokerFace(this.mode,this.players[seat].scores,d);
+      const open=this._open(seat), f=jokerFace(this.joker,this.rule,this.players[seat].scores,d);
       if(!f) return open;
       const upperId=UPPER_IDS[f-1];
       if(open.indexOf(upperId)>=0) return [upperId];
@@ -1523,7 +1539,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     // 조커 상태의 스트레이트는 패턴이 없어도 조커 값(스몰 30 / 라지 40, yahtzee 모드 고정값)으로 인정.
     // 풀하우스는 5개 동일 시 isFull이 이미 참이라 자연 득점(25)되므로 별도 처리 불필요.
     _scoreCat(seat,catId,d){
-      const f=jokerFace(this.mode,this.players[seat].scores,d);
+      const f=jokerFace(this.joker,this.rule,this.players[seat].scores,d);
       if(f && catId==='sStraight') return scoreOf('sStraight',[1,2,3,4,5],this.rule); // 조커: 스몰 스트레이트 고정값(30)
       if(f && catId==='lStraight') return scoreOf('lStraight',[2,3,4,5,6],this.rule); // 조커: 라지 스트레이트 고정값(40)
       return scoreOf(catId,d,this.rule);
@@ -1562,7 +1578,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const g=++this._aiGen;
       this._busy=true;
       const seat=this.current, open=this._open(seat);
-      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const legal=this._legalCats(seat,this.dice.map(d=>d.value)); const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat)); this._busy=false; this._commit(seat,cat); };
+      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const legal=this._legalCats(seat,this.dice.map(d=>d.value)); const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd)); this._busy=false; this._commit(seat,cat); };
       if(!this.rolled){ this._doRoll(); setTimeout(finish, 900); } else finish();
     }
     action(pid,a){
@@ -1599,7 +1615,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(!this.rolled||!p||p.scores[catId]!==null||!this.rule.cats.find(c=>c.id===catId)) return;
       const d=this.dice.map(x=>x.value);
       if(this._legalCats(seat,d).indexOf(catId)<0) return;   // 조커 배치 제한 위반은 거부
-      const f=jokerFace(this.mode,p.scores,d);
+      const f=jokerFace(this.joker,this.rule,p.scores,d);
       if(f) p.yBonus=(p.yBonus||0)+100;                      // 추가 야찌 보너스 누적(+100)
       p.scores[catId]=this._scoreCat(seat,catId,d);
       if(this.players.every(pp=>this._done(pp))){ this.phase='over'; if(this._timer){clearTimeout(this._timer);this._timer=null;} this._emit(); return; }
@@ -1630,7 +1646,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(!alive()) return;
       }
       const legal=this._legalCats(seat,this.dice.map(d=>d.value));
-      const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat));
+      const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd));
       await wait(450*this.AID);
       if(!alive()) return;
       this._busy=false; this._commit(seat,cat);
@@ -1676,7 +1692,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     // 현재 차례 플레이어의 조커 상태(있으면 눈·허용 칸·추가보너스 여부) — UI 제한/표시용
     _jokerInfo(){
       if(!this.rolled) return null;
-      const d=this.dice.map(x=>x.value), f=jokerFace(this.mode,this.players[this.current].scores,d);
+      const d=this.dice.map(x=>x.value), f=jokerFace(this.joker,this.rule,this.players[this.current].scores,d);
       if(!f) return null;
       return { face:f, legal:this._legalCats(this.current,d), bonus:100 };
     }
@@ -1696,6 +1712,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled, itemsOn:this.itemsOn, items:(this.items||[]).slice(),
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
         deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(), joker:this._jokerInfo(),
+        jokerOn:!!this.joker,   // 규칙 켜짐 여부(표시용) — joker는 '지금 조커가 걸렸나'라 다르다
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,
           seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, lowBonusGot:this._lowBonus(p)>0, yBonus:p.yBonus||0, total:this._total(p) })),
         winners: this.phase==='over' ? this._winners() : null,
@@ -2009,8 +2026,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)<span class="rew">+${S.bonus.pts}</span>${qIcon('bonus')}</td>${cols.map(pi=>{const p=S.players[pi];const rem=S.bonus.th-p.upperSum;const near=!p.bonusGot&&rem>0&&rem<=6;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="${rem}점 더 모으면 +${S.bonus.pts}"`:''}>${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th+(near?`<span class="rewhint">→+${S.bonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
     S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
     if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)<span class="rew">+${S.lowBonus.pts}</span>${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;const near=!p.lowBonusGot&&(S.lowBonus.ids.length-n)===1;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="1종만 더 완성하면 +${S.lowBonus.pts}"`:''}>${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length+(near?`<span class="rewhint">→+${S.lowBonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
-    if(S.mode==='yahtzee' && cols.some(pi=>(S.players[pi].yBonus||0)>0))   // 정통 Yahtzee: 추가 야찌 보너스(+100 누적)
-      h+=`<tr class="bonus"><td class="catcol">추가 야찌<span class="rew">+100</span></td>${cols.map(pi=>{const yb=S.players[pi].yBonus||0;return `<td class="${pi===S.current?'col-current':''} ${yb>0?'bnear':''}">${yb>0?'+'+yb:'–'}</td>`;}).join('')}</tr>`;
+    // 조커 규칙의 추가 보너스(+100 누적). ⚠️ 예전엔 S.mode==='yahtzee'로 막혀 있었는데,
+    // 요트 다이스에서도 조커를 켤 수 있게 되면서 그러면 총점만 100 뛰고 근거가 안 보인다.
+    if(cols.some(pi=>(S.players[pi].yBonus||0)>0))
+      h+=`<tr class="bonus"><td class="catcol">${S.mode==='yahtzee'?'추가 야찌':'추가 요트'}<span class="rew">+100</span></td>${cols.map(pi=>{const yb=S.players[pi].yBonus||0;return `<td class="${pi===S.current?'col-current':''} ${yb>0?'bnear':''}">${yb>0?'+'+yb:'–'}</td>`;}).join('')}</tr>`;
     const _maxT=Math.max(0,...cols.map(pi=>S.players[pi].total)),_multi=cols.length>1,_prog=_maxT>0;   // 판세 신호: 선두 왕관 + 격차 배지
     h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];const lead=_multi&&_prog&&p.total===_maxT;let inner=String(p.total);if(lead)inner='<span class="crown">👑</span>'+inner;return `<td class="${(pi===S.current?'col-current ':'')+(lead?'lead':'')}">${inner}</td>`;}).join('')}</tr></tbody>`;
     $('sheet').innerHTML=h;
@@ -2388,11 +2407,26 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const isDefaultName=(v,i)=>v==='플레이어 '+(i+1)||v==='AI '+(i+1)||v==='레이어 '+(i+1)||v==='항목 '+(i+1);
   let nameVals=[0,1,2,3,4,5].map(i=>defName(i));
   function normalizeNames(){ for(let i=0;i<nameVals.length;i++){ if(isDefaultName(nameVals[i],i)) nameVals[i]=defName(i); } }
-  // 야찌 모드엔 조커/추가 야찌 보너스 규칙을 설명에 덧붙여 발견성 확보(원문 desc엔 '조커' 단어가 없음)
-  function modeDescText(id){ let t=RULES[id].desc; if(id==='yahtzee') t+=' 🃏 야찌(5개 동일)=추가 야찌마다 +100 보너스, 그리고 조커 규칙(이미 채운 칸에 맞춰 배치)이 적용돼요.'; return t; }
+  // 🃏 조커 규칙 — 요트/야찌 칸을 50점으로 채운 뒤 또 5개 동일이 나왔을 때의 정통 규칙.
+  //   ① 그 눈의 상단 칸에 강제 배치 ② 상단이 찼으면 하단 아무 칸(스트레이트도 만점) ③ 추가 +100.
+  // 오리지널(1938)엔 이 규칙이 없어 켤 수 없다. 야찌는 정통 규칙이라 기본 켜짐(기존 동작 그대로).
+  const JOKER_OK  = id => id==='yacht_kr' || id==='yahtzee';
+  const JOKER_DEF = id => id==='yahtzee';
+  const JOKER_TIP = '요트/야찌 칸을 채운 뒤 또 5개 동일이 나오면 — 그 눈의 상단 칸에 넣고, 상단이 찼으면 하단 아무 칸(스트레이트도 만점) + 추가 보너스 +100';
+  function paintJoker(el, mode, on){
+    if(!el) return;
+    const ok=JOKER_OK(mode);
+    el.classList.toggle('on', ok && !!on);
+    el.style.opacity = ok ? '' : '.45';
+    el.title = ok ? JOKER_TIP : '오리지널(1938) 규칙엔 조커가 없어요';
+  }
+  // 설명문에도 붙여 발견성 확보(원문 desc엔 '조커' 단어가 없다)
+  function modeDescText(id){ let t=RULES[id].desc;
+    if(JOKER_OK(id)) t+=' 🃏 조커 규칙을 켜고 끌 수 있어요'+(JOKER_DEF(id)?'(정통 규칙이라 기본 켜짐).':'(기본 꺼짐).');
+    return t; }
   function modeChips(box,desc,get,set){ box.innerHTML=''; Object.keys(RULES).forEach(id=>{const b=document.createElement('button');b.textContent=RULES[id].name;b.dataset.id=id;if(id===get())b.classList.add('on');b.onclick=()=>{set(id);[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.id===id));if(desc)desc.textContent=modeDescText(id);};box.appendChild(b);}); if(desc)desc.textContent=modeDescText(get()); }
   function diffChips(box,get,set,enabled){ box.innerHTML=''; [['easy','쉬움'],['normal','보통'],['hard','어려움']].forEach(([id,label])=>{const b=document.createElement('button');b.textContent=label;b.dataset.id=id;if(id===get())b.classList.add('on');b.disabled=!enabled;b.onclick=()=>{if(!enabled)return;set(id);[...box.children].forEach(c=>c.classList.toggle('on',c.dataset.id===id));};box.appendChild(b);}); }
-  modeChips($('modesL'),$('modedescL'),()=>modeLocal,id=>modeLocal=id);
+  modeChips($('modesL'),$('modedescL'),()=>modeLocal,id=>{ modeLocal=id; jokerLocal=JOKER_DEF(id); paintJokerL(); });
   diffChips($('diffL'),()=>diffLocal,id=>diffLocal=id,true);
   const countBox=$('count');
   for(let n=2;n<=6;n++){const b=document.createElement('button');b.textContent=n;b.dataset.n=n;if(n===playerCount)b.classList.add('on');b.onclick=()=>{playerCount=n;[...countBox.children].forEach(c=>c.classList.toggle('on',+c.dataset.n===n));renderNames();};countBox.appendChild(b);}
@@ -2405,10 +2439,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 아이템전(로컬) — 켜면 전원이 같은 개수를 받는다
   let itemsLocal=false;
   const itemL=$('itemToggleL'); if(itemL){ itemL.onclick=()=>{ itemsLocal=!itemsLocal; itemL.classList.toggle('on',itemsLocal); }; }
+  // 조커 규칙(로컬) — 모드를 바꾸면 그 모드의 기본값으로 돌아간다(온라인과 같은 동작)
+  let jokerLocal=JOKER_DEF(modeLocal);
+  const jokL=$('jokerToggleL');
+  function paintJokerL(){ paintJoker(jokL, modeLocal, jokerLocal); }
+  if(jokL){ jokL.onclick=()=>{ if(!JOKER_OK(modeLocal)){ toast('오리지널 규칙엔 조커가 없어요'); return; } jokerLocal=!jokerLocal; paintJokerL(); }; }
+  paintJokerL();
   $('startLocal').onclick=()=>{ SFX.ensure(); MODE='local'; recorded=false; prevSnap=null; gameShown=false; lastMyTurn=false; sawPlay=false; const players=[]; localPids=[];
     for(let i=0;i<playerCount;i++){const nm=(nameVals[i]||'').trim()||((typeVals[i]==='ai'?'AI ':'플레이어 ')+(i+1));const pid='p'+i;players.push({pid,name:nm,color:COLORS[i],avatar:avatarVals[i],ai:typeVals[i]==='ai'});if(typeVals[i]!=='ai')localPids.push(pid);}
     if(!players.some(p=>!p.ai)){players[0].ai=false; toast('최소 1명은 사람으로 진행해요');}
-    eng=new GameEngine({mode:modeLocal,difficulty:diffLocal,aiFast:aiFastLocal,pace:(window.PACE?PACE.mult():1),itemsOn:itemsLocal,players,turnMs:0,onState,onRoll}); eng.start();   // 로컬 핫시트는 시간 제한 없음
+    eng=new GameEngine({mode:modeLocal,difficulty:diffLocal,aiFast:aiFastLocal,pace:(window.PACE?PACE.mult():1),itemsOn:itemsLocal,joker:jokerLocal,players,turnMs:0,onState,onRoll}); eng.start();   // 로컬 핫시트는 시간 제한 없음
   };
 
   // ========== tabs ==========
@@ -2514,6 +2554,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const fastO=$('fastToggleO'); if(fastO){ fastO.classList.toggle('on',!!lobby.aiFast); fastO.style.opacity=amHost()?'1':'.55'; fastO.onclick=()=>{ if(amHost())wsSend({t:'setFast',v:!lobby.aiFast}); }; }
     // 상점 소모품 허용 — 호스트만 켤 수 있고 기본은 꺼짐(산 사람만 유리해지지 않게)
     const itO=$('itemToggleO'); if(itO){ itO.classList.toggle('on',!!lobby.itemsOn); itO.style.opacity=amHost()?'1':'.55'; itO.onclick=()=>{ if(amHost())wsSend({t:'setItems',v:!lobby.itemsOn}); }; }
+    const jkO=$('jokerToggleO'); if(jkO){ paintJoker(jkO, lobby.mode, lobby.joker);
+      if(JOKER_OK(lobby.mode) && !amHost()) jkO.style.opacity='.55';
+      jkO.onclick=()=>{ if(!amHost())return; if(!JOKER_OK(lobby.mode)){ toast('오리지널 규칙엔 조커가 없어요'); return; } wsSend({t:'setJoker',v:!lobby.joker}); }; }
     $('addAiBtn').style.display=amHost()?'block':'none'; $('addAiBtn').disabled=lobby.members.length>=6;
     renderMembers();
     const start=$('startOnline'); start.style.display=amHost()?'block':'none'; start.disabled=lobby.members.length<2;

@@ -50,13 +50,20 @@
   const DUMP=['aces','twos','yacht','yahtzee','threes','lStraight','sStraight','threeKind','fourKind','fullHouse','fours','fives','sixes','choice','chance'];
 
   function scoreOf(catId,d,rule){ const c=rule.cats.find(x=>x.id===catId); return c?c.score(d):0; }
-  // yahtzee 정통 규칙 — 조커/추가 야찌 보너스 판정.
-  // 5개 동일 + 야찌칸이 '이미 50점으로' 채워진 상태면 그 눈(1~6)을 반환, 아니면 0.
-  // (야찌칸이 비었거나 0점이면 조커도 보너스도 발동하지 않음)
-  function jokerFace(mode, scores, d){
-    if (mode!=='yahtzee' || scores.yahtzee!==50 || maxKind(d)<5) return 0;
+  // '5개 동일' 칸의 id는 규칙마다 다르다 — yacht_kr·yacht_og는 'yacht', yahtzee는 'yahtzee'.
+  // 조커 판정이 이 칸의 점수를 보므로, 하드코딩하면 요트 다이스에서 조커가 영영 안 걸린다.
+  const yachtId = rule => (rule.cats.some(c=>c.id==='yahtzee') ? 'yahtzee' : 'yacht');
+  // 조커 규칙 판정 — 켜져 있고 + 5개 동일 + 요트/야찌 칸이 '이미 50점으로' 채워졌으면 그 눈(1~6), 아니면 0.
+  // (그 칸이 비었거나 0점이면 조커도 추가 보너스도 발동하지 않는다 — 정통 Yahtzee와 같다)
+  // ⚠️ 옛 시그니처는 (mode, scores, d)로 야찌 모드에 잠겨 있었다. 이제 rule을 받아 모드와 무관하게 돈다.
+  function jokerFace(on, rule, scores, d){
+    if (!on || maxKind(d)<5) return 0;
+    if (scores[yachtId(rule)] !== 50) return 0;
     const c=cnt(d); for (let f=1;f<=6;f++) if (c[f]===5) return f; return 0;
   }
+  // 조커를 켤 수 있는 모드 — 오리지널(1938)엔 조커 규칙이 없어서 제외한다.
+  const JOKER_MODES = ['yacht_kr','yahtzee'];
+  const jokerDefault = mode => mode==='yahtzee';   // 야찌는 정통 규칙상 기본 켜짐(기존 동작 보존)
   function emptyScores(rule){ const s={}; rule.cats.forEach(c=>s[c.id]=null); return s; }
   function openCats(rule,scores){ return rule.cats.filter(c=>scores[c.id]===null).map(c=>c.id); }
   function bestOpen(d,open,rule){ let b=0; for (const id of open){ const s=scoreOf(id,d,rule); if (s>b) b=s; } return b; }
@@ -96,9 +103,12 @@
     }
     return bm;
   }
-  function aiPickCat(d, open, rule, scores, diff, per, ctx){
+  // sc — 칸 점수 계산기(기본은 눈 그대로). 조커 상태에선 엔진이 _scoreCat을 넘겨서
+  // 스트레이트를 만점으로 보게 한다. 안 넘기면 AI가 조커 스트레이트를 0점으로 보고 피한다.
+  function aiPickCat(d, open, rule, scores, diff, per, ctx, sc){
     per=per||PERSONAS.safe;
-    const scored = open.map(id=>({id, s:scoreOf(id,d,rule)}));
+    const S = sc || ((id,dd)=>scoreOf(id,dd,rule));
+    const scored = open.map(id=>({id, s:S(id,d)}));
     if (diff==='easy'){ scored.sort((a,b)=>b.s-a.s); return scored[0].id; }
     const curUpper = UPPER_IDS.reduce((a,id)=>a+(scores[id]||0),0);
     function value(id,s){
@@ -136,6 +146,12 @@
       // 아이템전 — 켜면 **모든 자리(AI 포함)가 같은 개수**의 '한 번 더 굴리기'를 받는다.
       // 상점 보유량과 무관하다(돈으로 유리해지지 않게). 기본은 꺼짐.
       this.itemsOn = !!opts.itemsOn;
+      // 🃏 조커 규칙 — 요트/야찌 칸을 50점으로 이미 채운 뒤 또 5개 동일이 나왔을 때:
+      //   ① 그 눈의 상단 칸에 강제 배치(비어 있으면) ② 상단이 찼으면 하단 아무 칸 —
+      //   이때 스트레이트는 패턴이 없어도 만점 인정 ③ 추가 야찌 +100 보너스.
+      // 오리지널(1938)은 조커 규칙이 없어 켤 수 없다. 야찌는 정통 규칙이라 기본 켜짐.
+      this.joker = (JOKER_MODES.indexOf(this.mode)<0) ? false
+                 : (opts.joker!=null ? !!opts.joker : jokerDefault(this.mode));
       this.itemCharges = Math.max(0, Math.min(5, opts.itemCharges!=null ? opts.itemCharges|0 : 2));
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
@@ -157,7 +173,7 @@
     // 조커면: (1) 그 눈의 상단 칸이 비었으면 거기에만, (2) 상단이 찼으면 남은 하단 아무 칸,
     //         (3) 하단도 다 찼으면 남은 상단 아무 칸(0점).
     _legalCats(seat,d){
-      const open=this._open(seat), f=jokerFace(this.mode,this.players[seat].scores,d);
+      const open=this._open(seat), f=jokerFace(this.joker,this.rule,this.players[seat].scores,d);
       if(!f) return open;
       const upperId=UPPER_IDS[f-1];
       if(open.indexOf(upperId)>=0) return [upperId];
@@ -167,7 +183,7 @@
     // 조커 상태의 스트레이트는 패턴이 없어도 조커 값(스몰 30 / 라지 40, yahtzee 모드 고정값)으로 인정.
     // 풀하우스는 5개 동일 시 isFull이 이미 참이라 자연 득점(25)되므로 별도 처리 불필요.
     _scoreCat(seat,catId,d){
-      const f=jokerFace(this.mode,this.players[seat].scores,d);
+      const f=jokerFace(this.joker,this.rule,this.players[seat].scores,d);
       if(f && catId==='sStraight') return scoreOf('sStraight',[1,2,3,4,5],this.rule); // 조커: 스몰 스트레이트 고정값(30)
       if(f && catId==='lStraight') return scoreOf('lStraight',[2,3,4,5,6],this.rule); // 조커: 라지 스트레이트 고정값(40)
       return scoreOf(catId,d,this.rule);
@@ -206,7 +222,7 @@
       const g=++this._aiGen;
       this._busy=true;
       const seat=this.current, open=this._open(seat);
-      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const legal=this._legalCats(seat,this.dice.map(d=>d.value)); const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat)); this._busy=false; this._commit(seat,cat); };
+      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const legal=this._legalCats(seat,this.dice.map(d=>d.value)); const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd)); this._busy=false; this._commit(seat,cat); };
       if(!this.rolled){ this._doRoll(); setTimeout(finish, 900); } else finish();
     }
     action(pid,a){
@@ -243,7 +259,7 @@
       if(!this.rolled||!p||p.scores[catId]!==null||!this.rule.cats.find(c=>c.id===catId)) return;
       const d=this.dice.map(x=>x.value);
       if(this._legalCats(seat,d).indexOf(catId)<0) return;   // 조커 배치 제한 위반은 거부
-      const f=jokerFace(this.mode,p.scores,d);
+      const f=jokerFace(this.joker,this.rule,p.scores,d);
       if(f) p.yBonus=(p.yBonus||0)+100;                      // 추가 야찌 보너스 누적(+100)
       p.scores[catId]=this._scoreCat(seat,catId,d);
       if(this.players.every(pp=>this._done(pp))){ this.phase='over'; if(this._timer){clearTimeout(this._timer);this._timer=null;} this._emit(); return; }
@@ -274,7 +290,7 @@
         if(!alive()) return;
       }
       const legal=this._legalCats(seat,this.dice.map(d=>d.value));
-      const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat));
+      const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd));
       await wait(450*this.AID);
       if(!alive()) return;
       this._busy=false; this._commit(seat,cat);
@@ -320,7 +336,7 @@
     // 현재 차례 플레이어의 조커 상태(있으면 눈·허용 칸·추가보너스 여부) — UI 제한/표시용
     _jokerInfo(){
       if(!this.rolled) return null;
-      const d=this.dice.map(x=>x.value), f=jokerFace(this.mode,this.players[this.current].scores,d);
+      const d=this.dice.map(x=>x.value), f=jokerFace(this.joker,this.rule,this.players[this.current].scores,d);
       if(!f) return null;
       return { face:f, legal:this._legalCats(this.current,d), bonus:100 };
     }
@@ -340,6 +356,7 @@
         current:this.current, rollsLeft:this.rollsLeft, rolled:this.rolled, itemsOn:this.itemsOn, items:(this.items||[]).slice(),
         dice:this.dice.map(d=>({value:d.value,held:d.held})),
         deadline:this.deadline, turnMs:this.TURN_MS, preview:this._preview(), joker:this._jokerInfo(),
+        jokerOn:!!this.joker,   // 규칙 켜짐 여부(표시용) — joker는 '지금 조커가 걸렸나'라 다르다
         players:this.players.map((p,seat)=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar, ai:p.ai, persona:p.persona, personaLabel:p.persona?PERSONAS[p.persona].label:null, connected:p.connected,
           seat, scores:p.scores, upperSum:this._upper(p), bonusGot:this._bonus(p)>0, lowBonusGot:this._lowBonus(p)>0, yBonus:p.yBonus||0, total:this._total(p) })),
         winners: this.phase==='over' ? this._winners() : null,
