@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>라이어 다이스 — 주사위 골목</title>
+<script src="setup-order.js"></script>
 <script src="fit-setup.js"></script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
@@ -1060,7 +1061,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('helpOv').addEventListener('click',e=>{ if(e.target.id==='helpOv')$('helpOv').classList.remove('on'); });
 
   // setup
-  function openSetup(){ $('setupOv').classList.add('on'); renderStats(); renderAch(); renderLevel(); if(!rulesSeen) setTimeout(showRules,280); }
+  /* 첫 방문 규칙 자동 오픈 제거 (2026-07-29) — kb와 같은 이유. 규칙은 '?'·'📖'로 언제든. */
+  function openSetup(){ $('setupOv').classList.add('on'); renderStats(); renderAch(); renderLevel(); }
   $('optMode').onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return;
     document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o===b));
     online = b.dataset.m==='online';

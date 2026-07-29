@@ -1032,7 +1032,8 @@ $('tutBtn').onclick=openTut;
 $('tutSkip').onclick=closeTut;
 $('tutNext').onclick=()=>{ if(tutI<TUT.length-1){ tutI++; renderTut(); } else closeTut(); };
 // 첫 방문이면 튜토리얼 자동
-try{ if(localStorage.getItem('seotda_tut')!=='1') setTimeout(openTut,400); }catch(e){}
+/* 첫 방문 튜토리얼 자동 오픈 제거 (2026-07-29) — 실측에서 tutorialOv가 '시작'을 덮고 있었다.
+   섯다는 자체 튜토리얼이라 TUT.nudge()를 못 쓴다 → 상단 튜토리얼 버튼으로 언제든 열 수 있다. */
 // 나가기 정산(허브·언로드)
 document.querySelector('.hubx').addEventListener('click',cashOut);
 window.addEventListener('beforeunload',cashOut);

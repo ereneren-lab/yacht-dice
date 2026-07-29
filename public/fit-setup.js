@@ -34,9 +34,30 @@
   var CSS =
     '.fs-pinned{position:sticky !important;bottom:10px;z-index:60;' +
     'box-shadow:0 8px 24px rgba(0,0,0,.45)}' +
+    /* sticky는 '부모 박스 안'에서만 움직인다 — 셋업이 아주 길면(윷 가로 1419px) 부모가 화면 밖까지
+       뻗어 있어서 버튼도 화면 밖에 머문다(844x390에서 367~414, 뷰포트 390). 그런 경우엔 fixed가 맞다.
+       ⚠️ 단 조상에 backdrop-filter/transform/filter가 있으면 fixed의 기준이 뷰포트가 아니라 그 요소가 된다
+          (함정 21-b, 실기기에서 버튼이 같이 밀려 올라갔다) → 그럴 땐 sticky를 그대로 쓴다. */
+    '.fs-fixed{position:fixed !important;left:50%;transform:translateX(-50%);' +
+    'bottom:12px;z-index:60;width:min(340px,calc(100vw - 36px));' +
+    'box-shadow:0 8px 24px rgba(0,0,0,.45)}' +
     '.fs-spacer{height:14px;flex:none}' +
-    'body.ingame .fs-pinned{display:none !important}' +
+    'body.ingame .fs-pinned,body.ingame .fs-fixed{display:none !important}' +
     'body.ingame .fs-spacer{display:none !important}';
+
+  /* fixed의 기준을 뷰포트가 아니게 만드는 조상이 있나 — 있으면 fixed를 쓰면 안 된다 */
+  function fixedIsSafe(el) {
+    for (var p = el.parentElement; p && p !== document.documentElement; p = p.parentElement) {
+      var cs = getComputedStyle(p);
+      if ((cs.transform && cs.transform !== 'none') ||
+        (cs.filter && cs.filter !== 'none') ||
+        (cs.backdropFilter && cs.backdropFilter !== 'none') ||
+        (cs.webkitBackdropFilter && cs.webkitBackdropFilter !== 'none') ||
+        (cs.perspective && cs.perspective !== 'none') ||
+        (cs.contain && /paint|layout|strict|content/.test(cs.contain))) return false;
+    }
+    return true;
+  }
 
   function inView(el) {
     var r = el.getBoundingClientRect();
@@ -64,12 +85,18 @@
     try {
       var b = document.getElementById('startBtn');
       if (!b) return;
-      if (document.body.classList.contains('ingame')) { b.classList.remove('fs-pinned'); padHost(b, false); return; }
+      if (document.body.classList.contains('ingame')) { b.classList.remove('fs-pinned'); b.classList.remove('fs-fixed'); padHost(b, false); return; }
       // 먼저 원상복구하고 다시 잰다 — 고정된 상태로 재면 늘 '보인다'가 나온다
-      b.classList.remove('fs-pinned'); padHost(b, false);
+      b.classList.remove('fs-pinned'); b.classList.remove('fs-fixed'); padHost(b, false);
       var cs = getComputedStyle(b);
       if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return;
-      if (!inView(b)) { b.classList.add('fs-pinned'); padHost(b, true); }
+      if (inView(b)) return;
+
+      b.classList.add('fs-pinned'); padHost(b, true);
+      /* sticky로 붙였는데도 여전히 화면 밖이면(부모 박스가 화면 밖까지 뻗은 경우) fixed로 올린다.
+         '먼저 sticky, 안 되면 fixed' 순서가 중요하다 — fixed는 문서 흐름에서 빠지므로
+         가능하면 안 쓰는 게 레이아웃에 안전하다. */
+      if (!inView(b) && fixedIsSafe(b)) { b.classList.remove('fs-pinned'); b.classList.add('fs-fixed'); }
     } catch (e) { }
   }
 

@@ -60,6 +60,10 @@
         db[game] = d;
         localStorage.setItem(KEY, JSON.stringify(db));
         try { global.AL && AL.done(won); } catch (e) {}   // 계측(켜져 있을 때만)
+        /* 첫 판이 끝난 사람에게만 규칙을 한 번 권한다.
+           첫 방문 자동 튜토리얼을 걷어낸 자리를 여기가 대신한다(2026-07-29).
+           TUT가 스스로 '이미 봤나/이미 권했나'를 판단하므로 여기선 조건 없이 부르면 된다. */
+        try { if (d.games === 1 && global.TUT && TUT.nudge) TUT.nudge(); } catch (e) {}
         return d;
       } catch (e) { return blank(); }
     },

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>너클본즈 — 주사위 골목</title>
+<script src="setup-order.js"></script>
 <script src="fit-setup.js"></script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
@@ -1163,7 +1164,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('helpOv').addEventListener('click', e=>{ if(e.target.id==='helpOv') $('helpOv').classList.remove('on'); });
 
   // ---------- setup ----------
-  function openSetup(){ $('setupOv').classList.add('on'); if(!rulesSeen) setTimeout(showRules,280); }
+  /* 첫 방문 규칙 자동 오픈을 걷어냈다 (2026-07-29) — 실측에서 '시작'이 helpOv에 덮여 있었다.
+     한 판 해보는 게 읽는 것보다 빠르다. 규칙은 상단 '?'와 셋업의 '📖 규칙 자세히 보기'로 늘 열 수 있고,
+     첫 판이 끝나면 TUT.nudge()가 한 번 권한다. (rulesSeen은 다른 곳에서 계속 쓰므로 남겨둔다) */
+  function openSetup(){ $('setupOv').classList.add('on'); }
   $('optMode').onclick = e=>{ const b=e.target.closest('.opt'); if(!b)return; mode=b.dataset.m;
     document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o===b));
     $('diffWrap').style.display = mode==='ai'?'block':'none';

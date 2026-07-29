@@ -72,13 +72,28 @@ const CLIPPED = `var out=[];
   });
   return out;`;
 
-// 요소가 눈에 보이고 탭할 만한가
+/* 요소가 눈에 보이고 탭할 만한가.
+   ⚠️ '화면 안에 있나(inView)'와 '실제로 눌리나(clickable)'는 다른 말이다 —
+      2026-07-29 실기기에서 fit-setup.js의 sticky '시작' 바가 #itemWrap 위에 떠서
+      옵션이 안 눌렸는데, inView만 보던 이 감사는 통과를 줬다.
+      elementFromPoint로 그 지점의 최상단 요소를 확인해 '가려짐'을 잡는다. */
 const visFn = sel => `var e=document.querySelector(${JSON.stringify(sel)});
   if(!e) return {found:false};
   var st=getComputedStyle(e), r=e.getBoundingClientRect();
-  return {found:true, shown: st.display!=='none' && st.visibility!=='hidden' && +st.opacity>0.05 && r.width>0 && r.height>0,
+  var shown = st.display!=='none' && st.visibility!=='hidden' && +st.opacity>0.05 && r.width>0 && r.height>0;
+  var clickable=null, blockedBy=null;
+  if(shown){
+    var cx=Math.round(r.left+r.width/2), cy=Math.round(r.top+r.height/2);
+    if(cx>=0 && cy>=0 && cx<=innerWidth && cy<=innerHeight){
+      var h=document.elementFromPoint(cx,cy);
+      clickable = !!(h && (h===e || e.contains(h)));
+      if(!clickable && h) blockedBy = h.id ? '#'+h.id : (h.tagName.toLowerCase()+'.'+((h.className||'').toString().split(' ')[0]));
+    }
+  }
+  return {found:true, shown: shown,
           w:Math.round(r.width), h:Math.round(r.height),
-          inView: r.top>=-2 && r.left>=-2 && r.bottom<=window.innerHeight+2 && r.right<=window.innerWidth+2};`;
+          inView: r.top>=-2 && r.left>=-2 && r.bottom<=window.innerHeight+2 && r.right<=window.innerWidth+2,
+          clickable: clickable, blockedBy: blockedBy};`;
 
 // 오버레이 안쪽이 '내부 스크롤'로 감당되나 — 페이지를 늘려버리면 실패
 const ovFn = sel => `var e=document.querySelector(${JSON.stringify(sel)});
@@ -164,12 +179,16 @@ const LIST = ONLY.length ? GAMES.filter(x => ONLY.includes(x.g)) : GAMES;
      윷·너클본즈·라이어·좌중우가 정확히 그 상태로 잡혔다(2026-07-28). */
   for (const G of LIST) {
     const mine = rows.filter(r => r.g === G.g);
-    const bad = mine.filter(r => (r.setup && r.setup.v > 0) || (r.startBtn && r.startBtn.inView === false));
+    const bad = mine.filter(r => (r.setup && r.setup.v > 0)
+      || (r.startBtn && r.startBtn.inView === false)
+      || (r.startBtn && r.startBtn.clickable === false));
     if (!bad.length) { P(`✅ ${G.g.padEnd(12)} 전 폭 OK`); continue; }
     P(`⚠️  ${G.g.padEnd(12)} ` + bad.map(r => {
       const parts = [];
       if (r.setup && r.setup.v > 0) parts.push(`+${r.setup.v}px`);
       if (r.startBtn && r.startBtn.inView === false) parts.push('시작버튼 화면밖');
+      // 화면 안에 있는데 안 눌리는 경우 = 무언가가 위에 떠 있다(sticky 바·오버레이)
+      if (r.startBtn && r.startBtn.clickable === false) parts.push(`시작버튼 가려짐(${r.startBtn.blockedBy || '?'})`);
       return `${r.view} ${parts.join('/')}`;
     }).join(' · '));
   }

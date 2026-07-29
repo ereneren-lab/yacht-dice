@@ -339,6 +339,103 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .astot{display:flex;gap:8px;justify-content:space-between;padding:11px 2px 4px;border-top:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--muted)}
   .astot b{color:var(--ink)}
   .asnone{padding:6px 2px 10px;font-size:12.5px;color:var(--muted);line-height:1.6}
+
+  /* ── '바로 한 판' 대표 게임 (2026-07-29) ──
+     첫 화면에서 게임이 43% 지점부터 시작하던 걸 앞으로 당긴다. 카드는 크고 CTA가 분명해야
+     '고르는 일'이 아니라 '누르는 일'이 된다. */
+  .quick{margin:0 2px 16px}
+  .qh{margin:0 0 10px;font-size:14px;font-weight:900;color:var(--brass);letter-spacing:.01em}
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .qcard{display:flex;flex-direction:column;gap:6px;padding:14px 13px;border:1px solid var(--line);
+    border-radius:16px;background:linear-gradient(180deg,var(--panel),var(--bg2));text-decoration:none;
+    color:var(--ink);min-height:44px;transition:.12s}
+  .qcard:hover{border-color:color-mix(in srgb,var(--brass) 45%,transparent)}
+  .qcard .qic{font-size:26px;line-height:1}
+  /* 이름·설명·CTA는 각자 한 줄 — span을 그냥 이어 쓰면 "하이로우 · 30초 · 룰이 한 줄 시작하기 →"처럼
+     한 문장으로 흘러 읽기 나쁘다(실제로 그렇게 나왔다). */
+  .qcard .qtx{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .qcard .qn{font-size:15px;font-weight:900;line-height:1.25}
+  .qcard .qm{font-size:12px;color:var(--muted);font-weight:600;line-height:1.35}
+  .qcard .qgo{margin-top:2px;font-size:12.5px;font-weight:800;color:var(--brass)}
+  /* 첫 장은 폭 전체를 써서 '여기부터'가 분명하게 */
+  .qcard.lead{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px}
+  .qcard.lead .qic{font-size:34px}
+  .qcard.lead .qtx{flex:1}
+  /* lead가 한 줄을 다 쓰므로 나머지가 홀수면 마지막 한 장이 혼자 남아 옆이 빈다.
+     그 경우엔 마지막 장도 폭을 채운다 (lead + 3장일 때 실제로 그랬다). */
+  .qgrid>.qcard:last-child:nth-child(even){grid-column:1/-1;flex-direction:row;align-items:center;gap:14px}
+  .qgrid>.qcard:last-child:nth-child(even) .qic{font-size:30px}
+  .qgrid>.qcard:last-child:nth-child(even) .qtx{flex:1}
+
+  /* 방 코드 접기 — 초대받은 사람만 쓰는 기능이라 기본은 한 줄 */
+  .joinfold{margin:0 2px 14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+  .joinfold>summary{list-style:none;cursor:pointer;padding:12px 14px;font-size:13px;font-weight:800;color:var(--muted)}
+  .joinfold>summary::-webkit-details-marker{display:none}
+  .joinfold[open]>summary{border-bottom:1px solid var(--line)}
+  .joinfold .joinbar{margin:0;padding:12px 14px}
+
+  /* 전체 게임 접기 */
+  .allgames{margin:0 2px 16px;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+  .allgames>.agsum{list-style:none;cursor:pointer;padding:14px 16px;font-size:13.5px;font-weight:900;
+    color:var(--ink);display:flex;align-items:center;gap:8px}
+  .allgames>.agsum::-webkit-details-marker{display:none}
+  .allgames>.agsum::after{content:'▾';margin-left:auto;color:var(--muted);font-size:12px}
+  .allgames[open]>.agsum::after{content:'▴'}
+  .allgames[open]>.agsum{border-bottom:1px solid var(--line)}
+  .allgames .agn{color:var(--brass)}
+  .allgames .agbody{padding:14px 12px 4px}
+
+  /* ── 짧은 화면(가로로 돌린 폰) 압축 ──
+     함정 #8: 높이를 확보하는 규칙은 max-width가 아니라 **max-height**로 걸어야 한다.
+     640x360에서 첫 화면에 카드가 1개뿐이었다(첫 카드가 47% 지점). 로고·소개문이 절반을 먹는다.
+     ⚠️ 기본 규칙보다 뒤에 와야 이긴다(함정 #12). */
+  @media (max-height:430px){
+    .brand{margin:2px 2px 0}
+    .brand .logo{width:28px;height:28px;font-size:16px;border-radius:8px}
+    .brand h1{font-size:18px}
+    .brand h1 .en{display:none}
+    .lede{display:none}
+    .quick{margin-bottom:10px}
+    .qh{margin:0 0 6px;font-size:13px}
+    .qgrid{grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .qcard{padding:9px 10px}
+    .qcard .qic{font-size:19px}
+    .qcard.lead{grid-column:1/-1;gap:10px}
+    .qcard.lead .qic{font-size:23px}
+    .qcard .qgo{display:none}       /* 좁은 높이에선 카드 자체가 CTA다 */
+    .joinfold{margin-bottom:8px}
+    .joinfold>summary{padding:9px 12px}
+  }
+
+  /* ── 손가락 기준 최소 탭 크기 (2026-07-29, Galaxy A16 실측) ──
+     허브에서 44px(WCAG 2.5.5 / Apple HIG) 미만 탭 타깃이 35개였다:
+     아바타칩 36x36 ×16 · 카테고리칩 높이 31 ×5 · 방코드 입력 39 · 상점 링크 32.
+     ⚠️ 보이는 크기를 키우면 안 된다 — 안 그래도 첫 게임 카드가 첫 화면 43% 지점이다.
+        그래서 ::after로 **투명한 히트박스만** 덮는다(절대위치라 레이아웃 영향 0).
+     ⚠️ 이 블록은 기본 규칙보다 뒤에 있어야 이긴다(함정 #12). */
+  /* ⚠️ 처음엔 ::after로 '투명 히트박스'만 덮어 크기를 안 키우려 했다. 두 가지가 문제였다 —
+        ① 검증이 안 된다: rect는 그대로라 감사에는 계속 36px로 잡히고, elementFromPoint 판정은
+           이웃 칩과 겹쳐 결과가 뒤죽박죽이었다. ② (pointer:coarse) 에뮬레이션이 헤드리스에서
+           먹지 않아 실제로 적용됐는지조차 확인할 수 없었다.
+        허브가 4.8화면 → 1.5화면으로 짧아져 세로 여유가 생겼으므로 **실제 크기를 키운다.**
+        이러면 rect로 바로 검증된다. */
+  .avchip{width:44px;height:44px}
+  .tchip{min-height:44px;padding:8px 13px}
+  .catfilter .tchip{padding:8px 13px}
+  .coinbar .shoplink{min-height:44px;display:inline-flex;align-items:center;padding:8px 14px}
+  .joinbar .jbtn{min-height:44px}
+  .joinbar input,.pfield input.pin{min-height:44px}
+  .lighttoggle{min-width:44px;min-height:44px}
+  .prembtn{min-height:44px}
+  /* 짧은 화면(가로)에서는 44px을 다 주면 화면을 잡아먹는다 → 40px로 절충한다.
+     손가락 크기는 화면을 돌린다고 줄지 않으므로 원래의 31~36px로 되돌리지는 않는다. */
+  @media (max-height:430px){
+    .avchip{width:40px;height:40px}
+    .tchip,.catfilter .tchip{min-height:40px;padding:6px 11px}
+    .coinbar .shoplink{min-height:40px;padding:6px 12px}
+    .joinbar .jbtn,.joinbar input,.pfield input.pin,.lighttoggle,.prembtn{min-height:40px}
+    .lighttoggle{min-width:40px}
+  }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -363,13 +460,24 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   <!-- 허브가 할 일은 '게임 고르기'다. 프로필·코인·전적·테마가 위에 있어서
        360px에서 게임 카드가 602px 아래로 밀렸고, 카테고리 칩조차 497px 아래였다(스크롤해야 필터를 씀).
        → 초보에게 필요한 안내·방코드만 위에 두고, '내 정보' 묶음은 게임 아래로 내렸다. -->
-  <div class="firstnote" id="firstNote"><span class="fe">🎲</span><span><b>처음이라면</b> — 혼자 <b>AI</b>랑 붙어봐도 되고, 친구가 준 <b>방 코드</b>를 아래에 입력해 바로 참가할 수도 있어.</span></div>
-  <div class="joinbar">
-    <span class="jlbl">🔑 방 코드로 참가</span>
-    <input id="joinCode" maxlength="4" placeholder="예: ABCD" autocomplete="off" autocapitalize="characters" inputmode="text" aria-label="방 코드">
-    <button id="joinGo" class="jbtn">참가</button>
-    <span class="jmsg" id="joinMsg" role="status"></span>
-  </div>
+  <!-- '바로 한 판' — 처음 온 사람이 고민 없이 누를 자리.
+       실측(384x748): 첫 게임 카드가 첫 화면의 43% 지점(y=323)에 있고 온전히 보이는 카드는 2개뿐이었다.
+       13종을 동등하게 늘어놓으면 고르는 것부터가 일이다 → 대표 4종을 먼저, 전체는 접어둔다. -->
+  <section class="quick" id="quickPlay">
+    <h3 class="qh">▶ 바로 한 판</h3>
+    <div class="qgrid" id="qGrid"></div>
+  </section>
+
+  <!-- 방 코드는 '초대받은 사람'만 쓴다. 첫 화면 고정석을 줄 이유가 없어 접었다.
+       ?room= 으로 들어오면 자동으로 펼친다. -->
+  <details class="joinfold" id="joinFold">
+    <summary>🔑 방 코드로 참가</summary>
+    <div class="joinbar">
+      <input id="joinCode" maxlength="4" placeholder="예: ABCD" autocomplete="off" autocapitalize="characters" inputmode="text" aria-label="방 코드">
+      <button id="joinGo" class="jbtn">참가</button>
+      <span class="jmsg" id="joinMsg" role="status"></span>
+    </div>
+  </details>
 
   <div class="catfilter" id="catFilter" role="tablist" aria-label="게임 종류 고르기">
     <button class="tchip on" data-cat="all">전체<span class="n">13</span></button>
@@ -379,6 +487,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     <button class="tchip" data-cat="card">🃏 카드<span class="n">6</span></button>
   </div>
 
+  <!-- 전체 목록은 접어둔다 — 대표 4종으로 첫 판을 시작한 뒤 둘러보는 순서가 맞다.
+       카테고리 칩을 누르면 자동으로 펼쳐진다(접힌 채로 필터가 먹으면 "안 먹는다"로 보인다). -->
+  <details class="allgames" id="allGames">
+    <summary class="agsum">🎲 전체 게임 <span class="agn">13</span></summary>
+    <div class="agbody">
   <h3 class="cat-h" data-cat="dice">🎲 주사위 게임 <span class="cnt">4</span></h3>
   <div class="cards" data-cat="dice">
     <a class="gcard" href="kb.html">
@@ -490,6 +603,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   </div>
 
   <!-- 내 정보 — 게임을 고른 뒤에 보는 것들이라 카드 아래로 내렸다(위 주석 참고) -->
+    </div>
+  </details>
+
   <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
   <details class="profilebox" id="profileBox">
     <summary class="psum"><span class="pav" id="pavPreview">🎲</span><span class="pname empty" id="pnamePreview">프로필 설정</span><span class="pedit"></span></summary>
@@ -605,6 +721,50 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   try{ if(new URLSearchParams(location.search).get('room')) return; }catch(e){}
   var $=function(id){return document.getElementById(id);};
   // p: localStorage 키 접두사, file: 이동할 HTML. 요트만 접두사(yd)와 파일(yacht.html)이 다름.
+  /* ── '바로 한 판' 대표 게임 ──
+     고르는 기준: 룰이 짧고, 혼자(AI/하우스) 바로 붙을 수 있고, 한 판이 금방 끝난다.
+     맨 앞(lead)은 가장 설명이 덜 필요한 것. 바꾸고 싶으면 이 배열만 고치면 된다. */
+  var FEATURED=[
+    {file:'kb.html',      ic:'🦴', name:'너클본즈',    meta:'2분 · AI와 바로',   lead:true},
+    {file:'highlow.html', ic:'🔺', name:'하이로우',    meta:'30초 · 룰이 한 줄'},
+    {file:'yacht.html',   ic:'🎲', name:'요트 다이스', meta:'대표작 · 점수 대결'},
+    {file:'yut.html',     ic:'🚀', name:'윷놀이',      meta:'친숙 · 말 4개 완주'}
+  ];
+  (function(){
+    var g=document.getElementById('qGrid'); if(!g) return;
+    g.innerHTML=FEATURED.map(function(f){
+      return '<a class="qcard'+(f.lead?' lead':'')+'" href="'+f.file+'" data-quick="1">'
+        +'<span class="qic">'+f.ic+'</span>'
+        +'<span class="qtx">'
+        +'<span class="qn">'+f.name+'</span>'
+        +'<span class="qm">'+f.meta+'</span>'
+        +'<span class="qgo">시작하기 →</span>'
+        +'</span></a>';
+    }).join('');
+    // 대표 카드 클릭도 허브 카드클릭으로 센다(계측 퍼널이 끊기지 않게)
+    g.addEventListener('click',function(e){
+      var a=e.target.closest && e.target.closest('a[data-quick]'); if(!a) return;
+      try{ window.AL && AL.ev && AL.ev('허브_카드클릭',{게임:a.getAttribute('href')}); }catch(err){}
+    });
+  })();
+
+  /* 방 코드로 초대받아 들어왔으면 접힌 걸 펼쳐준다 — 접힌 채면 "코드 넣을 데가 없다"가 된다 */
+  (function(){
+    try{
+      var jf=document.getElementById('joinFold'); if(!jf) return;
+      if(/[?&]room=/.test(location.search)) jf.open=true;
+    }catch(e){}
+  })();
+
+  /* 카테고리 칩을 누르면 전체 목록을 펼친다 — 접힌 채로 필터만 바뀌면 '안 먹는다'로 보인다 */
+  (function(){
+    var cf=document.getElementById('catFilter'), ag=document.getElementById('allGames');
+    if(!cf||!ag) return;
+    cf.addEventListener('click',function(e){ if(e.target.closest('.tchip')) ag.open=true; });
+    // 넓은 화면은 접을 이유가 없다(스크롤 여유가 충분하다)
+    try{ if(matchMedia('(min-width:781px)').matches) ag.open=true; }catch(e){}
+  })();
+
   var GAMES=[
     {p:'kb',  file:'kb.html',    name:'너클본즈'},
     {p:'yd',  file:'yacht.html', name:'요트 다이스'},

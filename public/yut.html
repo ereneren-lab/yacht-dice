@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>윷놀이 — 주사위 골목</title>
+<script src="setup-order.js"></script>
 <script src="fit-setup.js"></script>
 <!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
 <script src="tutorial.js"></script>
@@ -112,11 +113,18 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   #dirChoice .btn.faster{ box-shadow:0 0 0 2.5px var(--brass),0 4px 12px rgba(0,0,0,.22) }
   #pieceLayer .dirghost{ animation:pcpulse 1s ease-in-out infinite;pointer-events:none }
   .btn:disabled{ opacity:.45;cursor:default }
-  .ov{ position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:18px;z-index:100 }
+  /* 함정 #21-c — align-items:center + overflow 없음이면 내용이 뷰포트보다 클 때 위아래가 잘린 채 스크롤도 안 된다.
+     360x640·844x390에서 '시작'이 화면 밖(bot=419 > vh=390)이었고, 스크롤 여유가 0이라
+     fit-setup의 sticky도 붙을 컨테이너가 없어 무력했다.
+     → flex-start + overflow-y:auto + 자식 margin:auto. kb·ld와 같은 처방. */
+  .ov{ position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:18px;z-index:100;overflow-y:auto;-webkit-overflow-scrolling:touch }
+  .ov.on>*{ margin:auto }
   /* 골목(홈) 링크는 첫 화면 오버레이 위로 띄워 항상 나갈 수 있게 */
   .hubx{ position:relative; z-index:150 }
   .ov.on{ display:flex }
-  .sheet{ background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto }
+  /* max-height:88vh + 안쪽 스크롤을 빼고 .ov가 스크롤하게 둔다 — 스크롤을 두 겹으로 두면
+     sticky '시작'이 어느 쪽 기준인지 어긋난다(좌·중·우에서 시트 밖으로 삐져나온 게 실측됐다). */
+  .sheet{ background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:440px;width:100% }
   .sheet h3{ font-size:19px;margin-bottom:8px }
   .sheet p{ font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:10px }
   .tabs{ display:flex;gap:6px;margin:12px 0 }

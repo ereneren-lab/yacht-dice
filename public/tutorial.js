@@ -72,14 +72,18 @@
       this._steps = (opts.steps || []).filter(function (s) { return s && (s.title || s.body); });
       this._game = opts.game || 'game';
       this._label = opts.label || '📖';
-      var auto = opts.auto !== false;
       var self = this;
       if (!this._steps.length) return;
       ready(function () {
         self._build();
         self._mountButton();
-        // 첫 방문 1회만 자동. 판이 이미 깔려 있으면(복귀 등) 방해하지 않는다.
-        if (auto && !LS.get('alley_tut_' + self._game) && !document.body.classList.contains('ingame')) {
+        /* 첫 방문 자동 오픈은 걷어냈다 (2026-07-29).
+         *   실측: 첫 방문 시 6/6 게임에서 '시작' 버튼이 전체화면 오버레이 2겹(튜토리얼+규칙)에 덮여 있었다.
+         *   보드게임은 한 판 해보는 게 설명보다 빠르다 — 읽을거리를 먼저 들이밀면
+         *   "뭘 눌러야 하지"가 아니라 "이거 닫는 게 먼저네"가 첫 경험이 된다.
+         *   대신 📖 버튼은 늘 상단바에 있고, 첫 판이 끝나면 TUT.nudge()로 한 번 권한다.
+         * opts.auto:true를 **명시**하면 예전처럼 자동으로 뜬다(끈 게 아니라 기본값을 뒤집었다). */
+        if (opts.auto === true && !LS.get('alley_tut_' + self._game) && !document.body.classList.contains('ingame')) {
           setTimeout(function () {
             if (!document.body.classList.contains('ingame')) self.open();
           }, 550);
@@ -162,6 +166,40 @@
     close: function () {
       if (this._el) this._el.classList.remove('on');
       LS.set('alley_tut_' + this._game, '1');
+    },
+
+    /* 한 판이 끝난 뒤 한 번만 권하는 작은 띠.
+       자동 오버레이를 걷어낸 대신 여기서 규칙을 안내한다 — 판을 막지 않고, 무시해도 그만이다.
+       이미 튜토리얼을 본 사람에겐 뜨지 않는다. */
+    nudge: function () {
+      try {
+        if (!this._steps || !this._steps.length) return;
+        if (LS.get('alley_tut_' + this._game)) return;          // 이미 봤다
+        if (LS.get('alley_tutnudge_' + this._game)) return;     // 이미 권했다
+        if (document.getElementById('tutNudge')) return;
+        LS.set('alley_tutnudge_' + this._game, '1');
+
+        var self = this;
+        var w = document.createElement('div');
+        w.id = 'tutNudge';
+        w.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:8500;' +
+          'display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;' +
+          'border:1px solid var(--line,#3a2f24);background:var(--panel,#1c1712);' +
+          'box-shadow:0 10px 30px rgba(0,0,0,.45);font-size:13px;font-weight:700;' +
+          'color:var(--ink,#f0e6d8);max-width:min(92vw,420px)';
+        w.innerHTML = '<span>📖 규칙을 한 번 볼래?</span>' +
+          '<button id="tutNudgeGo" style="min-height:36px;padding:0 12px;border-radius:9px;border:none;' +
+          'background:var(--brass,#e0a23c);color:var(--brass-ink,#15110d);font-weight:800;cursor:pointer;font-family:inherit">볼래</button>' +
+          '<button id="tutNudgeNo" style="min-height:36px;padding:0 10px;border-radius:9px;' +
+          'border:1px solid var(--line,#3a2f24);background:transparent;color:var(--muted,#9b8b78);' +
+          'font-weight:700;cursor:pointer;font-family:inherit">괜찮아</button>';
+        document.body.appendChild(w);
+
+        var kill = function () { if (w.parentNode) w.parentNode.removeChild(w); };
+        w.querySelector('#tutNudgeGo').onclick = function () { kill(); self.open(); };
+        w.querySelector('#tutNudgeNo').onclick = kill;
+        setTimeout(kill, 12000);   // 대답 안 해도 알아서 사라진다
+      } catch (e) { }
     },
 
     go: function (d) {

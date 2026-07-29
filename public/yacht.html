@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>요트 다이스 — 주사위 골목</title>
+<script src="setup-order.js"></script>
 <!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
 <script src="tutorial.js"></script>
 <script>try{TUT.init({game:"yacht",steps:[{"art":"🎲","title":"한 턴에 세 번","body":"주사위 5개를 굴려. 한 턴에 <b>최대 3번</b>까지 굴릴 수 있어."},{"art":"🤏","title":"남길 주사위 고르기","body":"굴린 뒤 <b>남기고 싶은 주사위를 탭</b>해두면 그건 그대로 두고 나머지만 다시 굴려.<br>원하는 조합을 만들어 가는 게 핵심이야."},{"art":"📝","title":"점수판에 적기","body":"마음에 드는 조합이 나오면 점수판의 칸을 눌러 <b>기록</b>해. 한 칸은 <b>한 번만</b> 쓸 수 있어.<br>쓸 만한 게 없으면 낮은 칸을 버리는 것도 전략."},{"art":"⭐","title":"보너스 노리기","body":"위쪽(1~6) 합이 <b>63점 이상</b>이면 <b>+35점</b> 보너스!<br>주사위 5개가 같으면 <b>요트</b> — 한 방에 큰 점수야."},{"art":"🏆","title":"이기는 법","body":"모든 칸을 채우면 끝. <b>총점이 가장 높은 사람</b>이 승리!<br>자세한 조합표는 상단 <b>?</b>에서 볼 수 있어."}]})}catch(e){}</script>
@@ -1866,6 +1867,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const curPlayer=()=>S&&S.players[S.current];
   const spectating=()=>isOnline()&&S&&!S.players.some(p=>p.pid===myPid);
   function isMyTurn(){ if(!S||S.phase!=='play')return false; const c=curPlayer(); if(!c)return false; return isOnline()?c.pid===myPid:!c.ai; }
+  /* 물리 키보드가 있는 기기인가 — 'hover 가능 + 정밀 포인터'면 마우스/키보드 환경으로 본다.
+     터치 폰에서는 false다. 키 안내를 폰에 띄우지 않으려고 쓴다(있지도 않은 키를 안내하던 버그). */
+  function hasKeyboard(){ try{ return matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){ return true; } }
+  function kbHint(s){ return hasKeyboard()?s:''; }
   const canAct=()=>isMyTurn()&&!animLock;
   const amHost=()=>lobby&&lobby.members&&lobby.members.some(m=>m.host&&m.pid===myPid);
   function sendAction(a){ if(isOnline())wsSend({t:'action',a}); else if(eng)eng.action(eng.players[eng.current].pid,a); }
@@ -1955,9 +1960,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     else if(p.ai)h.textContent='AI가 플레이하고 있어요…';
     else if(!p.connected)h.textContent=`${p.name} 접속이 끊겨 AI가 대신 진행 중…`;
     else if(!isMyTurn())h.textContent=`${p.name}의 차례를 기다리는 중…`;
-    else if(!S.rolled)h.textContent='주사위를 굴려 시작하세요. (Space=굴리기, 1~5=고정)';
-    else if(S.rollsLeft>0)h.textContent='주사위를 탭/숫자키로 고정하거나, 점수 칸을 선택하세요. (Enter=최고점 칸)';
-    else h.textContent='점수 칸을 선택하세요. (Enter=최고점 칸)';
+    /* 키보드 안내는 키보드가 있는 기기에서만.
+       폰 앱 웹뷰(384x748)에 '(Space=굴리기, 1~5=고정)'이 그대로 떠 있었다 — 누를 키가 없다. */
+    else if(!S.rolled)h.textContent='주사위를 굴려 시작하세요.'+kbHint(' (Space=굴리기, 1~5=고정)');
+    else if(S.rollsLeft>0)h.textContent=(hasKeyboard()?'주사위를 탭/숫자키로 고정하거나, 점수 칸을 선택하세요.':'남길 주사위를 탭하고, 점수 칸을 선택하세요.')+kbHint(' (Enter=최고점 칸)');
+    else h.textContent='점수 칸을 선택하세요.'+kbHint(' (Enter=최고점 칸)');
   }
   function cell(p,pi,catId){ const v=p.scores[catId], cur=pi===S.current?'col-current':'';
     if(v!==null)return `<td class="val ${cur}" data-p="${pi}" data-c="${catId}">${v}</td>`;

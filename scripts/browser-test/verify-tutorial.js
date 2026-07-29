@@ -43,9 +43,21 @@ const bad = m => { fails++; console.log('   ❌ ' + m); };
       if (s1.tut !== 'object') bad(`${g}: tutorial.js가 로드되지 않았다 (typeof TUT=${s1.tut})`);
       if (!s1.steps) bad(`${g}: 단계가 0개`);
       if (!s1.btn) bad(`${g}: 📖 버튼이 안 달렸다`);
-      if (!s1.open) bad(`${g}: 첫 방문인데 자동으로 안 떴다`);
-      if (!s1.title || s1.body < 10) bad(`${g}: 첫 단계 내용이 비었다`);
-      line = `단계 ${s1.steps} · 버튼${s1.btn ? (s1.btnInBar ? '(상단바)' : '(떠있음)') : '없음'} · 자동오픈 ${s1.open ? 'O' : 'X'}`;
+      /* 2026-07-29: 첫 방문 자동 오픈을 **일부러** 없앴다.
+         실측에서 첫 진입 시 튜토리얼·규칙 오버레이 2겹이 '시작' 버튼을 덮고 있었다(6/6 게임).
+         보드게임은 한 판 해보는 게 설명보다 빠르다 → 판을 먼저 보여주고,
+         규칙은 📖 버튼과 첫 판 종료 후 TUT.nudge()로 안내한다.
+         그래서 여기서는 '안 뜨는 것'이 통과다. */
+      if (s1.open) bad(`${g}: 첫 방문에 자동으로 떴다 — 시작 버튼을 덮는다`);
+
+      // 📖 버튼으로 열리나 (자동 오픈을 없앤 대신 이 경로가 유일한 진입점이다)
+      const s1b = await page.eval(`document.getElementById('tutOpenBtn').click();
+        return { open: document.getElementById('tutOverlay').classList.contains('on'),
+                 title: (document.getElementById('tutOT')||{}).textContent||'',
+                 body: ((document.getElementById('tutOB')||{}).innerHTML||'').length };`);
+      if (!s1b.open) bad(`${g}: 📖 버튼을 눌러도 안 열린다`);
+      if (!s1b.title || s1b.body < 10) bad(`${g}: 첫 단계 내용이 비었다`);
+      line = `단계 ${s1.steps} · 버튼${s1.btn ? (s1.btnInBar ? '(상단바)' : '(떠있음)') : '없음'} · 자동오픈 ${s1.open ? 'O(문제)' : 'X(의도)'} · 📖로 열림 ${s1b.open ? 'O' : 'X'}`;
 
       // ④ 단계 이동 + dots
       const s2 = await page.eval(`
@@ -71,7 +83,7 @@ const bad = m => { fails++; console.log('   ❌ ' + m); };
       if (s3.open) bad(`${g}: 끝까지 넘겼는데 안 닫힌다`);
       if (s3.saved !== '1') bad(`${g}: 봤다는 표시가 저장되지 않았다`);
 
-      // ⑤ 재방문엔 자동으로 안 뜨기
+      // ⑤ 재방문에도 자동으로 안 뜨기 (원래도 안 떴고, 이제는 첫 방문에도 안 뜬다)
       await page.goto('http://localhost:3000/' + g + '.html');
       await page.wait(1200);
       const s4 = await page.eval(`var o=document.getElementById('tutOverlay');
