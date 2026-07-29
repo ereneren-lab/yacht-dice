@@ -120,7 +120,55 @@ const bad = m => { fails++; console.log('   ❌ ' + m); };
     await page.close();
   }
 
+  /* 첫 방문 자동 오픈을 없앤 대신 넣은 안내 — 첫 판이 끝나면 한 번만 권한다.
+     '배선했다'와 '실제로 뜬다'는 다른 말이라 여기서 발화를 직접 확인한다.
+     ⚠️ 전적 모듈의 전역 이름은 AS다(Stats가 아니다). 그리고 최상위 let/const는 window에 없으므로
+        `typeof AS`로 맨 이름을 참조한다(함정 #18). */
+  console.log('\n──── 첫 판 종료 후 규칙 권유(TUT.nudge) ────');
+  {
+    const page = await cdp.newPage(384, 748);
+    try {
+      await page.goto('http://localhost:3000/highlow.html');
+      await page.eval(`localStorage.clear(); return 1`);
+      await page.goto('http://localhost:3000/highlow.html');
+      await page.wait(1200);
+
+      const a = await page.eval(`
+        if(typeof AS==='undefined') return {err:'AS 없음'};
+        if(typeof TUT==='undefined') return {err:'TUT 없음'};
+        AS.record('highlow', true, 100);
+        var n=document.getElementById('tutNudge');
+        var inView=false;
+        if(n){var b=n.getBoundingClientRect(); inView=(b.top>=0&&b.bottom<=innerHeight&&b.height>10);}
+        return {shown:!!n, inView:inView, games:AS.get('highlow').games};`);
+      if (a.err) bad(`nudge: ${a.err}`);
+      else {
+        if (!a.shown) bad('nudge: 첫 판이 끝났는데 안 떴다');
+        if (a.shown && !a.inView) bad('nudge: 떴는데 화면 밖이다');
+      }
+
+      const b2 = await page.eval(`
+        var n=document.getElementById('tutNudge'); if(n)n.remove();
+        AS.record('highlow', false, 50);
+        return {again:!!document.getElementById('tutNudge')};`);
+      if (b2.again) bad('nudge: 두 번째 판에도 또 떴다');
+
+      const c = await page.eval(`
+        var n=document.getElementById('tutNudge'); if(n)n.remove();
+        localStorage.removeItem('alley_tutnudge_highlow');
+        localStorage.setItem('alley_tut_highlow','1');            // 이미 튜토리얼을 본 사람
+        var db=JSON.parse(localStorage.getItem('alley_stats')||'{}'); db.highlow.games=0;
+        localStorage.setItem('alley_stats',JSON.stringify(db));
+        AS.record('highlow', true, 10);
+        return {shown:!!document.getElementById('tutNudge')};`);
+      if (c.shown) bad('nudge: 이미 튜토리얼을 본 사람에게도 떴다');
+
+      console.log(`${a.shown && a.inView && !b2.again && !c.shown ? '✅' : '  '} highlow      첫 판 뒤 뜸 ${a.shown ? 'O' : 'X'} · 화면안 ${a.inView ? 'O' : 'X'} · 두 번째 판 ${b2.again ? '또 뜸(문제)' : '안 뜸'} · 이미 본 사람 ${c.shown ? '뜸(문제)' : '안 뜸'}`);
+    } catch (e) { bad(`nudge: 예외 — ${e.message.slice(0, 80)}`); }
+    await page.close();
+  }
+
   await cdp.close();
-  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 튜토리얼 13종 전부 통과');
+  console.log(fails ? `\n❌ 실패 ${fails}건` : '\n✅ 튜토리얼 13종 + 첫 판 후 권유 전부 통과');
   process.exit(fails ? 1 : 0);
 })();
