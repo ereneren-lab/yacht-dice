@@ -81,13 +81,30 @@
     }
   }
 
+  function unpin(el) {
+    if (!el) return;
+    el.classList.remove('fs-pinned'); el.classList.remove('fs-fixed');
+    padHost(el, false);
+  }
+
   function run() {
     try {
-      var b = document.getElementById('startBtn');
+      /* 대상은 '지금 화면의 주요 시작 버튼'이다.
+       * 처음엔 #startBtn만 봤는데, 온라인 경로에는 그게 없다 —
+       * 2026-07-29 감사에서 윷의 '방 만들기'(#createBtn)가 y=1034(뷰포트 748)에 있었다.
+       * 시트가 1366px이라 286px 넘게 스크롤해야 나온다. 혼자 하는 경로만 지켜주고
+       * 친구를 부르는 경로는 안 지켜준 셈이었다. */
+      var b = null;
+      var ids = ['startBtn', 'createBtn', 'createRoom', 'startOnline', 'startLocal'];
+      for (var k = 0; k < ids.length; k++) {
+        var cand = document.getElementById(ids[k]);
+        if (cand && cand.offsetParent) { b = cand; break; }   // 지금 보이는 것 하나만
+      }
       if (!b) return;
-      if (document.body.classList.contains('ingame')) { b.classList.remove('fs-pinned'); b.classList.remove('fs-fixed'); padHost(b, false); return; }
-      // 먼저 원상복구하고 다시 잰다 — 고정된 상태로 재면 늘 '보인다'가 나온다
-      b.classList.remove('fs-pinned'); b.classList.remove('fs-fixed'); padHost(b, false);
+      if (document.body.classList.contains('ingame')) { unpin(b); return; }
+      // 먼저 원상복구하고 다시 잰다 — 고정된 상태로 재면 늘 '보인다'가 나온다.
+      // ⚠️ 후보 버튼 **전부** 풀어야 한다 — 탭을 오가면 이전에 고정한 버튼이 남는다.
+      ids.forEach(function (id) { var e = document.getElementById(id); if (e) unpin(e); });
       var cs = getComputedStyle(b);
       if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return;
       if (inView(b)) return;

@@ -286,6 +286,9 @@
              <h2>대기실</h2>
              <div class="nt-sub">친구에게 이 코드를 알려주세요 (눌러서 복사)</div>
              <div class="nt-code" id="ntRoomCode">----</div>
+             <!-- 링크로 부르는 게 이 앱의 핵심인데 카드 4종엔 링크 초대가 없었다(2026-07-29).
+                  코드를 불러주는 것보다 링크 한 번이 훨씬 빠르다 → 눈에 보이는 버튼으로 둔다. -->
+             <button class="nt-btn ghost" id="ntInvite">🔗 초대 링크 보내기</button>
              <div class="nt-lbl">참가자 <span id="ntCount"></span></div>
              <div id="ntMembers"></div>
              <div id="ntExtra"></div>
@@ -316,11 +319,48 @@
         const c = NET.code || '';
         try { navigator.clipboard.writeText(c); NET.ui.toast('📋 방 코드 ' + c + ' 복사됨'); } catch (e) {}
       };
+      /* 초대 링크 — 받는 사람이 눌러 바로 들어온다(?room=CODE는 아래 autoJoinFromUrl이 받는다).
+         폰에선 공유 시트(카톡 등)를 띄우고, 없으면 클립보드로 떨어진다. */
+      el('ntInvite').onclick = async () => {
+        const c = NET.code || '';
+        if (!c) return;
+        const url = location.origin + location.pathname + '?room=' + encodeURIComponent(c);
+        const text = '주사위 골목에서 한 판 하자! 방 코드 ' + c;
+        try {
+          if (navigator.share) { await navigator.share({ title: '주사위 골목', text: text, url: url }); return; }
+        } catch (e) { return; }   // 사용자가 공유를 취소한 경우 — 클립보드로 또 떨어뜨리지 않는다
+        try { await navigator.clipboard.writeText(url); NET.ui.toast('🔗 초대 링크 복사됨'); }
+        catch (e) { NET.ui.toast(url); }
+      };
       el('ntStart').onclick = () => NET.start();
       el('ntAddAi').onclick = () => NET.addAI();
       el('ntLeave').onclick = () => { NET.leave(); this.closeLobby(); (opts.onLeaveGame || noop)(); };
       try { const n = localStorage.getItem('alley_name'); if (n) el('ntName').value = n; } catch (e) {}
+      this.autoJoinFromUrl();
       return this;
+    },
+
+    /* ?room=CODE 로 들어온 사람을 방으로 넣는다.
+     * 기존 6종(윷·요트·너클본즈·라이어·좌중우·알까기)은 전부 이걸 갖고 있었는데
+     * net.js 4종(섯다·인디언·원카드·도둑잡기)에는 **아예 없었다**(2026-07-29 감사에서 드러남).
+     * 그래서 초대 링크를 만들어줘도 받는 쪽에서 아무 일도 안 일어났고,
+     * 대기실이 '코드만 복사'에 머물러 있었다.
+     *
+     * 이름이 저장돼 있으면 바로 참가하고, 없으면 코드를 채운 참가 화면을 띄워 이름만 받는다
+     * (모르는 사람에게 이름 없이 입장시키면 대기실에서 서로를 구분할 수 없다).
+     * ⚠️ 이미 자리(seat)를 들고 있으면 건드리지 않는다 — 재접속 로직(함정 #8)과 싸우면 안 된다. */
+    autoJoinFromUrl() {
+      try {
+        const m = /[?&]room=([A-Za-z0-9]{1,8})/.exec(location.search || '');
+        if (!m) return;
+        const code = m[1].toUpperCase().slice(0, 4);
+        if (NET.seatGet && NET.seatGet('room')) return;    // 이미 어딘가에 앉아 있다
+        const name = (function () { try { return localStorage.getItem('alley_name') || ''; } catch (e) { return ''; } })();
+        if (name) { NET.join(code, name); return; }
+        this.openJoin();
+        const c = el('ntCode'); if (c) c.value = code;
+        const n = el('ntName'); if (n) setTimeout(function () { try { n.focus(); } catch (e) {} }, 200);
+      } catch (e) { }
     },
     openJoin()  { el('ntJoinOv').classList.add('on'); },
     closeJoin() { el('ntJoinOv').classList.remove('on'); },
