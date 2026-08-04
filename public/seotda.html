@@ -189,6 +189,7 @@
   .bbtn:disabled::after{display:none}
   .note{text-align:center;font-size:12px;font-weight:800;color:var(--muted);margin-top:8px;min-height:16px}
   .note b{color:var(--brass)}
+  .handprog{font-size:12px;font-weight:600;color:var(--muted);margin-top:2px;opacity:.85}
 
   /* 결과/재경기 배너 */
   .banner{position:fixed;inset:0;z-index:9060;display:flex;align-items:center;justify-content:center;pointer-events:none}
@@ -210,6 +211,7 @@
      정작 필요한 순간에 안 걸린다(CLAUDE.md 함정 #8). */
   @media (max-height:430px){
     #setup .warn{display:none}
+    #setup .timehint{display:none}
     #setup h3{margin:8px 0 4px !important;font-size:14px}
     #setup .wallet{padding:6px 10px;margin-bottom:6px}
     #setup .setup-opts{margin-top:8px}
@@ -315,8 +317,11 @@
     <input type="text" id="myName" maxlength="10" placeholder="너의 별명">
       </div>
     </details>
+    <!-- 640x360 가로 소형폰은 이미 .warn도 숨길 만큼 높이 예산이 없다(위 @media max-height:430px) —
+         이 줄도 같은 기준으로 그 폭에서만 숨긴다(실측: 넣으면 +10~20px 넘침). 384x748(실기기)·다른 8개 폭은 전부 보인다. -->
+    <div class="timehint" style="text-align:center;font-size:12px;line-height:1;font-weight:700;color:var(--muted);margin:4px 0 0">🕐 보통 한 판 4~5분(기본 설정 기준) · 앤티가 올라 결국 끝나요</div>
     <!-- 시작·온라인을 한 줄에 둔다 — 줄을 하나 더 쓰면 짧은 화면에서 다시 넘친다(실측 +55px) -->
-    <div class="row" style="margin-top:14px">
+    <div class="row" style="margin-top:2px">
       <button class="btn" id="startBtn" style="flex:2">판 시작</button>
       <button class="btn ghost" id="onlineBtn" style="flex:1">🌐 온라인</button>
     </div>
@@ -502,6 +507,15 @@
       }));
       this.N = this.players.length;
       this.ante = opt.ante != null ? opt.ante : 100;
+      /* 앤티 인상 — 한 판이 '끝나게' 만드는 장치다.
+         고정 앤티로는 끝나지 않는다: 시작칩 10000 / 앤티 200이면 한 명이 빠지는 데만 최소 50핸드고,
+         실측(3인·300판)에서 **완주한 판도 중앙 226핸드(≈15분)**, 200판 중 13판은 60분 안에도 안 끝났다.
+         칩이 오가기만 하고 아무도 안 빠지기 때문이다(60분 시점 예: [8631, 21369, 0]).
+         → 토너먼트 포커의 블라인드 인상과 같은 처방. N판마다 앤티를 올리면 언젠가 앤티가 스택을
+           넘어서므로 **종료가 보장된다.** 0으로 두면 옛 동작(고정 앤티) 그대로다. */
+      this.baseAnte = this.ante;
+      this.anteEvery = opt.anteEvery != null ? opt.anteEvery : 8;    // 몇 판마다 올릴까 (0=안 올림)
+      this.anteMult = opt.anteMult != null ? opt.anteMult : 1.6;     // 올릴 배율
       this.jabi = !!opt.jabi;                 // 잡이 규칙 on/off(기본 off)
       this.ttaengValue = !!opt.ttaengValue;   // 땡값(옵션)
       this.rng = opt.rng || mulberry32(12345);
@@ -534,6 +548,11 @@
       const inPlay = this.players.filter(p => p.chips > 0);
       if (inPlay.length <= 1) { this.phase = 'gameover'; this.winner = inPlay[0] ? inPlay[0].pid : null; this._emit(); return; }
       this.handNo++;
+      /* 앤티 인상. UI는 손댈 필요가 없다 — seotda.html이 S.ante(삥 금액)와 S.handNo를 이미 그대로 그린다. */
+      if (this.anteEvery > 0) {
+        const lvl = Math.floor((this.handNo - 1) / this.anteEvery);
+        this.ante = Math.round(this.baseAnte * Math.pow(this.anteMult, lvl));
+      }
       // 딜러 다음 살아있는 좌석부터 선
       this.dealerSeat = this._nextAliveSeat(this.dealerSeat);
       this.deck = shuffle(makeDeck(), this.rng);
@@ -1425,7 +1444,11 @@ function renderNote(){
   if(S.phase==='handover'){ n.innerHTML=''; return; }
   if(S.phase!=='bet'){ n.textContent=''; return; }
   const cur=S.players[S.turn]; const ms=mySeat();
-  n.innerHTML = S.turn===ms ? `<b>내 차례</b> · ${S.round}라운드` : `${esc(cur?cur.name:'상대')} 베팅 중… · ${S.round}라운드`;
+  const turnLine = S.turn===ms ? `<b>내 차례</b> · ${S.round}라운드` : `${esc(cur?cur.name:'상대')} 베팅 중… · ${S.round}라운드`;
+  /* '언제 끝나지?'를 묻지 않게 — 몇 판째인지 + 앤티가 자동으로 올라 결국 끝난다는 걸 매 판 알려준다.
+     (엔진의 앤티 인상 스케줄 값은 core에만 있고 여기선 안 씀 — 숫자는 S.handNo/S.ante만 그대로 반영) */
+  const progLine = `<div class="handprog">${S.handNo||1}판째 · 앤티 ${fmt(S.ante)} · 오를수록 곧 끝나요</div>`;
+  n.innerHTML = turnLine + progLine;
 }
 
 /* 액션 한 곳 — 온라인이면 서버로, 로컬이면 엔진으로. 나머지 코드는 이 함수만 부른다. */

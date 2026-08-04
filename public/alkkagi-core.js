@@ -313,7 +313,12 @@
       this.itemCharges = Math.max(0, Math.min(5, opt.itemCharges != null ? opt.itemCharges | 0 : 2));
       this.items = [];
       this.extraArmed = [];             // 자리별 '이번 발사 뒤 한 번 더' 예약
-      this.turn = 0;                    // 0 or 1
+      /* 선공은 매 판 뽑는다 — 예전엔 항상 0번(=사람) 자리가 먼저 쳤다.
+         전원 AI 300판 실측에서 0번 자리 승률 56.3%(기대 50%, 2.2σ)로 선공 이점이 보였다.
+         혼자 하기라면 '사람이 조금 유리'라 넘길 수도 있지만 **온라인에선 방장이 늘 유리해진다.**
+         opt.startTurn을 주면 고정할 수 있다(재현·테스트용). */
+      this.rng = opt.rng || Math.random;   // ⚠️ 예전엔 이 필드가 아예 없어서 넘겨준 rng가 조용히 버려졌다
+      this.turn = opt.startTurn != null ? opt.startTurn : (this.rng() < 0.5 ? 0 : 1);
       this.winner = null; this.winnerTeam = null;
       this.lastSim = null;              // { frames, events, final, actorSeat, flick }
       this.simSeq = 0;

@@ -123,6 +123,15 @@
       }));
       this.N = this.players.length;
       this.ante = opt.ante != null ? opt.ante : 100;
+      /* 앤티 인상 — 한 판이 '끝나게' 만드는 장치다.
+         고정 앤티로는 끝나지 않는다: 시작칩 10000 / 앤티 200이면 한 명이 빠지는 데만 최소 50핸드고,
+         실측(3인·300판)에서 **완주한 판도 중앙 226핸드(≈15분)**, 200판 중 13판은 60분 안에도 안 끝났다.
+         칩이 오가기만 하고 아무도 안 빠지기 때문이다(60분 시점 예: [8631, 21369, 0]).
+         → 토너먼트 포커의 블라인드 인상과 같은 처방. N판마다 앤티를 올리면 언젠가 앤티가 스택을
+           넘어서므로 **종료가 보장된다.** 0으로 두면 옛 동작(고정 앤티) 그대로다. */
+      this.baseAnte = this.ante;
+      this.anteEvery = opt.anteEvery != null ? opt.anteEvery : 8;    // 몇 판마다 올릴까 (0=안 올림)
+      this.anteMult = opt.anteMult != null ? opt.anteMult : 1.6;     // 올릴 배율
       this.jabi = !!opt.jabi;                 // 잡이 규칙 on/off(기본 off)
       this.ttaengValue = !!opt.ttaengValue;   // 땡값(옵션)
       this.rng = opt.rng || mulberry32(12345);
@@ -155,6 +164,11 @@
       const inPlay = this.players.filter(p => p.chips > 0);
       if (inPlay.length <= 1) { this.phase = 'gameover'; this.winner = inPlay[0] ? inPlay[0].pid : null; this._emit(); return; }
       this.handNo++;
+      /* 앤티 인상. UI는 손댈 필요가 없다 — seotda.html이 S.ante(삥 금액)와 S.handNo를 이미 그대로 그린다. */
+      if (this.anteEvery > 0) {
+        const lvl = Math.floor((this.handNo - 1) / this.anteEvery);
+        this.ante = Math.round(this.baseAnte * Math.pow(this.anteMult, lvl));
+      }
       // 딜러 다음 살아있는 좌석부터 선
       this.dealerSeat = this._nextAliveSeat(this.dealerSeat);
       this.deck = shuffle(makeDeck(), this.rng);

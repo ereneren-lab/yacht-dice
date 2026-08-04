@@ -213,7 +213,8 @@
     </div>
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
-    <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
+    <div style="text-align:center;font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 2px">⚡ 보통 한 판 1분 안팎</div>
+    <button class="btn" id="startBtn" style="margin-top:2px">판 시작</button>
     <button class="btn ghost" id="onlineBtn" style="margin-top:8px">🌐 친구와 온라인으로</button>
     <div class="warn">🃏 마지막 1장이 되면 자동으로 "원카드!" 외쳐요.</div>
   </div>
@@ -358,6 +359,7 @@
     constructor(opts) {
       opts = opts || {};
       this.rng = opts.rng || Math.random;
+      this.startTurn = (opts.startTurn != null ? opts.startTurn | 0 : null);   // 선공 고정(재현·대조용). 없으면 매 판 무작위
       this.onState = opts.onState || function () {};
       this.aiMs = opts.aiMs != null ? opts.aiMs : 780;
       this.manualAI = !!opts.manualAI;
@@ -402,7 +404,11 @@
       while (deck.length && isSpecial(startCard)) { deck.unshift(startCard); startCard = deck.pop(); }
       this.discard = [startCard];
       this.draw = deck;
-      this.dir = 1; this.turn = 0; this.attack = 0; this.reqSuit = null;
+      /* 선공을 매 판 뽑는다 — 늘 0번 자리가 먼저 내던 것을 고쳤다.
+         전원 AI 실측에서 0번 자리 승률이 3인 41.5%(기대 33.3%) · 4인 30.3%(기대 25%)로
+         두 인원 모두 같은 방향으로 치우쳤다. 온라인에선 방장이 그만큼 유리해진다. */
+      this.dir = 1; this.attack = 0; this.reqSuit = null;
+      this.turn = (this.startTurn != null ? this.startTurn : Math.floor(this.rng() * this.N));
       this.lastAct = this.players.map(() => '');
       this.pendingDrawn = null;
       this.winner = null; this.winnerSeat = -1;

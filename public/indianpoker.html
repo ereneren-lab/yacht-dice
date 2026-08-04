@@ -101,6 +101,7 @@
   .pot-badge{display:inline-flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,.64),rgba(0,0,0,.8));border:1.5px solid var(--gold);border-radius:13px;padding:5px 22px;box-shadow:0 3px 12px rgba(0,0,0,.55)}
   .pot-badge .pl{font-size:9px;font-weight:800;color:rgba(255,255,255,.72);letter-spacing:.12em}
   .pot-badge .pa{font-size:25px;font-weight:900;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .handprog{font-size:12px;font-weight:600;color:var(--muted);text-align:center;margin-top:5px;max-width:78vw;white-space:normal}
   .pot.pulse .pa{animation:bump .42s ease}
   @keyframes bump{0%,100%{transform:scale(1)}45%{transform:scale(1.22);filter:brightness(1.3)}}
 
@@ -187,9 +188,9 @@
     </div>
     <div class="lbl">시작 칩</div>
     <div class="row" id="optChips">
-      <div class="opt" data-c="5">5 · 짧게</div>
-      <div class="opt on" data-c="10">10 · 보통</div>
-      <div class="opt" data-c="20">20 · 길게</div>
+      <div class="opt on" data-c="5">5 · 보통</div>
+      <div class="opt" data-c="10">10 · 길게</div>
+      <div class="opt" data-c="20">20 · 아주 길게</div>
     </div>
     <div class="lbl">아이템전</div>
     <div class="row" id="optItems">
@@ -198,7 +199,8 @@
     </div>
     <div class="lbl">이름</div>
     <input type="text" id="myName" maxlength="8" placeholder="너의 별명">
-    <button class="btn" id="startBtn" style="margin-top:16px">판 시작</button>
+    <div style="text-align:center;font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 2px">🕐 보통 한 판 2~3분(기본 설정 기준) · 누군가 칩을 다 잃으면 끝나요</div>
+    <button class="btn" id="startBtn" style="margin-top:2px">판 시작</button>
     <button class="btn ghost" id="onlineBtn" style="margin-top:8px">🌐 친구와 온라인으로</button>
     <div class="warn">⚠️ <b>가상 재화만</b> 사용하는 오락용 게임입니다.</div>
   </div>
@@ -690,7 +692,9 @@ function isRed(sym){ return sym==='♥'||sym==='♦'; }
 
 // ===== 상태 =====
 // 엔진(indianpoker-core.js)이 규칙을 갖고, 화면은 serialize 스냅샷(S)만 보고 그린다.
-const cfg={ n:3, diff:'normal', chips:10, items:false, name:'' };
+/* 시작칩 기본값 10 → 5 (2026-08-04). 전원 AI 3인 실측에서 한 판이 10칩=6분 03초,
+   5칩=1분 30초였다. 10칩은 '한 판'이라기엔 너무 길어 처음 온 사람이 끝을 못 본다. */
+const cfg={ n:3, diff:'normal', chips:5, items:false, name:'' };
 try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
 let engine=null, S=null, prevS=null;
 
@@ -826,7 +830,9 @@ function render(){
   }
   // 팟 — 정산 뒤(result)에는 방금 걸렸던 금액을 그대로 보여준다
   const potShown=(S.phase==='result'&&S.lastResult)?S.lastResult.pot:S.pot;
-  $('pot').innerHTML=`<div class="pot-badge"><span class="pl">팟</span><span class="pa">${potShown}</span></div>`;
+  // '언제 끝나지?'를 묻지 않게 — 몇 판째인지 + 종료 조건(누군가 칩 0)을 매 판 알려준다.
+  $('pot').innerHTML=`<div class="pot-badge"><span class="pl">팟</span><span class="pa">${potShown}</span></div>`+
+    `<div class="handprog">${S.handNo||1}판째 · 누군가 칩을 다 잃으면 끝나요</div>`;
   // 내 영역 — 내 카드는 결과 전까지 뒷면(나만 못 봄). 아이템으로 봤으면 앞면.
   const me=S.players[MYSEAT]||{name:'나',chips:0,act:''};
   const myWin=!!(winners&&winners.indexOf(MYSEAT)>=0);
