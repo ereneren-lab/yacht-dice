@@ -426,10 +426,22 @@
        (사용자 피드백: "스크롤하면서 플레이하는 건 불편")
        요트는 주사위 영역 390 + 점수판 437 = 827px이라 폰 한 화면(748)에 구조적으로 다 못 들어간다.
        그래서 '굴리기·주사위'는 항상 고정으로 보이게 두고 점수판만 자기 박스 안에서 굴린다.
-       thead가 sticky라 스크롤해도 플레이어 열 머리는 계속 보인다. 실측: 페이지 넘침 154px → 4px. */
-    .sheetwrap{ max-height:calc(100dvh - 462px);overflow-y:auto;-webkit-overflow-scrolling:touch }
+       thead가 sticky라 스크롤해도 플레이어 열 머리는 계속 보인다. 실측: 페이지 넘침 154px → 4px.
+
+       ⚠️ 462는 그때의 실측값인데 **그 뒤로 위쪽이 줄어들면서 낡았다.**
+          2026-08-04 재측정(384x748): 점수판 top=414 · body 아래 여백 12 ⇒ 462 중 **36px이 놀고 있었다.**
+          그만큼 점수판이 손해를 봤다(숨은 높이 125px 중 28px). 420으로 조인다.
+          420 = 줄인 뒤 위쪽 403 + 아래 여백 12 + 안전 여유 5. 온라인(채팅·반응 줄)에서 왼쪽 칸이 더 길어지면
+          이 여유로는 모자랄 수 있다 — 그때는 페이지가 조금 스크롤될 뿐 점수판이 잘리지는 않는다. */
+    .sheetwrap{ max-height:calc(100dvh - 420px);overflow-y:auto;-webkit-overflow-scrolling:touch }
+    /* 점수판 머리글이 55px이었다 — 아바타를 이름 **위에** 쌓아서다.
+       머리글은 sticky라 스크롤해도 늘 자리를 차지한다 ⇒ 보이는 286px의 19%가 머리글이었다.
+       가로로 눕히면 30px이 되고, 그 25px이 그대로 '더 보이는 줄'이 된다. */
+    #sheet thead .hav{ flex-direction:row; gap:5px }
+    .sheettop{ margin-bottom:4px }
     /* 주사위 영역도 함께 압축(주사위는 38px 유지 — 눈금 가독성 한계선) */
-    .dicepane{padding:7px 10px 9px;gap:6px}
+    .leftcol{ gap:8px }
+    .dicepane{padding:7px 10px 9px;gap:5px}
     .tray{padding:7px 10px}
     .keptrow{height:40px}
     .tray .dice2d{height:40px;gap:4px}
@@ -1055,6 +1067,62 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
        → 남는 세로를 점수판에 준다(390에서 222→314px · 5줄→8줄). 76px은 상단바+여백 실측값이다. */
     .sheetwrap{ max-height:calc(100dvh - 76px); overflow-y:auto; -webkit-overflow-scrolling:touch }
     body.ingame .meta-chip{ display:none }
+    /* ── 행 압축 (2026-08-04) ─────────────────────────────────────
+       위 max-height는 '점수판이 남는 세로를 갖게' 했을 뿐, **행 자체는 안 줄였다.**
+       그래서 실기기 748x384에서 점수판 내용 549px 중 308px만 보이고 **241px이 숨어 있었다**
+       (문서 넘침은 0 — 안쪽 스크롤이 삼켰다. 이래서 감사가 초록이었다).
+       세로 폰용 압축값(@media max-width:480px)이 가로에는 하나도 안 걸린다 — 함정 8 그대로다.
+       ⚠️ 12px 미만 금지라 세로 블록의 11.5px 대신 12px로 둔다(1행당 +0.5px는 감수). */
+    #sheet tbody td{ padding:3px 5px }
+    #sheet th.catcol, #sheet td.catcol{ padding:3px 9px; min-width:82px; font-size:12px }
+    #sheet thead th{ padding:4px 5px; font-size:12px }
+    #sheet th, #sheet td{ font-size:12.5px }
+    #sheet tr.total td{ padding:4px 5px; font-size:13.5px }
+    .sheettop{ margin-bottom:4px }
+    /* ⚠️ 여기서 머리글을 눕혀(.hav{flex-direction:row}) 세로 18px을 되찾아 봤는데,
+       2열로 못 쪼개는 640x360에서는 열이 넓어져 **가로로 11px 넘쳤다**(세로 105 / 가로 11).
+       세로 스크롤을 줄인 대가로 가로 스크롤을 만드는 건 남는 장사가 아니라 되돌렸다.
+       640x360 가로가 1열 + 내부 스크롤로 남는 이유는 보고서 6장에 적었다. */
+  }
+  /* ── 가로 점수판 2열 (2026-08-04) ────────────────────────────────
+     행을 압축해도 15줄 × 24px = 360px > 화면 308px이라 **한 열로는 구조적으로 안 들어간다.**
+     남는 건 폭이다 → [상단 섹션 | 하단 섹션] 두 표로 쪼갠다(경계는 규칙의 경계 그대로).
+     표를 둘로 만드는 건 JS(`sheetSplit()`)가 한다 — 오른쪽 열에도 사람 머리글이 있어야 하므로
+     표 하나를 CSS로 접는 방법으로는 안 된다.
+     ⚠️ 이 블록은 위 landscape 블록 **뒤에** 와야 한다(같은 특이도면 뒤가 이긴다 — 함정 12).
+     ⚠️ min-width:700px — sheetSplit()의 조건과 반드시 같아야 한다. 한쪽만 바꾸면
+        표는 둘인데 배치는 세로 stack(또는 그 반대)이 된다. */
+  @media (orientation:landscape) and (max-height:520px) and (min-width:700px){
+    /* 왼쪽(주사위)은 실제로 쓰는 폭이 트레이 196 + 주변 여백 20 = 216px뿐인데
+       44%(748에서 320px)를 잡고 있었다. 220px로 고정해 남는 100px을 점수판에 넘긴다. */
+    .leftcol{ width:220px; flex:0 0 220px }
+    #sheet.split{ display:flex; align-items:flex-start; gap:8px }
+    /* ⚠️ `width:100%`(base `table{}`)를 반드시 auto로 되돌릴 것.
+       50%씩 균등 분배하면 라벨이 짧은 상단 표가 안 쓰는 폭을 붙들고 있고,
+       라벨이 긴 하단 표('포 오브 어 카인드')는 그 폭이 모자라 오른쪽으로 잘려나간다.
+       → 내용 폭으로 서게 두고(auto) 남는 폭만 나눠 갖게 한다(flex-grow). */
+    #sheet.split > table{ width:auto; flex:1 1 auto; min-width:0 }
+    /* 두 표가 나란히 서므로 칸 최소 폭을 낮춘다 — 안 그러면 합이 화면을 넘어 **가로 스크롤**이 된다.
+       (세로 스크롤을 없앤 자리에 가로 스크롤을 만들면 고친 게 아니다. 실제로 처음 시도에서 103px 넘쳤다.)
+       실측 내역 748x384 · 2인: 상단표 261 + 하단표 278 + 간격 8 = 547 / 쓸 수 있는 폭 444.
+         · 항목 라벨 칸 151·168 (좌우 여백 9→6으로 −12)
+         · 점수 칸 72·38 — 72는 숫자가 아니라 **머리글의 이름**("플레이어 1")이 정한 폭이었다.
+           이름을 두 줄로 접어 46px로 묶으면 −56. 머리글은 위아래 여유가 65px 있어 한 줄 늘어도 된다. */
+    #sheet.split td.catcol, #sheet.split th.catcol{ min-width:0; padding-left:6px; padding-right:6px }
+    #sheet.split tbody td{ min-width:32px }
+    #sheet.split thead th{ padding-left:3px; padding-right:3px }
+    /* ⚠️ `word-break:keep-all`(낱말 단위로만 끊기)은 쓰지 않는다 — "플레이어"가 통째로 48px을
+       요구해 열이 안 좁혀지고, 748·740에서 가로로 6~25px 넘쳤다(실측).
+       기본 줄바꿈은 한글을 글자 단위로 끊는데, 그게 한국어 조판의 정상 동작이다. */
+    #sheet.split thead .hnm{ display:block; max-width:56px; white-space:normal; line-height:1.2 }
+    /* 3인 이상 — 열이 두 배라 이름 폭을 더 조이고 점수 칸도 한 단계 좁힌다.
+       그래도 남으면 '간략히'(3인 이상에만 뜨는 버튼)가 현재 차례만 보여주는 탈출구다.
+       ⚠️ 항목 라벨(td.catcol)은 `position:sticky; left:0`이라 옆으로 밀어도 계속 붙어 있다 —
+          가로 스크롤이 남더라도 "이게 무슨 칸인지"는 잃지 않는다. */
+    /* ⚠️ 이름 폭을 38px까지 조여 봤지만 6인 249→가 8px 줄었을 뿐이다(폭을 정하는 건 이름이 아니라
+       항목 라벨 + 사람 수다). 8px 벌자고 "플레이어 1"을 석 줄("플레/이어/1")로 접는 건 손해다. */
+    #sheet.split.crowd tbody td{ min-width:28px }
+    #sheet.split.crowd td.catcol, #sheet.split.crowd th.catcol{ padding-left:4px; padding-right:4px }
   }
   @media (max-height:700px){
     #setup{ padding-bottom:78px }
@@ -1285,7 +1353,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         </div>
         <div class="rightcol">
           <div class="sheettop"><button class="minibtn" id="compactBtn">간략히</button></div>
-          <div class="sheetwrap"><table id="sheet"></table></div>
+          <!-- ⚠️ #sheet는 예전엔 <table>이었다. 가로에서 점수판을 2열로 쪼개려면 표가 둘이어야 하는데,
+               테마 CSS가 `#sheet td`처럼 id로 40곳 넘게 걸려 있어 표에서 id를 떼면 전부 깨진다.
+               → id를 '표를 담는 상자'로 올렸다. `#sheet td/th/tbody/thead` 셀렉터는 자손 선택자라
+                 표가 하나든 둘이든 그대로 맞는다. JS(`$('sheet').innerHTML=…`)도 그대로다. -->
+          <div class="sheetwrap"><div id="sheet"></div></div>
         </div>
       </div>
     </div>
@@ -2030,24 +2102,42 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('infoOv').onclick=(e)=>{ if(e.target===$('infoOv')) $('infoOv').classList.remove('on'); };
 
   const XL_SHORT={ aces:'1s',twos:'2s',threes:'3s',fours:'4s',fives:'5s',sixes:'6s',choice:'CH',chance:'CN',threeKind:'3K',fourKind:'4K',fullHouse:'FH',twoPair:'2P',sStraight:'SS',lStraight:'LS',yacht:'YT' };
+  /* 가로 점수판 2열 조건 — CSS 미디어 쿼리와 **같은 조건**을 JS에서도 본다(아래 .sheetwrap 블록과 짝).
+     왜 min-width:700px인가: 한 열에 [항목 라벨 ~114px + 사람당 ~50px]이 필요하다.
+     2인이면 214px짜리 열이 둘 + 왼쪽 주사위판 250px ⇒ 700px 밑에서는 라벨이 줄바꿈해
+     행 높이가 되레 늘어난다(셋업 2열을 700px로 막아둔 것과 같은 이유). */
+  function sheetSplit(){ try{ return matchMedia('(orientation:landscape) and (max-height:520px) and (min-width:700px)').matches; }catch(e){ return false; } }
   function renderSheet(){ if(!S)return;
     const cb=$('compactBtn'); if(cb)cb.style.display=(S.players.length>2)?'':'none';   // 간략히/전체는 3인 이상에서만 의미가 있음(2인은 필터가 무효)
     let cols=S.players.map((p,pi)=>pi);
     if(compact && S.players.length>2){ cols=cols.filter(pi=>pi===S.current||(isOnline()&&S.players[pi].pid===myPid)); if(!cols.length)cols=[S.current]; }
-    let h='<thead><tr><th class="catcol"></th>';
-    cols.forEach(pi=>{const p=S.players[pi]; const meC=isOnline()&&p.pid===myPid?'me-col':''; h+=`<th class="${pi===S.current?'col-current':''} ${meC}"><div class="hav">${avHTML(p,{sm:true,cur:pi===S.current,off:!p.connected})}<span class="hnm">${esc(p.name)}</span></div></th>`;});
-    h+='</tr></thead><tbody>';
+    let head='<thead><tr><th class="catcol"></th>';
+    cols.forEach(pi=>{const p=S.players[pi]; const meC=isOnline()&&p.pid===myPid?'me-col':''; head+=`<th class="${pi===S.current?'col-current':''} ${meC}"><div class="hav">${avHTML(p,{sm:true,cur:pi===S.current,off:!p.connected})}<span class="hnm">${esc(p.name)}</span></div></th>`;});
+    head+='</tr></thead>';
+    /* 여기서부터 h는 '상단 섹션 행들', h2는 '하단 섹션 행들'이다.
+       2열로 쪼갤 때의 경계를 규칙의 경계(상단/하단)에 맞췄다 — 임의로 8행씩 자르면
+       '보너스 (63↑)'가 자기 항목들과 떨어져 뜻이 안 통한다. */
+    let h='';
     S.cats.filter(c=>c.sec==='up').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
     if(S.bonus.pts>0)h+=`<tr class="bonus"><td class="catcol">보너스 (${S.bonus.th}↑)<span class="rew">+${S.bonus.pts}</span>${qIcon('bonus')}</td>${cols.map(pi=>{const p=S.players[pi];const rem=S.bonus.th-p.upperSum;const near=!p.bonusGot&&rem>0&&rem<=6;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="${rem}점 더 모으면 +${S.bonus.pts}"`:''}>${p.bonusGot?'+'+S.bonus.pts:p.upperSum+'/'+S.bonus.th+(near?`<span class="rewhint">→+${S.bonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
-    S.cats.filter(c=>c.sec==='low').forEach(c=>{h+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
-    if(S.lowBonus&&S.lowBonus.pts>0)h+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)<span class="rew">+${S.lowBonus.pts}</span>${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;const near=!p.lowBonusGot&&(S.lowBonus.ids.length-n)===1;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="1종만 더 완성하면 +${S.lowBonus.pts}"`:''}>${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length+(near?`<span class="rewhint">→+${S.lowBonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
+    let h2='';
+    S.cats.filter(c=>c.sec==='low').forEach(c=>{h2+=`<tr><td class="catcol" data-xl="${XL_SHORT[c.id]||esc(c.label)}">${esc(c.label)}${qIcon(c.id)}</td>${cols.map(pi=>cell(S.players[pi],pi,c.id)).join('')}</tr>`;});
+    if(S.lowBonus&&S.lowBonus.pts>0)h2+=`<tr class="bonus"><td class="catcol">콤보 보너스 (${S.lowBonus.ids.length}종)<span class="rew">+${S.lowBonus.pts}</span>${qIcon('lowBonus')}</td>${cols.map(pi=>{const p=S.players[pi];const n=S.lowBonus.ids.filter(id=>(p.scores[id]||0)>0).length;const near=!p.lowBonusGot&&(S.lowBonus.ids.length-n)===1;return `<td class="${pi===S.current?'col-current':''} ${near?'bnear':''}"${near?` title="1종만 더 완성하면 +${S.lowBonus.pts}"`:''}>${p.lowBonusGot?'+'+S.lowBonus.pts:n+'/'+S.lowBonus.ids.length+(near?`<span class="rewhint">→+${S.lowBonus.pts}</span>`:'')}</td>`;}).join('')}</tr>`;
     // 조커 규칙의 추가 보너스(+100 누적). ⚠️ 예전엔 S.mode==='yahtzee'로 막혀 있었는데,
     // 요트 다이스에서도 조커를 켤 수 있게 되면서 그러면 총점만 100 뛰고 근거가 안 보인다.
     if(cols.some(pi=>(S.players[pi].yBonus||0)>0))
-      h+=`<tr class="bonus"><td class="catcol">${S.mode==='yahtzee'?'추가 야찌':'추가 요트'}<span class="rew">+100</span></td>${cols.map(pi=>{const yb=S.players[pi].yBonus||0;return `<td class="${pi===S.current?'col-current':''} ${yb>0?'bnear':''}">${yb>0?'+'+yb:'–'}</td>`;}).join('')}</tr>`;
+      h2+=`<tr class="bonus"><td class="catcol">${S.mode==='yahtzee'?'추가 야찌':'추가 요트'}<span class="rew">+100</span></td>${cols.map(pi=>{const yb=S.players[pi].yBonus||0;return `<td class="${pi===S.current?'col-current':''} ${yb>0?'bnear':''}">${yb>0?'+'+yb:'–'}</td>`;}).join('')}</tr>`;
     const _maxT=Math.max(0,...cols.map(pi=>S.players[pi].total)),_multi=cols.length>1,_prog=_maxT>0;   // 판세 신호: 선두 왕관 + 격차 배지
-    h+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];const lead=_multi&&_prog&&p.total===_maxT;let inner=String(p.total);if(lead)inner='<span class="crown">👑</span>'+inner;return `<td class="${(pi===S.current?'col-current ':'')+(lead?'lead':'')}">${inner}</td>`;}).join('')}</tr></tbody>`;
-    $('sheet').innerHTML=h;
+    h2+=`<tr class="total"><td class="catcol">합계</td>${cols.map(pi=>{const p=S.players[pi];const lead=_multi&&_prog&&p.total===_maxT;let inner=String(p.total);if(lead)inner='<span class="crown">👑</span>'+inner;return `<td class="${(pi===S.current?'col-current ':'')+(lead?'lead':'')}">${inner}</td>`;}).join('')}</tr>`;
+    /* 가로에서는 [상단 섹션 | 하단 섹션] 두 표로, 그 밖에는 예전처럼 표 하나로.
+       ⚠️ 두 표 모두 같은 head를 쓴다 — 오른쪽 열에도 사람 이름·아바타가 있어야
+          "이 칸이 누구 것인지"를 알 수 있다. 이게 CSS만으로 못 하는 이유다. */
+    const _split=sheetSplit();
+    const _tbl=rows=>`<table>${head}<tbody>${rows}</tbody></table>`;
+    /* crowd = 사람이 3명 이상. 2열이면 사람 열이 **두 배**로 늘어나므로(2인 4열 → 4인 8열)
+       머리글 이름 폭을 더 조인다. 안 조이면 748px에서 4인 119px·6인 257px 가로로 넘친다. */
+    $('sheet').className=_split?('split'+(cols.length>2?' crowd':'')):'';
+    $('sheet').innerHTML=_split?(_tbl(h)+_tbl(h2)):_tbl(h+h2);
     try{ if(document.documentElement.dataset.theme==='excel' && S){ const cur=S.players[S.current];
       const st=document.querySelector('.xl-stats'); if(st && cur){ const vals=Object.values(cur.scores||{}).filter(v=>typeof v==='number' && v>0); const cnt=vals.length||1; const sum=cur.total||0; st.textContent='평균: '+(sum/cnt).toFixed(2)+'　개수: '+cnt+'　합계: '+sum; }
       const nb=document.querySelector('.xl-namebox'); if(nb) nb.textContent=String.fromCharCode(66+S.current)+'17';
@@ -2650,6 +2740,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     });
   }
   $('compactBtn').onclick=()=>{ compact=!compact; $('compactBtn').classList.toggle('on',compact); $('compactBtn').textContent=compact?'전체':'간략히'; renderSheet(); };
+  /* 폰을 돌리면 표를 다시 짜야 한다(1열 ↔ 2열). CSS만으로는 못 바꾸는 구조 변경이라 여기서 다시 그린다.
+     ⚠️ resize도 함께 듣는다 — 데스크톱 창 크기 조절과 구형 웹뷰(matchMedia change 미지원)를 위해서다. */
+  try{ const _mq=matchMedia('(orientation:landscape) and (max-height:520px) and (min-width:700px)');
+    /* ⚠️ resize마다 다시 그리면 안 된다 — 모바일은 주소창이 숨었다 나올 때마다 resize가 뜨는데,
+       그때마다 표를 새로 만들면 점수판 스크롤 위치가 튀고 깜빡인다.
+       **1열↔2열이 실제로 바뀐 순간에만** 다시 그린다. */
+    let _was=_mq.matches;
+    const _re=()=>{ try{ if(_mq.matches===_was) return; _was=_mq.matches; if(S) renderSheet(); }catch(e){} };
+    if(_mq.addEventListener) _mq.addEventListener('change',_re); else if(_mq.addListener) _mq.addListener(_re);
+    addEventListener('resize',_re);   // matchMedia change를 못 쏘는 구형 웹뷰 대비
+  }catch(e){}
   $('compactBtn').classList.toggle('on',compact); $('compactBtn').textContent=compact?'전체':'간략히';
   syncMute();
   document.addEventListener('keydown',e=>{ if($('game').style.display!=='block')return; if(/INPUT|TEXTAREA/.test(e.target.tagName))return; if(!canAct())return;

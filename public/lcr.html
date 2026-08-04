@@ -397,6 +397,40 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .autoroll input{ width:22px;height:22px }
     .reacttoggle, #reactToggle{ min-height:40px }
   }
+  /* ── 남는 세로를 쓰기 (2026-08-04 실측) ─────────────────────────
+     748x384에서 넘침은 0인데 **화면의 40%가 빈 갈색 바닥**이었다.
+     세로로 안 넘치게 만드느라 전부 작게 눌러 놓았는데, 2단으로 가르고 나서는
+     그럴 이유가 없어졌다(#game 288 / 화면 384 — 96px이 그냥 놀았다).
+     "안 넘친다"와 "쓸 만하다"는 다른 말이다(함정 33).
+     ⚠️ min-width:700px으로 막는다 — 640x360은 이미 넘침 여유가 14px뿐이라
+        여기서 한 px이라도 키우면 곧장 다시 넘친다(직전 작업에서 실제로 겪었다). */
+  @media (orientation:landscape) and (max-height:520px) and (min-width:700px){
+    /* 사람 카드가 이 게임의 판이다 — 칩 개수를 멀리서도 읽을 수 있게 */
+    .pcard{ padding:13px 6px 12px }
+    .pcard .pav{ font-size:30px }
+    .pcard .pnm{ font-size:13px; margin:5px 0 6px }
+    .pcard .chipn{ font-size:30px }
+    .seatring{ margin:6px 0 4px }
+    /* 팟은 이 게임의 목표물 — 가로에서 150px로 눌러 둔 것을 되돌린다 */
+    .pot{ padding:11px; margin:2px auto 8px; max-width:210px }
+    /* 주사위 — 나온 눈(L·C·R·점)이 판정 그 자체다 */
+    .dicerow{ gap:9px; margin:2px 0 8px; min-height:56px }
+    .ldie{ width:52px; height:52px; font-size:25px }
+    .rolllog{ margin:0 0 8px; padding:8px 10px; font-size:13.5px }
+    /* 굴리기 38px → 44px. 직전 작업에서 '640x360이 빠듯해 못 올린다'고 남겨둔 항목인데,
+       700px 이상으로 한정하면 그 제약과 무관하다. */
+    .rollbtn{ padding:12px; font-size:16px }
+    /* ⚠️ 빈 자리의 진짜 원인은 **grid의 행이 두 열에 공유**된다는 것이었다.
+       왼쪽은 [자리줄·안내] 둘뿐인데 오른쪽은 [팟·주사위·기록·굴리기·자동] 다섯이라,
+       왼쪽 열은 2행부터 끝까지 통째로 비어 있었다(실측: 안내 아래 y193~366이 공백).
+       → 자리줄이 그 행들을 가로질러 늘어나게 해서 사람 카드가 남는 세로를 갖게 한다. */
+    .lcr-main > .seatring{ grid-row:1 / span 4; align-self:stretch }
+    .lcr-main > .seathint{ grid-row:5 }
+    .lcr-main > #specBadge{ grid-row:6 }
+    .lcr-main > .reactzone{ grid-row:7 }
+    .seatring{ align-items:stretch }
+    .pcard{ display:flex; flex-direction:column; justify-content:center; gap:2px }
+  }
 </style>
 </head>
 <body>

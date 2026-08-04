@@ -1466,7 +1466,9 @@ function resizeCanvas(){
   const note = document.getElementById('stageNote');
   const noteH = side ? 6 : (note ? note.offsetHeight + 10 : 24);
   const top = cvs.getBoundingClientRect().top;
-  const availH = window.innerHeight - top - noteH - 16;
+  // 아래 여유: 세로는 16px(아래에 안내·여백이 더 붙는다). 가로 2단에서는 판 아래에 아무것도 없어서
+  // 16px이 그대로 죽은 공간이었다(748x384 실측: 판 바닥 369 / 화면 384). 8px로 줄여 판에 돌려준다.
+  const availH = window.innerHeight - top - noteH - (side ? 8 : 16);
   const size = Math.max(220, Math.min(availW, availH));
   cssW = cssH = size;
   cvs.style.width = size+'px';

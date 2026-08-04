@@ -470,6 +470,32 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .bigdie{ width:46px;height:46px;padding:6px;border-radius:10px }
   .scorehelp{ display:none }
   body.ingame .kbtop .mode-pill, body.ingame .kbtop .meta-chip{ display:none !important }
+
+  /* ── 판 키우기 (2026-08-04 실측) ────────────────────────────────
+     748x384에서 **내 판이 214x184**였다. 폭 748 중 214만 쓴다는 게 눈에 띄는데,
+     원인은 폭이 아니라 **높이**였다: 판 크기는 폭이 정하지만(높이 ≈ 폭×0.86),
+     그 폭은 다시 '세로에 들어가느냐'로 잘린다.
+       세로 384 = 상단바 40 + 판 246 + **굴리기 띠 57** + 여백 10  ⇒ 판에 남는 건 246px
+     ① 굴리기 버튼이 아래 전폭 띠로 57px을 먹고 있었다 → 굴림판(.tray) 안으로 옮긴다(아래 JS).
+        가로에서 화면 아래 한가운데는 두 엄지 어느 쪽에서도 먼 자리이기도 하다.
+     ② 세 칸이 1:1:1이라 **눌러야 하는 내 판과 보기만 하는 상대 판이 같은 크기**였다.
+        내 판을 남는 세로가 허락하는 최대까지 키우고, 남은 폭을 상대 판이 갖는다.
+     판 높이는 폭에 **비례가 아니라 상수 차이**다 — 열 padding·gap이 고정이라 `높이 = 폭 − 30`이다
+     (실측 214→184 · 336→306 둘 다 맞는다). 그래서:
+       판 폭 최대 = (100dvh − 상단바 40 − 여백 10 − 판 껍데기 62) + 30 = 100dvh − 82
+       내 칸 최대 = 판 폭 + 좌우 padding 26 = 100dvh − 56  → 여유 10px 두고 66. */
+  body.ingame .arena>.tray > #rollWrap{ width:100%; max-width:none; margin:4px 0 0 !important }
+  body.ingame .arena>.side.you{ flex:3 1 0; max-width:calc(100dvh - 66px) }
+  /* 상대 판은 '보기만' 하지만 **읽히긴 해야 한다** — 남는 폭만 주면 640x360에서 106px까지 쪼그라들어
+     주사위 눈이 뭉갠다. 150px(칸 하나 ≈ 41px)을 바닥으로 둔다. */
+  body.ingame .arena>.side.opp{ flex:1 1 0; min-width:150px }
+  body.ingame .arena>.tray{ flex:0 1 26%; margin:0 }
+  /* ⚠️ 폭 ≥781px 가로(844·932)에서 +14px가 넘쳤다. 원인은 판이 아니라 `.kb-grid{gap:18px}`이다 —
+     로컬(kblocal)에서는 열이 1개라 [게임][반응·채팅] 이 **두 줄**이 되는데,
+     아래 줄(.kb-side)은 내용이 전부 display:none이라 높이 0이면서 **행 간격 18px만 남긴다.**
+     폭 <781px에서는 .kb-grid가 그냥 블록이라 이 현상이 없었다(그래서 748은 멀쩡했다).
+     row-gap만 0으로 — 온라인(2열)의 열 간격은 그대로 둔다. */
+  .kb-grid{ row-gap:0 }
 }
 @media (max-width:480px){
   /* 게임 중엔 굴리기 버튼 아래 60px 여백이 죽은 공간이라 스크롤을 만든다(넘침 21px).
@@ -2176,6 +2202,29 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   s(g());
 })();
 </script>
+<script>(function(){
+  /* 가로에서 굴리기 버튼을 굴림판(.tray) 안으로 옮긴다 — 위 @media 주석의 ① 처방.
+     왜 CSS로 못 하나: #rollWrap은 .wrap의 마지막 자식이고 .tray는 .arena 안이라 부모가 다르다.
+     order/grid로는 부모를 건너뛸 수 없다.
+     왜 HTML에서 아예 .tray 안으로 안 옮기나: 세로에서는 .arena가 [상대판 | 굴림판 | 내판] **세로 스택**이라
+     굴리기 버튼이 두 판 사이 한가운데로 들어가 버린다. 방향에 따라 자리가 달라야 한다.
+     ⚠️ #rollWrap의 display는 게임 코드가 직접 켜고 끈다 — 노드를 옮겨도 그대로 따라간다.
+        #rollBtn의 핸들러도 id로 붙어 있어 영향 없다. */
+  try{
+    var rw=document.getElementById('rollWrap');
+    var tray=document.querySelector('.arena>.tray');
+    var home=rw&&rw.parentNode;           // .wrap — rollWrap이 그 마지막 자식이라 되돌릴 땐 appendChild면 된다
+    if(!rw||!tray||!home) return;
+    var mq=matchMedia('(orientation:landscape) and (max-height:520px)');
+    function place(){
+      if(mq.matches){ if(rw.parentNode!==tray) tray.appendChild(rw); }
+      else if(rw.parentNode!==home){ home.appendChild(rw); }
+    }
+    place();
+    if(mq.addEventListener) mq.addEventListener('change',place); else if(mq.addListener) mq.addListener(place);
+    addEventListener('orientationchange', function(){ setTimeout(place,150); });
+  }catch(e){}
+})();</script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
 <script>(function(){
   var lb=document.getElementById('lightBtn'); if(!lb)return;

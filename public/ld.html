@@ -434,6 +434,24 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .mydice .d{ width:44px;height:44px }
     .controls{ gap:6px }
   }
+  /* ── 왼쪽 칸의 빈 자리 쓰기 (2026-08-04 실측) ──────────────────
+     748x384에서 넘침은 0인데 왼쪽 칸이 y135부터 아래로 **250px가량 비어 있었다.**
+     오른쪽(내 주사위+베팅)이 세 행을 다 쓰는 동안 왼쪽은 [상대들 90px · 상태글 55px]뿐이라
+     남는 세로가 통째로 죽었다. 이 게임에서 왼쪽은 "상대가 주사위를 몇 개 갖고 있나"인데,
+     그게 판단의 절반이다 — 작게 눌러 둘 이유가 없다.
+     ⚠️ min-width:700px으로 막는다 — 640x360은 여유가 없다(위 블록 주석과 같은 이유). */
+  @media (orientation:landscape) and (max-height:520px) and (min-width:700px){
+    .ld-main{ align-items:stretch }
+    .ld-main > .opps{ align-content:stretch }
+    .opps{ gap:8px; margin-bottom:8px; align-items:stretch }
+    .opp{ max-width:none; padding:12px 12px 14px; display:flex; flex-direction:column; justify-content:center }
+    .opp .oav{ width:36px;height:36px;font-size:19px }
+    .opp .onm{ font-size:14.5px }
+    .opp .obadge{ font-size:12px }
+    /* 남은 주사위 개수 표시 — 이게 상대 정보의 알맹이다 */
+    .cups{ gap:5px; margin-top:12px; min-height:26px }
+    .cup{ width:26px;height:26px;border-radius:7px }
+  }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
