@@ -82,8 +82,12 @@
     html: function (v, cls) {
       var c = BY_ID[v];
       if (!c) return esc(v);
+      /* loading="lazy" — 접혀 있는 곳(허브 프로필의 아바타 칩 등)의 그림은 펼칠 때 받는다.
+         ⚠️ `display:none` 안에 있어도 **일반 <img>는 그냥 받는다.** 그래서 허브가 열릴 때마다
+            쓰지도 않는 칩 5장(~175KB)을 받고 있었다. 콜드스타트 12.95초짜리 서비스에선 그냥 낭비다.
+         보이는 자리(인게임 아바타)는 lazy여도 즉시 받으므로 손해가 없다. */
       return '<img class="chav' + (cls ? ' ' + esc(cls) : '') + '" src="' + c.img +
-             '" alt="' + esc(c.kr) + '" draggable="false">';
+             '" alt="' + esc(c.kr) + '" loading="lazy" decoding="async" draggable="false">';
     },
 
     /** 기존 `el.textContent = av` 를 그대로 대체하는 헬퍼.
@@ -119,6 +123,11 @@
       return false;
     },
 
+    /** 여러 개를 미리 받아둔다 — 캔버스로 그릴 참가자들이 정해졌을 때 부르면 폴백이 안 보인다 */
+    preload: function (ids) {
+      (ids || []).forEach(function (v) { if (CHARS.is(v)) CHARS.image(v); });
+    },
+
     /** 저장된 내 아바타 (없으면 '') */
     mine: function () {
       try { return localStorage.getItem('alley_avatar') || ''; } catch (e) { return ''; }
@@ -138,9 +147,16 @@
         st.id = 'charsStyle'; st.textContent = CSS;
         (document.head || document.documentElement).appendChild(st);
       }
-      /* 캔버스에 그리려면 이미지가 **미리** 떠 있어야 한다 — 그릴 때 만들면 그 프레임엔 빈칸이 된다.
-         5장 × ~25KB라 미리 받아도 부담이 없다. */
-      for (var i = 0; i < LIST.length; i++) CHARS.image(LIST[i].id);
+      /* 미리 받는 건 **내 아바타 하나만.**
+         ⚠️ 처음엔 전부(LIST 전체) 미리 받았는데, 캐릭터가 5종에서 10종으로 늘면서
+            **모든 페이지가 열릴 때마다 332KB를 받게** 됐다. 허브는 그중 한 장도 안 쓰는데도.
+            콜드스타트가 12.95초인 서비스에서 이건 그냥 낭비다.
+         나머지는 `image()`가 필요할 때 만든다(= 처음 그리는 순간 로드 시작).
+         ⚠️ 캔버스는 그 한 프레임 동안 이모지 폴백이 나온다 — 결과 화면을 한 번만 그리는 게임
+            (좌·중·우)에서는 내 것 말고 남의 캐릭터가 폴백으로 보일 수 있다.
+            그 자리가 문제가 되면 판이 시작될 때 `CHARS.preload(참가자 아바타들)`를 부를 것. */
+      var mine = CHARS.mine();
+      if (CHARS.is(mine)) CHARS.image(mine);
     } catch (e) {}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
