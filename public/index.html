@@ -6,6 +6,7 @@
 <title>주사위 골목 — Dice Alley</title>
 <!-- 통합 코인 지갑(상점의 토대) -->
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
@@ -436,6 +437,21 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     .joinbar .jbtn,.joinbar input,.pfield input.pin,.lighttoggle,.prembtn{min-height:40px}
     .lighttoggle{min-width:40px}
   }
+
+  /* ── 가로로 돌린 폰 (2026-08-04 실측) ──
+     허브는 세로 폭 기준으로만 짜여 있어서 `max-width:560px`가 가로에서도 그대로 걸렸다.
+     844~932px 화면에서 **520px만 쓰고 좌우 160~200px씩을 버리면서**,
+     정작 세로는 390px뿐이라 카드 하나 보는 데 계속 스크롤해야 했다.
+     → 남는 폭을 세로 길이와 바꾼다: 게임 카드를 2열로 놓으면 목록이 절반 길이가 된다. */
+  @media (orientation:landscape) and (max-height:520px){
+    .wrap{ max-width:940px; padding:12px 18px 24px }
+    .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:10px }
+    .gcard{ padding:13px 14px 12px }
+    .gcard .ic{ width:42px;height:42px;font-size:23px;border-radius:11px }
+    .gcard h2{ font-size:17px }
+    .gcard .sub{ font-size:12px; margin-top:2px }
+    .allgames{ margin-bottom:10px }
+  }
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15110d">
@@ -764,7 +780,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     if(!cf||!ag) return;
     cf.addEventListener('click',function(e){ if(e.target.closest('.tchip')) ag.open=true; });
     // 넓은 화면은 접을 이유가 없다(스크롤 여유가 충분하다)
-    try{ if(matchMedia('(min-width:781px)').matches) ag.open=true; }catch(e){}
+    // ⚠️ '넓다'를 폭으로만 재면 **가로로 돌린 폰**(844x390)이 여기 걸린다 — 폭은 넓지만
+    //    높이는 390px뿐이라 13종을 펼치면 문서가 **7.5화면**이 됐다(실측 2532px 넘침).
+    //    세로 390x844에선 1.4화면이었다. 높이 조건을 같이 본다.
+    try{ if(matchMedia('(min-width:781px) and (min-height:560px)').matches) ag.open=true; }catch(e){}
   })();
 
   var GAMES=[
@@ -1002,7 +1021,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   var curName=get('alley_name','')||'', curAv=get('alley_avatar','')||'';
 
   function refreshPreview(){
-    pavPrev.textContent=curAv||'🎲';
+    /* 캐릭터면 이미지, 이모지면 글자. CHARS.into가 둘을 알아서 갈라준다.
+       (이미지는 .chav가 1em이라 .pav의 font-size를 그대로 따라간다 — CSS를 안 건드려도 된다) */
+    if(window.CHARS) CHARS.into(pavPrev, curAv||'🎲');
+    else pavPrev.textContent=curAv||'🎲';
     var _t=''; try{ _t=window.SHOP?SHOP.title():''; }catch(e){}
     if(curName){ pnamePrev.textContent=curName+(_t?' «'+_t+'»':''); pnamePrev.classList.remove('empty'); }
     else { pnamePrev.textContent='프로필 설정'; pnamePrev.classList.add('empty'); }
@@ -1014,12 +1036,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     // 프리셋에 없는 커스텀 이모지면 커스텀 입력칸을 활성 표시
     if(custom) custom.classList.toggle('active', !!curAv && !matched);
   }
-  // 프리셋 아바타 칩
-  // 프리셋 + 상점에서 산 아바타 팩
-  var ALL_AV = PRESETS.concat((function(){ try{ return window.SHOP?SHOP.unlockedAvatars():[]; }catch(e){ return []; } })());
+  /* 우리 캐릭터를 **맨 앞에** 둔다 — 직접 만든 것이 먼저다.
+     그 뒤가 이모지 프리셋(누구나 칠 수 있는 것) + 상점 해금.
+     ⚠️ 이모지 팩 판매는 중단했다(허브에 직접 입력칸이 있어 팔 수 있는 물건이 아니었다).
+        unlockedAvatars()는 옛 구매자 보호용으로 남겨둔다. */
+  var CHAR_AV = (function(){ try{ return window.CHARS?CHARS.ids():[]; }catch(e){ return []; } })();
+  var ALL_AV = CHAR_AV.concat(PRESETS, (function(){ try{ return window.SHOP?SHOP.unlockedAvatars():[]; }catch(e){ return []; } })());
   ALL_AV.forEach(function(em){
-    var b=document.createElement('button'); b.type='button'; b.className='avchip'; b.dataset.av=em; b.textContent=em;
-    b.setAttribute('aria-label','아바타 '+em);
+    var b=document.createElement('button'); b.type='button'; b.className='avchip'; b.dataset.av=em;
+    if(window.CHARS && CHARS.is(em)){ b.innerHTML=CHARS.html(em); b.classList.add('ischar'); }
+    else b.textContent=em;
+    b.setAttribute('aria-label','아바타 '+(window.CHARS?CHARS.label(em):em));
     b.onclick=function(){ curAv=em; set('alley_avatar',em); if(custom)custom.value=''; refreshPreview(); markChips(); };
     grid.appendChild(b);
   });

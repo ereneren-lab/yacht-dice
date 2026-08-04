@@ -10,6 +10,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -256,17 +257,43 @@
     .app{ padding:6px 10px 6px }
     .topbar{ margin-bottom:4px }
     .iconbtn{ width:32px;height:32px;font-size:14px }
-    body.ingame #game{ display:grid; grid-template-columns:minmax(0,1fr) 250px;
+    body.ingame #game{ display:grid; grid-template-columns:minmax(0,1fr) clamp(228px,29vw,300px);
       gap:6px 12px; align-items:start; margin-top:2px }
     #game > .tablewrap{ grid-column:1; grid-row:1 / span 2 }
     #game > .note   { grid-column:2; grid-row:1 }
     #game > .betbar { grid-column:2; grid-row:2 }
     /* 2단으로 갈라도 106px가 남았다 — 원인은 .tablewrap{min-height:400px}로,
        그것만으로 이미 화면(360px)을 넘는다. 판과 화투장을 가로 높이에 맞춰 줄인다. */
-    .tablewrap{ min-height:230px }
     .hwa{ height:52px }
-    .pot{ width:140px }
     .betbar{ margin-top:5px }
+
+    /* ── 2026-08-04 실측 보강 ─────────────────────────────
+       ① `max-width:760px`가 가로에서도 살아 있어 932px 화면에서 192px를 버렸다.
+       ② `.tablewrap{min-height:230px}`은 '넘치지 않게' 정한 값이라, 390px 화면에서
+          판 아래 **100px이 그냥 비어** 있었다. 판을 화면 높이에 맞춘다.
+       ③ 그런데 판을 키우기만 하면 안 된다 — `#mine`(밀어서 쪼는 내 패)은 판 바닥 기준
+          absolute라 위로 181px 뻗고, `.pot`은 판 높이의 44% 지점이라 **둘이 겹쳤다**
+          (실측 96~236 vs 88~236). 내 패를 한 단계 줄이고 팟을 위로 올려 띠를 갈라놓는다.
+       ④ 베팅 버튼 6개가 250px 안에서 **37px 폭**이었다(가로 탭 타깃 하한 40px 미달).
+          한 줄을 고집하지 말고 3개씩 두 줄로 접는다 — 폭이 74px로 두 배가 된다. */
+    .app{ max-width:none }
+    body.ingame #game{ height:calc(100dvh - 68px) }
+    .tablewrap{ min-height:0; height:100% }
+    .pot{ width:130px }
+    /* ③의 처방 — 판을 더 높여도 세로로는 답이 안 나온다.
+       상대 자리(판 높이의 12~40%) + 팟(148px) + 내 패(181px)를 294px 안에 세로로 못 넣는다.
+       대신 **가로가 남는다**(자리는 좌우 20%/80%, 팟은 가운데, 내 패도 가운데였다).
+       내 패를 오른쪽 아래 구석으로 보내면 팟과 세로로 스쳐도 가로로 안 겹친다.
+       덤: '밀어서 쪼기'는 오른손 엄지로 미는 동작이라 오른쪽 아래가 더 자연스럽다.
+       ⚠️ 카드를 줄이지 않았다 — 쪼는 재미가 이 게임의 알맹이다. */
+    .mine{ left:auto; right:10px; transform:none }
+    /* 자리(OPP_POS)는 판 **높이의 12~40%**에 중심을 둔다. 세로 판(645px)에선 여유였지만
+       가로 판(294~364px)에선 자리 높이 115px의 절반이 판 위로 튀어나가 아바타가 26px 잘렸다
+       (그 바람에 AI 말풍선까지 상단바 위로 올라가 제목을 덮었다).
+       중심 기준을 -50%에서 -28%로 내려 판 안에 들인다. */
+    .seat{ transform:translate(-50%,-28%) }
+    .betbar{ flex-wrap:wrap }
+    .bbtn{ flex:1 1 30%; min-width:72px }
   }
 </style>
 </head>
@@ -1067,9 +1094,9 @@ function startGame(){
   if(getWallet() < cfg.chips) setWallet(getWallet()+Math.max(100000,cfg.chips));
   walletBuyIn=cfg.chips; setWallet(getWallet()-cfg.chips);
   const Core=window.SeotdaCore;
-  const players=[{pid:MYPID,name:cfg.name}];
+  const players=[{pid:MYPID,name:cfg.name,avatar:(function(){try{return (window.CHARS&&CHARS.mine())||localStorage.getItem('alley_avatar')||'';}catch(e){return '';}})()}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
-  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true,aiDiff:cfg.diff});
+  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true,aiDiff:cfg.diff,avatar:(function(i){try{var L=window.CHARS?CHARS.ids():[];return L.length?L[i%L.length]:'';}catch(e){return '';}})(i)});
   engine=new Core.SeotdaEngine({
     players, ante:cfg.ante, startChips:cfg.chips, jabi:cfg.jabi, ttaengValue:cfg.ttaeng, itemsOn:!!cfg.itemsOn,
     manualAI:true, aiMs:PMS(900), rng:Core.mulberry32(Math.floor(Math.random()*2147483000)+1),
@@ -1286,6 +1313,7 @@ function chipPileHTML(pot){
 function avatarHTML(p){
   const a = p && p.avatar;
   if(!a) return p && p.ai ? '🤖' : '🧑';
+  if(window.CHARS && CHARS.is(a)) return CHARS.html(a);   // 우리 캐릭터(pig 등)
   return /[\/.]/.test(a) ? `<img src="${a}" alt="">` : a;
 }
 function cardSrc(c){ if(!c) return 'assets/hwatu/back.png'; return 'assets/hwatu/'+c.month+'_'+((c.id%2===0)?1:2)+'.png'; }
@@ -1358,7 +1386,11 @@ function showSeatSpeech(seat, text){
   const el=document.querySelector('.seat[data-seat="'+seat+'"]'); if(!el)return;
   const b=el.getBoundingClientRect(); if(!b.width)return;
   const d=document.createElement('div'); d.className='seatspeech'; d.textContent=text;
-  d.style.left=(b.left+b.width/2)+'px'; d.style.top=(b.top+2)+'px';
+  // 말풍선은 자리 위로 뜬다 — 가로에선 자리가 화면 위쪽에 붙어 있어 상단바(제목·버튼)를 덮었다.
+  // 상단바 아래로 내려 붙인다.
+  const tb=document.querySelector('.topbar');
+  const minY=(tb?tb.getBoundingClientRect().bottom:0)+8;
+  d.style.left=(b.left+b.width/2)+'px'; d.style.top=Math.max(minY, b.top+2)+'px';
   document.body.appendChild(d);
   requestAnimationFrame(()=>d.classList.add('show'));
   setTimeout(()=>{ d.classList.remove('show'); setTimeout(()=>{try{d.remove();}catch(e){}},260); }, 1500);

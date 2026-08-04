@@ -12,6 +12,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -362,10 +363,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   /* 가로로 돌린 폰 — 높이가 360~390px뿐이라 세로 한 줄로는 안 담긴다(640x360에서 +183px).
      왼쪽엔 자리(칩) 줄, 오른쪽엔 팟·주사위·굴리기를 모아 2단으로 놓는다. */
   @media (orientation:landscape) and (max-height:520px){
-    .app{ padding:6px 12px 6px }
+    .app{ padding:6px 12px 4px }
     body.ingame .app{ min-height:0 }
     .topbar{ margin:0 0 5px !important }
-    .lcr-main{ display:grid; grid-template-columns:1.15fr 1fr; gap:5px 14px; align-items:start }
+    /* row-gap 5→3: 640x360에서 안내(#seathint)가 두 줄로 접히며 14px가 넘쳤다.
+       탭 타깃을 40px로 키운 만큼 세로로 쌓인 여백에서 되찾는다. */
+    .lcr-main{ display:grid; grid-template-columns:1.15fr 1fr; gap:3px 14px; align-items:start }
     .lcr-main > .seatring  { grid-column:1; grid-row:1 }
     .lcr-main > .seathint  { grid-column:1; grid-row:2 }
     .lcr-main > #specBadge { grid-column:1; grid-row:3 }
@@ -383,7 +386,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .pot{ padding:7px; margin:0 auto 6px; max-width:150px }
     .dicerow{ gap:7px; margin:0 0 6px; min-height:0 }
     .rolllog{ margin:0 0 6px; padding:6px 8px; font-size:12.5px; min-height:0 }
-    .rollbtn{ padding:11px; font-size:15px }
+    .rollbtn{ padding:9px; font-size:15px }
+    .reactzone{ margin-top:2px }
+    /* 폭 <781px인 가로(740x360 등)에는 '넓으면 넓게' 규칙(min-width:781px)이 안 걸려
+       세로용 `max-width:560px`가 그대로 남아 폭의 28%를 버렸다. 2단으로 갈라 놓은 화면이니
+       좁게 잡을 이유가 없다. */
+    .app, body.ingame .app{ max-width:none }
+    /* 조작 요소가 40px(가로 탭 타깃 하한) 밑이었다 — 자동굴리기 18px, 반응 버튼 35px. */
+    .autoroll{ min-height:40px; margin:0 }
+    .autoroll input{ width:22px;height:22px }
+    .reacttoggle, #reactToggle{ min-height:40px }
   }
 </style>
 </head>
@@ -1547,7 +1559,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     x.fillStyle='#e0a23c'; x.font='900 74px '+F;
     x.fillText(w?(dispName(w)+' 승리!'):'게임 종료', 540, 570);
     if(w){
-      x.font='120px '+F; x.fillText(w.avatar||'🎲', 540, 720);
+      x.font='120px '+F; if(window.CHARS) CHARS.draw(x, w.avatar||'🎲', 540, 720-42, 120); else x.fillText(w.avatar||'🎲', 540, 720);
       x.fillStyle='#f3ece0'; x.font='800 54px '+F;
       const potPart = pot>0 ? '🎯 팟 '+pot+'개 · ' : '';
       x.fillText(potPart+'총 '+w.chips+'칩 독식', 540, 830);

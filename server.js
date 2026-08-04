@@ -22,6 +22,20 @@ const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css', '.png':'image/png', '.ico':'image/x-icon', '.json':'application/json', '.webmanifest':'application/manifest+json' };
 const COLORS = ['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
 const AVA = ['🦊','🐸','🐼','🦁','🐰','🐵'];
+/* 직접 만든 캐릭터 5종 — 윷의 도개걸윷모(돼지·개·양·소·말). public/img/*.png · public/chars.js */
+const CHAR_IDS = ['pig','dog','sheep','cow','horse'];
+/** 아바타 값 정리 — 캐릭터 id는 그대로, 그 외는 이모지로 보고 4자까지.
+ *  ⚠️ 예전엔 두 경로가 따로 놀았다:
+ *     · 입장(create/join)은 **캐릭터 5종만** 인정하고 이모지는 통째로 버렸다(기본값으로 대체) —
+ *       그래서 온라인에서 내 이모지 아바타가 원래 안 지켜졌다.
+ *     · setAvatar는 반대로 `slice(0,4)`라 **'sheep'·'horse'(5자)가 잘렸다.**
+ *  둘을 여기 한 곳으로 모은다. */
+function avaOf(v, fallback){
+  v = (v == null ? '' : String(v)).trim();
+  if (CHAR_IDS.includes(v)) return v;
+  v = v.slice(0, 4);
+  return v || fallback;
+}
 
 // ---------- static ----------
 const server = http.createServer((req, res) => {
@@ -298,7 +312,7 @@ wss.on('connection', (ws) => {
       // 화이트리스트에 없으면 요트로 떨어진다(옛 삼항 사슬과 동작 동일 · 게임이 늘어 Set으로 정리)
       const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,NAME_MAX), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,NAME_MAX), avatar:avaOf(m.avatar, AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
         dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:5) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, sdAnte:(SD_ANTE.includes(m.sdAnte)?m.sdAnte:200), sdChips:(SD_CHIPS.includes(m.sdChips)?m.sdChips:10000), jabi:!!m.jabi, ttaeng:!!m.ttaeng, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
@@ -315,7 +329,7 @@ wss.on('connection', (ws) => {
       const pid = rid();
       const spectator = r.members.length >= cap;   // 정원 초과 → 관전자
       const waiting = spectator || r.phase !== 'lobby';   // 관전자 또는 진행 중 입장
-      const t0=r.members.filter(x=>x.team===0).length, t1=r.members.filter(x=>x.team===1).length; r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,NAME_MAX), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting, spectator, team:(t0<=t1?0:1) });
+      const t0=r.members.filter(x=>x.team===0).length, t1=r.members.filter(x=>x.team===1).length; r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,NAME_MAX), avatar:avaOf(m.avatar, AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting, spectator, team:(t0<=t1?0:1) });
       recolor(r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code });
       if (r.engine) send(ws, { t:'state', state:r.engine.serialize(pid) });  // 관전자에게 현재 판 (라이어는 자기 시점)
@@ -344,7 +358,7 @@ wss.on('connection', (ws) => {
 
     } else if (m.t === 'setAvatar') {
       const me = room.members.find(x=>x.pid===ws.meta.pid);
-      const emo = (m.emoji||'').slice(0,4);
+      const emo = avaOf(m.emoji, '');   // 캐릭터 id(sheep/horse)가 잘리지 않게 한 곳에서 처리
       if (me && emo){ me.avatar=emo; if(room.engine){ const p=room.engine.players.find(pp=>pp.pid===me.pid); if(p){ p.avatar=emo; room.engine._emit&&room.engine._emit(); } } sendLobby(room); }
 
     } else if (m.t === 'setMode') {

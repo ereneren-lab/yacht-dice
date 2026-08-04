@@ -15,6 +15,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -161,6 +162,8 @@
 
   .coinrain{position:fixed;top:-40px;z-index:80;pointer-events:none;font-size:26px;will-change:transform;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
 </style>
+<!-- 가로(landscape) 레이아웃 — 카드 6종 공용. 왜 있는지는 landscape.css 맨 위 주석. -->
+<link rel="stylesheet" href="landscape.css">
 </head>
 <body>
 <div class="app">
@@ -764,9 +767,9 @@ $('myName').value=cfg.name;
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
   try{ localStorage.setItem('alley_name',cfg.name); }catch(e){}
-  const players=[{pid:MYPID,name:cfg.name}];
+  const players=[{pid:MYPID,name:cfg.name,avatar:(function(){try{return (window.CHARS&&CHARS.mine())||localStorage.getItem('alley_avatar')||'';}catch(e){return '';}})()}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
-  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true});
+  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true,avatar:(function(i){try{var L=window.CHARS?CHARS.ids():[];return L.length?L[i%L.length]:'';}catch(e){return '';}})(i)});
   if(engine){ try{engine.destroy();}catch(e){} }
   prevS=null; S=null; pickJokerId=null; ended=false;
   engine=new OCCore.OCEngine({
@@ -921,7 +924,7 @@ function render(){
     let fan=''; for(let i=0;i<Math.min(cnt,4);i++) fan+=`<div class="mc back sm"></div>`;
     const itemBadge=(S.itemsOn&&p.items>0)?`<span class="itembadge">🛡${p.items}</span>`:'';
     el.innerHTML=`<div class="pbox">`+
-      `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
+      `<div class="pav">${window.CHARS?CHARS.html(p.avatar||(p.ai?'🤖':'🧑')):(p.avatar||(p.ai?'🤖':'🧑'))}</div>`+
       `<div class="pname">${esc(p.name)}${itemBadge}</div>`+
       `<div class="pcount">🃏 ${cnt}장</div><div class="fan">${fan}</div>`+
       (p.act? `<div class="pact show">${esc(p.act)}</div>`:'')+

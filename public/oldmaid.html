@@ -14,6 +14,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="net.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -154,6 +155,8 @@
   @keyframes fxpop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
   @media (prefers-reduced-motion:reduce){ .fxshake{animation:none} .jokerflash{display:none} .seat.joker .pbox{animation:none} .fxbanner .bx{animation:none} }
 </style>
+<!-- 가로(landscape) 레이아웃 — 카드 6종 공용. 왜 있는지는 landscape.css 맨 위 주석. -->
+<link rel="stylesheet" href="landscape.css">
 </head>
 <body>
 <div class="app">
@@ -723,9 +726,9 @@ $('myName').value=cfg.name;
 function startGame(){
   cfg.name=($('myName').value||'').trim()||'나';
   try{ localStorage.setItem('alley_name',cfg.name); }catch(e){}
-  const players=[{pid:MYPID,name:cfg.name}];
+  const players=[{pid:MYPID,name:cfg.name,avatar:(function(){try{return (window.CHARS&&CHARS.mine())||localStorage.getItem('alley_avatar')||'';}catch(e){return '';}})()}];
   const nm=AI_NAMES.slice().sort(()=>Math.random()-.5);
-  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true});
+  for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],ai:true,avatar:(function(i){try{var L=window.CHARS?CHARS.ids():[];return L.length?L[i%L.length]:'';}catch(e){return '';}})(i)});
   if(engine){ try{engine.destroy();}catch(e){} }
   prevS=null; S=null; ended=false;
   engine=new OMCore.OMEngine({
@@ -836,7 +839,7 @@ function render(){
     }
     const itemBadge=(S.itemsOn&&p.items>0)?` <span style="font-size:9px;color:var(--gold)">👀${p.items}</span>`:'';
     el.innerHTML=`<div class="pbox">`+
-      `<div class="pav">${p.ai?'🤖':'🧑'}</div>`+
+      `<div class="pav">${window.CHARS?CHARS.html(p.avatar||(p.ai?'🤖':'🧑')):(p.avatar||(p.ai?'🤖':'🧑'))}</div>`+
       `<div class="pname">${esc(p.name)}${itemBadge}</div>`+
       (p.out? `<div class="safe">세이프</div>` : `<div class="pcount">🃏 ${p.count}장</div><div class="fan">${fan}</div>`)+
       (p.act&&!p.out? `<div class="pact show">${esc(p.act)}</div>`:'')+

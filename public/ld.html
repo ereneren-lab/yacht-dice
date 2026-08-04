@@ -12,6 +12,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -409,6 +410,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
      내 주사위·버튼이 오른쪽 한 칸에 모여 있어 엄지로 조작하기도 낫다. */
   @media (orientation:landscape) and (max-height:520px){
     .wrap{ padding:4px 14px 4px }
+    /* 가로에서 폭의 27~34%를 버리고 있었다(844폭에서 612px, 932폭에서 612px만 씀).
+       ① 폭 <781px 구간은 세로용 `max-width:560px`이 그대로 걸리고
+       ② 폭 ≥781px 구간은 '오프라인은 사이드가 비니 좁게'라는 `max-width:640px`가 걸린다.
+       둘 다 **세로 화면을 전제로 한 규칙**이다 — 가로에선 2단으로 갈라 놓았으므로 폭이 클수록 낫다.
+       ⚠️ ②는 `body:not(.ld-online).ingame .wrap`이라 `.wrap` 한 줄로는 못 이긴다(함정 8-b) —
+          같은 특이도로 되돌린다. */
+    .wrap, body:not(.ld-online).ingame .wrap{ max-width:none }
     .topbar{ margin:0 0 4px !important }
     .ld-main{ display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; align-items:start }
     .ld-main > .opps     { grid-column:1; grid-row:1 }
@@ -1176,7 +1184,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       x.font='120px '+FONT; x.fillText('🏆', W/2, 300);
       x.fillStyle=muted; x.font='700 30px '+FONT; x.fillText('최후의 1인', W/2, 400);
       const wav=(wp&&wp.avatar)||'🎲'; const wnm=(wp&&wp.name)||'?';
-      x.font='58px '+FONT; x.fillText(wav, W/2, 476);
+      x.font='58px '+FONT; if(window.CHARS) CHARS.draw(x, wav, W/2, 476-20, 58); else x.fillText(wav, W/2, 476);
       x.fillStyle=ink; x.font='800 62px '+FONT;
       let dn=wnm; while(x.measureText(dn).width>W-220 && dn.length>1){ dn=dn.slice(0,-1); }
       x.fillText(dn+(dn!==wnm?'…':''), W/2, 556);
@@ -1192,7 +1200,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         const cy=ry0+(rowH-14)/2;
         x.textAlign='left';
         x.fillStyle=ink; x.font='700 40px '+FONT; x.fillText(medal, rx+26, cy);
-        x.font='40px '+FONT; x.fillText(p.avatar||'🎲', rx+150, cy);
+        x.font='40px '+FONT; if(window.CHARS) CHARS.draw(x, p.avatar||'🎲', rx+150, cy-14, 40); else x.fillText(p.avatar||'🎲', rx+150, cy);
         x.fillStyle=(i===0)?brass:ink; x.font='700 38px '+FONT;
         let nm=p.name||'?'; while(x.measureText(nm).width>rw-360 && nm.length>1){ nm=nm.slice(0,-1); }
         x.fillText(nm+(nm!==(p.name||'?')?'…':'')+(pid===MYPID?' (나)':''), rx+220, cy);
@@ -1231,11 +1239,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // ---------- 공유 아바타 (골목 전체 공용 · localStorage alley_avatar) ----------
   function loadAvatar(){ try{ return localStorage.getItem('alley_avatar')||''; }catch(e){ return ''; } }
   function saveAvatar(a){ if(a){ try{ localStorage.setItem('alley_avatar',a); }catch(e){} } }
-  const AV_EMOJIS=['🦊','🐸','🐼','🦁','🐰','🐵','🐯','🐶','🐱','🐷','🐨','🐮','🦄','🐙','🐧','🐢','🦉','🐝','🦖','🐳','👻','🤖','👾','🎩'];
+  /* 우리 캐릭터를 맨 앞에 — 직접 만든 것이 먼저다 */
+  const AV_EMOJIS=(window.CHARS?CHARS.ids():[]).concat(['🦊','🐸','🐼','🦁','🐰','🐵','🐯','🐶','🐱','🐷','🐨','🐮','🦄','🐙','🐧','🐢','🦉','🐝','🦖','🐳','👻','🤖','👾','🎩']);
   let _avOnPick=null;
   function openAvatarPicker(cur, onPick){
     _avOnPick=onPick; const grid=$('avGrid'); grid.innerHTML='';
-    AV_EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.textContent=e; if(e===cur)b.classList.add('on');
+    AV_EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button';
+      if(window.CHARS) CHARS.into(b,e); else b.textContent=e;
+      if(e===cur)b.classList.add('on');
       b.onclick=()=>{ $('avOv').classList.remove('on'); const cb=_avOnPick; _avOnPick=null; if(cb)cb(e); };
       grid.appendChild(b); });
     $('avOv').classList.add('on');
@@ -1633,7 +1644,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   function renderMine(){
     const me=S.players[mySeat()];
-    $('meAv').textContent=me.avatar||'😎'; $('meNm').textContent=me.name;
+    { const _a=me.avatar||'😎'; if(window.CHARS) CHARS.into($('meAv'),_a); else $('meAv').textContent=_a; } $('meNm').textContent=me.name;
     $('meBox').classList.toggle('turn', S.turn===mySeat()&&S.phase==='bid');
     const host=$('mydice'); host.innerHTML='';
     // reveal/over 중엔 상단 공개 tally의 "나" 행에 내 주사위가 이미 나오므로 하단 중복 렌더 생략

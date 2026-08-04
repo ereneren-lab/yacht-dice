@@ -14,6 +14,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -1047,7 +1048,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     .turnbanner.big .nm{ font-size:13.5px }
     .turnbanner.big .aitag{ font-size:10px }
     .rollbtn{ max-width:230px; padding:9px }
-    .sheetwrap{ max-height:calc(100dvh - 168px); overflow-y:auto; -webkit-overflow-scrolling:touch }
+    /* ⚠️ 168px는 세로 폰 기준으로 정한 숫자였는데, 가로에선 점수판 **아래 108px이 그냥 비어 있었다**
+       (실측 844x390: 점수판 60~282, 왼쪽 칸은 350까지 · 화면은 390).
+       그 사이 점수판 안에서는 15줄 중 **5줄만** 보여서, 족보를 고르려면 매번 안쪽을 스크롤해야 했다.
+       점수를 어디에 넣을지 고르는 게 이 게임의 유일한 선택인데 그게 스크롤 뒤에 있었던 셈이다.
+       → 남는 세로를 점수판에 준다(390에서 222→314px · 5줄→8줄). 76px은 상단바+여백 실측값이다. */
+    .sheetwrap{ max-height:calc(100dvh - 76px); overflow-y:auto; -webkit-overflow-scrolling:touch }
     body.ingame .meta-chip{ display:none }
   }
   @media (max-height:700px){
@@ -1733,7 +1739,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const { RULES, GameEngine } = window.GameCore;
   const COLORS=['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
   const AVATARS=['🦊','🐸','🐼','🦁','🐰','🐵'];
-  const CHOICES=['🦊','🐸','🐼','🦁','🐰','🐵','🐶','🐱','🐯','🐨','🐷','🐮','🐔','🐧','🐢','🐝','🦉','🦄','🐙','🦖','🤖','👾','😎','👻'];
+  /* 우리 캐릭터를 맨 앞에 — 직접 만든 것이 먼저다 */
+  const CHOICES=(window.CHARS?CHARS.ids():[]).concat(['🦊','🐸','🐼','🦁','🐰','🐵','🐶','🐱','🐯','🐨','🐷','🐮','🐔','🐧','🐢','🐝','🦉','🦄','🐙','🦖','🤖','👾','😎','👻']);
   const REACTS=['🔥','😂','🤯','😱','💀','🫵','🧂','😏','😈','🙄','🥱','🤏','🤝','😝','🤡','😭','🥹','🤬','😤','🥳','🎉','😎','👑','🫡','💅','🤴','🍿','☕','🙌','💪','🫶','👏','✨','⭐','🆒','💯','👀','😮','🎲','🍀','🙏'];
   const PHRASES=['나이스!','요트 가자','제발 요트🙏','레전드','소름','역대급','말이 되냐','운도 실력임','그거밖에 안 나와?','손 떨리나ㅋ','실력 맞아?','예상했음','그럴 줄 알았다','계산 끝','다 계획대로','봐주는 중','워밍업이야','역전각','풀하우스 ㄱㄱ','보너스 놓쳤네','그거 버려?','운빨ㅋ','아 아까워','조졌다','굳이?','다시 하자'];
   const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
@@ -1777,7 +1784,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const getStoredAvatar=()=>{try{return localStorage.getItem('alley_avatar')||null;}catch(e){return null;}};
   const setStoredAvatar=e=>{try{if(e)localStorage.setItem('alley_avatar',e);}catch(_){}};
   // idle 숨쉬기 위상은 pid로 갈라 둔다 — 같은 부모에 아바타가 하나뿐이라 nth-child로는 못 어긋뜨린다
-  const avHTML=(p,o)=>{o=o||{};const ph=(-(Math.abs(hashPid(p.pid))%46)/10).toFixed(1);return `<span class="av ${o.sm?'sm':''} ${o.cur?'cur':''} ${o.off?'off':''}" data-pid="${p.pid}" style="--ring:${p.color};background:${hexA(p.color,.18)};animation-delay:${ph}s">${esc(avatar(p))}</span>`;};
+  const avHTML=(p,o)=>{o=o||{};const ph=(-(Math.abs(hashPid(p.pid))%46)/10).toFixed(1);return `<span class="av ${o.sm?'sm':''} ${o.cur?'cur':''} ${o.off?'off':''}" data-pid="${p.pid}" style="--ring:${p.color};background:${hexA(p.color,.18)};animation-delay:${ph}s">${window.CHARS?CHARS.html(avatar(p)):esc(avatar(p))}</span>`;};
   function hashPid(s){ let h=0; s=String(s||''); for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h; }
 
   // ---------- prefs + stats ----------
@@ -1878,7 +1885,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 
   // ---------- avatar picker ----------
   function openAvatarPicker(cur,onPick){ const g=$('avGrid'); g.innerHTML='';
-    CHOICES.forEach(e=>{const b=document.createElement('button');b.textContent=e;if(e===cur)b.classList.add('on');b.onclick=()=>{onPick(e);$('avOv').classList.remove('show');};g.appendChild(b);});
+    CHOICES.forEach(e=>{const b=document.createElement('button');if(window.CHARS)CHARS.into(b,e);else b.textContent=e;if(e===cur)b.classList.add('on');b.onclick=()=>{onPick(e);$('avOv').classList.remove('show');};g.appendChild(b);});
     $('avOv').classList.add('show'); }
   $('avClose').onclick=()=>$('avOv').classList.remove('show');
 
@@ -2385,7 +2392,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     g.fillStyle=DIM; g.font='400 30px '+SANS; g.fillText(String(S.modeName||''),W/2,180);
     // 승자
     const w=S.winners||{names:[],top:0}; const champ=ranked[0];
-    g.font='120px '+SANS; g.fillText(champ?avatar(champ):'🏆',W/2,360);
+    g.font='120px '+SANS; { const _a=champ?avatar(champ):'🏆'; if(window.CHARS) CHARS.draw(g,_a,W/2,360-42,120); else g.fillText(_a,W/2,360); }
     g.fillStyle=INK; g.font='700 62px '+SANS;
     const title=(w.names&&w.names.length>1)?'공동 우승!':((w.names&&w.names[0]||(champ&&champ.name)||'우승')+' 우승!');
     g.fillText(title,W/2,450);
@@ -2455,7 +2462,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   diffChips($('diffL'),()=>diffLocal,id=>diffLocal=id,true);
   const countBox=$('count');
   for(let n=2;n<=6;n++){const b=document.createElement('button');b.textContent=n;b.dataset.n=n;if(n===playerCount)b.classList.add('on');b.onclick=()=>{playerCount=n;[...countBox.children].forEach(c=>c.classList.toggle('on',+c.dataset.n===n));renderNames();};countBox.appendChild(b);}
-  function renderNames(){const box=$('names');box.innerHTML='';for(let i=0;i<playerCount;i++){const row=document.createElement('div');row.className='row';const pill=document.createElement('span');pill.className='pill';pill.style.background=COLORS[i];pill.style.cursor='pointer';pill.title='캐릭터 선택';pill.textContent=avatarVals[i];pill.onclick=()=>openAvatarPicker(avatarVals[i],e=>{avatarVals[i]=e;pill.textContent=e;setStoredAvatar(e);});const inp=document.createElement('input');inp.className='txt';inp.value=nameVals[i];inp.maxLength=10;inp.oninput=()=>nameVals[i]=inp.value;const seg=document.createElement('div');seg.className='seg';const bh=document.createElement('button');bh.textContent='사람';const ba=document.createElement('button');ba.textContent='AI';ba.classList.add('ai');const set=t=>{typeVals[i]=t;bh.classList.toggle('on',t==='human');ba.classList.toggle('on',t==='ai');if(isDefaultName(inp.value,i)){inp.value=defName(i);nameVals[i]=inp.value;}};bh.onclick=()=>set('human');ba.onclick=()=>set('ai');seg.append(bh,ba);row.append(pill,inp,seg);box.appendChild(row);bh.classList.toggle('on',typeVals[i]==='human');ba.classList.toggle('on',typeVals[i]==='ai');}}
+  function renderNames(){const box=$('names');box.innerHTML='';for(let i=0;i<playerCount;i++){const row=document.createElement('div');row.className='row';const pill=document.createElement('span');pill.className='pill';pill.style.background=COLORS[i];pill.style.cursor='pointer';pill.title='캐릭터 선택';if(window.CHARS)CHARS.into(pill,avatarVals[i]);else pill.textContent=avatarVals[i];pill.onclick=()=>openAvatarPicker(avatarVals[i],e=>{avatarVals[i]=e;if(window.CHARS)CHARS.into(pill,e);else pill.textContent=e;setStoredAvatar(e);});const inp=document.createElement('input');inp.className='txt';inp.value=nameVals[i];inp.maxLength=10;inp.oninput=()=>nameVals[i]=inp.value;const seg=document.createElement('div');seg.className='seg';const bh=document.createElement('button');bh.textContent='사람';const ba=document.createElement('button');ba.textContent='AI';ba.classList.add('ai');const set=t=>{typeVals[i]=t;bh.classList.toggle('on',t==='human');ba.classList.toggle('on',t==='ai');if(isDefaultName(inp.value,i)){inp.value=defName(i);nameVals[i]=inp.value;}};bh.onclick=()=>set('human');ba.onclick=()=>set('ai');seg.append(bh,ba);row.append(pill,inp,seg);box.appendChild(row);bh.classList.toggle('on',typeVals[i]==='human');ba.classList.toggle('on',typeVals[i]==='ai');}}
   renderNames();
   const soundToggle=$('soundToggle'); soundToggle.classList.toggle('on',soundOn);
   soundToggle.onclick=()=>{soundOn=!soundOn;try{localStorage.setItem('alley_sound',soundOn?'1':'0');}catch(e){}soundToggle.classList.toggle('on',soundOn);syncMute();};

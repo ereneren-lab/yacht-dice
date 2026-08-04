@@ -15,6 +15,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -801,9 +802,15 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @keyframes camPunchLite{ 0%{transform:scale(1)} 45%{transform:scale(1.022)} 100%{transform:scale(1)} }
   @keyframes scrShakeLite{ 0%,100%{transform:translate(0,0)} 12%{transform:translate(-6px,3px)} 26%{transform:translate(6px,-3px)} 42%{transform:translate(-5px,2px)} 58%{transform:translate(5px,-2px)} 74%{transform:translate(-3px,1px)} 88%{transform:translate(2px,-1px)} }
   /* 카메라 프리즈·줌 (보드 영역) + 화면 흔들림(.app) */
-  #game.camerapunch{ animation:camPunch .3s cubic-bezier(.22,1,.36,1); transform-origin:center 42%; }
+  /* ⚡ will-change:transform — 게임 전체에 transform을 걸면 그 안(판 SVG·카드·트레이 전부)이
+     매 프레임 다시 래스터화된다. 실기기(Galaxy A16) 벤치, 클래스 3회 발화:
+       camerapunch 73.5fps·p99 84ms·최악 155ms → 86.0fps·p99 18ms
+       scrshake    72.4fps·p95 31ms·최악  93ms → 79.6fps·p95 19ms·최악 55ms
+     ⚠️ 상시로 걸면 전체 화면 레이어가 계속 살아 있어 저사양 기기 메모리에 부담이다 →
+        **클래스가 붙어 있는 0.3초 동안만** 걸리도록 애니 규칙 안에 둔다. */
+  #game.camerapunch{ animation:camPunch .3s cubic-bezier(.22,1,.36,1); transform-origin:center 42%; will-change:transform; }
   @keyframes camPunch{ 0%{transform:scale(1)} 45%{transform:scale(1.05)} 100%{transform:scale(1)} }
-  .app.scrshake{ animation:scrShake .36s ease-in-out; }
+  .app.scrshake{ animation:scrShake .36s ease-in-out; will-change:transform; }
   @keyframes scrShake{ 0%,100%{transform:translate(0,0)} 12%{transform:translate(-7px,3px) rotate(-.5deg)} 26%{transform:translate(7px,-4px) rotate(.5deg)} 42%{transform:translate(-6px,3px)} 58%{transform:translate(6px,-2px)} 74%{transform:translate(-3px,1px)} 88%{transform:translate(2px,-1px)} }
   /* 풀스크린 화이트 플래시(잡기) */
   #yutFlash{ position:fixed; inset:0; z-index:9500; pointer-events:none; background:#fff; opacity:0; }
@@ -2542,15 +2549,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       <radialGradient id="evbonus" cx="40%" cy="34%"><stop offset="0%" stop-color="#fff0e6"/><stop offset="55%" stop-color="#ffb07a"/><stop offset="100%" stop-color="#e07a3c"/></radialGradient>
       <radialGradient id="evback" cx="40%" cy="34%"><stop offset="0%" stop-color="#eef2f6"/><stop offset="55%" stop-color="#b9c6d4"/><stop offset="100%" stop-color="#7d8ea0"/></radialGradient>
       <radialGradient id="evgold" cx="40%" cy="34%"><stop offset="0%" stop-color="#fff6d0"/><stop offset="52%" stop-color="#ffd451"/><stop offset="100%" stop-color="#e0a020"/></radialGradient>
-      <filter id="nodesh" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1" stdDeviation="1.1" flood-color="rgba(90,55,20,.4)"/></filter>
-      <filter id="boardsh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,.45)"/></filter>
       <filter id="pcsh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1.4" stdDeviation="1.4" flood-color="rgba(0,0,0,.5)"/></filter>
       <filter id="woodgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.014 0.09" numOctaves="3" seed="11" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="matrix" values="0 0 0 0 0.34  0 0 0 0 0.23  0 0 0 0 0.11  0 0 0 0.5 0"/></filter>
       <radialGradient id="boardglow" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#fff4d8" stop-opacity=".35"/><stop offset="60%" stop-color="#fff4d8" stop-opacity="0"/><stop offset="100%" stop-color="#7a5324" stop-opacity=".18"/></radialGradient>
       ${PCOL.map((c,i)=>`<radialGradient id="pg${i}" cx="35%" cy="28%"><stop offset="0%" stop-color="#ffffff" stop-opacity=".6"/><stop offset="42%" stop-color="${c}"/><stop offset="100%" stop-color="${c}"/></radialGradient>`).join('')}
     </defs>`;
     // 나무 판 (바깥 프레임 + 안쪽 나무면)
-    s+=`<rect x="6" y="6" width="388" height="388" rx="20" fill="url(#woodframe)" filter="url(#boardsh)"/>`;
+    // ⚡ 판 그림자: feDropShadow → **미리 그린 반투명 사각형 3장**.
+    //    필터는 '한 번만 그리는 배경'이라도 그 영역이 무효화될 때마다 다시 계산된다.
+    //    말이 지나가면 매 프레임 무효화되므로 사실상 상시 비용이었다(실측: 아래 nodesh 주석 참고).
+    s+=`<rect x="1" y="4" width="398" height="396" rx="25" fill="rgba(0,0,0,.10)"/>`;
+    s+=`<rect x="3.5" y="6.5" width="393" height="391" rx="22" fill="rgba(0,0,0,.15)"/>`;
+    s+=`<rect x="6" y="9" width="388" height="388" rx="20" fill="rgba(0,0,0,.20)"/>`;
+    s+=`<rect x="6" y="6" width="388" height="388" rx="20" fill="url(#woodframe)"/>`;
     s+=`<rect x="12" y="12" width="376" height="376" rx="15" fill="url(#woodbg)"/>`;
     // 진짜 나무결 노이즈(은은히 곱하기) + 중앙 광택
     s+=`<rect x="12" y="12" width="376" height="376" rx="15" filter="url(#woodgrain)" opacity=".5" style="mix-blend-mode:multiply"/>`;
@@ -2575,7 +2586,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if(evt){ const g=EVT_GLOW[evt]; // 은은한 이중 헤일로(늪과 시각적으로 구분되는 컬러 링)
         s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r+5.5).toFixed(1)}" fill="none" stroke="${g}" stroke-width="1" opacity=".34"/>`;
         s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r+3).toFixed(1)}" fill="none" stroke="${g}" stroke-width="2" opacity=".68"/>`; }
-      s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${isStart||big||evt?2.2:1.6}" filter="url(#nodesh)"/>`;
+      // ⚡ 칸 그림자: feDropShadow(#nodesh) → 미리 그린 반투명 원 3장.
+      //    실기기(Galaxy A16) 결정적 벤치: 칸 30개의 feDropShadow만 꺼도 p95 24.9ms → 13.9ms,
+      //    82.5fps → 88.7fps. 나무결(feTurbulence)·말 그림자는 유의미한 차이가 없었다.
+      //    원인: 말이 판 위를 지나가면 그 영역이 매 프레임 무효화되고, 겹치는 칸의 필터가 다시 계산된다.
+      s+=`<circle cx="${cx.toFixed(1)}" cy="${(cy+1).toFixed(1)}" r="${(r+1.7).toFixed(1)}" fill="rgba(90,55,20,.11)"/>`;
+      s+=`<circle cx="${cx.toFixed(1)}" cy="${(cy+1).toFixed(1)}" r="${(r+0.8).toFixed(1)}" fill="rgba(90,55,20,.2)"/>`;
+      s+=`<circle cx="${cx.toFixed(1)}" cy="${(cy+1).toFixed(1)}" r="${r}" fill="rgba(90,55,20,.32)"/>`;
+      s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${isStart||big||evt?2.2:1.6}"/>`;
       if(evt){
         if(evt==='gold') s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r-3).toFixed(1)}" fill="none" stroke="#fff6d8" stroke-width="1.1" stroke-opacity=".8"/>`;
         s+=`<text x="${cx.toFixed(1)}" y="${(cy-r-2).toFixed(1)}" font-size="13" text-anchor="middle">${EVT_ICON[evt]}</text>`;
@@ -2655,16 +2673,24 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     clearTimeout(_fxT); _fxT=setTimeout(()=>{ fx.classList.remove('on'); fx.innerHTML=''; }, reduced?700:dur);
   }
   // 2. 카메라 프리즈·줌
-  let _camT=null;
+  // ⚡ will-change를 **한 프레임 먼저** 걸고 다음 프레임에 애니를 시작한다.
+  //    같은 프레임에 걸면 레이어를 만드는 비용이 첫 프레임에 그대로 얹혀
+  //    "가장 크게 튀는 한 프레임"이 남는다(실측: 클래스 안에만 두면 155ms→109ms에서 멈췄다).
+  const _layerT={};
+  function _armLayer(el, cls, ms, key){
+    el.classList.remove(cls); el.style.willChange='transform'; void el.offsetWidth;
+    requestAnimationFrame(()=>{
+      el.classList.add(cls);
+      clearTimeout(_layerT[key]); _layerT[key]=setTimeout(()=>{ el.classList.remove(cls); el.style.willChange=''; }, ms);
+    });
+  }
   function cameraPunch(){
     if(FX_REDUCED())return; const g=$('game'); if(!g||g.style.display==='none')return;
-    g.classList.remove('camerapunch'); void g.offsetWidth; g.classList.add('camerapunch');
-    clearTimeout(_camT); _camT=setTimeout(()=>g.classList.remove('camerapunch'),320);
+    _armLayer(g,'camerapunch',320,'cam');
   }
   // 3. 화면 플래시 / 흔들림 / 코인
-  let _shakeT=null;
   function screenFlash(){ if(FX_REDUCED())return; const f=_fxEl('yutFlash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); setTimeout(()=>f.classList.remove('on'),200); }
-  function screenShake(){ if(FX_REDUCED())return; const a=document.querySelector('.app'); if(!a)return; a.classList.remove('scrshake'); void a.offsetWidth; a.classList.add('scrshake'); clearTimeout(_shakeT); _shakeT=setTimeout(()=>a.classList.remove('scrshake'),380); }
+  function screenShake(){ if(FX_REDUCED())return; const a=document.querySelector('.app'); if(!a)return; _armLayer(a,'scrshake',380,'shake'); }
   // 늪: 갈색 진흙 화면 플래시(짜증 유발)
   function mudFlash(){
     if(FX_REDUCED())return;

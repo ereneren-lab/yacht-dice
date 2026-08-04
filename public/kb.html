@@ -12,6 +12,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -457,7 +458,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
    대신 가로는 남으므로 ≥781px kblocal이 쓰는 3열 배치를 그대로 가져온다: [상대판 | 굴림판 | 내판].
    DOM 순서가 opp → tray → you 라서 order를 건드릴 필요가 없다. */
 @media (orientation:landscape) and (max-height:520px){
-  body.ingame .wrap{ max-width:none; padding:8px 14px 10px }
+  /* 740x360에서 4px, 932x430에서 1px가 남아 넘쳤다 — 죽은 아래 여백만 줄인다(판 크기는 유지) */
+  body.ingame .wrap{ max-width:none; padding:6px 14px 4px }
   .kbtop{ margin:0 2px 6px }
   .arena{ flex-direction:row; flex-wrap:nowrap; align-items:center; justify-content:center; gap:12px }
   .arena>.side{ flex:1 1 0; min-width:0; width:auto; gap:6px }
@@ -1481,11 +1483,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 골목 공용 아바타를 서버에 반영(참가 직후) — 저장된 값이 있을 때만
   function sendMyAvatar(){ try{ const a=localStorage.getItem('alley_avatar'); if(a) wsSend({t:'setAvatar',emoji:a}); }catch(e){} }
   // ---- 아바타 피커 (골목 전체 공용 · localStorage alley_avatar) ----
-  const AV_EMOJIS=['😎','🦊','🐸','🐼','🦁','🐰','🐵','🐯','🐶','🐱','🐷','🐨','🐮','🦄','🐙','🐧','🐢','🦉','🐝','🦖','🐳','👻','🤖','👾'];
+  /* 우리 캐릭터(도개걸윷모)를 맨 앞에 둔다 — 직접 만든 것이 먼저다. 뒤는 이모지. */
+  const AV_EMOJIS=(window.CHARS?CHARS.ids():[]).concat(['😎','🦊','🐸','🐼','🦁','🐰','🐵','🐯','🐶','🐱','🐷','🐨','🐮','🦄','🐙','🐧','🐢','🦉','🐝','🦖','🐳','👻','🤖','👾']);
   let _avOnPick=null;
   function openAvatarPicker(cur, onPick){
     _avOnPick=onPick; const grid=$('avGrid'); if(!grid)return; grid.innerHTML='';
-    AV_EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.textContent=e; if(e===cur)b.classList.add('on');
+    AV_EMOJIS.forEach(e=>{ const b=document.createElement('button'); b.type='button';
+      if(window.CHARS) CHARS.into(b,e); else b.textContent=e;
+      if(e===cur)b.classList.add('on');
       b.onclick=()=>{ $('avOv').classList.remove('on'); const cb=_avOnPick; _avOnPick=null; if(cb)cb(e); };
       grid.appendChild(b); });
     $('avOv').classList.add('on');
@@ -1547,7 +1552,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const nameHtml = isMe
         ? `<span class="mnm" data-me="1" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="탭하면 이름 변경">${esc(mem.name)} ✏️</span>`
         : `<span class="mnm">${esc(mem.name)}</span>`;
-      d.innerHTML=`<div class="mav">${mem.avatar||'🎲'}</div>${nameHtml}${specBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHostFlag)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
+      d.innerHTML=`<div class="mav">${window.CHARS?CHARS.html(mem.avatar||'🎲'):(mem.avatar||'🎲')}</div>${nameHtml}${specBadge}${mem.ai?'<span class="mhost" style="background:rgba(224,162,60,.16);color:var(--brass)">AI</span>':''}${mem.host?'<span class="mhost">호스트</span>':''}${(mem.ai&&amHostFlag)?`<button class="airm" data-pid="${mem.pid}" title="AI 제거">✕</button>`:''}`;
       // [9] 내 아바타 탭 → 이모지 피커 → alley_avatar 저장 + setAvatar 전송
       // div에 onclick만 달면 키보드로 도달할 수 없다 → role/tabindex/Enter·Space를 함께 준다
       if(isMe){ const av=d.querySelector('.mav'); if(av){
@@ -1768,7 +1773,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   function fillPlate(pos, p, total){
-    $('av'+pos).textContent = p.avatar || (pos==='You'?'😎':'🐺');
+    { const _a = p.avatar || (pos==='You'?'😎':'🐺');
+      if(window.CHARS) CHARS.into($('av'+pos), _a); else $('av'+pos).textContent = _a; }
     $('nm'+pos).innerHTML = esc(p.name||(pos==='You'?'나':'상대')) + (p.connected===false?'<span class="off-badge">연결 끊김</span>':'');
     const te=$('tot'+pos), prev=parseInt(te.textContent,10);
     if(scorePrimed && !isNaN(prev) && prev!==total) animateTotal(te, prev, total);

@@ -1,0 +1,118 @@
+/* 가로 레이아웃 — 카드 6종 공용
+   (인디언 포커 · 원카드 · 도둑잡기 · 블랙잭 · 바카라 · 하이로우)
+
+   왜 있나 (2026-08-04 · 실측)
+   ─────────────────────────────
+   이 6종은 `.app{max-width:560px}` 한 줄 말고는 가로(landscape) 규칙이 하나도 없었다.
+   그 결과 폰을 돌리면:
+     ① 폭 844~932px 중 **532px만 쓰고** 좌우 150~200px씩을 버렸다(사용률 57~63%).
+     ② 그런데 세로는 `.dock`(조작부)이 아래를 먹어 판(.table)이 61~258px로 눌렸다.
+        바카라 판은 **740x360에서 61px**이었다 — 카드(88px)가 들어갈 수 없는 높이다.
+     ③ `.table{overflow:hidden}`이라 못 들어간 카드는 **잘려나갔고**(딜러 패 위가 뎅강),
+        `.msg`(상태 글)는 카드 위에 겹치거나 아예 사라졌다.
+   즉 "안 넘친다(감사 통과)"와 "볼 수 있다"가 달랐다. 넘침은 0인데 판이 안 보였다.
+
+   무엇을 하나
+   ─────────────────────────────
+   `.app`을 [판 | 조작부] 2열 그리드로 바꾼다. 상단바만 두 열을 걸친다.
+   → 판이 **화면 높이를 전부** 갖고, 남는 가로 폭은 조작부가 쓴다.
+   → 조작부가 오른쪽 세로 스택이 되어 **가로로 쥔 오른손 엄지**에 붙는다.
+
+   ⚠️ 6종의 `.app` 직속 자식은 정확히 `topbar / table / dock` 셋뿐이다(도둑잡기는 dock 없음).
+      새 블록을 `.app` 바로 아래에 추가하면 이 그리드 배치를 손봐야 한다.
+   ⚠️ 세로(portrait)에는 이 파일의 규칙이 하나도 걸리지 않는다 — 전부 landscape 안에 있다.
+*/
+
+@media (orientation: landscape) and (max-height: 520px) {
+
+  /* ── ① 판과 조작부를 나란히 ─────────────────────────── */
+  .app{
+    max-width:none;                 /* 560px 상한 해제 — 가로 폭을 다 쓴다 */
+    padding:4px 12px 6px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:auto minmax(0,1fr);
+    column-gap:10px;
+    align-items:stretch;
+  }
+  .app > .topbar{ grid-column:1 / -1; grid-row:1; padding-bottom:4px }
+  .app > .table { grid-column:1;     grid-row:2; min-height:0 }
+  .app > .dock  {
+    grid-column:2; grid-row:2;
+    /* 좁은 가로(740px)에선 판을 더 눌러버리므로 폭을 화면에 비례시킨다 */
+    width:clamp(178px, 25vw, 232px);
+    padding-top:0;
+    display:flex; flex-direction:column; justify-content:center; gap:6px;
+    min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  /* 세로 스택 안에서는 아래 여백이 이중으로 붙는다 — gap이 대신한다 */
+  .app > .dock > *{ margin-bottom:0 }
+
+  /* ── ② 조작부는 세로 스택 ───────────────────────────── */
+  .acts, .betbar{ flex-direction:column }
+  .acts .btn, .betbar .bb, .betbar .bbtn{ width:100% }
+
+  /* 칩 4개가 178px 폭에서 한 줄에 들어가게 (40px = 가로 탭 타깃 하한) */
+  .chiprow{ gap:5px }
+  .cchip{ width:40px; height:40px; font-size:11px }
+
+  /* 바카라 베팅 스팟 — 세로로 쌓아 글자가 안 깨지게 */
+  .spots{ flex-direction:column; gap:5px }
+  .spots .spot{ display:flex; align-items:center; justify-content:center; gap:8px; padding:7px 8px }
+  .spots .spot .sn{ font-size:12px }
+  .spots .spot .sp{ font-size:11px; opacity:.8 }
+
+  .itemrow{ flex-wrap:wrap }
+
+  /* ── ③ 판 안쪽: 짧은 높이에 맞춰 한 단계씩 줄인다 ────── */
+  .topbar .title{ font-size:14px }
+
+  /* 상대 좌석(원카드·도둑잡기·인디언) — 판 위쪽을 덜 먹게.
+     ⚠️ 원카드는 [상대 좌석 | 더미 | 내 손패] 세 층이라 판이 340px가 돼도 33px이 모자랐다
+        (.center 안 내용 147px > 배정 114px → 위아래로 흘러넘쳐 손패 위에 글씨가 얹혔다).
+        층마다 한 단계씩 줄여 그 33px을 만든다. */
+  .seat{ width:70px }
+  .pav{ font-size:16px; line-height:1 }
+  .pbox{ padding:3px 4px 4px }
+  .fan{ min-height:16px; margin-top:2px }
+  /* 행동 배지는 `.show`일 때만 보이는데 자리는 항상 16px 잡고 있었다 — 안 보일 땐 비운다 */
+  .pact:not(.show){ display:none }
+  .center{ gap:2px }
+  .pilelbl{ font-size:9px; line-height:1.1 }
+  .mc.big{ width:46px; height:66px }
+  .mc.big .cbig{ font-size:26px }
+  .mc.big.joker .cbig{ font-size:27px }
+  .mc.big .cr{ font-size:12px }
+  .mc.sm{ width:20px; height:28px }
+  .mc.sm::after{ font-size:11px }
+
+  /* 인디언 포커: 팟(.pot)과 상태글(.msg)이 판 한가운데 절대배치라
+     짧은 세로에서 상대 카드(58~174)·내 카드(225~340)와 겹쳤다 — 사이에 남는 띠는 51px뿐이다.
+     세로로 비집을 자리는 없지만 **좌우는 비어 있다**(카드가 전부 가운데 정렬).
+     → 팟은 왼쪽, 상태글은 오른쪽으로 빼서 겹침을 없애고 남는 가로 폭을 쓴다.
+     ⚠️ `.pot`(클래스)은 카드 6종 중 인디언 포커에만 있다 — 다른 게임에 새지 않는다.
+        `.pot + .msg`도 마찬가지(다른 게임의 #msg는 .pot 뒤에 오지 않는다). */
+  /* ⚠️ .pot 안에는 '몇 판째' 안내(.handprog)가 같이 들어 있어 박스가 340px까지 늘어난다.
+        폭을 안 묶으면 왼쪽으로 밀려나가 글자가 판 밖에서 잘린다. */
+  .pot{ left:20%; top:50%; margin:0; width:34%; max-width:210px }
+  .pot .handprog{ white-space:normal; line-height:1.35 }
+  .pot + .msg{ left:auto; right:3%; width:30%; margin-top:0 }
+}
+
+/* 아주 짧은 가로(360~400px) — 카드 자체를 한 단계 줄여야 들어간다.
+   판 높이가 310px밖에 안 되는 구간이다(844x390에서는 340px). */
+@media (orientation: landscape) and (max-height: 400px) {
+  .pc{ width:52px; height:75px }
+  .pc .cbig{ font-size:29px }
+  .pc .cr{ font-size:12px }
+  .hand{ min-height:0 }
+
+  .mc.big{ width:42px; height:60px }
+  .mc.big .cbig{ font-size:24px }
+  .mc.big.joker .cbig{ font-size:25px }
+  /* 상대 좌석의 뒷면 부채는 '몇 장'을 이미 숫자로 보여준다(🃏 6장).
+     310px 판에서 이 28px 때문에 상태 글이 내 손패 위로 밀려 내려왔다 —
+     정보가 겹치는 것보다 장식을 접는 쪽이 낫다. */
+  .seat .fan{ display:none }
+  .myhand{ max-height:96px }
+}

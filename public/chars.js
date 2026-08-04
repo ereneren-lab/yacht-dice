@@ -1,0 +1,132 @@
+/**
+ * 캐릭터 아바타 공용 모듈 — window.CHARS
+ *
+ * 왜 있나 (2026-08-04)
+ *   `public/img/`에 직접 만든 소프트 3D 마스코트 5종이 있는데 **윷놀이에서만** 썼다.
+ *   나머지 12게임은 전부 키보드 이모지를 아바타로 썼다 — 누구나 공짜로 칠 수 있는 것이라
+ *   우리 것이 아니고, 상점에서 팔 수도 없다(그래서 이모지 아바타 팩 판매를 중단했다).
+ *   이 모듈은 그 5종을 **13게임 공용 아바타**로 만든다.
+ *
+ * 5종은 임의로 고른 동물이 아니다 — 윷의 끗수 **도·개·걸·윷·모** 그 자체다.
+ *   도=돼지 · 개=개 · 걸=양 · 윷=소 · 모=말. 캐릭터가 게임 규칙에서 나왔다.
+ *
+ * 설계의 핵심 — **이미지가 글자 크기를 따라간다**
+ *   게임들은 아바타를 `el.textContent = p.avatar`처럼 **글자로** 그리고, 크기는 CSS `font-size`로 준다.
+ *   그래서 `.chav`를 `width:1em;height:1em`으로 두면, 기존 CSS를 한 줄도 안 고치고
+ *   이모지 자리에 그대로 갈아끼울 수 있다. (px로 고정하면 13게임 CSS를 다 손봐야 한다.)
+ *
+ * 저장값
+ *   `alley_avatar`에 이모지('🎲') 또는 캐릭터 id('pig')가 들어간다. 둘 다 유효하다.
+ *   ⚠️ 서버는 예전부터 캐릭터 id 5종만 정식으로 인정한다(server.js). 이모지를 보내면
+ *      기본 아바타로 대체된다 — 즉 **온라인에서 이모지 아바타는 원래 안 지켜졌다.**
+ *      캐릭터를 쓰면 그 문제도 같이 없어진다.
+ */
+(function (global) {
+  'use strict';
+
+  var LIST = [
+    { id: 'pig',   kr: '돼지', yut: '도', img: 'img/pig.png' },
+    { id: 'dog',   kr: '개',   yut: '개', img: 'img/dog.png' },
+    { id: 'sheep', kr: '양',   yut: '걸', img: 'img/sheep.png' },
+    { id: 'cow',   kr: '소',   yut: '윷', img: 'img/cow.png' },
+    { id: 'horse', kr: '말',   yut: '모', img: 'img/horse.png' }
+  ];
+
+  var BY_ID = {};
+  for (var i = 0; i < LIST.length; i++) BY_ID[LIST[i].id] = LIST[i];
+
+  var CSS =
+    /* 1em 정사각 — 부모의 font-size를 그대로 따른다(위 '설계의 핵심' 참고).
+       vertical-align은 이모지 기준선과 눈으로 맞춘 값이다. */
+    '.chav{width:1em;height:1em;object-fit:contain;vertical-align:-.16em;' +
+    'border-radius:50%;image-rendering:auto;flex:none;display:inline-block}' +
+    /* 원형으로 잘리므로 배경이 비치면 지저분하다 — 살짝 안쪽으로 눌러 담는다 */
+    '.chav.pad{padding:.04em;box-sizing:border-box}';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  var CHARS = {
+    LIST: LIST,
+    ids: function () { return LIST.map(function (c) { return c.id; }); },
+    get: function (id) { return BY_ID[id] || null; },
+    /** 캐릭터 id인가 (이모지·빈값이면 false) */
+    is: function (v) { return !!(v && BY_ID[v]); },
+
+    /** 사람이 읽는 이름 — 캐릭터면 '돼지', 이모지면 그대로 */
+    label: function (v) { return CHARS.is(v) ? BY_ID[v].kr : (v || ''); },
+
+    /** 아바타 한 칸의 HTML. 캐릭터면 <img>, 아니면 이모지 글자 그대로.
+     *  크기는 **주지 않는다** — 부모 font-size를 따르는 게 이 모듈의 요점이다.
+     *  cls로 추가 클래스를 붙일 수 있다. */
+    html: function (v, cls) {
+      var c = BY_ID[v];
+      if (!c) return esc(v);
+      return '<img class="chav' + (cls ? ' ' + esc(cls) : '') + '" src="' + c.img +
+             '" alt="' + esc(c.kr) + '" draggable="false">';
+    },
+
+    /** 기존 `el.textContent = av` 를 그대로 대체하는 헬퍼.
+     *  이모지면 textContent로 넣어 XSS 여지를 아예 없애고, 캐릭터일 때만 innerHTML을 쓴다. */
+    into: function (el, v, cls) {
+      if (!el) return;
+      if (CHARS.is(v)) el.innerHTML = CHARS.html(v, cls);
+      else el.textContent = (v == null ? '' : String(v));
+    },
+
+    /** 캔버스용 — 미리 불러둔 <img>. 아직 안 떴으면 null.
+     *  ⚠️ 캔버스는 `fillText`로 이모지를 그린다. 이미지는 그 방식으로 못 그린다(글자가 아니니까).
+     *     결과 화면·순위표가 캔버스인 게임(라이어·좌중우·요트)이 있어서 이 경로가 꼭 필요하다. */
+    image: function (id) {
+      var c = BY_ID[id]; if (!c) return null;
+      if (!c._img) {
+        var im = new Image(); im.src = c.img; c._img = im;
+      }
+      return (c._img.complete && c._img.naturalWidth > 0) ? c._img : null;
+    },
+
+    /** 캔버스에 아바타 하나를 **중앙 정렬**로 그린다.
+     *  기존 `ctx.fillText(av, x, y)` 자리를 그대로 대체한다 — size는 그 자리의 font 크기(px).
+     *  캐릭터인데 이미지가 아직 안 떴으면 이름 첫 글자 대신 이모지 폴백을 그려 빈칸을 만들지 않는다. */
+    draw: function (ctx, v, x, y, size) {
+      var im = CHARS.image(v);
+      if (im) {
+        var s = size || 40;
+        ctx.drawImage(im, x - s / 2, y - s / 2, s, s);
+        return true;
+      }
+      ctx.fillText(CHARS.is(v) ? '🎲' : (v || '🎲'), x, y);
+      return false;
+    },
+
+    /** 저장된 내 아바타 (없으면 '') */
+    mine: function () {
+      try { return localStorage.getItem('alley_avatar') || ''; } catch (e) { return ''; }
+    },
+    setMine: function (v) {
+      try {
+        if (v) localStorage.setItem('alley_avatar', v);
+        else localStorage.removeItem('alley_avatar');
+      } catch (e) {}
+    }
+  };
+
+  function boot() {
+    try {
+      if (!document.getElementById('charsStyle')) {
+        var st = document.createElement('style');
+        st.id = 'charsStyle'; st.textContent = CSS;
+        (document.head || document.documentElement).appendChild(st);
+      }
+      /* 캔버스에 그리려면 이미지가 **미리** 떠 있어야 한다 — 그릴 때 만들면 그 프레임엔 빈칸이 된다.
+         5장 × ~25KB라 미리 받아도 부담이 없다. */
+      for (var i = 0; i < LIST.length; i++) CHARS.image(LIST[i].id);
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+
+  global.CHARS = CHARS;
+})(typeof window !== 'undefined' ? window : this);
