@@ -173,6 +173,15 @@ const BENCHFX = `
         fx.className='yutfx '+(big?'yut big':'gae small');
         fx.innerHTML='<div class="yf-dim"></div>'+(big?'<div class="yf-rays"></div>':'')
           +'<div class="yf-word">'+(big?'윷이야!':'개')+'</div>'+(big?'<div class="yf-sub">한 번 더!</div>':'');
+        /* ⚠️ 2026-08-04: 여기에 **반짝이(yf-spark)가 빠져 있었다.** 그래서 1차 작업에서
+           "결과 오버레이는 단독으로 거의 공짜"라는 결론이 나왔는데, 실제 resultBurst는
+           폰에서 6개를 만들고 각각 will-change로 합성 레이어를 잡는다. 빠뜨린 것은 공짜로 보인다. */
+        if (big) for (var i=0;i<6;i++){ var sp=document.createElement('div'); sp.className='yf-spark';
+          sp.textContent=Math.random()<.5?'✦':'✧';
+          var ang=Math.random()*Math.PI*2, dd=120+Math.random()*220;
+          sp.style.setProperty('--dx',(Math.cos(ang)*dd).toFixed(0)+'px'); sp.style.setProperty('--dy',(Math.sin(ang)*dd).toFixed(0)+'px');
+          sp.style.animationDelay=(Math.random()*.18).toFixed(2)+'s'; sp.style.color=Math.random()<.5?'#fff3cf':'#f2ce68';
+          fx.appendChild(sp); }
         fx.classList.add('on');
         setTimeout(function(){ fx.classList.remove('on'); fx.innerHTML=''; }, dur);
         n++;
@@ -180,6 +189,85 @@ const BENCHFX = `
         else setTimeout(done, dur+400);
       };
       setTimeout(fire, 250);
+    });
+  };
+  return true;`;
+
+/* ── '던지기 한 번'의 실제 연출 더미(pile) 벤치 ─────────────────────────
+   ⚠️ 위 BENCHFX는 **반짝이(yf-spark)도 윷가락도 없이** 오버레이만 재현한다.
+      그래서 1차 작업에서 "결과 오버레이는 단독으로 거의 공짜(87.8fps)"라는 결론이 나왔는데,
+      긴 세션의 최악 프레임을 뜯어보니 그 순간 실제로 돌던 것은
+        yfDim + yfRays + yfRaysFade + yfWordIn + yfSubIn + yfSpark×6  (한 연출에서 11개)
+        + yuttoss×4 + throwmo + respop + sbpop  (같은 순간의 다른 연출들)
+      이었다. **빠뜨린 것을 안 재면 공짜로 보인다.**
+   여기서는 renderSticks()가 실제로 하는 그대로를 재현한다:
+     t=0     윷가락 4개 토스(0.08s 간격) + 던지는 사람 모션
+     t=720   결과 글자 pop + 풀스크린 결과 오버레이(반짝이 포함)
+   `resultAt`을 바꾸면 '결과를 윷가락 착지 뒤로 미루는' 설계안을 그대로 잴 수 있다. */
+const BENCHPILE = `
+  window.__benchpile = function(rounds, big, resultAt, opt){
+    opt = opt || {};
+    return new Promise(function(res){
+      var fx = document.getElementById('yutFx');
+      if (!fx) { fx = document.createElement('div'); fx.id='yutFx'; document.body.appendChild(fx); }
+      var sticks = document.getElementById('yutsticks');
+      var thrower = document.querySelector('.thrower');
+      var rr = document.getElementById('throwResult');
+      var f=[], last=performance.now(), raf, n=0, timers=[];
+      (function loop(){ var t=performance.now(); f.push(t-last); last=t; raf=requestAnimationFrame(loop); })();
+      var done=function(){
+        cancelAnimationFrame(raf); timers.forEach(clearTimeout);
+        fx.classList.remove('on'); fx.innerHTML='';
+        var s=f.slice(2).sort(function(a,b){return a-b});
+        var q=function(x){ return s[Math.min(s.length-1,Math.floor(s.length*x))]; };
+        var sum=s.reduce(function(a,b){return a+b},0);
+        res({ n:s.length, fps:+(s.length/(sum/1000)).toFixed(1), p50:+q(.5).toFixed(1),
+              p95:+q(.95).toFixed(1), p99:+q(.99).toFixed(1), worst:+s[s.length-1].toFixed(1),
+              slow:s.filter(function(x){return x>33}).length, jank:s.filter(function(x){return x>50}).length });
+      };
+      var burst=function(){
+        var dur = big?1500:800;
+        if (rr){ rr.textContent = big?'윷':'개'; rr.classList.remove('pop'); void rr.offsetWidth; rr.classList.add('pop'); }
+        fx.style.setProperty('--yf-dur',(dur/1000)+'s');
+        fx.className='yutfx '+(big?'yut big':'gae small');
+        var html='<div class="yf-dim"></div>';
+        if (big && !opt.norays) html+='<div class="yf-rays"></div>';
+        html+='<div class="yf-word">'+(big?'윷이야!':'개')+'</div>';
+        if (big) html+='<div class="yf-sub">한 번 더!</div>';
+        fx.innerHTML=html;
+        if (big && !opt.nosparks){
+          var SP = opt.sparks==null ? 6 : opt.sparks;
+          for(var i=0;i<SP;i++){ var s=document.createElement('div'); s.className='yf-spark'; s.textContent=Math.random()<.5?'✦':'✧';
+            var ang=Math.random()*Math.PI*2, d=120+Math.random()*220;
+            s.style.setProperty('--dx',(Math.cos(ang)*d).toFixed(0)+'px'); s.style.setProperty('--dy',(Math.sin(ang)*d).toFixed(0)+'px');
+            s.style.animationDelay=(Math.random()*.18).toFixed(2)+'s'; s.style.color=Math.random()<.5?'#fff3cf':'#f2ce68';
+            if (opt.nosparkwc) s.style.willChange='auto';
+            fx.appendChild(s); }
+        }
+        fx.classList.add('on');
+        timers.push(setTimeout(function(){ fx.classList.remove('on'); fx.innerHTML=''; }, dur));
+      };
+      var fire=function(){
+        // ① 윷가락 토스 + 던지는 사람 (renderSticks의 isNew 경로)
+        if (sticks){
+          var up = big?[1,1,1,1]:[1,1,0,0], h='';
+          for (var i=0;i<4;i++){
+            var land = up[i]?0:180, half = up[i]?40:90, tilt=(Math.random()*12-6).toFixed(0);
+            h += '<div class="stick'+(i===0?' mark':'')+' tossing" style="--landdeg:'+land+'deg;--half:'+half
+               + 'deg;--tilt:'+tilt+'deg;animation-delay:'+(i*(opt.stagger==null?0.08:opt.stagger)).toFixed(2)
+               + 's"><div class="face front"></div><div class="face back"></div></div>';
+          }
+          sticks.innerHTML=h;
+        }
+        if (thrower){ thrower.classList.remove('throwing'); void thrower.offsetWidth; thrower.classList.add('throwing'); }
+        // ② 결과 (기본 720ms — 윷가락은 0.72s+0.24s stagger = 960ms에 착지한다)
+        timers.push(setTimeout(burst, resultAt));
+        n++;
+        var cycle = resultAt + (big?1500:800) + 500;
+        if (n<rounds) timers.push(setTimeout(fire, cycle));
+        else timers.push(setTimeout(done, cycle));
+      };
+      timers.push(setTimeout(fire, 250));
     });
   };
   return true;`;
@@ -211,6 +299,42 @@ const BENCHCLS = `
         n++;
         if (n<rounds) setTimeout(fire, ms+250);
         else setTimeout(done, ms+300);
+      };
+      setTimeout(fire, 200);
+    });
+  };
+  return true;`;
+
+/* 화면 전체 연출 **두 개를 동시에** 거는 벤치.
+   1차 작업은 camerapunch와 scrshake를 각각 따로만 쟀다. 그런데 실제 코드에서 잡기(runCaptureFx)는
+   screenFlash + screenShake + cameraPunch를 **한 줄에서 연달아** 부른다 —
+   `.app`(부모)과 `#game`(자식)에 동시에 transform이 걸리는 것이라, 서로를 재래스터화한다.
+   따로 잰 값의 합보다 나쁠 수 있고, 그게 사실이면 "동시에 하나만" 이라는 설계 결정의 근거가 된다. */
+const BENCHPAIR = `
+  window.__benchpair = function(ms, rounds, arm, both){
+    return new Promise(function(res){
+      var g=document.getElementById('game'), a=document.querySelector('.app');
+      if(!g||!a) return res(null);
+      var f=[], last=performance.now(), raf, n=0;
+      (function loop(){ var t=performance.now(); f.push(t-last); last=t; raf=requestAnimationFrame(loop); })();
+      var done=function(){
+        cancelAnimationFrame(raf);
+        g.classList.remove('camerapunch'); a.classList.remove('scrshake'); g.style.willChange=''; a.style.willChange='';
+        var s=f.slice(2).sort(function(x,y){return x-y});
+        var q=function(x){ return s[Math.min(s.length-1,Math.floor(s.length*x))]; };
+        var sum=s.reduce(function(x,y){return x+y},0);
+        res({ n:s.length, fps:+(s.length/(sum/1000)).toFixed(1), p50:+q(.5).toFixed(1),
+              p95:+q(.95).toFixed(1), p99:+q(.99).toFixed(1), worst:+s[s.length-1].toFixed(1),
+              slow:s.filter(function(x){return x>33}).length, jank:s.filter(function(x){return x>50}).length });
+      };
+      var fire=function(){
+        g.classList.remove('camerapunch'); a.classList.remove('scrshake');
+        if(arm){ g.style.willChange='transform'; a.style.willChange='transform'; }
+        void g.offsetWidth;
+        var go=function(){ a.classList.add('scrshake'); if(both) g.classList.add('camerapunch'); };
+        if(arm) requestAnimationFrame(go); else go();
+        n++;
+        if(n<rounds) setTimeout(fire, ms+250); else setTimeout(done, ms+300);
       };
       setTimeout(fire, 200);
     });
@@ -388,18 +512,60 @@ async function run() {
       }
       }
 
+      // ②-a2 화면 전체 연출 **동시 발화** — "동시에 하나만"이라는 설계 결정의 근거
+      if (SUB.includes('pair')) {
+        await p.eval(BENCHPAIR);
+        out.benchpair = [];
+        const RUN = async (label, arm, both) => {
+          await set(''); await p.wait(400);
+          const r = await p.eval(`return window.__benchpair(500, 4, ${arm}, ${both});`);
+          out.benchpair.push({ label, ...(r || {}) });
+        };
+        // 같은 조건을 번갈아 두 번씩 — AI 턴 소음이 한쪽에만 얹히는 것을 막는다
+        for (let k = 0; k < 2; k++) {
+          await RUN('흔들림만 (.app.scrshake)', true, false);
+          await RUN('흔들림 + 카메라펀치 동시', true, true);
+        }
+      }
+
+      // ②-b 던지기 한 번의 실제 연출 더미 — 여러 연출이 '동시에' 도는 그 순간을 잰다
+      if (SUB.includes('pile')) {
+        await p.eval(BENCHPILE);
+        out.benchpile = [];
+        const PILE = [
+          ['baseline (결과 720ms · 반짝이 6)',        720, {}],
+          ['· 결과를 착지 뒤로 (960ms)',              960, {}],
+          ['· 반짝이 제거',                           720, { nosparks: true }],
+          ['· 반짝이 3개',                            720, { sparks: 3 }],
+          ['· 반짝이 will-change 제거',               720, { nosparkwc: true }],
+          ['· yf-rays 제거',                          720, { norays: true }],
+          ['· 착지 뒤 + 반짝이 3 + rays 제거',        960, { sparks: 3, norays: true }],
+        ];
+        for (const big of [true, false]) {
+          for (const [label, at, opt] of PILE) {
+            if (!big && /반짝이|rays/.test(label)) continue;   // small엔 애초에 없다
+            await set(''); await p.wait(400);
+            const r = await p.eval(`return window.__benchpile(3, ${big}, ${at}, ${JSON.stringify(opt)});`);
+            out.benchpile.push({ label: (big ? '윷·모(big) ' : '도·개·걸(small) ') + label, ...(r || {}) });
+          }
+        }
+      }
+
       // ② 결과 오버레이(#yutFx) — 던질 때마다 뜬다. 도·개·걸(small)이 압도적으로 잦다.
       if (SUB.includes('fx')) {
       await p.eval(BENCHFX);
       out.benchfx = [];
       const FXOFF = {
+        '반짝이(yf-spark) 제거': '#yutFx .yf-spark{display:none !important}',
+        '반짝이 will-change 제거': '#yutFx .yf-spark{will-change:auto !important}',
+        'yf-rays 제거(윷·모 전용)': '#yutFx .yf-rays{display:none !important}',
+        'yf-rays 회전만 정지': '#yutFx .yf-rays{animation:yfRaysFade var(--yf-dur,1.35s) ease-out forwards !important}',
+        'yf-rays 70vmax + 회전 정지': '#yutFx .yf-rays{width:70vmax;height:70vmax;margin-left:-35vmax;margin-top:-35vmax;animation:yfRaysFade var(--yf-dur,1.35s) ease-out forwards !important}',
         '글자에 will-change (합성 레이어로)': '#yutFx .yf-word{will-change:transform,opacity} #yutFx .yf-dim{will-change:opacity}',
-        '그라디언트 텍스트 클립 제거': '#yutFx .yf-word{background:none !important;-webkit-text-fill-color:#f2ce68 !important}',
         '글자 외곽선(-webkit-text-stroke) 제거': '#yutFx .yf-word{-webkit-text-stroke-width:0 !important}',
         '어둡힘(yf-dim) 제거': '#yutFx .yf-dim{display:none !important}',
-        'yf-rays 제거(윷·모 전용)': '#yutFx .yf-rays{display:none !important}',
       };
-      for (const big of [false, true]) {
+      for (const big of (SUB.includes('fxbig') ? [true] : [false, true])) {
         const kind = big ? '윷·모(big)' : '도·개·걸(small)';
         const runfx = async label => { await p.wait(400); const r = await p.eval(`return window.__benchfx(3, ${big});`); out.benchfx.push({ label: kind + ' ' + label, ...(r || {}) }); };
         await set(''); await runfx('baseline');
@@ -456,6 +622,16 @@ async function run() {
     console.log('  ── 화면 전체 연출 벤치 (클래스 3회 발화)');
     console.log('     조건                                            fps   p50    p95    p99   최악   >33ms >50ms');
     out.benchcls.forEach(b => console.log(`     ${b.label.padEnd(44)} ${String(b.fps).padStart(5)} ${String(b.p50).padStart(6)} ${String(b.p95).padStart(6)} ${String(b.p99).padStart(6)} ${String(b.worst).padStart(6)} ${String(b.slow).padStart(6)} ${String(b.jank).padStart(5)}`));
+  }
+  if (out.benchpair) {
+    console.log('  ── 화면 전체 연출 동시 발화 (4회 × 2세트 교차)');
+    console.log('     조건                                            fps   p50    p95    p99   최악   >33ms >50ms');
+    out.benchpair.forEach(b => console.log(`     ${b.label.padEnd(44)} ${String(b.fps).padStart(5)} ${String(b.p50).padStart(6)} ${String(b.p95).padStart(6)} ${String(b.p99).padStart(6)} ${String(b.worst).padStart(6)} ${String(b.slow).padStart(6)} ${String(b.jank).padStart(5)}`));
+  }
+  if (out.benchpile) {
+    console.log('  ── 던지기 한 번의 연출 더미(pile) — 3회 발화 × 조건');
+    console.log('     조건                                            fps   p50    p95    p99   최악   >33ms >50ms');
+    out.benchpile.forEach(b => console.log(`     ${b.label.padEnd(44)} ${String(b.fps).padStart(5)} ${String(b.p50).padStart(6)} ${String(b.p95).padStart(6)} ${String(b.p99).padStart(6)} ${String(b.worst).padStart(6)} ${String(b.slow).padStart(6)} ${String(b.jank).padStart(5)}`));
   }
   if (out.benchfx) {
     console.log('  ── 결과 오버레이(#yutFx) 벤치 — 3회 발화 × 조건');

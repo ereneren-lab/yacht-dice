@@ -361,21 +361,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
      정작 높이를 확보하는 압축은 전부 아래 max-width:480px 블록에 묶여 있어 하나도 적용되지 않는다.
      그래서 세로에선 넘침 0인데 가로에선 +300px가 났다(너클본즈와 같은 종류의 구멍).
      → 같은 압축을 '높이' 기준으로 다시 건다. */
-  @media (orientation:landscape) and (max-height:520px){
-    body.ingame .app{ max-width:none; padding:2px 8px 2px }
-    .topbar{ margin:0 0 3px !important }
-    .iconbtn{ width:32px;height:32px;border-radius:8px;font-size:14px }
-    #modePill{ display:none }
-    #game{ gap:5px 10px }
-    body.ingame #missionPanel, body.ingame .game-left{ display:none }   /* 미션은 부가 정보 */
-    #game.orderphase .board{ display:none }        /* 선 뽑기 땐 판이 흐린 장식 */
-    #game .itembar{ padding:3px 7px;gap:1px }
-    #game .itembar .ib-head{ display:none }
-    #game .itembar .ib-card{ padding:3px 6px }
-    .game-center .board{ max-width:min(42vw, 80vh) }
-    .dr-band{ padding:6px 10px; gap:8px }
-    .gaugehint{ font-size:10px;margin-bottom:3px }
-  }
+  /* 가로(landscape) 규칙은 **파일 맨 아래**에 있다 —
+     `.gaugehint`·`.bigbtn` 같은 기본 정의가 이 지점보다 뒤에 있어서
+     여기에 두면 같은 특이도로 덮인다(함정 12). 실제로 gaugehint 압축이 안 먹고 있었다. */
   /* 조작부 묶음: 넓은 폭에선 투명(부모 flex 그대로), 폰에선 하단 고정바 */
   .ctrlbar{ display:contents }
   /* 좁은 폭(폰 세로): 1단 세로 + 조작부 하단 고정 */
@@ -554,6 +542,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   .tray-row{ display:flex;align-items:center;gap:9px;padding:7px 11px;border-radius:11px;background:var(--panel);border:1.5px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 3px rgba(0,0,0,.2) }
   .tray-row.myturn{ border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 20%,transparent) }
   .tray-name{ font-size:12px;font-weight:800;min-width:46px;display:flex;align-items:center;gap:5px }
+  /* 팀전 행은 팀 이름 + 멤버를 두 줄로. 예전엔 렌더 직후 인라인 style로 줬는데,
+     '내용이 같으면 다시 그리지 않기'(setHTML)를 넣으며 문자열만으로 결정되도록 CSS로 옮겼다. */
+  .tray-row[data-teamrow] .tray-name{ flex-direction:column; align-items:flex-start }
   .tray-name .dotc{ width:11px;height:11px;border-radius:50%;flex:none }
   .tray-slots{ display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1 }
   .tp{ width:30px;height:30px;border-radius:50%;border:2.5px solid rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:rgba(255,255,255,.9) }
@@ -794,10 +785,21 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
          → 폭을 줄이고 회전을 빼 합성만으로 처리되게 한다. */
   @media (max-width:480px){
     #yutFx .yf-word{ animation-name:yfWordInLite }
-    #yutFx .yf-rays{ width:110vmax;height:110vmax;margin-left:-55vmax;margin-top:-55vmax;mix-blend-mode:normal;opacity:.55 }
+    /* ⚡ 2차(2026-08-04): 회전(yfRays 무한)과 페이드(yfRaysFade)를 **한 애니로 합쳤다.**
+       같은 요소에 애니 2개를 걸면 그 순간 도는 연출 개수가 2로 세어지고, 무한 회전이라
+       오버레이가 사라질 때까지 계속 돈다. 합치면 하나고, 수명이 오버레이와 같아 저절로 끝난다.
+       크기도 110vmax(≈823px, dpr 2.81이면 2313² 텍스처)에서 78vmax로 줄이고
+       가장자리를 마스크로 흐려 사각 경계가 안 보이게 했다 — 칠하는 면적이 절반이 된다.
+       ⚠️ 되돌리려면 이 두 줄을 지우면 기본 규칙(110vmax·회전 무한)으로 돌아간다. */
+    #yutFx .yf-rays{ width:78vmax;height:78vmax;margin-left:-39vmax;margin-top:-39vmax;mix-blend-mode:normal;opacity:.55;
+      -webkit-mask-image:radial-gradient(closest-side,#000 58%,transparent 100%);
+              mask-image:radial-gradient(closest-side,#000 58%,transparent 100%);
+      animation:yfRaysSpinFade var(--yf-dur,1.35s) ease-out forwards }
     #game.camerapunch{ animation-name:camPunchLite }
     .app.scrshake{ animation-name:scrShakeLite }
   }
+  /* 회전 + 페이드를 하나로 (위 주석 참고). 7초에 360도이던 속도를 그대로 옮겨 1.5초에 78도. */
+  @keyframes yfRaysSpinFade{ 0%{opacity:0;transform:rotate(0)} 18%{opacity:.85} 66%{opacity:.6;transform:rotate(52deg)} 100%{opacity:0;transform:rotate(78deg)} }
   @keyframes yfWordInLite{ 0%{opacity:0;transform:scale(1.5)} 25%{opacity:1;transform:scale(.97)} 33%{transform:scale(1.02)} 40%{transform:scale(1)} 72%{opacity:1;transform:scale(1.03)} 100%{opacity:0;transform:scale(1.16)} }
   @keyframes camPunchLite{ 0%{transform:scale(1)} 45%{transform:scale(1.022)} 100%{transform:scale(1)} }
   @keyframes scrShakeLite{ 0%,100%{transform:translate(0,0)} 12%{transform:translate(-6px,3px)} 26%{transform:translate(6px,-3px)} 42%{transform:translate(-5px,2px)} 58%{transform:translate(5px,-2px)} 74%{transform:translate(-3px,1px)} 88%{transform:translate(2px,-1px)} }
@@ -1052,6 +1054,98 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   @media (max-width:520px){
     .opts.tiles{ grid-template-columns:repeat(3,1fr) }
     .opts.tiles .opt small{ display:none }   /* 좁으면 설명은 감추고 이름만 */
+  }
+  /* ── 가로 2차 개편 (2026-08-04 · 실기기 748×384 실측) ──────────────────
+     1차(v1.227)는 "넘치지 않게" 압축만 했다. 그런데 재보니 **넘침은 0인데 쓸 만하지 않았다**(함정 33).
+       · 748×384: 판 307px. 판이 든 가운데 열은 512px이라 **205px을 그냥 버렸다.**
+       · 844×390: 판 **210px**. 세로(384×748)의 328px보다 **작다** —
+         화면을 넓게 돌렸는데 판이 준다. 원인은 `.game-left{display:none}`이었다:
+         폭 ≥781px의 3열 규칙(210px | 1fr | 270px)이 그대로 남아 있는데 항목이 둘만 남으니
+         **판이 210px짜리 첫 열로 들어갔다.** (숨긴 요소는 그리드 칸을 비워주지 않는다.)
+       · 미션·채팅은 통째로 숨겨져 가로에선 볼 방법이 없었다.
+     → 가로 전용 **3열**로 다시 짠다: [정보 | 판 | 조작].
+       판은 **세로 높이를 전부** 갖고(가로 폭이 남으므로 병목은 높이다),
+       남는 폭에 플레이어·내 말·미션·채팅이 들어간다.
+     ⚠️ `.game-center{display:contents}`가 핵심이다 — 이걸로 가운데 열의 자식들
+        (플레이어 스트립·판·채팅)이 **각각** 그리드 항목이 되어 다른 열로 보낼 수 있다.
+        DOM을 JS로 옮기지 않아도 되고, 세로로 돌아오면 저절로 원래대로다.
+     ⚠️ 되돌리려면 이 블록만 지우면 된다. */
+  @media (orientation:landscape) and (max-height:520px){
+    body.ingame .app{ max-width:none; padding:2px 8px 2px }
+    .topbar{ margin:0 0 3px !important }
+    .iconbtn{ width:32px;height:32px;border-radius:8px;font-size:14px }
+    #modePill{ display:none }
+
+    /* 판 크기 = 남는 세로 전부. 상단바(32)+여백을 뺀 값. 폭도 상한을 둬 정보 열을 지킨다. */
+    #game{ --yl-board: min(46vw, calc(100vh - 46px)); }
+    #game{
+      gap:4px 9px;
+      grid-template-columns: 132px var(--yl-board) minmax(168px,1fr);
+      grid-template-rows: auto auto minmax(0,1fr) auto;
+      grid-template-areas:
+        "strip board ctrl"
+        "mis   board ctrl"
+        "chat  board ctrl"
+        "react board ctrl";
+      align-items:start;
+    }
+    .game-center{ display:contents }
+    /* 조작 열은 화면 높이를 넘지 않는다. 넘칠 때 줄어드는 것은 **트레이 하나뿐**이고,
+       나머지(턴 안내·던지기 영역·게이지·버튼)는 flex:none이라 절대 안 줄어든다
+       → 인원이 6명이어도 '윷 던지기' 버튼이 화면 밖으로 나가지 않는다(함정 21). */
+    .game-right{ grid-area:ctrl; position:static; align-self:start;
+      max-height:calc(100vh - 44px); min-height:0; overflow:hidden }
+    .game-right > *{ flex:none }
+    #game .tray{ flex:0 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch }
+    .game-left { grid-area:mis;  position:static; display:flex; min-height:0; overflow-y:auto }
+    #playersStrip{ grid-area:strip }
+    #chatBox{ grid-area:chat; min-height:0 }
+    #reactzone{ grid-area:react }
+    /* 판과 선 뽑기 패널은 같은 칸을 쓴다 — 둘이 동시에 보이는 일이 없다(서로 display:none) */
+    .game-center .board, #orderPanel{ grid-area:board }
+    .game-center .board{ max-width:var(--yl-board); margin:0 }
+    #game.orderphase .board{ display:none }        /* 선 뽑기 땐 판이 흐린 장식 */
+
+    /* ① 정보 열 — 플레이어를 세로로 쌓는다(가로에선 가로 나열이 판 높이를 92px 먹었다) */
+    body.ingame .players-strip{ display:flex }     /* ≥781px의 '카드가 대신한다'를 되돌린다 */
+    .charcards{ display:none }                     /* 큰 캐릭터 카드는 132px 열에 안 들어간다 */
+    .players-strip{ flex-direction:column; flex-wrap:nowrap; gap:3px; margin:0 }
+    .players-strip .pchip{ padding:3px 6px;font-size:10.5px;gap:4px }
+    .players-strip .pchip img, .players-strip .pchip .pav{ width:20px;height:20px }
+    .players-strip .pchip .pdone{ font-size:10.5px;padding:0 5px;margin-left:auto }
+    .mission-panel{ padding:5px 7px;margin:0;font-size:11px }
+    .mission-head{ font-size:11px;margin-bottom:3px }
+    .mission-item .mname{ font-size:10.5px } .mission-item .mname small{ display:none }
+    .chatbox{ margin:0 } .chatlog{ max-height:88px;font-size:11px }
+
+    /* ② 조작 열 — 세로 318~384px 안에 턴안내·내 말·던지기·버튼이 다 들어가야 한다.
+       ≤480px(세로 폰) 블록의 압축과 같은 값을, 가로에선 '높이' 기준으로 다시 건다(함정 8). */
+    #game .turninfo{ margin:0;padding:3px 8px;font-size:12px;min-height:0 }
+    #game .itembar{ padding:3px 7px;gap:1px }
+    #game .itembar .ib-head{ display:none }
+    #game .itembar .ib-card{ padding:3px 6px }
+    #game .tray{ margin:0;gap:3px }
+    #game .tray-row{ padding:2px 6px;gap:6px }
+    #game .tp{ width:22px;height:22px;font-size:10px;border-width:2px }
+    #game .tray-name{ font-size:10.5px;min-width:36px }
+    #game .throwarea{ margin:0 }
+    #game .thrower{ min-height:26px;margin-bottom:0 }
+    #game .thrower img{ width:26px;height:26px }
+    #game .thrower .tname{ font-size:11px }
+    #game .yutsticks{ min-height:40px;gap:8px;margin-bottom:2px }
+    #game .stick{ width:19px;height:46px }
+    #game .stick .face{ border-radius:9px }
+    #game .stick.mark .front::after{ font-size:12px }
+    #game .throwresult{ font-size:19px;min-height:20px }
+    #game .pendingrow{ min-height:0;margin-top:3px }
+    #game .pendingrow:empty{ display:none;margin:0 }
+    #game .pchipm{ padding:2px 9px;border-width:1.5px }
+    #game .pchipm .pcm-nm{ font-size:12px;line-height:1.1 }
+    #game .pchipm .pcm-st{ font-size:9px;line-height:1 }
+    .ctrlbar .powergauge{ height:14px;margin-bottom:2px }
+    .gaugehint{ font-size:10px;margin-bottom:2px }
+    .bigbtn{ padding:11px;font-size:15px }
+    .dr-band{ padding:6px 10px; gap:8px }
   }
 </style>
 </head>
@@ -2371,6 +2465,23 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     log.appendChild(d); while(log.children.length>60) log.removeChild(log.firstChild);
     if(nearBottom || pid===MYPID) log.scrollTop=log.scrollHeight;
   }
+  /* ══ 연출 동시 발생 줄이기 (2026-08-04 · 렉 2차) ═════════════════════════
+     1차에서 개별 연출은 전부 값이 쌌다(단독 벤치 87~90fps). 그런데 긴 세션에서 200~300ms
+     프레임이 남았고, 그 순간을 뜯어보니 **연출 10개 안팎이 동시에** 돌고 있었다:
+       결과 오버레이(11개) + 토스트 + 이모지 + 말풍선 + 캐릭터 모션 + 윷가락 4개 + 상시 애니 4종.
+     그래서 여기서는 **연출을 없애지 않고** 다음 세 가지만 한다.
+       ① 같은 말을 두 번 하지 않는다   — 큰 결과 오버레이가 화면을 덮는 순간엔 말풍선 생략
+       ② 동시에 여러 개 뜨지 않게 한다 — 토스트는 항상 1개(큐), 떠다니는 이모지는 최대 4개
+       ③ 겹칠 것은 미룬다             — 오버레이가 도는 동안 토스트는 잠깐 뒤로
+     ⚠️ 되돌리는 법: FX_LIMIT의 값만 바꾸면 된다(0/Infinity면 예전 동작). */
+  const FX_LIMIT = {
+    floatEmoji: 4,      // 동시에 떠 있는 .floatemo 개수 상한 (기존: 무제한)
+    toastDeferMs: 650,  // 풀스크린 결과 오버레이가 도는 동안 토스트를 미루는 시간 (0이면 안 미룸)
+    toastQueuedMs: 1300 // 뒤에 대기 중인 토스트가 있을 때 현재 토스트 수명 (없으면 2600)
+  };
+  function _floatBudgetLeft(){
+    return FX_LIMIT.floatEmoji - document.querySelectorAll('.floatemo').length;
+  }
   function floatReaction(pid,emoji){
     // 단계마다 그 플레이어를 나타내는 '보이는' 요소가 다르다: 게임 중엔 캐릭터 카드(#charCards
     // .ccard), 선 뽑기·로비 땐 상단 칩(.pchip). 숨겨진 요소는 getBoundingClientRect가 0을 주는데,
@@ -2381,6 +2492,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(!r){ const bd=$('board'); r=(bd||document.body).getBoundingClientRect(); }
     const cx=r.left+r.width/2;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.~]/.test(emoji);
+    // 동시에 떠 있는 개수 상한 — 넘치면 이번 것은 안 띄운다(소리·콤보 집계는 그대로 간다)
+    if(_floatBudgetLeft()<=0){ try{SFX.pop();}catch(e){}
+      const now2=Date.now(); if(!isText && emoji===lastComboEmoji && now2-lastComboT<1300) comboN++; else comboN=1;
+      lastComboEmoji=emoji; lastComboT=now2; return; }
     const el=document.createElement('div'); el.className='floatemo'+(isText?' txt':''); el.textContent=emoji;
     if(isText){ el.style.left=cx+'px'; el.style.top=(r.top-8)+'px'; }
     else { const dx=Math.random()*70-35; el.style.left=(cx-20+dx)+'px'; el.style.top=(r.top-10)+'px'; }
@@ -2390,11 +2505,36 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
   // 화면 좌표(sx,sy)에서 이모지를 띄운다 — 잡기처럼 '보드의 그 칸'에서 나가야 자연스러운 경우.
   function floatEmojiAt(sx, sy, emoji){
+    if(_floatBudgetLeft()<=0){ try{SFX.pop();}catch(e){} return; }
     const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
     el.style.left=sx+'px'; el.style.top=sy+'px';
     document.body.appendChild(el); setTimeout(()=>{try{el.remove();}catch(e){}},2900); try{SFX.pop();}catch(e){}
   }
-  function showToast(msg){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+  /* 토스트는 항상 화면에 **하나만**. 예전엔 부르는 대로 만들어서 같은 자리(top:14px)에
+     여러 장이 겹쳐 쌓였다(읽을 수도 없고 연출 개수만 늘었다). 큐로 바꾸고,
+     뒤에 대기가 있으면 수명을 줄여 밀리지 않게 한다. */
+  let _toastQ=[], _toastEl=null, _toastT=null, _toastDefer=false;
+  function showToast(msg){
+    if(_toastQ[_toastQ.length-1]===msg) return;      // 같은 문구 연타는 한 번만
+    _toastQ.push(msg); if(_toastQ.length>3) _toastQ.splice(0,_toastQ.length-3);
+    _pumpToast();
+  }
+  function _pumpToast(){
+    if(_toastEl || !_toastQ.length) return;
+    // 풀스크린 결과 오버레이가 도는 동안은 잠깐 미룬다 — 같은 프레임에 겹치는 것을 줄인다
+    const fx=document.getElementById('yutFx');
+    if(FX_LIMIT.toastDeferMs>0 && !_toastDefer && fx && fx.classList.contains('on')){
+      _toastDefer=true; setTimeout(()=>{ _toastDefer=false; _pumpToast(); }, FX_LIMIT.toastDeferMs); return;
+    }
+    const msg=_toastQ.shift();
+    const el=document.createElement('div'); el.className='toast';
+    el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); el.textContent=msg;
+    document.body.appendChild(el); _toastEl=el;
+    const life=_toastQ.length ? FX_LIMIT.toastQueuedMs : 2600;
+    el.style.animationDuration=(life/1000)+'s';
+    clearTimeout(_toastT);
+    _toastT=setTimeout(()=>{ try{el.remove();}catch(e){} _toastEl=null; _pumpToast(); }, life);
+  }
 
   /* ===== 렌더 ===== */
   const YUT_NAME={'-1':'빽도',1:'도',2:'개',3:'걸',4:'윷',5:'모'};
@@ -3141,11 +3281,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     }, rise);
     if(grand){
       // 박진감 넘치는 피날레: 화면 플래시 + 진동 + 3연발 불꽃놀이
+      /* ③ 겹칠 것은 미룬다 — 예전 간격(340/980/1620ms)은 입자 수명(1s)보다 짧아서
+         **불꽃 3연발이 서로 겹쳐 최대 90개가 동시에** 살아 있었다. 실측 최악 프레임(367ms)이
+         정확히 이 순간이고, 그때 돌던 것은 CSS 트랜지션 60개(입자 30개 × transform·opacity)였다.
+         → 연발 수도 입자 수도 그대로 두고 **간격만 벌려** 동시 개수를 90 → 30으로 낮춘다.
+           피날레가 ~1초 길어지지만, 한 판에 한 번뿐인 순간이라 오히려 여운이 남는다. */
       try{ screenFlash(); cameraPunch(); }catch(e){}
       setTimeout(()=>{ try{ screenShake(); fireworks(); }catch(e){} }, rise+340);
-      setTimeout(()=>{ try{ fireworks(); screenShake(); }catch(e){} }, rise+980);
-      setTimeout(()=>{ try{ fireworks(); }catch(e){} }, rise+1620);
-      setTimeout(()=>{ if(onDone)onDone(); }, rise+1950);
+      setTimeout(()=>{ try{ fireworks(); screenShake(); }catch(e){} }, rise+1400);
+      setTimeout(()=>{ try{ fireworks(); }catch(e){} }, rise+2460);
+      setTimeout(()=>{ if(onDone)onDone(); }, rise+2900);
     } else {
       setTimeout(()=>{ if(onDone)onDone(); }, rise+1000);   // 기존 780 → 1000 (천천히 음미)
     }
@@ -3299,28 +3444,26 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const n=S.players.length;
     el.classList.toggle('grid2', n>=5);   // 5인 이상은 2열
     el.style.setProperty('--cardav', (CARD_AV[n]||Math.max(60, Math.round(300/n)))+'px');
-    el.innerHTML='';
     const orderMode = (S.phase==='order' && S.order);
-    S.players.forEach((p,pi)=>{
+    setHTML(el, 'cards', S.players.map((p,pi)=>{
       const dc=dispDone(pi);
       const ordStep = orderMode && Object.prototype.hasOwnProperty.call(S.order.round||{},pi) ? S.order.round[pi] : null;
       const isLead=maxDone>0 && dc===maxDone && S.phase!=='over';
       const isTurn=(S.turn===pi && S.phase!=='over');
       const shielded=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(pi)===S.shieldSide);
       const team=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵':'🔴'):'';
-      const d=document.createElement('div');
-      d.className='ccard'+(isTurn?' turn':'')+(isLead?' lead':'')+(p.pid===MYPID?' me':'');
-      d.dataset.pid=p.pid;
-      d.innerHTML=`${(team||shielded)?`<span class="ccbadge">${team}${shielded?'🛡':''}</span>`:''}`
+      const cls='ccard'+(isTurn?' turn':'')+(isLead?' lead':'')+(p.pid===MYPID?' me':'');
+      return `<div class="${cls}" data-pid="${p.pid}">`
+        +`${(team||shielded)?`<span class="ccbadge">${team}${shielded?'🛡':''}</span>`:''}`
         +`<div class="ccav" style="--rim:${pieceColor(pi)}"><img src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)}"></div>`
         +(p.pid===MYPID?`<span class="cc-title">${esc(myTitleText())}</span>`:'')
         +`<span class="ccname">${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}</span>`
         // 선 뽑기 중엔 완주 수(항상 0)가 의미 없다 → 그 사람이 던진 끗수를 보여준다
         +(orderMode
             ? `<span class="ccdone">${ordStep!=null ? '<b>'+(YUT_NAME[ordStep]||ordStep)+'</b>' : '<span style="color:var(--muted)">던지기 전</span>'}</span>`
-            : `<span class="ccdone"><b>${dc}</b>/${goalN} 완주</span>`);
-      el.appendChild(d);
-    });
+            : `<span class="ccdone"><b>${dc}</b>/${goalN} 완주</span>`)
+        +`</div>`;
+    }).join(''));
   }
   // 현재 차례 큰 캐릭터가 결과에 반응해 포즈 1회. throwmo와 똑같이 img 인라인 애니로 걸어
   // 카드가 재렌더되면 저절로 끝난다(1회성). reduced-motion은 CSS !important가 덮고 여기서도 가드.
@@ -3489,6 +3632,19 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     finish(){ this.active=false; const c=$('coach'); if(c)c.classList.remove('on'); if(!this.seen){ this.seen=true; try{localStorage.setItem('yut_tut','1');}catch(e){} } }
   };
   try{ addEventListener('resize',()=>Tut.place()); }catch(e){}
+  /* ── 같은 내용은 다시 그리지 않는다 (2026-08-04 · 렉 2차) ─────────────────
+     render()는 엔진의 _emit()마다 돈다. 그때마다 플레이어 스트립·캐릭터 카드·던지는 사람·
+     트레이의 innerHTML을 **내용이 같아도** 통째로 갈아끼웠다. 그러면 <img>가 새로 만들어져
+     이미지 디코드가 다시 일어나고, `.thrower img`의 avBob 애니가 매번 재시작된다.
+     실측(긴 세션 150초, 40ms 넘는 프레임 500개): avBob이 100%, throwmo가 48%에 함께 있었다.
+     연출을 없애는 대신 **연출과 같은 프레임에 얹히던 재구축**을 없앤다 — 화면은 한 픽셀도 안 바뀐다.
+     ⚠️ 되돌리려면 setHTML(el,key,html) 호출을 el.innerHTML=html 로 되돌리면 된다.
+     ⚠️ 트레이는 만든 뒤 onclick을 다시 매므로, **다시 그린 경우에만** 다시 맨다.
+        키에 pushMode를 넣는 이유: HTML이 같아도 밀치기 모드가 바뀌면 바인딩이 달라진다. */
+  const _htmlSig=Object.create(null);
+  function setHTML(el, key, html){ if(_htmlSig[key]===html) return false; _htmlSig[key]=html; el.innerHTML=html; return true; }
+  function resetHTMLSig(){ for(const k in _htmlSig) delete _htmlSig[k]; }
+
   function render(){
     if(!S)return;
     if(pushMode && (!S.itemBattle || !itemsUsable())) pushMode=false;   // 밀치기 모드 유효성(내 차례·아이템전 아니면 해제)
@@ -3498,16 +3654,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     $('endBtn').style.display = (online && amHost && S.phase!=='over') ? 'flex' : 'none';
     $('leaveBtn').style.display = online ? 'flex' : 'none';
     // 플레이어 스트립
-    const strip=$('playersStrip'); strip.innerHTML='';
+    const strip=$('playersStrip');
     const goalN=S.goal||S.markers;
     const maxDone=Math.max(0,...S.players.map((p,pi)=>dispDone(pi))); // 최다 완주 = 선두(팀전은 팀 공유 말 기준)
-    S.players.forEach((p,pi)=>{
+    setHTML(strip, 'strip', S.players.map((p,pi)=>{
       const dc=dispDone(pi);
       const isLead=maxDone>0 && dc===maxDone && S.phase!=='over'; // 선두(공동 포함)
-      const d=document.createElement('div'); d.className='pchip'+(S.turn===pi&&S.phase!=='over'?' turn':'')+(isLead?' lead':'')+(S.teamMode&&S.players[pi]?' tm'+S.players[pi].team:''); d.dataset.pid=p.pid;
-      const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; const shld=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(pi)===S.shieldSide)?' <span class="pc-shield" title="방어막 — 잡기 면역">🛡</span>':''; d.innerHTML=`<img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}${shld} <span class="pdone">${isLead?'👑':''}${dc}/${goalN}</span>`;
-      strip.appendChild(d);
-    });
+      const cls='pchip'+(S.turn===pi&&S.phase!=='over'?' turn':'')+(isLead?' lead':'')+(S.teamMode&&S.players[pi]?' tm'+S.players[pi].team:'');
+      const tico=(S.teamMode&&S.players[pi])?(S.players[pi].team===0?'🔵 ':'🔴 '):''; const shld=(S.itemBattle&&S.shieldSide!=null&&pieceOwnerSeat(pi)===S.shieldSide)?' <span class="pc-shield" title="방어막 — 잡기 면역">🛡</span>':'';
+      return `<div class="${cls}" data-pid="${p.pid}"><img class="pav" src="${ANIMAL_IMG[pieceAnimal(p,pi)]}" style="border-color:${pieceColor(pi)}" alt="${esc(p.name)} 말">${tico}${esc(p.name)}${p.pid===MYPID?'(나)':''}${p.ai?' 🤖':''}${shld} <span class="pdone">${isLead?'👑':''}${dc}/${goalN}</span></div>`;
+    }).join(''));
     // 🎭 캐릭터 카드(좌측, 3단 폭에서만 보임) — 스트립과 같은 데이터로 크게 그린다
     renderCharCards(goalN, maxDone);
     // JUICE: 역전 배너 — 단독 선두가 실제로 바뀌는 순간만 (팀전 제외)
@@ -3667,11 +3823,12 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   }
   function renderThrower(){
     const el=$('thrower'); if(!el)return;
-    if(!S || S.phase==='over'){ el.innerHTML=''; return; }
-    const p=S.players[S.turn]; if(!p){ el.innerHTML=''; return; }
+    if(!S || S.phase==='over'){ setHTML(el,'thrower',''); return; }
+    const p=S.players[S.turn]; if(!p){ setHTML(el,'thrower',''); return; }
     const av=pieceAnimal(p, S.turn);
     const tlbl=(S.teamMode&&p)?TEAM_NAME[p.team]+' · ':'';
-    el.innerHTML=`<img src="${ANIMAL_IMG[av]}" style="border-color:${pieceColor(S.turn)}"><span class="tname">${tlbl}${p.pid===MYPID?'🎯 내 차례':esc(p.name)+' 차례'}</span>`;
+    // ⚠️ 여기서 <img>를 새로 만들면 avBob(무한 애니)이 매 render마다 재시작된다 → 같은 내용이면 손대지 않는다
+    setHTML(el,'thrower',`<img src="${ANIMAL_IMG[av]}" style="border-color:${pieceColor(S.turn)}"><span class="tname">${tlbl}${p.pid===MYPID?'🎯 내 차례':esc(p.name)+' 차례'}</span>`);
   }
   /* ===== 선 뽑기(순서 결정) 화면 ===== */
   function renderOrder(){
@@ -3775,7 +3932,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const throwLabel=t=>{ const ex=(t.step===4||t.step===5?' <span class="big">한 번 더!</span>':t.step===-1?' <span class="big">뒤로!</span>':''); return t.name+ex; };
     if(isNew){ const rr=$('throwResult'); rr.textContent=''; rr.classList.remove('pop'); setTimeout(()=>{ if(!S||!S.lastThrow)return; rr.innerHTML=throwLabel(S.lastThrow); rr.classList.remove('pop'); void rr.offsetWidth; rr.classList.add('pop');
       const st=S.lastThrow.step; const key=st===5?'mo':st===4?'yut':st===-1?'backdo':st===1?'do':st===2?'gae':'geol';
-      const tp=S.players[S.turn]; if(tp) showSpeech(tp.pid, key);
+      // ① 같은 말을 두 번 하지 않는다 — 윷·모·빽도는 풀스크린 오버레이가 큰 글자로 이미 말한다.
+      //    그 순간이 정확히 연출이 가장 많이 겹치는 지점이라(측정: 최악 프레임 10개 중 8개),
+      //    말풍선 하나를 빼서 겹침을 줄인다. 흔한 도·개·걸에서는 오버레이가 작으므로 그대로 띄운다.
+      const bigResult=(st===4||st===5||st===-1);
+      const tp=S.players[S.turn]; if(tp && !bigResult) showSpeech(tp.pid, key);
       if(tp){ if(st===4||st===5) reactCard(tp.pid,'cardJoy',0.9); else if(st===-1) reactCard(tp.pid,'cardDismay',0.8,'ease-out'); }  // 큰 캐릭터: 윷·모 환호 / 빽도 낙담
       try{ if(st===4||st===5){SFX.yut(); BGM.duck();} else if(st===-1)SFX.backdo(); }catch(e){}
       // JUICE: 풀스크린 결과 오버레이
@@ -3804,31 +3965,33 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     return `<span class="tray-name"><span class="dotc" style="background:${colorHex}"></span>${label}${shld}</span><span class="tray-slots">${slots}</span>${tag}`;
   }
   function renderTray(){
-    const el=$('pieceTray'); if(!el)return; el.innerHTML='';
+    const el=$('pieceTray'); if(!el)return;
+    // 내용이 그대로면 다시 그리지 않는다(위 setHTML 주석 참고).
+    // ⚠️ 다시 그렸을 때만 onclick을 다시 맨다 — 안 그러면 예전 노드에 두 번 매게 된다.
+    //    pushMode를 키에 넣는 이유: HTML이 같아도 밀치기 모드가 바뀌면 바인딩 대상이 달라진다.
+    const _trayKey='tray'+(pushMode?':push':'');
+    if(_htmlSig.trayMode!==_trayKey){ _htmlSig.trayMode=_trayKey; delete _htmlSig.tray; }
+    let html;
     if(S.teamMode){
       // 팀당 공유 말 한 세트 → 팀 2행. 현재 차례 팀 강조. "우리 팀" 표시.
       const myTeam=(mySeat()>=0&&S.players[mySeat()])?S.players[mySeat()].team:-1;
-      teamList().forEach(tm=>{
+      html=teamList().map(tm=>{
         const seat=S.teamHolder[tm]; const rep=S.players[seat]; const pcs=rep?rep.pieces:[];
         const isTurn=(S.phase!=='over' && S.players[S.turn] && S.players[S.turn].team===tm);
-        const row=document.createElement('div'); row.className='tray-row'+(isTurn?' myturn':'');
         const members=S.players.filter(p=>p.team===tm).map(p=>esc(p.name)+(p.pid===MYPID?'(나)':'')).join(' · ');
         const label=`${TEAM_NAME[tm]}${tm===myTeam?' <b class="tray-us">우리팀</b>':''}<small class="tray-mem">${members}</small>`;
-        row.innerHTML=trayRowInner(pcs, seat, seat, rep, label, TEAM_COL[tm]);
-        row.querySelector('.tray-name').style.flexDirection='column';
-        row.querySelector('.tray-name').style.alignItems='flex-start';
-        el.appendChild(row);
-      });
-      if(!pushMode) el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
-      bindTrayPush(el);
-      return;
+        // 팀 행은 이름을 두 줄로(예전엔 렌더 후 인라인 style로 줬다 — 문자열로 만들면 시그니처에도 들어간다)
+        return `<div class="tray-row${isTurn?' myturn':''}" data-teamrow="1">`
+          + trayRowInner(pcs, seat, seat, rep, label, TEAM_COL[tm]) + `</div>`;
+      }).join('');
+    } else {
+      html=S.players.map((p,pi)=>{
+        const label=`${esc(p.name)}${p.pid===MYPID?'(나)':''}`;
+        return `<div class="tray-row${S.turn===pi&&S.phase!=='over'?' myturn':''}">`
+          + trayRowInner(p.pieces, pi, pi, p, label, pieceColor(pi)) + `</div>`;
+      }).join('');
     }
-    S.players.forEach((p,pi)=>{
-      const row=document.createElement('div'); row.className='tray-row'+(S.turn===pi&&S.phase!=='over'?' myturn':'');
-      const label=`${esc(p.name)}${p.pid===MYPID?'(나)':''}`;
-      row.innerHTML=trayRowInner(p.pieces, pi, pi, p, label, pieceColor(pi));
-      el.appendChild(row);
-    });
+    if(!setHTML(el,'tray',html)) return;   // 내용이 같다 → 노드도 핸들러도 그대로
     if(!pushMode) el.querySelectorAll('.tp.movable').forEach(t=>{ const act=()=>onPieceClick(+t.dataset.pid, +t.dataset.pi); t.onclick=act; t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); act(); } }; });
     bindTrayPush(el);
   }
@@ -4171,6 +4334,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     for(let i=1;i<cfg.n;i++) players.push({pid:'ai'+i,name:nm[i-1],avatar:others[(i-1)%others.length],ai:true,aiDiff:cfg.aiDiff||'normal'});
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
+    resetHTMLSig();   // 새 판 — 캐시된 HTML 시그니처를 버린다(인원·이름이 바뀐다)
     engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, speedStart:!!cfg.speedStart, pit:!!cfg.pit, eventTypes:cfg.eventTypes.slice(), dailyRule:(cfg.dailyOn?undefined:false), limitMs:(cfg.timer||0)*60000, aiMs:PMS(900), aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
@@ -4268,7 +4432,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if($('game').style.display==='grid' && S && S.phase!=='over') return;
       renderLobby();
     }
-    else if(m.t==='state'){ online=true; $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· 온라인'; S=m.state;
+    else if(m.t==='state'){ online=true; if($('game').style.display==='none') resetHTMLSig(); $('lobbyOv').classList.remove('on'); $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· 온라인'; S=m.state;
       // 새 판 감지: 엔진 start()마다 gameStartTime이 새로 찍힌다 → 판 단위 상태 리셋
       // (재경기 2·3판째 결과창이 안 뜨던 버그의 원인: resultShown/missions가 리셋 안 됨)
       const rk = S.gameStartTime || 0;
