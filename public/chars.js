@@ -24,12 +24,20 @@
 (function (global) {
   'use strict';
 
+  /* 기본 5종은 **윷의 도개걸윷모**라 무료다. 규칙에서 나온 세트를 잠그면 '기본을 뺏겼다'가 된다.
+     파는 것은 그 계보 **밖**에서 온다(2026-08-04). shop 필드가 있으면 상점에서 사야 열린다. */
   var LIST = [
     { id: 'pig',   kr: '돼지', yut: '도', img: 'img/pig.png' },
     { id: 'dog',   kr: '개',   yut: '개', img: 'img/dog.png' },
     { id: 'sheep', kr: '양',   yut: '걸', img: 'img/sheep.png' },
     { id: 'cow',   kr: '소',   yut: '윷', img: 'img/cow.png' },
-    { id: 'horse', kr: '말',   yut: '모', img: 'img/horse.png' }
+    { id: 'horse', kr: '말',   yut: '모', img: 'img/horse.png' },
+    // ── 상점 캐릭터 (2026-08-04)
+    { id: 'tiger',    kr: '호랑이', img: 'img/tiger.png',    shop: 'char_tiger' },
+    { id: 'rabbit',   kr: '토끼',   img: 'img/rabbit.png',   shop: 'char_rabbit' },
+    { id: 'bear',     kr: '곰',     img: 'img/bear.png',     shop: 'char_bear' },
+    { id: 'fox',      kr: '여우',   img: 'img/fox.png',      shop: 'char_fox' },
+    { id: 'dokkaebi', kr: '도깨비', img: 'img/dokkaebi.png', shop: 'char_dokkaebi' }
   ];
 
   var BY_ID = {};
@@ -50,7 +58,17 @@
 
   var CHARS = {
     LIST: LIST,
-    ids: function () { return LIST.map(function (c) { return c.id; }); },
+    /** 전부 (상점 진열용) */
+    all: function () { return LIST.slice(); },
+    /** 산 사람인가 — shop 필드가 없으면 무료라 항상 true.
+     *  ⚠️ shop.js가 없는 페이지에서도 죽으면 안 된다 → 없으면 '아직 안 산 것'으로 본다. */
+    owned: function (id) {
+      var c = BY_ID[id]; if (!c) return false;
+      if (!c.shop) return true;
+      try { return !!(window.SHOP && SHOP.owned(c.shop)); } catch (e) { return false; }
+    },
+    /** 고를 수 있는 것만 — 아바타 피커는 이걸 쓴다(안 산 캐릭터는 안 보인다) */
+    ids: function () { return LIST.filter(function (c) { return CHARS.owned(c.id); }).map(function (c) { return c.id; }); },
     get: function (id) { return BY_ID[id] || null; },
     /** 캐릭터 id인가 (이모지·빈값이면 false) */
     is: function (v) { return !!(v && BY_ID[v]); },

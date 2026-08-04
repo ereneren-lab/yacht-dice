@@ -89,6 +89,20 @@ const { launchWithRetry } = require('./cdp');
       else console.log(`✅ ${m[1].padEnd(12)} ${list.length}개 전부 팩 전용 — ${list.join(' ')}`);
     }
     if (!over) console.log('✅ 무료로 쓸 수 있는 걸 파는 팩은 없다');
+
+    /* ⑦ 캐릭터 상품은 **그림이 실제로 있어야** 한다.
+       id 철자가 하나 틀리면 상점엔 멀쩡히 보이는데 산 사람 아바타만 빈칸이 된다 —
+       코드는 아무 에러도 안 낸다. 그래서 파일 존재를 단언한다. */
+    const chars = P('chars.js');
+    const shopChars = [...shop.matchAll(/slot:'char'[^}]*char:'(\w+)'/g)].map(m => m[1]);
+    for (const c of shopChars) {
+      const inList = new RegExp(`id: '${c}'`).test(chars);
+      const hasImg = fs.existsSync(path.join(__dirname, '../../public/img', c + '.png'));
+      if (!inList) fail(`상점 캐릭터 '${c}'가 chars.js LIST에 없다`);
+      else if (!hasImg) fail(`상점 캐릭터 '${c}'의 그림(public/img/${c}.png)이 없다`);
+      else console.log(`✅ 캐릭터 ${c.padEnd(9)} chars.js 등록 + 그림 있음`);
+    }
+    if (!shopChars.length) fail('상점에 캐릭터 상품이 하나도 없다');
   }
 
   await cdp.close();

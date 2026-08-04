@@ -10,6 +10,7 @@
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <script src="stats.js"></script>
 <script src="wallet.js"></script>
+<script src="chars.js"></script>
 <script src="shop.js"></script>
 <script src="monetize.js"></script>
 <style>
@@ -118,7 +119,7 @@
     /* 이모지 아바타 팩은 내렸다(2026-08-04) — 허브에 이모지 직접 입력칸이 있어서 팔 수 있는 물건이 아니었다.
        이 자리는 **직접 만든 캐릭터**(public/img 소프트 3D 마스코트)의 스킨/코스튬이 들어올 자리다.
        CATALOG에 slot:'char' 항목이 생기면 이 줄만 살아난다(항목이 없으면 그룹은 자동으로 안 그려진다). */
-    {slot:'char',  title:'🐷 캐릭터',      sub:'윷놀이 말·프로필에 쓰는 우리 캐릭터'},
+    {slot:'char',  title:'🐷 캐릭터',      sub:'사면 아바타 목록에 열린다 — 프로필이나 게임에서 고르면 13게임에 따라다닌다'},
     {slot:'pack',  title:'😀 아바타 팩',    sub:'허브 프로필에서 고를 수 있게 된다'},
     {slot:'title', title:'🏮 칭호',         sub:'이름 옆에 붙는다'}
   ];
@@ -142,11 +143,11 @@
       items.forEach(function(it){
         var owned=SHOP.owned(it.id), eq=SHOP.equipped(it.slot)===it.id;
         var c=document.createElement('div'); c.className='card'+(owned?' have':'');
-        c.innerHTML='<div class="ic">'+it.icon+'</div>'+
+        c.innerHTML='<div class="ic">'+((it.char&&window.CHARS)?CHARS.html(it.char):it.icon)+'</div>'+
           '<div class="mid"><div class="nm">'+it.name+'</div><div class="ds">'+it.desc+'</div>'+diePreview(it)+'</div>'+
           '<div class="act">'+(owned?'':'<span class="price">🪙 '+it.price.toLocaleString()+'</span>')+
-          '<button class="btn '+(owned?(eq?'on':''):'buy')+'" data-id="'+it.id+'" data-act="'+(owned?(it.slot==='pack'?'has':'equip'):'buy')+'">'+
-          (owned?(it.slot==='pack'?'보유 중':(eq?'장착 중':'장착')):'구매')+'</button></div>';
+          '<button class="btn '+(owned?(eq?'on':''):'buy')+'" data-id="'+it.id+'" data-act="'+(owned?((it.slot==='pack'||it.slot==='char')?'has':'equip'):'buy')+'">'+
+          (owned?((it.slot==='pack'||it.slot==='char')?'보유 중':(eq?'장착 중':'장착')):'구매')+'</button></div>';
         grid.appendChild(c);
       });
       host.appendChild(grid);

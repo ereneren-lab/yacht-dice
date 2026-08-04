@@ -17,6 +17,18 @@
     { id:'dice_ivory',  slot:'dice',   name:'상아 주사위', icon:'🎲', price:5000,  desc:'매끈한 아이보리',          vars:{'--die':'#f7f1e2','--die2':'#e6dcc6','--pip':'#4a3a24'} },
     { id:'dice_celadon',slot:'dice',   name:'청자 주사위', icon:'🎲', price:8000,  desc:'은은한 청록 유약',          vars:{'--die':'#cfe3dd','--die2':'#a9c8c0','--pip':'#1f3b36'} },
     { id:'dice_gold',   slot:'dice',   name:'황금 주사위', icon:'🎲', price:20000, desc:'골목의 자랑',              vars:{'--die':'#f2cf6a','--die2':'#d3a634','--pip':'#3b2a08'} },
+    /* ── 캐릭터 (슬롯: char) — **우리가 직접 만든 것**만 판다.
+       기본 5종(도개걸윷모)은 무료다. 여기 있는 5종은 그 계보 밖에서 왔다 —
+       기본을 잠그면 '뺏겼다'가 되지만, 밖에서 온 건 '더 생겼다'가 된다.
+       가격 근거: outputs/research/2026-08-04_dice-alley_character-research.md
+       (한게임 포커의 기본:유료 = 4:5 비율 참고. 단 그쪽은 30일권이고 우리는 코인 영구 구매다.)
+       ⚠️ 사면 **아바타 목록에 열린다**. 장착은 프로필/게임 아바타 피커에서 한다
+          — 아바타의 정본은 `alley_avatar` 하나뿐이어야 해서 상점에 두 번째 출처를 만들지 않는다. */
+    { id:'char_tiger',    slot:'char', name:'호랑이', icon:'🐯', price:5000,  desc:'장난기 어린 호랑이',  char:'tiger' },
+    { id:'char_rabbit',   slot:'char', name:'토끼',   icon:'🐰', price:5000,  desc:'한쪽 귀만 쫑긋',      char:'rabbit' },
+    { id:'char_bear',     slot:'char', name:'곰',     icon:'🐻', price:10000, desc:'손 흔드는 아기 곰',   char:'bear' },
+    { id:'char_fox',      slot:'char', name:'여우',   icon:'🦊', price:10000, desc:'꼬리를 세운 여우',    char:'fox' },
+    { id:'char_dokkaebi', slot:'char', name:'도깨비', icon:'👺', price:15000, desc:'뿔 하나에 방망이',    char:'dokkaebi' },
     /* ── 아바타 팩(이모지)은 **판매 중단**했다 (2026-08-04, 재성님 판단)
        팔 수 있는 물건이 아니었다:
          ① 허브 프로필에 **이모지 직접 입력칸**(`#profAvatarCustom`, maxlength 4)이 있다.
@@ -90,7 +102,7 @@
     /** 슬롯에 장착(같은 걸 다시 누르면 해제) */
     equip: function (id) {
       var it = SHOP.item(id);
-      if (!it || !SHOP.owned(id) || it.slot === 'pack') return false;
+      if (!it || !SHOP.owned(id) || it.slot === 'pack' || it.slot === 'char') return false;   // 캐릭터는 아바타 피커에서 고른다
       var d = read();
       d.equip[it.slot] = (d.equip[it.slot] === id) ? '' : id;
       write(d);

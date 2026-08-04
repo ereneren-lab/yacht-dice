@@ -103,6 +103,60 @@ busy background, low contrast, flat lighting, multiple characters
 
 ---
 
+## 3-b. 프리미엄 캐릭터 5종 — 상점 판매용 (2026-08-04 발주)
+
+**왜 이 5종인가.** 기본 5종(도개걸윷모 = 돼지·개·양·소·말)은 **윷놀이 규칙에서 나온 세트**라
+무료로 두고 간판으로 쓴다. 파는 것은 그 계보 밖에서 온다 — 그래야 "기본을 잠갔다"는 느낌이 안 든다.
+근거는 `outputs/research/2026-08-04_dice-alley_character-research.md`.
+
+| 가격(코인) | 캐릭터 | 왜 |
+|---|---|---|
+| 5,000 | 호랑이 · 토끼 | 한국 설화에 같이 등장하는 짝. 첫 구매의 진입점 |
+| 10,000 | 곰 · 여우 | 곰은 단군, 여우는 구미호 — 익숙하되 기본 5종과 안 겹침 |
+| 15,000 | **도깨비** | 한국 전통 라인. 다른 데서 못 만드는 차별화 |
+
+### 🔑 생동감 — 30~60px에서 살아 있게 하는 법
+
+아바타는 실기기에서 **15~37px**로 그려진다(실측). 이 크기에서 생동감은 **큰 동작이 아니라**
+아래 넷에서 나온다. 큰 포즈·소품은 뭉개져서 오히려 죽는다.
+
+1. **비대칭** — 고개를 살짝 기울이고, 귀 한쪽만 세운다. 좌우대칭은 정물처럼 보인다.
+2. **시선과 캐치라이트** — 눈동자를 정중앙에서 살짝 빗겨 놓고, 하이라이트를 **두 점**(큰 것+작은 것) 준다.
+3. **동작의 한가운데** — 멈춘 자세가 아니라 *막 무언가 하려는* 순간. 갈기·꼬리·귀가 아직 흔들리는 상태.
+4. **입** — 다문 미소보다 **살짝 벌린 입**이 훨씬 산다.
+
+### 공통 접미사 (위 3절 것에 이어 붙인다)
+```
+head slightly tilted, asymmetric ear pose, eyes with two catchlights (one large one small),
+caught mid-motion with fur or mane still settling, mouth slightly open, lively and full of life
+```
+
+### 캐릭터별 프롬프트 (idle · 위 공통 스타일 접미사와 함께 쓸 것)
+
+- **호랑이 tiger** — `playful young Korean tiger cub, warm orange fur with soft black stripes, cream muzzle and belly, round cheeks, one ear flicked back, confident mischievous grin showing tiny fangs,`
+- **토끼 rabbit** — `soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, twitching nose, bright curious eyes glancing to the side,`
+- **곰 bear** — `chubby honey-brown bear cub, small round ears, broad soft muzzle, gentle sleepy-warm eyes, one paw raised in a small wave,`
+- **여우 fox** — `sleek red-orange fox, white cheek fur and chest, tall pointed ears, narrow clever eyes with a sly smile, bushy tail curling up behind,`
+- **도깨비 dokkaebi** — `friendly Korean dokkaebi goblin, single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, playful toothy grin, tiny wooden club (bangmangi) resting on one shoulder,`
+
+> ⚠️ **도깨비는 일본 오니(鬼)가 아니다.** 붉은 피부·호피 훈도시·뿔 두 개·무서운 표정은 오니 쪽이다.
+> 한국 도깨비는 **장난꾸러기**에 가깝다 — 뿔 하나, 방망이, 웃는 얼굴. 네거티브에
+> `japanese oni, red demon skin, tiger-skin loincloth, scary, horror`를 추가할 것.
+
+### 📐 지금 지켜두면 나중에 '꾸미기'가 가능해지는 규격
+
+레이어 합성(모자·안경을 따로 얹기)으로 가려면 **캐릭터마다 머리 위치가 같아야** 한다.
+지금 뽑을 때 이걸 맞춰두면 나중에 다시 안 그려도 된다. 안 맞춰두면 코스튬을 캐릭터마다 따로 그려야 한다.
+```
+consistent framing across the whole set: head centered horizontally,
+top of head at ~12% from the top edge, eye line at ~45% height, same camera distance for all characters
+```
+- 5종을 **한 번에 한 시트로** 뽑으면 규격이 저절로 맞는다: `character lineup sheet, 5 characters side by side, same scale, same camera, same lighting`
+- 뽑은 뒤 처리: `python3 scripts/process-char-art.py <입력.png> public/img/<id>.png`
+  (id는 `tiger` · `rabbit` · `bear` · `fox` · `dokkaebi` — 이 철자를 그대로 써야 코드가 찾는다)
+
+---
+
 ## 4. 배경 / 무대 아트
 
 지금은 CSS 조명(등불+비네트)뿐. 실제 배경 아트로 '무대'를 완성.
