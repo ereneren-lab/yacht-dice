@@ -119,6 +119,10 @@ const ONLINE_GAMES = new Set(['kb','ld','lcr','yut','alkkagi','yacht','indianpok
    v1.236에선 방 생성 검증이 좌·중·우 범위([3,4,5])만 보고 있어서 인디언이 무엇을 보내든
    기본값으로 떨어졌다(→ 온라인 인디언은 늘 50칩이었다). 게임별로 갈라서 본다. */
 const IP_CHIPS = [5, 10, 20];
+/* 표시 이름 최대 길이. 12였는데 상점 칭호(«골목대장» 등 최대 6자)가 붙으면 잘렸다 —
+   칭호는 "이름 옆에 붙는다"고 파는 물건이라 잘리면 산 의미가 없다(2026-08-04, 재성님 결정 B).
+   입력칸은 여전히 12자다. 늘어난 8자는 칭호 몫이다. */
+const NAME_MAX = 20;
 const SD_ANTE  = [100, 200, 500, 1000];            // 섯다 앤티
 const SD_CHIPS = [5000, 10000, 30000, 100000];     // 섯다 시작 칩(가상 머니)
 const MIN_PLAYERS = { lcr: 3, oldmaid: 3 };   // 도둑잡기는 2인이면 서로 뽑기만 반복돼 판이 안 선다
@@ -294,7 +298,7 @@ wss.on('connection', (ws) => {
       // 화이트리스트에 없으면 요트로 떨어진다(옛 삼항 사슬과 동작 동일 · 게임이 늘어 Set으로 정리)
       const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
+      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,NAME_MAX), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
         dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:5) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, sdAnte:(SD_ANTE.includes(m.sdAnte)?m.sdAnte:200), sdChips:(SD_CHIPS.includes(m.sdChips)?m.sdChips:10000), jabi:!!m.jabi, ttaeng:!!m.ttaeng, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
@@ -311,7 +315,7 @@ wss.on('connection', (ws) => {
       const pid = rid();
       const spectator = r.members.length >= cap;   // 정원 초과 → 관전자
       const waiting = spectator || r.phase !== 'lobby';   // 관전자 또는 진행 중 입장
-      const t0=r.members.filter(x=>x.team===0).length, t1=r.members.filter(x=>x.team===1).length; r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,12), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting, spectator, team:(t0<=t1?0:1) });
+      const t0=r.members.filter(x=>x.team===0).length, t1=r.members.filter(x=>x.team===1).length; r.members.push({ pid, name:((m.name||'').trim()||'게스트').slice(0,NAME_MAX), avatar:(['pig','dog','sheep','cow','horse'].includes(m.avatar)?m.avatar:AVA[r.members.length%AVA.length]), ai:false, connected:true, ws, waiting, spectator, team:(t0<=t1?0:1) });
       recolor(r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code });
       if (r.engine) send(ws, { t:'state', state:r.engine.serialize(pid) });  // 관전자에게 현재 판 (라이어는 자기 시점)
@@ -336,7 +340,7 @@ wss.on('connection', (ws) => {
 
     } else if (m.t === 'rename') {
       const me = room.members.find(x=>x.pid===ws.meta.pid);
-      if (me){ me.name=((m.name||'').trim()||me.name).slice(0,12); if(room.engine){ const s=room.engine.players.find(p=>p.pid===me.pid); if(s){s.name=me.name; room.engine._emit&&room.engine._emit();} } sendLobby(room); }
+      if (me){ me.name=((m.name||'').trim()||me.name).slice(0,NAME_MAX); if(room.engine){ const s=room.engine.players.find(p=>p.pid===me.pid); if(s){s.name=me.name; room.engine._emit&&room.engine._emit();} } sendLobby(room); }
 
     } else if (m.t === 'setAvatar') {
       const me = room.members.find(x=>x.pid===ws.meta.pid);

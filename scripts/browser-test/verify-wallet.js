@@ -35,7 +35,11 @@ const { launchWithRetry } = require('./cdp');
   }
 
   // ② 비베팅 보상
-  for (const [g, win] of [['oldmaid',`loser=-1;`], ['onecard',`ST.winner=MYSEAT;`], ['indianpoker',null]]) {
+  /* ⚠️ 원카드는 v1.223부터 `ST.winner=MYSEAT`를 세팅하고 있었는데 **onecard.html엔 ST가 없다.**
+     ReferenceError가 eval 전체를 죽여서, 이 테스트는 원카드 보상을 **한 번도 검증한 적이 없다**
+     (2026-08-04에 발견). 실제 이름은 `S.winnerSeat`/`S.mySeat`다.
+     window.S로는 안 잡히고 맨 이름으로만 참조된다(함정 #18 — 최상위 let/const는 window에 없다). */
+  for (const [g, win] of [['oldmaid',`loser=-1;`], ['onecard',`S.winnerSeat=S.mySeat;`], ['indianpoker',null]]) {
     const p = await cdp.newPage(390, 844);
     await p.goto('http://localhost:3000/' + g + '.html');
     await p.eval(`localStorage.setItem('alley_coin','1000'); return 1;`);

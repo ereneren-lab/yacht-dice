@@ -17,10 +17,15 @@
     { id:'dice_ivory',  slot:'dice',   name:'상아 주사위', icon:'🎲', price:5000,  desc:'매끈한 아이보리',          vars:{'--die':'#f7f1e2','--die2':'#e6dcc6','--pip':'#4a3a24'} },
     { id:'dice_celadon',slot:'dice',   name:'청자 주사위', icon:'🎲', price:8000,  desc:'은은한 청록 유약',          vars:{'--die':'#cfe3dd','--die2':'#a9c8c0','--pip':'#1f3b36'} },
     { id:'dice_gold',   slot:'dice',   name:'황금 주사위', icon:'🎲', price:20000, desc:'골목의 자랑',              vars:{'--die':'#f2cf6a','--die2':'#d3a634','--pip':'#3b2a08'} },
-    // ── 아바타 팩 (슬롯 없음 · 사면 허브 아바타 목록이 늘어난다)
-    { id:'pack_animal', slot:'pack',   name:'동물 아바타 팩', icon:'🐯', price:4000, desc:'🐯 🐰 🐻 🦊 🐼 🐸', avatars:['🐯','🐰','🐻','🦊','🐼','🐸'] },
-    { id:'pack_ghost',  slot:'pack',   name:'요괴 아바타 팩', icon:'👹', price:6000, desc:'👹 👺 👻 💀 🦇 🕯️', avatars:['👹','👺','👻','💀','🦇','🕯️'] },
-    { id:'pack_lucky',  slot:'pack',   name:'행운 아바타 팩', icon:'🍀', price:9000, desc:'🍀 🌙 ⭐ 🔥 💎 🪙', avatars:['🍀','🌙','⭐','🔥','💎','🪙'] },
+    /* ── 아바타 팩(이모지)은 **판매 중단**했다 (2026-08-04, 재성님 판단)
+       팔 수 있는 물건이 아니었다:
+         ① 허브 프로필에 **이모지 직접 입력칸**(`#profAvatarCustom`, maxlength 4)이 있다.
+            아무 이모지나 그냥 쳐 넣을 수 있으니, 이모지를 파는 건 키보드를 파는 것과 같다.
+         ② 실제로 동물 팩은 6개 중 5개, 행운 팩은 6개 중 4개가 허브 프리셋·게임 피커에
+            **이미 무료로 있던 것**이었다. 4,000코인을 내고 새로 얻는 건 🐻 하나뿐이었다.
+       → 아바타 상품은 **우리가 직접 만든 캐릭터**여야 한다(`public/img/*.png` 소프트 3D 마스코트).
+         `ART_BRIEF.md` 3순위(캐릭터 스킨/코스튬)가 그 자리다. 아트가 오면 여기에 slot:'char'로 넣는다.
+       ⚠️ 다시 이모지를 팔지 말 것. 검사: `npm run test:shop`이 '이미 무료인 걸 파는가'를 단언한다. */
     // ── 칭호 (슬롯: title) — 이름 옆에 붙는다
     { id:'title_boss',  slot:'title',  name:'골목대장', icon:'🏮', price:10000, desc:'이름 옆에 «골목대장»' },
     { id:'title_streak',slot:'title',  name:'연승왕',   icon:'🔥', price:15000, desc:'이름 옆에 «연승왕»' },
@@ -106,6 +111,24 @@
     title: function () {
       var it = SHOP.item(SHOP.equipped('title'));
       return it ? it.name : '';
+    },
+
+    /** 표시용 이름 — 칭호를 붙인다. 「이름 옆에 붙는다」는 상품 설명이 지켜지는 유일한 자리다.
+     *  ⚠️ 저장·전송용 이름(alley_name)에 섞지 말 것. 이건 **그릴 때만** 쓴다 —
+     *     저장값에 섞으면 칭호를 바꿔도 옛 칭호가 이름에 눌어붙는다. */
+    displayName: function (name) {
+      var t = SHOP.title();
+      name = (name == null ? '' : String(name));
+      return t ? (name + ' «' + t + '»') : name;
+    },
+
+    /** 아바타 목록 = 기본 목록 + 산 팩이 풀어준 것 (중복 제거)
+     *  게임마다 `AV_EMOJIS` 배열을 따로 들고 있어서, 이걸 통과시키지 않으면
+     *  **산 이모지가 게임 피커에 영영 안 나온다.** */
+    avatars: function (base) {
+      var out = (base || []).slice(), add = SHOP.unlockedAvatars();
+      for (var i = 0; i < add.length; i++) if (out.indexOf(add[i]) < 0) out.push(add[i]);
+      return out;
     }
   };
 

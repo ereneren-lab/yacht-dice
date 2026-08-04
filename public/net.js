@@ -39,6 +39,17 @@
     _reconnects: 0, _reconnecting: false, _bootReconnect: false,
     _coldT: null, _failT: null, _prevMembers: null, _seatBC: null,
 
+    /** 남에게 보일 이름 — 상점에서 산 칭호를 붙인다.
+     *  상점 칭호는 「이름 옆에 붙는다」고 파는 물건인데, 붙일 자리가 허브 프로필뿐이었다.
+     *  2026-08-04 재성님 결정 B: 온라인에서 상대에게도 보인다 → 서버 이름 한도를 20자로 올렸다.
+     *  ⚠️ 저장(`alley_name`)은 **칭호 없는 원본**이어야 한다. 섞으면 칭호를 바꿔도
+     *     옛 칭호가 이름에 눌어붙는다. 여기서는 보낼 때만 붙인다.
+     *  ⚠️ shop.js를 안 싣는 페이지에서도 죽지 않아야 한다 → 없으면 원본 그대로. */
+    showName(name) {
+      try { return (window.SHOP && SHOP.displayName) ? SHOP.displayName(name) : name; }
+      catch (e) { return name; }
+    },
+
     init(opts) {
       opts = opts || {};
       this.game = opts.game;
@@ -305,7 +316,7 @@
         const name = (el('ntName').value || '').trim() || '호스트';
         try { localStorage.setItem('alley_name', name); } catch (e) {}
         el('ntErr').textContent = '';
-        NET.create(Object.assign({ name }, (opts.createPayload ? opts.createPayload() : {})));
+        NET.create(Object.assign({ name: NET.showName(name) }, (opts.createPayload ? opts.createPayload() : {})));
       };
       el('ntJoin').onclick = () => {
         const name = (el('ntName').value || '').trim() || '게스트';
@@ -313,7 +324,7 @@
         if (code.length < 4) { el('ntErr').textContent = '방 코드 4자리를 입력해주세요'; return; }
         try { localStorage.setItem('alley_name', name); } catch (e) {}
         el('ntErr').textContent = '';
-        NET.join(code, name);
+        NET.join(code, NET.showName(name));
       };
       el('ntRoomCode').onclick = () => {
         const c = NET.code || '';
@@ -356,7 +367,7 @@
         const code = m[1].toUpperCase().slice(0, 4);
         if (NET.seatGet && NET.seatGet('room')) return;    // 이미 어딘가에 앉아 있다
         const name = (function () { try { return localStorage.getItem('alley_name') || ''; } catch (e) { return ''; } })();
-        if (name) { NET.join(code, name); return; }
+        if (name) { NET.join(code, NET.showName(name)); return; }
         this.openJoin();
         const c = el('ntCode'); if (c) c.value = code;
         const n = el('ntName'); if (n) setTimeout(function () { try { n.focus(); } catch (e) {} }, 200);
