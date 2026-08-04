@@ -11,9 +11,12 @@
  *   localhost에서는 Plausible이 이벤트를 버리므로 analytics.js가 콘솔에 `[AL] ...`을 찍는다.
  *   그 줄을 CDP 콘솔로 받아 단언한다.
  *
- * 사용: node server.js 띄운 뒤  node scripts/browser-test/verify-done-event.js
+ * 사용: npm run test:doneevent   (서버는 알아서 띄운다)
+ *   ⚠️ 서버가 없으면 페이지가 about:blank로 남아 13종 전부
+ *      "SecurityError: localStorage"로 죽는다 — 계측 버그처럼 보이지만 아니다.
  */
 const { launchWithRetry } = require('./cdp');
+const { ensureServer } = require('./yut-drive');
 
 /* 전적이 쌓이는 경로가 게임마다 다르다.
    AS.record(공통 전적)를 쓰는 게임은 그걸 부르면 되고,
@@ -35,6 +38,7 @@ const GAMES = [
 ];
 
 (async () => {
+  await ensureServer();
   const cdp = await launchWithRetry();
   let fail = 0;
 
@@ -49,12 +53,10 @@ const GAMES = [
       await page.goto(`http://localhost:3000/${G.g}.html`);
       await page.wait(1400);
 
-      /* ⚠️ analytics.js는 지금 **전 페이지에서 주석 처리**되어 있다.
-         2026-07-22 '계측 보류' 결정으로 로딩만 꺼둔 상태다(호출부와 파일은 그대로).
-         그래서 그냥 두고 재면 당연히 0건이 나온다 — 그건 '배선이 깨졌다'가 아니라
-         '계측이 꺼져 있다'는 뜻이다. 둘을 구분해야 한다.
-         여기서는 **테스트에서만** analytics.js를 주입해 배선이 살아 있는지 확인한다.
-         제품 설정(보류)은 건드리지 않는다. */
+      /* 계측은 2026-08-04부터 **켜져 있다**(그 전엔 전 페이지에서 주석 처리돼 있었다).
+         켜져 있으면 아래는 'already'로 지나간다. 주입 경로는 남겨둔다 —
+         `npm run analytics:off`로 다시 끄더라도 이 테스트는 배선을 계속 지켜야 하기 때문이다.
+         ('배선이 깨졌다'와 '계측이 꺼져 있다'는 다른 말이다.) */
       const injected = await page.eval(`
         if(typeof AL!=='undefined') return 'already';
         var s=document.createElement('script'); s.src='analytics.js';
@@ -75,9 +77,12 @@ const GAMES = [
          계측 도입 이후 추가된 8종이 실제로 그 상태였다(2026-07-29). */
       const named = hit.some(l => l.indexOf('"게임":"' + G.label + '"') >= 0);
       const asHub = hit.some(l => l.indexOf('"게임":"허브"') >= 0);
-      const ok = called !== 'none' && hit.length > 0 && named;
+      /* ⚠️ '1건 이상'이 아니라 **정확히 1건**이어야 한다.
+         이 단언이 '>0'이던 동안, 옛 5종 + 알까기는 페이지와 AS.record에서 각각 쏴
+         2건씩 나가고 있었는데도 통과했다(2026-08-04에 발견). 한 판은 한 건이다. */
+      const ok = called !== 'none' && hit.length === 1 && named;
       if (!ok) fail++;
-      console.log(`${ok ? '✅' : '❌'} ${G.name.padEnd(8)} 계측=${injected.padEnd(9)} 기록경로=${called.padEnd(6)} 발화=${hit.length}건 이름=${named ? G.label : (asHub ? '❌허브로 집계' : '❌없음')}`);
+      console.log(`${ok ? '✅' : '❌'} ${G.name.padEnd(8)} 계측=${injected.padEnd(9)} 기록경로=${called.padEnd(6)} 발화=${hit.length}건${hit.length > 1 ? '(중복!)' : ''} 이름=${named ? G.label : (asHub ? '❌허브로 집계' : '❌없음')}`);
     } catch (e) {
       fail++; console.log(`❌ ${G.name} 예외 ${e.message.slice(0, 60)}`);
     }
@@ -86,7 +91,7 @@ const GAMES = [
 
   await cdp.close();
   console.log(fail ? `\n❌ ${fail}종 실패`
-    : '\n✅ 1판완료 배선이 살아 있다 — 계측을 켜면 실제로 발화한다 (콘솔에서 확인)'
-      + '\n   ⚠️ 단, 지금 제품은 계측 보류 상태다(analytics.js 주석). 켜기 전엔 대시보드에 안 찍힌다.');
+    : '\n✅ 13종 전부 1판완료가 판당 정확히 1건, 게임 이름까지 맞게 발화한다'
+      + '\n   지금 상태는 `npm run analytics:status`로 확인할 것.');
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('ERR', e); process.exit(1); });

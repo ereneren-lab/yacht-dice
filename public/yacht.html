@@ -17,12 +17,9 @@
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
-<!-- 계측 보류(2026-07-22) — 다른 세션의 계측 작업이 검토 전에 실수로 배포돼(커밋 05a8ed2),
-     사용자 결정에 따라 '로딩만' 껐다. public/analytics.js·privacy.html·AL.* 호출부는 그대로 두었으니
-     계측을 켤 땐 아래 두 줄을 6개 페이지(index·yut·yacht·kb·ld·lcr)에 다시 넣으면 된다.
+<!-- 계측 — Plausible(쿠키리스·개인식별 없음) · privacy.html 고지 · 끄기: npm run analytics:off -->
 <script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
 <script src="analytics.js"></script>
--->
 <meta name="description" content="요트 다이스 — 주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yacht.html">
@@ -1820,7 +1817,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const Stats={ data:SEAT.get('yd_stats',{games:0,best:0,wins:0,yachts:0,streak:0,bestStreak:0,xp:0}), save(){SEAT.set('yd_stats',this.data);},
     record(s,mine){ const me=s.players.filter(p=>mine.includes(p.pid)); if(!me.length)return false;
       const myTop=Math.max.apply(null,me.map(p=>p.total)); const beat=myTop>this.data.best;
-      try{window.AL&&AL.done(iWon);}catch(e){} try{ window.AS&&AS.record('yacht',iWon,myTop); window.AW&&AW.reward(iWon); }catch(e){}   /* 통합 전적·코인 */ this.data.games++; this.data.best=Math.max(this.data.best,myTop);
+      /* 1판완료 계측은 stats.js(AS.record) 한 곳에서만 쏜다 — 여기서 또 부르면 이 게임만 2배로 집계된다 */ try{ window.AS&&AS.record('yacht',iWon,myTop); window.AW&&AW.reward(iWon); }catch(e){}   /* 통합 전적·코인 */ this.data.games++; this.data.best=Math.max(this.data.best,myTop);
       const wp=new Set((s.winners&&s.winners.pids)||[]); const iWon=me.some(p=>wp.has(p.pid));
       if(iWon){this.data.wins++; this.data.streak=(this.data.streak||0)+1; if(this.data.streak>(this.data.bestStreak||0))this.data.bestStreak=this.data.streak;} else this.data.streak=0;
       me.forEach(p=>{if((p.scores.yacht||0)>0)this.data.yachts++;if((p.scores.yahtzee||0)>0)this.data.yachts++;});

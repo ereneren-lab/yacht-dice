@@ -15,10 +15,9 @@
  * ⚠️ `--full`은 현재 미완성이다 (2026-07-22).
  * 윷을 몇 분 이상 돌리면 크로미움이 "CDP 소켓이 끊겼다"로 죽는다. 3회 연속 재현.
  * 브라우저 인스턴스를 하나만 쓰도록 고쳐도 동일 — 원인 미규명(장시간 CDP 세션 안정성 추정).
- * 그래서 `1판완료`는 지금 **정적 배선 단언(5번 블록)까지만 검증된 상태**다.
- * 그 단언은 'AL.done이 games++ 바로 앞에 있다'를 보장하므로, 화면에 전적이 오르는 한
- * 이벤트도 나간다. 다만 '실제로 나가는 걸 봤다'는 아니다 — 배포 후 Plausible 대시보드에서
- * 1판완료가 실제로 찍히는지 눈으로 한 번 확인할 것.
+ * 그래서 여기서 `1판완료`는 정적 배선 단언(5번 블록)만 본다.
+ * **실제 발화는 `npm run test:doneevent`가 13종 전부에서 이름까지 단언한다**(2026-07-29 신설).
+ * 남은 확인은 하나 — 배포 후 Plausible 대시보드에 실제로 찍히는지 눈으로 볼 것.
  */
 const fs = require('fs');
 const path = require('path');
@@ -131,17 +130,35 @@ async function run() {
 
       await page.close();
     }
-    /* ---- 5) 1판완료 배선 — 정적 단언 ----
+    /* ---- 5) 1판완료 배선 — 정적 단언 (발화처는 stats.js 한 곳이다) ----
      * Stats는 IIFE 스코프의 const라 브라우저에서 손댈 수 없다(yut-drive 주석과 같은 이유).
      * 그래서 '전적을 올리는 그 자리'에 훅이 붙어 있는지를 소스에서 단언한다.
-     * 진짜 발화는 아래 --full 의 실제 한 판이 증명한다. */
-    for (const g of GAMES) {
-      const src = fs.readFileSync(path.join(__dirname, '../../public', g.slug + '.html'), 'utf8');
-      // games++ 직전 120자 안에 AL.done이 있어야 한다 = '전적 1 증가'와 '1판완료 1건'이 같은 사건
-      const m = src.match(/[\s\S]{0,120}\.(?:d|data)\.games\+\+/g) || [];
-      const wired = m.length === 1 && /window\.AL&&AL\.done\(/.test(m[0]);
-      check(`${g.name} — 1판완료 훅이 전적 증가 지점에 배선됨`, wired,
-            wired ? 'AL.done → games++' : (m.length !== 1 ? `games++ ${m.length}곳 (1곳이어야 함)` : '훅 없음'));
+     * 실제 발화는 `npm run test:doneevent`가 13종 전부에서 증명한다.
+     *
+     * ⚠️ 2026-08-04 이전엔 이 단언이 게임 HTML마다 AL.done을 찾았다. 그 사이 전적이
+     *    stats.js(AS.record)로 통합되면서 **옛 5종 + 알까기가 AL.done을 두 번 부르고 있었다**
+     *    (페이지에서 한 번, AS.record 안에서 또 한 번). 계측이 꺼져 있어 아무도 못 봤다.
+     *    켰으면 그 6종만 완료 수가 2배 → 게임 간 퍼널 비교가 통째로 틀어진다.
+     *    그래서 지금은 거꾸로 단언한다: **stats.js에만 있고, 게임 HTML엔 하나도 없어야 한다.** */
+    {
+      const stats = fs.readFileSync(path.join(__dirname, '../../public/stats.js'), 'utf8');
+      // games++ 이후 400자 안(같은 record 함수 안)에 AL.done이 있어야 한다
+      const seg = stats.match(/d\.games\+\+[\s\S]{0,400}/);
+      const wired = !!seg && /AL\.done\(/.test(seg[0]) && (stats.match(/AL\.done\(/g) || []).length === 1;
+      check('stats.js — 1판완료 훅이 전적 증가 지점에 1개', wired,
+            wired ? 'AS.record: games++ → AL.done' : '훅 없음/중복');
+    }
+    for (const f of fs.readdirSync(path.join(__dirname, '../../public')).filter(f => f.endsWith('.html'))) {
+      const src = fs.readFileSync(path.join(__dirname, '../../public', f), 'utf8');
+      if (!/<script src="analytics\.js"/.test(src)) continue;
+      const dup = (src.match(/AL\.done\(/g) || []).length;
+      check(`${f} — 1판완료를 페이지에서 또 쏘지 않음`, dup === 0, dup ? `AL.done ${dup}곳 (중복 집계)` : '');
+
+      /* 두 줄은 짝이다 — analytics.js만 있고 Plausible 스크립트가 없으면 이벤트는
+         큐 스텁에만 쌓이고 어디로도 안 간다. 에러가 없어서 조용히 사라진다.
+         실제로 8개 페이지가 그 상태로 들어와 있었다(2026-08-04에 발견). */
+      const paired = /plausible\.io\/js\/script\.js/.test(src);
+      check(`${f} — Plausible 스크립트가 analytics.js와 짝으로 있음`, paired, paired ? '' : 'Plausible 태그 없음');
     }
     /* ---- 6) 실제 한 판 (--full) — 윷을 끝까지 돌려 1판완료가 진짜 발화하는지 본다 ----
      * ⚠️ 브라우저를 새로 띄우지 말고 위의 cdp를 그대로 쓴다.
