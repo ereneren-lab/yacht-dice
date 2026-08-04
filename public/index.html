@@ -557,7 +557,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic">⚫🔴</div>
         <div><h2>알까기</h2><div class="sub">손끝으로 튕겨 상대 돌을 판 밖으로. 조준·파워·낙사 — 물리 대전.</div></div>
       </div>
-      <div class="meta"><span class="pill time">⚡ 1분 이내</span><span class="pill">1대1</span><span class="pill">AI</span><span class="pill">🆕</span></div>
+      <div class="meta"><span class="pill time">⚡ 1분 이내</span><span class="pill">1대1</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">🆕</span></div>
     </a>
   </div>
 
@@ -568,7 +568,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic">🎴</div>
         <div><h2>섯다</h2><div class="sub">화투 2장으로 족보 승부. 광땡·땡·끗을 쪼아보고 베팅해 판돈을 따라. (가상 칩)</div></div>
       </div>
-      <div class="meta"><span class="pill time">🕐 4~5분</span><span class="pill">2~5인</span><span class="pill">AI</span><span class="pill">🆕</span></div>
+      <div class="meta"><span class="pill time">🕐 4~5분</span><span class="pill">2~5인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">🆕</span></div>
     </a>
   </div>
 
@@ -593,14 +593,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic">🎭</div>
         <div><h2>인디언 포커</h2><div class="sub">내 카드만 못 봐! 남의 패를 읽고 베팅하는 심리전. 높은 숫자가 팟을 먹는다.</div></div>
       </div>
-      <div class="meta"><span class="pill time">🕐 2~3분</span><span class="pill">2~4인</span><span class="pill">AI</span><span class="pill">🆕</span></div>
+      <div class="meta"><span class="pill time">🕐 2~3분</span><span class="pill">2~4인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">🆕</span></div>
     </a>
     <a class="gcard" href="onecard.html">
       <div class="gtop">
         <div class="ic">🔄</div>
         <div><h2>원카드</h2><div class="sub">같은 무늬·숫자를 내며 손패 먼저 털기! 공격·스킵·방향전환 특수카드로 뒤집는 우노류.</div></div>
       </div>
-      <div class="meta"><span class="pill time">⚡ 1분 안팎</span><span class="pill">2~4인</span><span class="pill">AI</span><span class="pill">🆕</span></div>
+      <div class="meta"><span class="pill time">⚡ 1분 안팎</span><span class="pill">2~4인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">🆕</span></div>
     </a>
     <a class="gcard" href="highlow.html">
       <div class="gtop">
@@ -614,7 +614,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic">🃏</div>
         <div><h2>도둑잡기</h2><div class="sub">짝을 맞춰 버리고, 마지막까지 조커를 든 사람이 술래! 온 가족 카드 게임.</div></div>
       </div>
-      <div class="meta"><span class="pill time">⚡ 1~2분</span><span class="pill">3~4인</span><span class="pill">AI</span><span class="pill">🆕</span></div>
+      <div class="meta"><span class="pill time">⚡ 1~2분</span><span class="pill">3~4인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">🆕</span></div>
     </a>
   </div>
 
@@ -667,7 +667,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 </div>
 <script>
   (function(){
-    var GAMES={kb:1,ld:1,lcr:1,yut:1,yacht:1};
+    /* 온라인이 되는 게임 = server.js의 ONLINE_GAMES와 같아야 한다.
+       ⚠️ 여기 빠지면 방은 실제로 있는데 허브가 "그런 방이 없어요"로 돌려보낸다(2026-08-04에 5종이 그랬다).
+          온라인 게임을 추가하면 **이 줄과 server.js를 같이** 고칠 것. */
+    var GAMES={kb:1,ld:1,lcr:1,yut:1,yacht:1,alkkagi:1,seotda:1,indianpoker:1,onecard:1,oldmaid:1};
     // 방 코드 → 해당 게임 페이지로 라우팅. 서버에 코드를 물어 게임 종류를 알아낸다.
     function routeTo(code, onFail, onWait){
       code=(code||'').trim().toUpperCase();
@@ -786,12 +789,20 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     try{ if(matchMedia('(min-width:781px) and (min-height:560px)').matches) ag.open=true; }catch(e){}
   })();
 
+  /* ⚠️ p는 **자리 저장 키의 접두사**다(파일명이 아니다). net.js를 쓰는 게임은 NET.init의 ns가 그 값이고
+        (seotda=sd · indianpoker=ip · onecard=oc · oldmaid=om · alkkagi=alkkagi),
+        요트만 예외로 'yd'다. 여기 빠진 게임은 온라인을 하다 나가도 '이어하기'가 안 뜬다. */
   var GAMES=[
-    {p:'kb',  file:'kb.html',    name:'너클본즈'},
-    {p:'yd',  file:'yacht.html', name:'요트 다이스'},
-    {p:'ld',  file:'ld.html',    name:'라이어 다이스'},
-    {p:'lcr', file:'lcr.html',   name:'LCR'},
-    {p:'yut', file:'yut.html',   name:'윷놀이'}
+    {p:'kb',      file:'kb.html',          name:'너클본즈'},
+    {p:'yd',      file:'yacht.html',       name:'요트 다이스'},
+    {p:'ld',      file:'ld.html',          name:'라이어 다이스'},
+    {p:'lcr',     file:'lcr.html',         name:'LCR'},
+    {p:'yut',     file:'yut.html',         name:'윷놀이'},
+    {p:'alkkagi', file:'alkkagi.html',     name:'알까기'},
+    {p:'sd',      file:'seotda.html',      name:'섯다'},
+    {p:'ip',      file:'indianpoker.html', name:'인디언 포커'},
+    {p:'oc',      file:'onecard.html',     name:'원카드'},
+    {p:'om',      file:'oldmaid.html',     name:'도둑잡기'}
   ];
   function readJSON(k){ try{ var v=localStorage.getItem(k); return v==null?null:JSON.parse(v); }catch(e){ return null; } }
   // room/pid는 게임마다 저장 방식이 갈린다: yut/kb/ld/lcr은 raw 문자열, 요트(yd)는 JSON 문자열("ABCD"). 둘 다 처리.

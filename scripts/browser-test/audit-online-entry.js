@@ -175,6 +175,40 @@ function findBtn(re){
     if (bad) fail++;
     console.log(`${bad ? '❌' : '✅'} ${r.name.padEnd(8)} ${eS.padEnd(14)} ${cS.padEnd(14)} ${String(kS).padEnd(6)} ${sS.padEnd(10)} ${stS.padEnd(6)} ${oS}`);
   });
+  /* ⑥ 허브가 **온라인 10종을 다 아는가** — 세 곳이 따로 놀면 조용히 어긋난다.
+   *
+   * 2026-08-04에 실제로 어긋나 있었다:
+   *   · 방 코드 라우팅 화이트리스트가 5종뿐이라 **섯다·알까기·인디언·원카드·도둑잡기 방은
+   *     코드가 맞아도 "그런 방이 없어요"로 거절**됐다. 방은 서버에 멀쩡히 있었는데.
+   *     친구가 코드를 알려줘도 허브로는 못 들어갔다(게임 페이지 직접 참가·?room= 링크로만 됐다).
+   *   · 카드의 '온라인' pill도 5장만 있어서, 절반은 온라인이 되는 줄도 모르게 돼 있었다.
+   *   · '이어하기' 배너도 5종만 봤다.
+   * 위 ①~⑤는 **게임 페이지**만 보기 때문에 이걸 못 잡는다. 허브는 별도로 봐야 한다. */
+  {
+    const path = require('path');
+    const P = (f) => fs.readFileSync(path.join(__dirname, '../..', f), 'utf8');
+    const server = P('server.js'), hub = P('public/index.html');
+    const online = (server.match(/ONLINE_GAMES = new Set\(\[([^\]]*)\]/) || [])[1] || '';
+    const want = (online.match(/'(\w+)'/g) || []).map(s => s.replace(/'/g, ''));
+
+    const route = (hub.match(/var GAMES=\{([^}]*)\}/) || [])[1] || '';
+    const missRoute = want.filter(g => !new RegExp('\\b' + g + '\\s*:').test(route));
+    if (missRoute.length) { fail++; console.log(`❌ 허브 방코드 라우팅에 빠진 게임: ${missRoute.join(', ')} — 코드가 맞아도 "그런 방이 없어요"가 뜬다`); }
+    else console.log(`✅ 허브 방코드 라우팅 ${want.length}종 (server.js ONLINE_GAMES와 일치)`);
+
+    const missPill = want.filter(g => {
+      const i = hub.indexOf(`href="${g}.html"`); if (i < 0) return false;
+      return hub.slice(i, hub.indexOf('</a>', i)).indexOf('"pill">온라인') < 0;
+    });
+    if (missPill.length) { fail++; console.log(`❌ '온라인' pill이 빠진 카드: ${missPill.join(', ')}`); }
+    else console.log(`✅ 온라인 ${want.length}종 카드에 '온라인' pill`);
+
+    const resume = (hub.match(/var GAMES=\[([\s\S]*?)\];/) || [])[1] || '';
+    const missResume = want.filter(g => resume.indexOf(`${g}.html`) < 0);
+    if (missResume.length) { fail++; console.log(`❌ '이어하기' 대상에서 빠진 게임: ${missResume.join(', ')}`); }
+    else console.log(`✅ '이어하기' 배너가 온라인 ${want.length}종을 본다`);
+  }
+
   console.log(`\n${fail ? '❌ ' + fail + '종에 문제' : '✅ 온라인 진입 10종 전부 통과'}`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('ERR', e); process.exit(1); });
