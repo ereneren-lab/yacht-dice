@@ -65,7 +65,17 @@
     --ink:#f3ece0; --muted:#a89a86; --brass:#e0a23c; --brass-d:#b07d24; --win:#7bd88f;
   }
   html[data-theme="sesame"]{ --bg:#121212; --bg2:#181818; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --brass:#c9bcd8; --brass-d:#9a8ab0; --you:#e8e2d4; --opp:#b8a0e0; --die:#ebe7df; --die2:#d2cdc2; --pip:#1a1a1a; --win:#9ad0a8; --danger:#e88a8a; }
-html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#8a8a92; --brass:#b07d2a; --brass-d:#8a5f18; --you:#c2842a; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; }
+/* 라이트(한지) 테마 — 2026-08-05 대비 보정.
+   다크는 --brass가 배경 대비 8.77:1로 여유 있는데, 라이트는 #b07d2a가 **3.40:1**이었다.
+   WCAG AA는 본문 4.5:1 · 큰 글씨 3:1인데, 이 색이 쓰이는 곳 상당수가 12px 안팎이라
+   큰 글씨 기준을 적용할 수 없다. --muted도 3.22:1로 같은 상태였다.
+   → 색조(hue)는 그대로 두고 명도만 내렸다. 계산값(배경 #f7f8fa 기준):
+       --brass   #b07d2a 3.40 → #8f6420 **4.93** ✅
+       --muted   #8a8a92 3.22 → #6e6e76 **4.76** ✅
+       --you     #c2842a       → #a06d1f  4.20 (내 차례 표시 — 대개 굵은 큰 글씨라 3:1 통과)
+       --brass-d #8a5f18       → #6b4a11  7.56 (brass와 붙어버리면 그라디언트·hover가 사라진다)
+     흰 글씨(--brass-ink)를 황동 배경에 얹는 조합도 4.96으로 통과한다. */
+html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#6e6e76; --brass:#8f6420; --brass-d:#6b4a11; --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; }
 html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
 html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme="hanji"] .tchip.on{ }
   html,body{height:100%}
@@ -537,7 +547,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic">🤥</div>
         <div><h2>라이어 다이스</h2><div class="sub">컵 속 주사위를 숨기고 뻥카를 친다. 1은 만능, 거짓말을 잡아라.</div></div>
       </div>
-      <div class="meta"><span class="pill time">🕐 2~3분</span><span class="pill">2~4인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">블러핑</span></div>
+      <div class="meta"><span class="pill time">⚡ 1~2분</span><span class="pill">2~4인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">블러핑</span></div>
     </a>
 
     <a class="gcard" href="lcr.html">
@@ -556,7 +566,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         <div class="ic">🐎</div>
         <div><h2>윷놀이</h2><div class="sub">도·개·걸·윷·모! 지름길로 질러가고 상대 말을 잡으며 내 말을 모두 완주시켜라. 정통 규칙.</div></div>
       </div>
-      <div class="meta"><span class="pill time">🕐 7~10분</span><span class="pill">2~6인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">정통 규칙</span></div>
+      <div class="meta"><span class="pill time">🕐 3~4분</span><span class="pill">2~6인</span><span class="pill">AI</span><span class="pill">온라인</span><span class="pill">정통 규칙</span></div>
     </a>
     <a class="gcard" href="alkkagi.html">
       <div class="gtop">
@@ -755,7 +765,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     {file:'kb.html',      ic:'🦴', name:'너클본즈',    meta:'⚡ 1분 안팎 · AI와 바로',   lead:true},
     {file:'highlow.html', ic:'🔺', name:'하이로우',    meta:'🔁 라운드제 · 룰이 한 줄'},
     {file:'yacht.html',   ic:'🎲', name:'요트 다이스', meta:'🕐 2~3분 · 대표작'},
-    {file:'yut.html',     ic:'🚀', name:'윷놀이',      meta:'🕐 7~10분 · 말 4개 완주'}
+    {file:'yut.html',     ic:'🐎', name:'윷놀이',      meta:'🕐 3~4분 · 말 4개 완주'}
   ];
   (function(){
     var g=document.getElementById('qGrid'); if(!g) return;

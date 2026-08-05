@@ -106,9 +106,16 @@ const mkPlayers = (n) => Array.from({ length: n }, (_, i) => ({
 }));
 
 /* 구성은 server.js의 startEngine()과 같은 값을 쓴다(온라인 기본 템포).
-   n = 이 게임의 기본 인원. */
+   n = 이 게임의 기본 인원.
+   🔴 2026-08-05 — 이 값이 **셋업 화면의 실제 기본값과 달랐다.**
+      윷놀이는 여기서 4인으로 돌았지만 셋업 기본은 2인(`yut.html` `cfg={n:2}`)이고,
+      라이어 다이스는 4인으로 돌았지만 셋업 기본은 3인(`ld.html` `data-n="3"` opt on)이다.
+      그 결과가 그대로 허브 배지로 새어나가 **윷놀이가 "7~10분"이라고 광고**하고 있었다 —
+      기본값으로 실제로 재보면 2분 33초다(3배 과대). 배지는 사람이 실제로 마주치는 값이어야 한다.
+      → n을 셋업 기본값에 맞췄다. 다른 인원이 궁금하면 `--n=4`로 덮어쓰면 된다.
+      ⚠️ 게임의 기본 인원을 바꾸면 **여기도 같이 고칠 것.** 안 그러면 또 배지가 거짓말을 한다. */
 const GAMES = [
-  { key: 'yut', name: '윷놀이', n: 4, make: (pl, rng, on) => new YutEngine({
+  { key: 'yut', name: '윷놀이', n: 2, make: (pl, rng, on) => new YutEngine({
       aiFast: false, players: pl, markers: 4, goal: 4, teamMode: false, decideOrder: true,
       itemBattle: false, speedStart: false, pit: true, limitMs: 0, turnMs: 60000, aiMs: 1100, rng, onState: on }) },
   { key: 'yacht', name: '요트 다이스', n: 2, make: (pl, rng, on) => new GameEngine({
@@ -116,7 +123,7 @@ const GAMES = [
       players: pl, rng, onState: on, onRoll() {} }) },
   { key: 'kb', name: '너클본즈', n: 2, make: (pl, rng, on) => new KBEngine({
       aiFast: false, itemsOn: false, players: pl, rng, onState: on, onRoll() {} }) },
-  { key: 'ld', name: '라이어 다이스', n: 4, make: (pl, rng, on) => new LDEngine({
+  { key: 'ld', name: '라이어 다이스', n: 3, make: (pl, rng, on) => new LDEngine({   // 셋업 기본 3인(위 주석)
       aiFast: false, itemsOn: false, players: pl, spotOn: true, diceCount: 5, wild: true,
       turnMs: 45000, rng, onState: on }) },
   { key: 'lcr', name: '좌·중·우', n: 4, make: (pl, rng, on) => new LCREngine({
