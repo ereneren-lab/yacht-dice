@@ -58,7 +58,8 @@
     "analytics:off": "node scripts/analytics-toggle.js off",
     "audit:landscape": "node scripts/browser-test/audit-landscape.js",
     "audit:hub": "node scripts/browser-test/audit-hub.js",
-    "test:hostlink": "node scripts/browser-test/verify-host-link.js"
+    "test:hostlink": "node scripts/browser-test/verify-host-link.js",
+    "phone:traceyut": "node scripts/phone/trace-yut.js"
   },
   "engines": {
     "node": ">=18"
