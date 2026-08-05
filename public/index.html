@@ -100,6 +100,82 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .brand h1 .en{display:block;font-size:11px;letter-spacing:.34em;color:var(--brass);font-family:var(--font);font-weight:700;text-transform:uppercase;margin-top:2px}
   .lede{color:var(--muted); font-size:14px; margin:16px 2px 22px; line-height:1.55}
 
+  /* ── 첫 화면 개편 (2026-08-05) — 13종을 한 화면에 ─────────────────────────
+     세로 예산이 전부다. 브랜드 47+43px, 대표 4장 346px, 필터 95px, 접힌 문 48px을
+     쓰고도 보여준 게임이 4종이었다. 아래 규칙은 그 예산을 게임으로 돌린다:
+       브랜드 한 줄(로고+이름+리드) · 진입 두 버튼 한 줄 · 타일 3열 5행. */
+  .brandrow{display:flex; align-items:center; gap:11px; margin:2px 2px 14px}
+  .brandrow .logo{width:38px;height:38px;border-radius:10px;flex:none;
+    background:linear-gradient(150deg,var(--brass),var(--brass-d));
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    box-shadow:0 4px 14px color-mix(in srgb,var(--brass) 30%,transparent)}
+  .brandrow .logo img{width:84%;height:84%;object-fit:contain;display:block;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+  .brandrow .btx{min-width:0;display:flex;flex-direction:column;gap:1px}
+  .brandrow h1{font-size:20px;font-weight:900;letter-spacing:-.02em;line-height:1.15;display:flex;align-items:baseline;gap:7px}
+  .brandrow h1 .en{font-size:9.5px;letter-spacing:.26em;color:var(--brass);font-weight:800;text-transform:uppercase}
+  .brandrow .lede{margin:0;font-size:12px;font-weight:600;color:var(--muted);line-height:1.35;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .entryrow{display:flex; gap:8px; margin:0 2px 12px}
+  .entrybtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;
+    border-radius:12px;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);transition:.12s}
+  .entrybtn.main{background:linear-gradient(150deg,var(--brass),var(--brass-d));color:var(--brass-ink,#15110d);border-color:transparent}
+  .entrybtn:active{transform:translateY(1px)}
+  .entrybtn[aria-expanded="true"]{outline:2px solid color-mix(in srgb,var(--brass) 45%,transparent);outline-offset:1px}
+
+  /* 친구와 할 게임 고르기 — 온라인 되는 게임만 담는다 */
+  .invitepick{margin:0 2px 12px;padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+  .invitepick .iphead{font-size:13px;font-weight:800;margin-bottom:9px}
+  .invitepick .iphead span{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-top:2px}
+  .invitepick .ipgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:7px}
+  .invitepick a{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:10px;
+    background:var(--panel2);border:1px solid var(--line);text-decoration:none;color:var(--ink);
+    font-size:12.5px;font-weight:700}
+  .invitepick a .e{font-size:15px}
+
+  .tilehead{display:flex;align-items:baseline;gap:9px;margin:2px 2px 9px}
+  .tilehead b{font-size:14px;font-weight:900;color:var(--brass);letter-spacing:-.01em}
+  .tilehead .tlegend{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);font-weight:700}
+  .ondot{width:7px;height:7px;border-radius:50%;background:var(--win,#7bd88f);display:inline-block;flex:none}
+
+  .gametiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 2px 16px}
+  /* 13은 3으로 안 나눠떨어진다 — 마지막 한 장이 혼자 남아 옆이 비면 '덜 만든 화면'으로 보인다.
+     그 경우에만 가로로 눕혀 한 줄을 채운다(예전 대표카드가 쓰던 것과 같은 규칙). */
+  .gametiles>.gtile:last-child:nth-child(3n+1){grid-column:1/-1;flex-direction:row;justify-content:center;gap:9px;padding:12px 10px}
+  .gametiles>.gtile:last-child:nth-child(3n+1) .ti{font-size:22px}
+  .gametiles>.gtile:last-child:nth-child(3n+1) .played{position:static;margin-left:4px}
+  .gtile{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:11px 5px 9px;border-radius:13px;background:var(--panel);border:1px solid var(--line);
+    text-decoration:none;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.18);transition:.12s}
+  .gtile:active{transform:translateY(1px)}
+  .gtile .ti{font-size:25px;line-height:1.1}
+  .gtile .tn{font-size:12px;font-weight:800;letter-spacing:-.02em;text-align:center;line-height:1.2}
+  .gtile .tt{font-size:10px;color:var(--muted);font-weight:700;text-align:center}
+  .gtile .on{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+    background:var(--win,#7bd88f);box-shadow:0 0 0 2px var(--panel)}
+  .gtile .played{position:absolute;top:5px;left:6px;font-size:9px;font-weight:800;color:var(--brass);
+    background:color-mix(in srgb,var(--brass) 14%,transparent);border-radius:999px;padding:1px 5px}
+
+  /* 내 정보 — 첫 화면엔 한 줄, 나머지는 접는다 */
+  .mefold{margin:0 2px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+  .mefold>.mesum{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;
+    padding:11px 13px;font-size:12.5px;font-weight:700;color:var(--muted)}
+  .mefold>.mesum::-webkit-details-marker{display:none}
+  .mefold>.mesum::after{content:'▾';margin-left:auto;color:var(--muted);font-size:12px}
+  .mefold[open]>.mesum::after{content:'▴'}
+  .mefold[open]>.mesum{border-bottom:1px solid var(--line)}
+  .mefold .meav{width:26px;height:26px;border-radius:7px;background:var(--panel2);display:flex;
+    align-items:center;justify-content:center;font-size:15px;flex:none;overflow:hidden}
+  .mefold .meav img{width:100%;height:100%;object-fit:contain}
+  .mefold .metx{color:var(--ink);font-weight:800;font-size:13px}
+  .mefold .melv{color:var(--brass);font-weight:900;font-size:11.5px;margin-left:auto}
+  .mefold[open] .melv{margin-left:0}
+  .mefold .mebody{padding:13px 12px 4px}
+  .mefold .mebody .coinbar{margin-top:0}
+  @media (max-width:360px){ .gametiles{gap:6px} .gtile .tn{font-size:11.5px} }
+
   .cards{display:flex; flex-direction:column; gap:13px}
   .cat-h{ display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin:24px 2px 12px }
   /* 카테고리 필터 — 게임 13종이 4개 묶음으로 나뉘어 있는데도 전부 세로로 늘어서
@@ -197,6 +273,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 
   /* 방 코드로 바로 참가 — 친구가 준 코드를 게임 선택 없이 입력 */
   .joinbar{display:flex;align-items:center;gap:8px;margin:2px 0 20px;flex-wrap:wrap}
+  /* ⚠️ [hidden]은 UA 기본 display:none인데 위 .joinbar{display:flex}가 특이도로 이긴다.
+     이 줄이 없으면 hidden을 걸어도 입력칸이 계속 보인다(실제로 그랬다). */
+  .joinbar[hidden], .invitepick[hidden]{display:none}
   .joinbar .jlbl{font-size:12px;color:var(--muted);font-weight:600}
   .joinbar input{flex:1;min-width:120px;max-width:200px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
     border-radius:11px;padding:10px 13px;font-size:15px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
@@ -484,45 +563,89 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 </div>
 <div class="wrap">
   <div class="resumebar" id="resumeBar"></div>
-  <div class="brand">
+  <!-- 🔴 첫 화면 개편 (2026-08-05) — 실측이 문제를 정확히 말했다.
+       384×748에서 문서가 1877px(2.5화면)이었는데 **게임에 쓰는 세로는 346px, 18%뿐**이었다.
+       대표 4장이 화면의 46%를 먹으면서 보여준 건 4종이고, 나머지 9종은 '전체 게임 13'이라는
+       접힌 문 뒤에 있었다. 도전과제 하나(316px)가 게임 전부와 맞먹었다.
+       → 브랜드를 한 줄로 접고, 13종을 타일로 **첫 화면에 전부** 올린다.
+         '내 정보' 묶음은 그대로 아래에 남고, 게임 설명은 맨 아래 접힌 목록으로 옮겼다(설명이 필요한 사람만 편다).
+       ⚠️ 되돌리려면 이 블록과 아래 `#gameTiles` 스타일, `#allGames`의 위치만 되돌리면 된다. -->
+  <div class="brandrow">
     <div class="logo"><img src="img/pig.png" alt="주사위 골목 마스코트 돼지" width="30" height="30" fetchpriority="high" decoding="async"></div>
-    <h1>주사위 골목<span class="en">Dice Alley</span></h1>
+    <div class="btx">
+      <h1>주사위 골목<span class="en">Dice Alley</span></h1>
+      <p class="lede">설치 없이 링크 하나로 친구와 13가지</p>
+    </div>
   </div>
-  <p class="lede">뒷골목 놀이터 — 설치 없이 링크 하나로 친구와 13가지. 한 판 고르고 들어와.</p>
-  <!-- 허브가 할 일은 '게임 고르기'다. 프로필·코인·전적·테마가 위에 있어서
-       360px에서 게임 카드가 602px 아래로 밀렸고, 카테고리 칩조차 497px 아래였다(스크롤해야 필터를 씀).
-       → 초보에게 필요한 안내·방코드만 위에 두고, '내 정보' 묶음은 게임 아래로 내렸다. -->
-  <!-- '바로 한 판' — 처음 온 사람이 고민 없이 누를 자리.
-       실측(384x748): 첫 게임 카드가 첫 화면의 43% 지점(y=323)에 있고 온전히 보이는 카드는 2개뿐이었다.
-       13종을 동등하게 늘어놓으면 고르는 것부터가 일이다 → 대표 4종을 먼저, 전체는 접어둔다. -->
-  <section class="quick" id="quickPlay">
-    <h3 class="qh">▶ 바로 한 판</h3>
-    <div class="qgrid" id="qGrid"></div>
-  </section>
 
-  <!-- 방 코드는 '초대받은 사람'만 쓴다. 첫 화면 고정석을 줄 이유가 없어 접었다.
-       ?room= 으로 들어오면 자동으로 펼친다. -->
-  <details class="joinfold" id="joinFold">
-    <summary>🔑 방 코드로 참가</summary>
-    <div class="joinbar">
-      <input id="joinCode" maxlength="4" placeholder="예: ABCD" autocomplete="off" autocapitalize="characters" inputmode="text" aria-label="방 코드">
-      <button id="joinGo" class="jbtn">참가</button>
-      <span class="jmsg" id="joinMsg" role="status"></span>
+  <div class="entryrow">
+    <button class="entrybtn main" id="inviteBtn">🔗 친구와 하기</button>
+    <button class="entrybtn" id="joinBtn">🔑 방 코드</button>
+  </div>
+  <!-- 방 코드 입력칸 — 위 버튼이나 ?room= 진입으로 열린다 -->
+  <div class="joinbar" id="joinBar" hidden>
+    <input id="joinCode" maxlength="4" placeholder="예: ABCD" autocomplete="off" autocapitalize="characters" inputmode="text" aria-label="방 코드">
+    <button id="joinGo" class="jbtn">참가</button>
+    <span class="jmsg" id="joinMsg" role="status"></span>
+  </div>
+  <!-- 친구와 할 게임 고르기 — 온라인 되는 10종만 담는다(server.js ONLINE_GAMES 기준, 아래 JS에서 채운다) -->
+  <div class="invitepick" id="invitePick" hidden>
+    <div class="iphead">어느 게임으로 할까? <span>고르면 그 게임에서 방을 만들 수 있어</span></div>
+    <div class="ipgrid" id="ipGrid"></div>
+  </div>
+
+  <div class="tilehead">
+    <b>13가지</b>
+    <span class="tlegend"><i class="ondot"></i>온라인 가능</span>
+  </div>
+  <div class="gametiles" id="gameTiles"></div>
+
+
+  <!-- 내 정보 — 첫 화면에는 요약 한 줄만 두고 나머지는 접는다(2026-08-05 개편).
+       코인·프로필·레벨·전적·도전과제·오늘의 목표·테마·프리미엄이 전부 이 안에 그대로 있다. -->
+  <details class="mefold" id="meFold">
+    <summary class="mesum" id="meSum"><span class="meav" id="meAv">🎲</span><span class="metx" id="meTx">내 기록</span><span class="melv" id="meLv"></span></summary>
+    <div class="mebody">
+  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
+  <details class="profilebox" id="profileBox">
+    <summary class="psum"><span class="pav" id="pavPreview">🎲</span><span class="pname empty" id="pnamePreview">이름 정하기</span><span class="pedit"></span></summary>
+    <div class="pbody">
+      <div class="pfield">
+        <label class="plbl" for="profName">이름 · 온라인에서 쓸 이름</label>
+        <input id="profName" class="pin" maxlength="12" placeholder="닉네임" autocomplete="off" aria-label="이름">
+      </div>
+      <div class="pfield">
+        <span class="plbl">아바타</span>
+        <div class="avgrid" id="avGrid"></div>
+        <div class="avgrid"><input id="profAvatarCustom" class="pin" style="width:auto;max-width:120px" maxlength="4" placeholder="직접 입력 🎲" aria-label="아바타 직접 입력"></div>
+      </div>
     </div>
   </details>
+  <div class="levelcard" id="levelCard"></div>
+  <div class="statstrip" id="statStrip"></div>
+  <details class="allstats" id="allStats"><summary class="assum">📊 게임별 전적</summary><div class="asbody" id="asBody"></div></details>
+  <div class="achshelf" id="achShelf"></div>
+  <div class="dailygoals" id="dailyGoals"></div>
+  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
 
-  <div class="catfilter" id="catFilter" role="tablist" aria-label="게임 종류 고르기">
-    <button class="tchip on" data-cat="all">전체<span class="n">13</span></button>
-    <button class="tchip" data-cat="dice">🎲 주사위<span class="n">4</span></button>
-    <button class="tchip" data-cat="trad">🪀 전통·보드<span class="n">2</span></button>
-    <button class="tchip" data-cat="hwatu">🎴 화투<span class="n">1</span></button>
-    <button class="tchip" data-cat="card">🃏 카드<span class="n">6</span></button>
+  <!-- 프리미엄(광고 제거) -->
+  <div class="premrow" id="premRow">
+    <button class="prembtn" id="premBtn">✨ 광고 제거 · 프리미엄</button>
+    <span class="premok" id="premOk">✨ 프리미엄 · 광고 없음</span>
+  </div>
+    </div><!-- /.mebody -->
+  </details>
+
+  <!-- 웹 광고 슬롯 (AdSense 준비 자리 — 미설정 시 자동 숨김) -->
+  <div class="adslot" id="mz-banner" hidden>
+    <span class="adlabel">광고</span>
+    <div class="adbox">여기에 광고가 표시됩니다</div>
   </div>
 
-  <!-- 전체 목록은 접어둔다 — 대표 4종으로 첫 판을 시작한 뒤 둘러보는 순서가 맞다.
-       카테고리 칩을 누르면 자동으로 펼쳐진다(접힌 채로 필터가 먹으면 "안 먹는다"로 보인다). -->
+  <!-- 게임 설명은 첫 화면에서 뺐다 — 고를 땐 이름·시간이면 충분하고, 설명은 궁금할 때만 필요하다.
+       (검색 유입에는 이 텍스트가 그대로 필요해서 지우지 않고 접었다) -->
   <details class="allgames" id="allGames">
-    <summary class="agsum">🎲 전체 게임 <span class="agn">13</span></summary>
+    <summary class="agsum">🎲 게임 설명 보기 <span class="agn">13</span></summary>
     <div class="agbody">
   <h3 class="cat-h" data-cat="dice">🎲 주사위 게임 <span class="cnt">4</span></h3>
   <div class="cards" data-cat="dice">
@@ -638,40 +761,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </div>
   </details>
 
-  <div class="coinbar" id="coinBar">💰 내 코인 <b data-coin>0</b><a class="shoplink" href="shop.html">상점 →</a></div>
-  <details class="profilebox" id="profileBox">
-    <summary class="psum"><span class="pav" id="pavPreview">🎲</span><span class="pname empty" id="pnamePreview">프로필 설정</span><span class="pedit"></span></summary>
-    <div class="pbody">
-      <div class="pfield">
-        <label class="plbl" for="profName">이름 (온라인 참가 시 기본 닉네임)</label>
-        <input id="profName" class="pin" maxlength="12" placeholder="닉네임" autocomplete="off" aria-label="이름">
-      </div>
-      <div class="pfield">
-        <span class="plbl">아바타</span>
-        <div class="avgrid" id="avGrid"></div>
-        <div class="avgrid"><input id="profAvatarCustom" class="pin" style="width:auto;max-width:120px" maxlength="4" placeholder="직접 입력 🎲" aria-label="아바타 직접 입력"></div>
-      </div>
-    </div>
-  </details>
-  <div class="levelcard" id="levelCard"></div>
-  <div class="statstrip" id="statStrip"></div>
-  <details class="allstats" id="allStats"><summary class="assum">📊 내 전적 — 13게임 전체</summary><div class="asbody" id="asBody"></div></details>
-  <div class="achshelf" id="achShelf"></div>
-  <div class="dailygoals" id="dailyGoals"></div>
-  <div class="themerow"><span class="tlbl">테마</span><div class="themechips" id="themeChips"></div><button id="lightBtn" class="lighttoggle" title="다크/라이트 모드">☀️</button></div>
-
-  <!-- 프리미엄(광고 제거) -->
-  <div class="premrow" id="premRow">
-    <button class="prembtn" id="premBtn">✨ 광고 제거 · 프리미엄</button>
-    <span class="premok" id="premOk">✨ 프리미엄 · 광고 없음</span>
-  </div>
-  <!-- 웹 광고 슬롯 (AdSense 준비 자리 — 미설정 시 자동 숨김) -->
-  <div class="adslot" id="mz-banner" hidden>
-    <span class="adlabel">광고</span>
-    <div class="adbox">여기에 광고가 표시됩니다</div>
-  </div>
-
-  <p class="foot">주사위 골목 · 열세 가지 게임이 모였다 🎲<br>
+  <p class="foot">주사위 골목 — 뒷골목 놀이터 🎲<br>
     <a href="privacy.html" style="color:inherit;opacity:.75;font-size:12px">개인정보 처리방침</a></p>
 </div>
 <div class="metatoast" id="metaToast"><span class="me">🏅</span><div class="mt"><b>도전과제 달성!</b><span id="metaToastTxt"></span></div></div>
@@ -711,6 +801,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     // 링크로 들어온 ?room=CODE 자동 라우팅 — 콜드스타트 안내 포함, 실패 시 요트 강제이동 대신 안내
     var r=new URLSearchParams(location.search).get('room');
     if(r){ hubBanner('⏳ 방으로 들어가는 중…', false);
+      /* ⚠️ 실패하면 사람이 코드를 고쳐 넣어야 한다 — 그런데 2026-08-05 개편에서 입력칸이
+         기본으로 접히면서, 안내만 뜨고 **고쳐 넣을 칸이 없는** 상태가 됐다. 미리 펼쳐 둔다. */
+      var jb=document.getElementById('joinBar'), ji=document.getElementById('joinCode');
+      if(jb){ jb.hidden=false; var bt=document.getElementById('joinBtn'); if(bt) bt.setAttribute('aria-expanded','true'); }
+      if(ji) ji.value=(r||'').toUpperCase().slice(0,4);
       routeTo(r,
         function(m){ hubBanner('⚠️ '+(m||'방을 찾을 수 없어요')+' — 아래에서 코드를 다시 확인해줘', true); },
         function(m){ hubBanner(m, false); });
@@ -756,53 +851,63 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   try{ if(new URLSearchParams(location.search).get('room')) return; }catch(e){}
   var $=function(id){return document.getElementById(id);};
   // p: localStorage 키 접두사, file: 이동할 HTML. 요트만 접두사(yd)와 파일(yacht.html)이 다름.
-  /* ── '바로 한 판' 대표 게임 ──
-     고르는 기준: 룰이 짧고, 혼자(AI/하우스) 바로 붙을 수 있고, 한 판이 금방 끝난다.
-     맨 앞(lead)은 가장 설명이 덜 필요한 것. 바꾸고 싶으면 이 배열만 고치면 된다. */
-  /* 소요시간 문구는 전부 실측 중앙값 기반(코어 300판, pace.js 배수 반영 체감 구간)이다.
-     기준·근거: outputs/production/2026-08-04_dice-alley_time-expectation-spec.md */
-  var FEATURED=[
-    {file:'kb.html',      ic:'🦴', name:'너클본즈',    meta:'⚡ 1분 안팎 · AI와 바로',   lead:true},
-    {file:'highlow.html', ic:'🔺', name:'하이로우',    meta:'🔁 라운드제 · 룰이 한 줄'},
-    {file:'yacht.html',   ic:'🎲', name:'요트 다이스', meta:'🕐 2~3분 · 대표작'},
-    {file:'yut.html',     ic:'🐎', name:'윷놀이',      meta:'🕐 3~4분 · 말 4개 완주'}
+  /* ── 게임 타일 13종 (2026-08-05 첫 화면 개편) ──────────────────────────
+     예전엔 대표 4장(346px·화면의 46%)만 보이고 나머지 9종은 접힌 문 뒤였다.
+     타일은 이름·시간·온라인 여부만 말한다 — 고를 때 필요한 최소한이다.
+     설명은 맨 아래 '게임 설명 보기'에 그대로 있다.
+     ⚠️ 시간 문구는 **셋업 기본값 실측**(코어 중앙값 ×1.35 체감)이다. 게임 기본 인원을 바꾸면
+        scripts/balance-sim.js의 n과 여기, 아래 카드 목록을 **같이** 고칠 것.
+        근거: outputs/production/2026-08-04_dice-alley_time-expectation-spec.md
+     ⚠️ on:true는 '온라인으로 친구와 가능'이다 — server.js ONLINE_GAMES와 같아야 한다(10종). */
+  var TILES=[
+    {f:'kb.html',          ic:'🦴',   n:'너클본즈',   t:'⚡ 1분 안팎', on:1},
+    {f:'yacht.html',       ic:'🎲',   n:'요트 다이스', t:'🕐 2~3분',   on:1},
+    {f:'ld.html',          ic:'🤥',   n:'라이어',     t:'⚡ 1~2분',   on:1},
+    {f:'lcr.html',         ic:'🔀',   n:'좌·중·우',   t:'⚡ 1분 안팎', on:1},
+    {f:'yut.html',         ic:'🐎',   n:'윷놀이',     t:'🕐 3~4분',   on:1},
+    {f:'alkkagi.html',     ic:'⚫🔴', n:'알까기',     t:'⚡ 1분 이내', on:1},
+    {f:'seotda.html',      ic:'🎴',   n:'섯다',       t:'🕐 4~5분',   on:1},
+    {f:'indianpoker.html', ic:'🎭',   n:'인디언 포커', t:'🕐 2~3분',   on:1},
+    {f:'onecard.html',     ic:'🔄',   n:'원카드',     t:'⚡ 1분 안팎', on:1},
+    {f:'oldmaid.html',     ic:'🃏',   n:'도둑잡기',   t:'⚡ 1~2분',   on:1},
+    {f:'blackjack.html',   ic:'♠️',   n:'블랙잭',     t:'🔁 라운드제', on:0},
+    {f:'baccarat.html',    ic:'🎰',   n:'바카라',     t:'🔁 라운드제', on:0},
+    {f:'highlow.html',     ic:'🔺',   n:'하이로우',   t:'🔁 라운드제', on:0}
   ];
   (function(){
-    var g=document.getElementById('qGrid'); if(!g) return;
-    g.innerHTML=FEATURED.map(function(f){
-      return '<a class="qcard'+(f.lead?' lead':'')+'" href="'+f.file+'" data-quick="1">'
-        +'<span class="qic">'+f.ic+'</span>'
-        +'<span class="qtx">'
-        +'<span class="qn">'+f.name+'</span>'
-        +'<span class="qm">'+f.meta+'</span>'
-        +'<span class="qgo">시작하기 →</span>'
-        +'</span></a>';
+    var g=$('gameTiles'); if(!g) return;
+    g.innerHTML=TILES.map(function(x){
+      return '<a class="gtile" href="'+x.f+'" data-quick="1">'
+        + (x.on?'<span class="on" title="온라인으로 친구와 가능"></span>':'')
+        + '<span class="ti">'+x.ic+'</span><span class="tn">'+x.n+'</span><span class="tt">'+x.t+'</span></a>';
     }).join('');
-    // 대표 카드 클릭도 허브 카드클릭으로 센다(계측 퍼널이 끊기지 않게)
     g.addEventListener('click',function(e){
       var a=e.target.closest && e.target.closest('a[data-quick]'); if(!a) return;
       try{ window.AL && AL.ev && AL.ev('허브_카드클릭',{게임:a.getAttribute('href')}); }catch(err){}
     });
   })();
 
-  /* 방 코드로 초대받아 들어왔으면 접힌 걸 펼쳐준다 — 접힌 채면 "코드 넣을 데가 없다"가 된다 */
+  /* 진입 두 버튼 — '친구와 하기'(게임 고르기 시트)와 '방 코드'(입력칸).
+     ⚠️ '친구와 하기'가 방을 **직접 만들지는 않는다.** 게임마다 온라인 진입 버튼의 id가 달라
+        (5종 #createBtn · 4종 #onlineBtn · 요트 #tabOnline) 허브에서 한 번에 누를 방법이 없다.
+        그래서 시트는 게임까지만 데려다준다 — 문구도 딱 그만큼만 약속한다. */
   (function(){
-    try{
-      var jf=document.getElementById('joinFold'); if(!jf) return;
-      if(/[?&]room=/.test(location.search)) jf.open=true;
-    }catch(e){}
-  })();
-
-  /* 카테고리 칩을 누르면 전체 목록을 펼친다 — 접힌 채로 필터만 바뀌면 '안 먹는다'로 보인다 */
-  (function(){
-    var cf=document.getElementById('catFilter'), ag=document.getElementById('allGames');
-    if(!cf||!ag) return;
-    cf.addEventListener('click',function(e){ if(e.target.closest('.tchip')) ag.open=true; });
-    // 넓은 화면은 접을 이유가 없다(스크롤 여유가 충분하다)
-    // ⚠️ '넓다'를 폭으로만 재면 **가로로 돌린 폰**(844x390)이 여기 걸린다 — 폭은 넓지만
-    //    높이는 390px뿐이라 13종을 펼치면 문서가 **7.5화면**이 됐다(실측 2532px 넘침).
-    //    세로 390x844에선 1.4화면이었다. 높이 조건을 같이 본다.
-    try{ if(matchMedia('(min-width:781px) and (min-height:560px)').matches) ag.open=true; }catch(e){}
+    var ib=$('inviteBtn'), jb=$('joinBtn'), pick=$('invitePick'), bar=$('joinBar'), grid=$('ipGrid');
+    if(!ib||!jb||!pick||!bar) return;
+    function show(el,on){ el.hidden=!on; }
+    function setOpen(which){
+      var wantPick=which==='pick', wantJoin=which==='join';
+      show(pick,wantPick); show(bar,wantJoin);
+      ib.setAttribute('aria-expanded',wantPick?'true':'false');
+      jb.setAttribute('aria-expanded',wantJoin?'true':'false');
+      if(wantJoin){ var i=$('joinCode'); if(i) setTimeout(function(){ try{i.focus();}catch(e){} },50); }
+    }
+    if(grid) grid.innerHTML=TILES.filter(function(x){return x.on;}).map(function(x){
+      return '<a href="'+x.f+'"><span class="e">'+x.ic+'</span>'+x.n+'</a>'; }).join('');
+    ib.onclick=function(){ setOpen(pick.hidden?'pick':null); };
+    jb.onclick=function(){ setOpen(bar.hidden?'join':null); };
+    // 방 코드로 초대받아 들어왔으면 입력칸을 열어둔다 — 닫혀 있으면 "코드 넣을 데가 없다"가 된다
+    try{ if(/[?&]room=/.test(location.search)) setOpen('join'); }catch(e){}
   })();
 
   /* ⚠️ p는 **자리 저장 키의 접두사**다(파일명이 아니다). net.js를 쓰는 게임은 NET.init의 ns가 그 값이고
@@ -812,7 +917,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     {p:'kb',      file:'kb.html',          name:'너클본즈'},
     {p:'yd',      file:'yacht.html',       name:'요트 다이스'},
     {p:'ld',      file:'ld.html',          name:'라이어 다이스'},
-    {p:'lcr',     file:'lcr.html',         name:'LCR'},
+    {p:'lcr',     file:'lcr.html',         name:'좌·중·우'},
     {p:'yut',     file:'yut.html',         name:'윷놀이'},
     {p:'alkkagi', file:'alkkagi.html',     name:'알까기'},
     {p:'sd',      file:'seotda.html',      name:'섯다'},
@@ -883,6 +988,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       b.className='statbadge'; b.textContent=gn+'판 · '+((+s.wins)||0)+'승';
       meta.appendChild(b);
     }
+    /* 타일에도 판수를 남긴다 — 타일은 좁아서 '몇 판 했는지'만. 승수는 아래 '내 기록'에 있다.
+       0판이면 아무것도 안 붙인다(처음 온 사람 화면에 '미플레이'가 13개 뜨면 그게 더 시끄럽다). */
+    var tile=href&&document.querySelector('.gtile[href="'+href+'"]');
+    if(tile&&gn>0){
+      var p=document.createElement('span');
+      p.className='played'; p.textContent=gn+'판';
+      tile.appendChild(p);
+    }
   });
   // 한 판도 안 한 게임에는 '미플레이'를 붙인다(merged는 0판 게임을 아예 안 담는다)
   document.querySelectorAll('.gcard .meta').forEach(function(meta){
@@ -897,9 +1010,17 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   var strip=$('statStrip');
   if(strip&&(totGames>0||totAch>0)){
     function si(v,l){ return '<div class="si"><b>'+v+'</b><span>'+l+'</span></div>'; }
-    strip.innerHTML=si(totGames,'총 판수')+si(totWins,'총 승')+si(bestStreak,'최고 연승')+si(totAch,'뱃지');
+    strip.innerHTML=si(totGames,'총 판수')+si(totWins,'총 승')+si(bestStreak,'최고 연승')+si(totAch,'배지');
     strip.classList.add('show');
   }
+
+  /* '내 기록' 접이줄의 요약 — 첫 화면에 남는 유일한 내 정보 한 줄이다(2026-08-05 개편).
+     처음 온 사람에게는 숫자가 없으니 무엇을 하면 되는지 말해준다. */
+  (function(){
+    var tx=$('meTx'), lv=$('meLv'); if(!tx) return;
+    tx.textContent = totGames>0 ? ('내 기록 · '+totGames+'판 '+totWins+'승') : '내 기록 · 아직 한 판도 안 했어';
+    if(lv) lv.textContent='';   // 레벨은 아래 2.5에서 계산된 뒤 채운다
+  })();
 
   // 2.5) 프로필 레벨/XP — 13종 통계 합산에서 파생(별도 저장 없이 매 로드 계산 · 2026-08-05 이전엔 5종만 셌다)
   (function(){
@@ -915,6 +1036,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       +'<div class="lv-sub">다음 레벨까지 '+(need-into)+' XP</div></div>';
     lc.classList.add('show');
     var bar=lc.querySelector('.lv-bar i'); if(bar) setTimeout(function(){ bar.style.width=pct+'%'; },60);
+    var ml=$('meLv'); if(ml) ml.textContent='LV '+lvl;   // 접이줄 오른쪽에도 레벨을 보여준다
   })();
 
   // 2.6) 일일 목표 — 로컬 자정 기준 스냅샷 델타로 오늘 진행 계산(게임 파일 무수정)
@@ -945,12 +1067,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
        '서로 다른 5종'이었다(playedCount>=5). 판정은 그대로 두고 표현만 사실로 맞춘다.
        '13종 전부'로 올릴지는 난이도를 바꾸는 결정이라 따로 판단한다. */
     {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'서로 다른 5종 플레이',  ok:playedCount>=5},
-    {id:'regular',   e:'🏆', name:'골목 단골',   desc:'전 게임 합 50판',      ok:totGames>=50},
-    {id:'contender', e:'👑', name:'승부사',     desc:'전 게임 합 20승',      ok:totWins>=20},
+    {id:'regular',   e:'🏆', name:'골목 단골',   desc:'모든 게임 합쳐 50판',      ok:totGames>=50},
+    {id:'contender', e:'👑', name:'승부사',     desc:'모든 게임 합쳐 20승',      ok:totWins>=20},
     {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5},
-    {id:'veteran',   e:'🎖️', name:'골목 베테랑', desc:'전 게임 합 100판',     ok:totGames>=100},
-    {id:'champion',  e:'💎', name:'챔피언',     desc:'전 게임 합 50승',      ok:totWins>=50},
-    {id:'collector', e:'📚', name:'수집가',     desc:'게임 뱃지 15개',       ok:totAch>=15},
+    {id:'veteran',   e:'🎖️', name:'골목 베테랑', desc:'모든 게임 합쳐 100판',     ok:totGames>=100},
+    {id:'champion',  e:'💎', name:'챔피언',     desc:'모든 게임 합쳐 50승',      ok:totWins>=50},
+    {id:'collector', e:'📚', name:'수집가',     desc:'게임 배지 15개',       ok:totAch>=15},
     {id:'inferno',   e:'🌋', name:'맹렬',       desc:'최고 연승 10 이상',    ok:bestStreak>=10}
   ];
   var shelf=$('achShelf');
@@ -1117,46 +1239,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     refreshPreview(); markChips();
   });
 })();</script>
-<script>(function(){
-  // 카테고리 필터 — 칩을 누르면 그 묶음만 보인다. 기본은 '전체'라 아무것도 숨지 않는다.
-  // 게임 13종을 세로로 다 늘어놓으면 360px에서 페이지가 화면 4.8장이라 뒤쪽 게임은 사실상 안 보였다.
-  var KEY = 'alley_cat';
-  var bar = document.getElementById('catFilter');
-  if (!bar) return;
-  var chips = bar.querySelectorAll('.tchip');
-  // h3.cat-h 와 .cards 를 data-cat 으로 짝지어 둔다(형제 순서에 기대지 않게)
-  function groups(){ return document.querySelectorAll('.cat-h[data-cat], .cards[data-cat]'); }
-
-  function apply(cat, remember){
-    var any = false;
-    Array.prototype.forEach.call(groups(), function(el){
-      var show = (cat === 'all' || el.getAttribute('data-cat') === cat);
-      el.style.display = show ? '' : 'none';
-      if (show) any = true;
-    });
-    // 혹시 없는 카테고리가 저장돼 있었다면 전체로 되돌린다(빈 화면 방지)
-    if (!any) { apply('all', false); cat = 'all'; }
-    Array.prototype.forEach.call(chips, function(c){
-      var on = c.getAttribute('data-cat') === cat;
-      c.classList.toggle('on', on);
-      c.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    if (remember) { try { localStorage.setItem(KEY, cat); } catch(e){} }
-  }
-
-  Array.prototype.forEach.call(chips, function(c){
-    c.setAttribute('role', 'tab');
-    c.addEventListener('click', function(){
-      var cat = c.getAttribute('data-cat');
-      apply(cat, true);
-      try { window.AL && AL.ev('허브_카테고리', { 종류: cat }); } catch(e){}
-    });
-  });
-
-  var saved = 'all';
-  try { saved = localStorage.getItem(KEY) || 'all'; } catch(e){}
-  apply(saved, false);
-})();</script>
+<!-- 카테고리 필터 스크립트는 2026-08-05 첫 화면 개편에서 제거했다 —
+     13종이 타일로 다 보이므로 거를 대상이 없다. 되살리려면 git에서 이 자리 스크립트를 꺼내면 된다. -->
 <script>(function(){
   // 계측 — 허브에서 어느 게임으로 갔는지(퍼널: 진입 → 게임 선택)
   document.addEventListener('click', function(e){

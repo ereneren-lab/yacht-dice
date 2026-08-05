@@ -208,6 +208,20 @@ function findBtn(re){
     const missResume = want.filter(g => resume.indexOf(`${g}.html`) < 0);
     if (missResume.length) { fail++; console.log(`❌ '이어하기' 대상에서 빠진 게임: ${missResume.join(', ')}`); }
     else console.log(`✅ '이어하기' 배너가 온라인 ${want.length}종을 본다`);
+
+    /* ④ 게임 타일의 온라인 점 — 2026-08-05 첫 화면 개편으로 **네 번째 자리**가 생겼다.
+       타일 초록 점이 '친구와 가능'을 뜻하고, '친구와 하기' 시트도 이 목록으로 채운다.
+       여기가 어긋나면 되는 게임이 안 되는 것처럼 보이거나(점 누락) 안 되는 게임을 권하게 된다. */
+    const tiles = (hub.match(/var TILES=\[([\s\S]*?)\];/) || [])[1] || '';
+    const tileOn = [...tiles.matchAll(/\{f:'(\w+)\.html'[^}]*on:(\d)\s*\}/g)]
+      .filter(m => m[2] === '1').map(m => m[1]);
+    const missTile = want.filter(g => tileOn.indexOf(g) < 0);
+    const extraTile = tileOn.filter(g => want.indexOf(g) < 0);
+    if (missTile.length || extraTile.length) {
+      fail++;
+      if (missTile.length) console.log(`❌ 타일에 온라인 점이 빠진 게임: ${missTile.join(', ')} — 되는데 안 되는 것처럼 보인다`);
+      if (extraTile.length) console.log(`❌ 온라인이 아닌데 점이 붙은 게임: ${extraTile.join(', ')} — '친구와 하기' 시트가 헛것을 권한다`);
+    } else console.log(`✅ 게임 타일 온라인 표시 ${want.length}종 (server.js와 일치)`);
   }
 
   console.log(`\n${fail ? '❌ ' + fail + '종에 문제' : '✅ 온라인 진입 10종 전부 통과'}`);
