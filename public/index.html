@@ -173,6 +173,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .mefold .melv{color:var(--brass);font-weight:900;font-size:11.5px;margin-left:auto}
   .mefold[open] .melv{margin-left:0}
   .mefold .mebody{padding:13px 12px 4px}
+  .asbadges{font-size:10.5px;letter-spacing:1px;opacity:.95}
   .mefold .mebody .coinbar{margin-top:0}
   @media (max-width:360px){ .gametiles{gap:6px} .gtile .tn{font-size:11.5px} }
   /* 가로로 돌린 폰 — 폭은 남고 높이가 390px뿐이다. 3열이면 5행이 되어 첫 화면에 6종만 들어왔다(실측).
@@ -1023,10 +1024,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   });
   /* '미플레이' 배지는 뺐다(2026-08-05). 처음 온 사람에게 13번 "안 해봤다"고 말할 이유가 없고,
      타일에는 해본 것만 판수를 붙이는 규칙과도 어긋났다. 해본 게임에 숫자가 붙는 것으로 충분하다. */
-  GAMES.forEach(function(g){
-    var a=readJSON(g.p+'_ach');
-    if(Array.isArray(a)) totAch+=a.length;
-  });
+  /* 배지 합계 — 2026-08-05까지 이건 **5종만** 셌다(`{게임}_ach` 키를 쓰는 게 그 5종뿐이라서).
+     그래서 섯다·카드 6종·알까기는 아무리 이겨도 '배지'와 '수집가'가 안 올랐다.
+     이제 `AS.badgeCount()`가 5종은 자기 키로, 나머지 8종은 전적에서 뽑은 파생 배지로 센다.
+     ⚠️ 없는 데이터를 지어낸 게 아니다 — 판수·승·최고 연승은 그 8종도 실제로 저장하고 있던 값이다. */
+  totAch = (function(){
+    try{ return AS.badgeCount(['kb_ach','lcr_ach','ld_ach','yd_ach','yut_ach']); }
+    catch(e){ var n=0; GAMES.forEach(function(g){ var a=readJSON(g.p+'_ach'); if(Array.isArray(a)) n+=a.length; }); return n; }
+  })();
   var strip=$('statStrip');
   if(strip&&(totGames>0||totAch>0)){
     function si(v,l){ return '<div class="si"><b>'+v+'</b><span>'+l+'</span></div>'; }
@@ -1087,6 +1092,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
        '서로 다른 5종'이었다(playedCount>=5). 판정은 그대로 두고 표현만 사실로 맞춘다.
        '13종 전부'로 올릴지는 난이도를 바꾸는 결정이라 따로 판단한다. */
     {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'서로 다른 5종 플레이',  ok:playedCount>=5},
+    /* 13종이 됐는데 '여러 게임을 해봐라'의 천장이 5종에 머물러 있었다 —
+       탐험가의 문턱은 그대로 두고(막 시작한 사람에게 5종도 충분히 멀다) 위쪽에 목표를 하나 더 만든다. */
+    {id:'conquer',   e:'🏴', name:'골목 정복',   desc:'13종 전부 1판 이상',   ok:playedCount>=13},
     {id:'regular',   e:'🏆', name:'골목 단골',   desc:'모든 게임 합쳐 50판',      ok:totGames>=50},
     {id:'contender', e:'👑', name:'승부사',     desc:'모든 게임 합쳐 20승',      ok:totWins>=20},
     {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5},
@@ -1305,8 +1313,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     var h='';
     keys.forEach(function(g){
       var d=m[g], wr=Math.round(d.wins/d.games*100);
+      /* 파생 배지는 얻은 것만 이모지로 붙인다(자기 도전과제가 있는 5종은 빈 배열이라 안 붙는다) */
+      var bg=''; try{ bg=AS.derived(g,d).map(function(b){ return '<span title="'+b.name+' · '+b.desc+'">'+b.e+'</span>'; }).join(''); }catch(e){}
       h+='<a class="asrow" href="'+AS.HREF[g]+'">'+
-         '<span class="nm">'+AS.ALL_LABEL[g]+'</span>'+
+         '<span class="nm">'+AS.ALL_LABEL[g]+(bg?' <span class="asbadges">'+bg+'</span>':'')+'</span>'+
          '<span class="num">'+d.games+'판 · '+d.wins+'승</span>'+
          '<span class="bar"><span class="fill" style="width:'+Math.max(4,Math.round(d.games/maxG*100))+'%"></span></span>'+
          '<span class="wr">'+wr+'%</span></a>';

@@ -87,6 +87,37 @@
       return out;
     },
 
+    /* ── 파생 배지 (2026-08-05) ───────────────────────────────────────────
+       문제: 게임 자체 도전과제(`{게임}_ach`)를 쓰는 건 5종(kb·lcr·ld·yd·yut)뿐이다.
+             그래서 허브의 '배지' 숫자와 도전과제 '수집가(배지 15개)'는 나머지 8종을
+             아무리 플레이해도 오르지 않았다. 13종화에서 유일하게 못 맞춘 축이었다.
+       해법: 8종은 **이미 쌓고 있는 전적에서 배지를 뽑아낸다.** 게임 파일을 고치지 않고,
+             없는 데이터를 지어내지도 않는다 — 판수·승·연승은 실제로 저장돼 있는 값이다.
+       ⚠️ 자기 도전과제가 있는 5종에는 파생 배지를 주지 않는다(같은 성취를 두 번 세지 않기 위해). */
+    OWN_ACH: ['kb', 'lcr', 'ld', 'yacht', 'yut'],
+    DERIVED: [
+      { id: 'firstwin', e: '🎉', name: '첫 승',   desc: '1승',        ok: function (d) { return d.wins >= 1; } },
+      { id: 'ten',      e: '🔟', name: '열 판',   desc: '10판',       ok: function (d) { return d.games >= 10; } },
+      { id: 'streak3',  e: '🔥', name: '3연승',   desc: '최고 연승 3', ok: function (d) { return (d.bestStreak | 0) >= 3; } },
+      { id: 'fifty',    e: '🏅', name: '쉰 판',   desc: '50판',       ok: function (d) { return d.games >= 50; } }
+    ],
+    /** 그 게임에서 얻은 파생 배지들(자기 도전과제가 있는 5종은 빈 배열) */
+    derived: function (game, d) {
+      if (AS.OWN_ACH.indexOf(game) >= 0) return [];
+      if (!d) d = AS.merged()[game];
+      if (!d || !d.games) return [];
+      return AS.DERIVED.filter(function (b) { return b.ok(d); });
+    },
+    /** 13종 배지 총합 — 5종은 자기 키(`{접두사}_ach`), 나머지 8종은 파생 */
+    badgeCount: function (legacyKeys) {
+      var n = 0, m = AS.merged();
+      (legacyKeys || []).forEach(function (k) {
+        try { var a = JSON.parse(localStorage.getItem(k) || 'null'); if (Array.isArray(a)) n += a.length; } catch (e) {}
+      });
+      Object.keys(m).forEach(function (g) { n += AS.derived(g, m[g]).length; });
+      return n;
+    },
+
     /** 결과창에 붙일 전적 한 줄 */
     line: function (game) {
       var d = AS.get(game);
