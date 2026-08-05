@@ -336,9 +336,9 @@
         const c = NET.code || '';
         if (!c) return;
         const url = location.origin + location.pathname + '?room=' + encodeURIComponent(c);
-        const text = '주사위 골목에서 한 판 하자! 방 코드 ' + c;
+        const text = '딱세판만에서 한 판 하자! 방 코드 ' + c;
         try {
-          if (navigator.share) { await navigator.share({ title: '주사위 골목', text: text, url: url }); return; }
+          if (navigator.share) { await navigator.share({ title: '딱세판만', text: text, url: url }); return; }
         } catch (e) { return; }   // 사용자가 공유를 취소한 경우 — 클립보드로 또 떨어뜨리지 않는다
         try { await navigator.clipboard.writeText(url); NET.ui.toast('🔗 초대 링크 복사됨'); }
         catch (e) { NET.ui.toast(url); }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>알까기 · 주사위 골목</title>
+<title>알까기 · 딱세판만</title>
 <script src="topbar-fit.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -1389,7 +1389,7 @@ function renderLobby(){
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyCopy').onclick=()=>{
     const url = location.origin + location.pathname + '?room=' + lobby.code;
-    if(navigator.share){ navigator.share({title:'주사위 골목 · 알까기', text:'같이 알까기 하자! 방 코드: '+lobby.code, url}).catch(()=>copyText(url)); }
+    if(navigator.share){ navigator.share({title:'딱세판만 · 알까기', text:'같이 알까기 하자! 방 코드: '+lobby.code, url}).catch(()=>copyText(url)); }
     else copyText(url);
   };
   $('lobbyLeave').onclick=()=>{

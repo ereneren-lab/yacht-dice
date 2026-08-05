@@ -1,4 +1,4 @@
-// 주사위 골목 서비스워커 — network-first + 오프라인 폴백
+// 딱세판만 서비스워커 — network-first + 오프라인 폴백
 // 배포마다 CACHE 버전을 올리면 활성화 시 옛 캐시를 정리한다.
 const CACHE = 'alley-v2';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];

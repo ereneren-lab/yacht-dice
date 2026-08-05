@@ -1,6 +1,6 @@
 {
   "appId": "com.jaesung.yachtdice",
-  "appName": "주사위 골목",
+  "appName": "딱세판만",
   "webDir": "public",
   "server": {
     "androidScheme": "https",

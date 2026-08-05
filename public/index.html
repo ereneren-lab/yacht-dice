@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>주사위 골목 — Dice Alley</title>
+<title>딱세판만</title>
 <!-- 통합 코인 지갑(상점의 토대) -->
 <script src="stats.js"></script>
 <script src="chars.js"></script>
@@ -47,14 +47,14 @@
 <script src="analytics.js"></script>
 <!-- 수익화(광고+프리미엄) — 계측(analytics)과 별개. window.MZ. 프리미엄이면 광고 no-op. -->
 <script src="monetize.js"></script>
-<meta name="description" content="주사위 골목 — 설치 없이 링크 하나로 친구와 즐기는 13가지 주사위·보드·카드게임. 윷놀이, 요트 다이스, 너클본즈, 라이어 다이스, 좌·중·우, 알까기, 섯다, 인디언 포커, 원카드, 도둑잡기, 블랙잭, 바카라, 하이로우.">
+<meta name="description" content="딱세판만 — 커피 걸고 딱 세 판. 설치 없이 링크 하나로 친구와 즐기는 13가지 보드·주사위·카드게임. 윷놀이, 요트 다이스, 너클본즈, 라이어 다이스, 좌·중·우, 알까기, 섯다, 인디언 포커, 원카드, 도둑잡기, 블랙잭, 바카라, 하이로우.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/">
-<meta property="og:title" content="주사위 골목 🎲 — 다섯 가지 주사위 게임">
+<meta property="og:title" content="딱세판만 — 커피 걸고 딱 세 판, 13가지">
 <meta property="og:description" content="설치 없이 링크 하나로 친구와 즐기는 브라우저 보드게임 허브 13종. 윷놀이·요트 다이스·너클본즈·라이어·좌중우·알까기·섯다·인디언 포커·원카드·도둑잡기·블랙잭·바카라·하이로우.">
 <meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="주사위 골목 🎲 — 다섯 가지 주사위 게임">
+<meta name="twitter:title" content="딱세판만 — 커피 걸고 딱 세 판, 13가지">
 <meta name="twitter:description" content="설치 없이 링크 하나로 친구와 즐기는 브라우저 보드게임 허브 13종.">
 <meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <style>
@@ -112,9 +112,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .brandrow .logo img{width:84%;height:84%;object-fit:contain;display:block;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
   .brandrow .btx{min-width:0;display:flex;flex-direction:column;gap:1px}
-  .brandrow h1{font-size:20px;font-weight:900;letter-spacing:-.02em;line-height:1.15;display:flex;align-items:baseline;gap:7px}
-  .brandrow h1 .en{font-size:9.5px;letter-spacing:.26em;color:var(--brass);font-weight:800;text-transform:uppercase}
-  .brandrow .lede{margin:0;font-size:12px;font-weight:600;color:var(--muted);line-height:1.35;
+  .brandrow h1{font-size:22px;font-weight:900;letter-spacing:-.03em;line-height:1.15}
+  /* 리드는 서비스의 정의다 — 12px 회색으로 흐리게 두지 않는다(개편 전 지적). 크기·대비를 올렸다. */
+  .brandrow .lede{margin:1px 0 0;font-size:12.5px;font-weight:700;color:var(--ink);opacity:.72;line-height:1.35;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .entryrow{display:flex; gap:8px; margin:0 2px 12px}
@@ -423,8 +423,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .achbadge.on .at b{color:var(--brass)}
 
   /* 메타 도전과제 해금 토스트 */
-  /* bottom:22px이면 첫 화면 맨 아래 '내 기록' 줄과 겹친다(2026-08-05 캡처에서 확인). 더 띄운다. */
-  .metatoast{position:fixed;left:50%;bottom:58px;transform:translateX(-50%) translateY(20px);z-index:9997;
+  /* 아래쪽은 늘 무언가가 차는 자리다 — bottom:22px에서 '내 기록' 줄과 겹쳤고, 58px로 올려도
+     페이지가 1.2화면뿐이라 또 겹쳤다(캡처 2회 확인). 위로 옮긴다. 위는 스크롤 0에서만 비어 있다. */
+  .metatoast{position:fixed;left:50%;top:14px;transform:translateX(-50%) translateY(-20px);z-index:9997;
     display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:13px;opacity:0;pointer-events:none;
     border:1px solid color-mix(in srgb,var(--brass) 45%,var(--line));
     background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(8px);
@@ -592,10 +593,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
          '내 정보' 묶음은 그대로 아래에 남고, 게임 설명은 맨 아래 접힌 목록으로 옮겼다(설명이 필요한 사람만 편다).
        ⚠️ 되돌리려면 이 블록과 아래 `#gameTiles` 스타일, `#allGames`의 위치만 되돌리면 된다. -->
   <div class="brandrow">
-    <div class="logo"><img src="img/pig.png" alt="주사위 골목 마스코트 돼지" width="30" height="30" fetchpriority="high" decoding="async"></div>
+    <div class="logo"><img src="img/pig.png" alt="딱세판만 마스코트 돼지" width="30" height="30" fetchpriority="high" decoding="async"></div>
     <div class="btx">
-      <h1>주사위 골목<span class="en">Dice Alley</span></h1>
-      <p class="lede">설치 없이 링크 하나로 친구와 13가지</p>
+      <!-- 영문 병기(옛 'DICE ALLEY')는 뺐다 — 장식처럼 보이고 이름 옆 자리를 먹기만 했다.
+           대신 그 자리에 이 서비스가 무엇인지 말하는 한 줄을 둔다. -->
+      <h1>딱세판만</h1>
+      <p class="lede">커피 걸고 딱 세 판 · 설치 없이 링크 하나로</p>
     </div>
   </div>
 
@@ -782,7 +785,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     </div>
   </details>
 
-  <p class="foot">주사위 골목 — 뒷골목 놀이터 🎲<br>
+  <p class="foot">딱세판만 · 커피 걸고 딱 세 판 🎲<br>
     <a href="privacy.html" style="color:inherit;opacity:.75;font-size:12px">개인정보 처리방침</a></p>
 </div>
 <div class="metatoast" id="metaToast"><span class="me">🏅</span><div class="mt"><b>도전과제 달성!</b><span id="metaToastTxt"></span></div></div>
@@ -1053,7 +1056,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     var xp = totGames*12 + totWins*28 + totAch*55 + bestStreak*22 + playedCount*35;
     var lvl=1, need=120, acc=0; while(xp>=acc+need && lvl<99){ acc+=need; lvl++; need=Math.round(need*1.22); }
     var into=xp-acc, pct=Math.max(3,Math.min(100,Math.round(into/need*100)));
-    var TT=[[1,'초심자'],[3,'골목 견습'],[5,'단골 노름꾼'],[8,'승부사'],[12,'골목 고수'],[16,'주사위 장인'],[22,'골목의 전설']];
+    var TT=[[1,'초심자'],[3,'견습'],[5,'단골'],[8,'승부사'],[12,'고수'],[16,'장인'],[22,'전설']];
     var title='초심자'; for(var i=0;i<TT.length;i++){ if(lvl>=TT[i][0]) title=TT[i][1]; }
     lc.innerHTML='<div class="lv-badge"><span class="lvw">LV</span><span class="lvn">'+lvl+'</span></div>'
       +'<div class="lv-main"><div class="lv-top"><b>'+esc(title)+'</b><span>'+xp+' XP</span></div>'
@@ -1094,11 +1097,11 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'서로 다른 5종 플레이',  ok:playedCount>=5},
     /* 13종이 됐는데 '여러 게임을 해봐라'의 천장이 5종에 머물러 있었다 —
        탐험가의 문턱은 그대로 두고(막 시작한 사람에게 5종도 충분히 멀다) 위쪽에 목표를 하나 더 만든다. */
-    {id:'conquer',   e:'🏴', name:'골목 정복',   desc:'13종 전부 1판 이상',   ok:playedCount>=13},
-    {id:'regular',   e:'🏆', name:'골목 단골',   desc:'모든 게임 합쳐 50판',      ok:totGames>=50},
+    {id:'conquer',   e:'🏴', name:'13종 정복',   desc:'13종 전부 1판 이상',   ok:playedCount>=13},
+    {id:'regular',   e:'🏆', name:'단골',   desc:'모든 게임 합쳐 50판',      ok:totGames>=50},
     {id:'contender', e:'👑', name:'승부사',     desc:'모든 게임 합쳐 20승',      ok:totWins>=20},
     {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5},
-    {id:'veteran',   e:'🎖️', name:'골목 베테랑', desc:'모든 게임 합쳐 100판',     ok:totGames>=100},
+    {id:'veteran',   e:'🎖️', name:'베테랑', desc:'모든 게임 합쳐 100판',     ok:totGames>=100},
     {id:'champion',  e:'💎', name:'챔피언',     desc:'모든 게임 합쳐 50승',      ok:totWins>=50},
     {id:'collector', e:'📚', name:'수집가',     desc:'게임 배지 15개',       ok:totAch>=15},
     {id:'inferno',   e:'🌋', name:'맹렬',       desc:'최고 연승 10 이상',    ok:bestStreak>=10}
@@ -1114,7 +1117,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
           +'<span class="ae">'+m.e+'</span>'
           +'<span class="at"><b>'+esc(m.name)+'</b><span>'+(m.ok?'달성':esc(m.desc))+'</span></span></div>';
       });
-      shelf.innerHTML='<div class="ashdr"><b>골목 도전과제</b><span>'+unlocked+' / '+META.length+'</span></div>'
+      shelf.innerHTML='<div class="ashdr"><b>도전과제</b><span>'+unlocked+' / '+META.length+'</span></div>'
         +'<div class="achgrid">'+grid+'</div>';
       shelf.classList.add('show');
     }

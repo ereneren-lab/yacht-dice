@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>너클본즈 — 주사위 골목</title>
+<title>너클본즈 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -22,7 +22,7 @@
 <meta name="description" content="너클본즈 — 같은 눈을 겹쳐 점수를 키우고 상대 주사위를 부수는 전략 주사위 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/kb.html">
-<meta property="og:title" content="너클본즈 — 주사위 골목">
+<meta property="og:title" content="너클본즈 — 딱세판만">
 <meta property="og:description" content="같은 눈을 겹쳐 점수를 키우고 상대 주사위를 부수는 전략 주사위 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <meta name="twitter:card" content="summary">
@@ -1267,9 +1267,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function shareResult(){
     if(!S)return; const b=bottomSeat(); const my=boardScore(S.boards[b]), op=boardScore(S.boards[1-b]);
     const won=my>op; const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
-    const text = won ? `주사위 골목 · 너클본즈 ${my}:${op}으로 승리!${st} 🎲` : `주사위 골목 · 너클본즈 ${my}:${op} 한 판 붙었어 🎲`;
+    const text = won ? `딱세판만 · 너클본즈 ${my}:${op}으로 승리!${st} 🎲` : `딱세판만 · 너클본즈 ${my}:${op} 한 판 붙었어 🎲`;
     const url=shareUrl();
-    if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 자랑해!'); }
   }
   $('shareBtn').onclick=shareResult;
@@ -1299,7 +1299,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       g.textAlign='center';
       // 상단 타이틀
       g.fillStyle='#e0a23c'; g.font='700 54px '+FONT;
-      g.fillText('주사위 골목 · 너클본즈', 540, 180);
+      g.fillText('딱세판만 · 너클본즈', 540, 180);
       // 왕관/무승부 이모지
       g.font='140px '+FONT; g.fillText(crown, 540, 400);
       // 승자 헤드라인
@@ -1322,7 +1322,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         try{
           const file=new File([blob],'knucklebones.png',{type:'image/png'});
           if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-            const payload={files:[file], title:'주사위 골목 · 너클본즈'};
+            const payload={files:[file], title:'딱세판만 · 너클본즈'};
             if(online() && roomCode) payload.url=shareUrl();   // 방 유지 중이면 딥링크 동봉
             navigator.share(payload).catch(()=>{});
             return;
@@ -1622,7 +1622,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyAddAi').onclick = ()=>wsSend({t:'addAI'});
   $('copyLink').onclick = ()=>{ const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
     const fb=()=>{ copyText(url); showToast('🔗 초대 링크 복사됨'); };
-    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>fb()); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>fb()); }
     else fb(); };
   $('lobbyCode').onclick = ()=>{ const c=roomCode||(lobby&&lobby.code)||''; if(!c)return; copyText(c); showToast('📋 방 코드 복사됨'); };
   // 방 파하기: 호스트가 방 자체를 없앤다(자리·재접속 정보까지 사라짐) — 되돌릴 수 없어 확인받는다

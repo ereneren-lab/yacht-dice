@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>라이어 다이스 — 주사위 골목</title>
+<title>라이어 다이스 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -22,7 +22,7 @@
 <meta name="description" content="라이어 다이스 — 허풍과 심리전으로 상대를 속이는 주사위 블러핑 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/ld.html">
-<meta property="og:title" content="라이어 다이스 — 주사위 골목">
+<meta property="og:title" content="라이어 다이스 — 딱세판만">
 <meta property="og:description" content="허풍과 심리전으로 상대를 속이는 주사위 블러핑 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <meta name="twitter:card" content="summary">
@@ -1162,9 +1162,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function shareResult(){
     if(!S)return; const iWon=S.winner===MYPID; const wp=S.players.find(p=>p.pid===S.winner);
     const st=(Stats.d.streak>=2)?` 🔥${Stats.d.streak}연승!`:'';
-    const text = iWon ? `주사위 골목 · 라이어 다이스에서 최후의 1인 우승!${st} 🤥` : `주사위 골목 · 라이어 다이스 한 판 붙었어. ${wp?esc(wp.name)+' 우승':''} 🤥`;
+    const text = iWon ? `딱세판만 · 라이어 다이스에서 최후의 1인 우승!${st} 🤥` : `딱세판만 · 라이어 다이스 한 판 붙었어. ${wp?esc(wp.name)+' 우승':''} 🤥`;
     const url=shareUrl();
-    if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); showToast('📋 결과 복사됨 — 자랑해!'); }
   }
   $('shareBtn').onclick=shareResult;
@@ -1195,7 +1195,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       x.textAlign='center'; x.textBaseline='middle';
       // 상단 타이틀
       x.fillStyle=brass; x.font='700 42px '+FONT;
-      x.fillText('주사위 골목 · 라이어 다이스', W/2, 118);
+      x.fillText('딱세판만 · 라이어 다이스', W/2, 118);
       x.strokeStyle=brass; x.globalAlpha=.35; x.lineWidth=2;
       x.beginPath(); x.moveTo(180,168); x.lineTo(W-180,168); x.stroke(); x.globalAlpha=1;
       // 우승 왕관 + 이름
@@ -1238,7 +1238,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(!blob) return;
         const file=new File([blob],'liar-dice-result.png',{type:'image/png'});
         if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-          try{ await navigator.share({files:[file], title:'주사위 골목 · 라이어 다이스'}); return; }
+          try{ await navigator.share({files:[file], title:'딱세판만 · 라이어 다이스'}); return; }
           catch(e){ if(e && e.name==='AbortError') return; }
         }
         try{
@@ -1440,7 +1440,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('copyLink').onclick=()=>{ const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
     const fb=()=>{ copyText(url); showToast('🔗 초대 링크 복사됨'); };
-    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(fb); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(fb); }
     else fb(); };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ const code=(lobby&&lobby.code)||roomCode||''; if(!code)return; copyText(code); showToast('방 코드 복사됨'); };

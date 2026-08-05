@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>좌·중·우 — 주사위 골목</title>
+<title>좌·중·우 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -25,13 +25,13 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- 공유 미리보기 (OG / 트위터) -->
 <meta name="description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 칩을 좌·우 이웃에게 넘기고, 마지막까지 남은 1명이 가운데 팟을 싹쓸이!">
-<meta property="og:title" content="좌·중·우(LCR) — 주사위 골목">
+<meta property="og:title" content="좌·중·우(LCR) — 딱세판만">
 <meta property="og:description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 칩을 좌·우 이웃에게 넘기고, 마지막까지 남은 1명이 가운데 팟을 싹쓸이!">
 <meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/lcr.html">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="좌·중·우(LCR) — 주사위 골목">
+<meta name="twitter:title" content="좌·중·우(LCR) — 딱세판만">
 <meta name="twitter:description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 마지막 1명이 팟을 싹쓸이!">
 <meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <style>
@@ -1509,7 +1509,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('lobbyCopy').onclick=()=>{
     const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
-    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url,'🔗 초대 링크 복사됨')); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url,'🔗 초대 링크 복사됨')); }
     else copyText(url,'🔗 초대 링크 복사됨');
   };
   $('lobbyCode').style.cursor='pointer';
@@ -1562,14 +1562,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const iWon=S&&S.winner===MYPID;
     const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
     const pot=S?S.maxPot||0:0;
-    if(iWon){ const pp = pot>0?`팟 ${pot}개 포함 `:''; return `주사위 골목 · 좌중우(LCR)에서 ${pp}총 ${w?w.chips:''}칩 싹쓸이 승리!${st} 🔀`; }
-    return `주사위 골목 · 좌중우(LCR) 한 판 붙었어. ${w?dispName(w)+' 승리':''} 🔀`;
+    if(iWon){ const pp = pot>0?`팟 ${pot}개 포함 `:''; return `딱세판만 · 좌중우(LCR)에서 ${pp}총 ${w?w.chips:''}칩 싹쓸이 승리!${st} 🔀`; }
+    return `딱세판만 · 좌중우(LCR) 한 판 붙었어. ${w?dispName(w)+' 승리':''} 🔀`;
   }
   // 공유 URL — 방을 아직 유지 중이면 ?room=CODE 딥링크로 바로 합류 가능하게
   function shareUrl(){ let u=location.origin+location.pathname; if(online && roomCode) u+='?room='+roomCode; return u; }
   function shareResult(){
     const text=buildShareText(); const url=shareUrl();
-    if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url, '📋 결과 복사됨 — 붙여넣기 해서 자랑해!'); }
   }
   $('shareBtn').onclick=shareResult;
@@ -1586,7 +1586,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     x.textAlign='center';
     // 상단 타이틀
     x.fillStyle='#a89a86'; x.font='700 42px '+F;
-    x.fillText('주사위 골목 · 좌·중·우(LCR)', 540, 180);
+    x.fillText('딱세판만 · 좌·중·우(LCR)', 540, 180);
     // 트로피
     x.font='150px '+F; x.fillText('🏆', 540, 430);
     // 우승자
@@ -1612,7 +1612,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         try{
           const file=new File([blob],'lcr-result.png',{type:'image/png'});
           if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
-            navigator.share({files:[file],title:'주사위 골목',url:shareUrl()}).catch(()=>{});
+            navigator.share({files:[file],title:'딱세판만',url:shareUrl()}).catch(()=>{});
           } else {
             const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='lcr-result.png';
             document.body.appendChild(a); a.click(); a.remove();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>윷놀이 — 주사위 골목</title>
+<title>윷놀이 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -23,13 +23,13 @@
 <script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
 <script src="analytics.js"></script>
 <meta name="description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로 즐기세요.">
-<meta property="og:title" content="윷놀이 — 주사위 골목">
+<meta property="og:title" content="윷놀이 — 딱세판만">
 <meta property="og:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로.">
 <meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yut.html">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="윷놀이 — 주사위 골목">
+<meta name="twitter:title" content="윷놀이 — 딱세판만">
 <meta name="twitter:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이.">
 <meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <link rel="manifest" href="manifest.json">
@@ -1186,7 +1186,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   </div>
   <div class="app">
     <div class="topbar">
-      <a class="iconbtn hubx" href="./" title="골목으로" aria-label="주사위 골목(홈)으로 나가기">←</a>
+      <a class="iconbtn hubx" href="./" title="골목으로" aria-label="딱세판만(홈)으로 나가기">←</a>
       <div class="title"><span class="dot"></span>윷놀이 <span id="modePill" style="font-size:11px;color:var(--muted);font-weight:600"></span></div>
       <div class="spacer"></div>
       <span id="dailyBadge" class="dailybadge" title="오늘의 규칙" aria-label="오늘의 규칙"></span>
@@ -4638,7 +4638,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   })();
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
+  $('lobbyCopy').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
   (function(){ const lc=$('lobbyCode'); if(!lc)return; lc.style.cursor='pointer'; lc.title='탭하면 방 코드 복사'; lc.onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); }; })();
   // 판이 끝난 뒤엔 누구나 방 전체를 대기실로 되돌릴 수 있다(서버가 종료 상태에서 허용).
   // 서버가 lobby를 브로드캐스트하면 각 클라의 lobby 핸들러가 게임 화면을 정리하고 대기실로 전환한다.
@@ -4676,10 +4676,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     else if(S && S.rankings && S.rankings.length){ const medal=['🥇','🥈','🥉'];
       body='\n'+S.rankings.map((pid,i)=>{ const p=S.players.find(x=>x.pid===pid); return p?`${medal[i]||(i+1)+'위'} ${p.name}`:''; }).filter(Boolean).join('\n'); }
     else if(S){ const w=S.players.find(p=>p.pid===S.winner); if(w)body='\n🥇 '+w.name; }
-    const head = iWon ? `주사위 골목 · 윷놀이에서 우승!${st} 🎲` : `주사위 골목 · 윷놀이 한 판! 🎲`;
+    const head = iWon ? `딱세판만 · 윷놀이에서 우승!${st} 🎲` : `딱세판만 · 윷놀이 한 판! 🎲`;
     const join = (online && roomCode) ? `\n같이 하자 → 방 코드 ${roomCode}` : '';
     const text = head + body + join;
-    const url=shareUrl(); if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url, '📋 결과 복사됨 — 자랑해!'); } }
+    const url=shareUrl(); if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); } else { copyText(text+'\n'+url, '📋 결과 복사됨 — 자랑해!'); } }
   $('shareBtn').onclick=shareResult;
 
   /* 결과를 1080×1080 이미지 카드로 만들어 공유(미지원 시 다운로드 폴백). 조용히 실패. */
@@ -4695,7 +4695,7 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       g.textAlign='center'; g.textBaseline='alphabetic';
       // 상단 타이틀
       g.fillStyle=BRASS; g.font='bold 56px '+FONT;
-      g.fillText('주사위 골목 · 윷놀이', W/2, 175);
+      g.fillText('딱세판만 · 윷놀이', W/2, 175);
       g.strokeStyle='rgba(224,162,60,.35)'; g.lineWidth=2;
       g.beginPath(); g.moveTo(170,212); g.lineTo(W-170,212); g.stroke();
       // 트로피 + 우승 헤드라인
@@ -4735,8 +4735,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
         var file; try{ file=new File([blob],'yut-result.png',{type:'image/png'}); }catch(e){ file=null; }
         try{
           if(file && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-            var _txt='주사위 골목 · 윷놀이 결과! 🎲'+((online&&roomCode)?('\n같이 하자 → '+shareUrl()):'');
-            navigator.share({files:[file], title:'주사위 골목', text:_txt}).catch(function(){});
+            var _txt='딱세판만 · 윷놀이 결과! 🎲'+((online&&roomCode)?('\n같이 하자 → '+shareUrl()):'');
+            navigator.share({files:[file], title:'딱세판만', text:_txt}).catch(function(){});
             return;
           }
         }catch(e){}

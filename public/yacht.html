@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>요트 다이스 — 주사위 골목</title>
+<title>요트 다이스 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -24,7 +24,7 @@
 <meta name="description" content="요트 다이스 — 주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yacht.html">
-<meta property="og:title" content="요트 다이스 — 주사위 골목">
+<meta property="og:title" content="요트 다이스 — 딱세판만">
 <meta property="og:description" content="주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:image" content="https://yacht-dice-jxva.onrender.com/icon-512.png">
 <meta name="twitter:card" content="summary">
@@ -1217,7 +1217,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   <div class="bg"></div>
   <div class="app">
     <div class="topbar">
-      <a class="iconbtn" href="./" title="골목으로" id="hubLink" aria-label="주사위 골목(홈)으로 나가기" style="text-decoration:none">←</a>
+      <a class="iconbtn" href="./" title="골목으로" id="hubLink" aria-label="딱세판만(홈)으로 나가기" style="text-decoration:none">←</a>
       <div class="title"><span class="dot"></span>요트 다이스 <small id="modeName"></small><span class="meta-chip" id="myMetaChip"></span></div>
       <div class="spacer"></div>
       <button class="iconbtn" id="lightBtn" title="다크/라이트 모드" aria-label="다크/라이트 모드 전환">☀️</button>
@@ -2459,10 +2459,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('rmAccept').onclick=()=>{ wsSend({t:'rematchVote',v:'accept'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('shareBtn').onclick=()=>{ if(!S)return; const ranked=[...S.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
-    let t='🎲 주사위 골목 · 요트 다이스 ('+S.modeName+')\n'; ranked.forEach((r,i)=>{t+=`${['🥇','🥈','🥉'][i]||(i+1)+'.'} ${r.name} — ${r.total}점\n`;});
+    let t='🎲 딱세판만 · 요트 다이스 ('+S.modeName+')\n'; ranked.forEach((r,i)=>{t+=`${['🥇','🥈','🥉'][i]||(i+1)+'.'} ${r.name} — ${r.total}점\n`;});
     let text=t.trim(); const rc=roomCode(); const url=location.origin+location.pathname+(rc?('?room='+rc):'');
     if(rc) text+='\n\n🔗 방 코드 '+rc+' — 아래 링크로 바로 참가!';
-    if(navigator.share){ navigator.share({title:'주사위 골목',text,url}).catch(()=>{}); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); } };
 
   // ---------- 결과 이미지 카드 ----------
@@ -2478,7 +2478,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     g.strokeStyle=BRASS; g.lineWidth=6; g.strokeRect(30,30,W-60,H-60);
     g.textAlign='center';
     // 상단 타이틀
-    g.fillStyle=BRASS; g.font='700 40px '+SANS; g.fillText('🎲 주사위 골목 · 요트 다이스',W/2,130);
+    g.fillStyle=BRASS; g.font='700 40px '+SANS; g.fillText('🎲 딱세판만 · 요트 다이스',W/2,130);
     g.fillStyle=DIM; g.font='400 30px '+SANS; g.fillText(String(S.modeName||''),W/2,180);
     // 승자
     const w=S.winners||{names:[],top:0}; const champ=ranked[0];
@@ -2507,7 +2507,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   $('shareImgBtn').onclick=()=>{ try{
     const cv=buildResultCard(); if(!cv||!cv.toBlob)return;
-    const title='주사위 골목 · 요트 다이스'; const text='요트 다이스 결과 🎲';
+    const title='딱세판만 · 요트 다이스'; const text='요트 다이스 결과 🎲';
     cv.toBlob(blob=>{ try{ if(!blob)return; const file=new File([blob],'요트결과.png',{type:'image/png'});
       if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){ navigator.share({files:[file],title,text}).catch(()=>{}); }
       else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='요트결과.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
@@ -2709,7 +2709,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('startOnline').onclick=()=>{ if(amHost())wsSend({t:'start'}); };
   $('copyCode').onclick=()=>{ if(lobby)copyText(lobby.code); };
   $('copyLink').onclick=()=>{ if(!lobby)return; const code=lobby.code; const url=location.origin+location.pathname+'?room='+code;
-    if(navigator.share){ navigator.share({title:'주사위 골목',text:'주사위 골목에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url)); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url)); }
     else copyText(url); };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ if(!lobby)return; const c=lobby.code;
