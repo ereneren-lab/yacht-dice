@@ -80,7 +80,9 @@
         }
         if (!d) d = db[g];
         if (!d || !d.games) continue;
-        out[g] = { games: d.games | 0, wins: d.wins | 0, best: d.best || 0 };
+        /* bestStreak도 함께 넘긴다 — 허브의 '최고 연승'이 이 값을 쓴다(2026-08-05).
+           예전엔 허브가 게임별 `{접두사}_stats`를 직접 읽어 5종만 셌다. */
+        out[g] = { games: d.games | 0, wins: d.wins | 0, best: d.best || 0, bestStreak: d.bestStreak | 0 };
       }
       return out;
     },

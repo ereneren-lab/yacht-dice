@@ -843,28 +843,46 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     });
   })();
 
-  // 2) 내 기록 요약 스트립 + 3) 카드별 미니 배지 (같은 stats를 재사용)
+  /* 2) 내 기록 요약 스트립 + 3) 카드별 미니 배지 (같은 stats를 재사용)
+     🔴 2026-08-05 — 여기가 **13종 중 5종만 세고 있었다.**
+        예전 코드는 위 GAMES 배열을 돌며 `{접두사}_stats`를 직접 읽었다. 그런데
+          · `sd_stats`·`ip_stats`·`oc_stats`·`om_stats` → **그 이름의 키를 쓰는 코드가 저장소에 없다**
+            (섯다·인디언·원카드·도둑잡기는 공용 키 `alley_stats`에 쌓는다)
+          · `alkkagi_stats` → 철자가 다르다. 알까기가 실제로 쓰는 키는 `alk_stats`다
+          · 블랙잭·바카라·하이로우 → 배열에 아예 없다
+        그래서 실제로 집계된 건 너클본즈·요트·라이어·좌중우·윷 **5종뿐**이었고,
+        폰에서 요약 "총 판수 1"과 바로 아래 "내 전적 3판·2승(3게임)"이 **서로 모순돼 보였다**.
+        정답 로직은 이미 옆에 있었다 — `stats.js`의 `AS.merged()`가 처음부터 13종을 정확히 본다
+        (게임별 예전 키가 있으면 그걸, 없으면 `alley_stats`를 쓴다. 이중 계산도 막는다).
+     ⚠️ 위 GAMES 배열은 그대로 둔다 — 그건 '이어하기'용 **방 키(`{ns}_room`)** 목록이라 성격이 다르다.
+     ⚠️ 뱃지(`_ach`)는 13종화하지 않았다. 실제로 `{게임}_ach` 키를 쓰는 게임이 5종(kb·ld·lcr·yd·yut)뿐이다 —
+        없는 데이터를 세는 척하지 않는다. 나머지 8종에 도전과제를 붙이는 건 별도 작업이다. */
   var totGames=0, totWins=0, bestStreak=0, totAch=0, playedCount=0;
-  GAMES.forEach(function(g){
-    var s=readJSON(g.p+'_stats');
-    if(s&&typeof s==='object'){
-      var gn=+s.games||0;
-      totGames+=gn; totWins+=(+s.wins||0);
-      bestStreak=Math.max(bestStreak, +s.bestStreak||0);
-      if(gn>0) playedCount++;
-    }
-    var a=readJSON(g.p+'_ach');
-    if(Array.isArray(a)) totAch+=a.length;
-    // 카드 배지
-    var card=document.querySelector('.gcard[href="'+g.file+'"]');
+  var merged=(function(){ try{ return (window.AS&&AS.merged)?AS.merged():{}; }catch(e){ return {}; } })();
+  Object.keys(merged).forEach(function(g){
+    var s=merged[g], gn=+s.games||0;
+    totGames+=gn; totWins+=(+s.wins||0);
+    bestStreak=Math.max(bestStreak, +s.bestStreak||0);
+    if(gn>0) playedCount++;
+    // 카드 배지 — 13종 전부에 붙는다(예전엔 위 배열의 10종만 시도했고 그중 5종만 숫자가 나왔다)
+    var href=(window.AS&&AS.HREF&&AS.HREF[g])||null;
+    var card=href&&document.querySelector('.gcard[href="'+href+'"]');
     var meta=card&&card.querySelector('.meta');
-    if(meta){
+    if(meta&&gn>0){
       var b=document.createElement('span');
-      var gn=(s&&typeof s==='object')?(+s.games||0):0;
-      if(gn>0){ b.className='statbadge'; b.textContent=gn+'판 · '+((s&&+s.wins)||0)+'승'; }
-      else { b.className='statbadge none'; b.textContent='미플레이'; }
+      b.className='statbadge'; b.textContent=gn+'판 · '+((+s.wins)||0)+'승';
       meta.appendChild(b);
     }
+  });
+  // 한 판도 안 한 게임에는 '미플레이'를 붙인다(merged는 0판 게임을 아예 안 담는다)
+  document.querySelectorAll('.gcard .meta').forEach(function(meta){
+    if(meta.querySelector('.statbadge')) return;
+    var b=document.createElement('span'); b.className='statbadge none'; b.textContent='미플레이';
+    meta.appendChild(b);
+  });
+  GAMES.forEach(function(g){
+    var a=readJSON(g.p+'_ach');
+    if(Array.isArray(a)) totAch+=a.length;
   });
   var strip=$('statStrip');
   if(strip&&(totGames>0||totAch>0)){
@@ -873,7 +891,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     strip.classList.add('show');
   }
 
-  // 2.5) 프로필 레벨/XP — 5종 통계 합산에서 파생(별도 저장 없이 매 로드 계산)
+  // 2.5) 프로필 레벨/XP — 13종 통계 합산에서 파생(별도 저장 없이 매 로드 계산 · 2026-08-05 이전엔 5종만 셌다)
   (function(){
     var lc=$('levelCard'); if(!lc||totGames<=0) return;
     var xp = totGames*12 + totWins*28 + totAch*55 + bestStreak*22 + playedCount*35;
@@ -910,10 +928,13 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     dg.classList.add('show');
   })();
 
-  // 5) 골목 도전과제 — 5종 stats 합산으로 순수 파생 계산 (별도 저장 없이 매 로드 판정)
+  // 5) 골목 도전과제 — 13종 stats 합산으로 순수 파생 계산 (별도 저장 없이 매 로드 판정)
   var META=[
     {id:'firststep', e:'🎲', name:'첫 발걸음',  desc:'아무 게임 1판',        ok:totGames>=1},
-    {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'5종 모두 1판 이상',    ok:playedCount>=5},
+    /* '5종 모두'는 5게임 시절 문구다 — 13종이 된 지금은 거짓말이고, 판정은 원래부터
+       '서로 다른 5종'이었다(playedCount>=5). 판정은 그대로 두고 표현만 사실로 맞춘다.
+       '13종 전부'로 올릴지는 난이도를 바꾸는 결정이라 따로 판단한다. */
+    {id:'explorer',  e:'🗺️', name:'탐험가',     desc:'서로 다른 5종 플레이',  ok:playedCount>=5},
     {id:'regular',   e:'🏆', name:'골목 단골',   desc:'전 게임 합 50판',      ok:totGames>=50},
     {id:'contender', e:'👑', name:'승부사',     desc:'전 게임 합 20승',      ok:totWins>=20},
     {id:'blaze',     e:'🔥', name:'불꽃',       desc:'최고 연승 5 이상',     ok:bestStreak>=5},
