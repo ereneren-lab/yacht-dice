@@ -610,7 +610,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   </div>
   <!-- 친구와 할 게임 고르기 — 온라인 되는 10종만 담는다(server.js ONLINE_GAMES 기준, 아래 JS에서 채운다) -->
   <div class="invitepick" id="invitePick" hidden>
-    <div class="iphead">어느 게임으로 할까? <span>고르면 그 게임에서 방을 만들 수 있어</span></div>
+    <div class="iphead">어느 게임으로 할까? <span>고르면 방이 열려. 링크를 친구에게 보내면 끝.</span></div>
     <div class="ipgrid" id="ipGrid"></div>
   </div>
 
@@ -908,9 +908,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   })();
 
   /* 진입 두 버튼 — '친구와 하기'(게임 고르기 시트)와 '방 코드'(입력칸).
-     ⚠️ '친구와 하기'가 방을 **직접 만들지는 않는다.** 게임마다 온라인 진입 버튼의 id가 달라
-        (5종 #createBtn · 4종 #onlineBtn · 요트 #tabOnline) 허브에서 한 번에 누를 방법이 없다.
-        그래서 시트는 게임까지만 데려다준다 — 문구도 딱 그만큼만 약속한다. */
+     시트에서 고르면 `게임.html?host=1`로 가고, public/host-link.js가 그 게임의 온라인 버튼을
+     대신 눌러 **방까지 만든다**. 게임마다 버튼 id가 달라서(#createBtn·#createRoom·#ntCreate /
+     #onlineBtn·#tabOnline·모드칩) 허브가 직접 못 하고 그 파일이 대신한다. */
   (function(){
     var ib=$('inviteBtn'), jb=$('joinBtn'), pick=$('invitePick'), bar=$('joinBar'), grid=$('ipGrid');
     if(!ib||!jb||!pick||!bar) return;
@@ -922,8 +922,12 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       jb.setAttribute('aria-expanded',wantJoin?'true':'false');
       if(wantJoin){ var i=$('joinCode'); if(i) setTimeout(function(){ try{i.focus();}catch(e){} },50); }
     }
+    /* ?host=1 — 게임에 도착하자마자 방까지 만든다(public/host-link.js).
+       예전엔 게임까지만 데려다줬고 사용자가 온라인 버튼을 다시 찾아야 했다.
+       ⚠️ host-link.js가 못 찾으면 조용히 포기하고 그냥 셋업 화면이 뜬다 — 게임은 안 망가진다.
+          10종 전부 되는지는 `npm run test:hostlink`가 판정한다. */
     if(grid) grid.innerHTML=TILES.filter(function(x){return x.on;}).map(function(x){
-      return '<a href="'+x.f+'"><span class="e">'+x.ic+'</span>'+x.n+'</a>'; }).join('');
+      return '<a href="'+x.f+'?host=1"><span class="e">'+x.ic+'</span>'+x.n+'</a>'; }).join('');
     ib.onclick=function(){ setOpen(pick.hidden?'pick':null); };
     jb.onclick=function(){ setOpen(bar.hidden?'join':null); };
     // 방 코드로 초대받아 들어왔으면 입력칸을 열어둔다 — 닫혀 있으면 "코드 넣을 데가 없다"가 된다
