@@ -785,21 +785,14 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
          → 폭을 줄이고 회전을 빼 합성만으로 처리되게 한다. */
   @media (max-width:480px){
     #yutFx .yf-word{ animation-name:yfWordInLite }
-    /* ⚡ 2차(2026-08-04): 회전(yfRays 무한)과 페이드(yfRaysFade)를 **한 애니로 합쳤다.**
-       같은 요소에 애니 2개를 걸면 그 순간 도는 연출 개수가 2로 세어지고, 무한 회전이라
-       오버레이가 사라질 때까지 계속 돈다. 합치면 하나고, 수명이 오버레이와 같아 저절로 끝난다.
-       크기도 110vmax(≈823px, dpr 2.81이면 2313² 텍스처)에서 78vmax로 줄이고
-       가장자리를 마스크로 흐려 사각 경계가 안 보이게 했다 — 칠하는 면적이 절반이 된다.
-       ⚠️ 되돌리려면 이 두 줄을 지우면 기본 규칙(110vmax·회전 무한)으로 돌아간다. */
-    #yutFx .yf-rays{ width:78vmax;height:78vmax;margin-left:-39vmax;margin-top:-39vmax;mix-blend-mode:normal;opacity:.55;
-      -webkit-mask-image:radial-gradient(closest-side,#000 58%,transparent 100%);
-              mask-image:radial-gradient(closest-side,#000 58%,transparent 100%);
-      animation:yfRaysSpinFade var(--yf-dur,1.35s) ease-out forwards }
+    /* ⚠️ 2026-08-04: 여기서 rays를 78vmax로 줄이고 회전·페이드 두 애니를 하나로 합쳐봤다가
+       **되돌렸다.** 실기기 A/B(--sub=fx,fxbig)에서 rays 제거·축소·회전정지 어느 것도
+       baseline의 널뜀(71.7~80.6fps) 범위를 못 벗어났다 = 기여를 증명하지 못했다.
+       근거 없는 연출 변경은 하지 않는다(연출은 그대로 두는 편이 낫다). */
+    #yutFx .yf-rays{ width:110vmax;height:110vmax;margin-left:-55vmax;margin-top:-55vmax;mix-blend-mode:normal;opacity:.55 }
     #game.camerapunch{ animation-name:camPunchLite }
     .app.scrshake{ animation-name:scrShakeLite }
   }
-  /* 회전 + 페이드를 하나로 (위 주석 참고). 7초에 360도이던 속도를 그대로 옮겨 1.5초에 78도. */
-  @keyframes yfRaysSpinFade{ 0%{opacity:0;transform:rotate(0)} 18%{opacity:.85} 66%{opacity:.6;transform:rotate(52deg)} 100%{opacity:0;transform:rotate(78deg)} }
   @keyframes yfWordInLite{ 0%{opacity:0;transform:scale(1.5)} 25%{opacity:1;transform:scale(.97)} 33%{transform:scale(1.02)} 40%{transform:scale(1)} 72%{opacity:1;transform:scale(1.03)} 100%{opacity:0;transform:scale(1.16)} }
   @keyframes camPunchLite{ 0%{transform:scale(1)} 45%{transform:scale(1.022)} 100%{transform:scale(1)} }
   @keyframes scrShakeLite{ 0%,100%{transform:translate(0,0)} 12%{transform:translate(-6px,3px)} 26%{transform:translate(6px,-3px)} 42%{transform:translate(-5px,2px)} 58%{transform:translate(5px,-2px)} 74%{transform:translate(-3px,1px)} 88%{transform:translate(2px,-1px)} }
@@ -2475,7 +2468,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
        ③ 겹칠 것은 미룬다             — 오버레이가 도는 동안 토스트는 잠깐 뒤로
      ⚠️ 되돌리는 법: FX_LIMIT의 값만 바꾸면 된다(0/Infinity면 예전 동작). */
   const FX_LIMIT = {
-    floatEmoji: 4,      // 동시에 떠 있는 .floatemo 개수 상한 (기존: 무제한)
+    /* 동시에 떠 있는 .floatemo 개수 상한. 4로 재봤지만 전/후 3쌍 교차 측정에서 이득이
+       측정되지 않아 **해제**했다(Infinity = 예전 동작). 4로 바꾸면 다시 걸린다. */
+    floatEmoji: Infinity,
     toastDeferMs: 650,  // 풀스크린 결과 오버레이가 도는 동안 토스트를 미루는 시간 (0이면 안 미룸)
     toastQueuedMs: 1300 // 뒤에 대기 중인 토스트가 있을 때 현재 토스트 수명 (없으면 2600)
   };
@@ -3285,7 +3280,9 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
          **불꽃 3연발이 서로 겹쳐 최대 90개가 동시에** 살아 있었다. 실측 최악 프레임(367ms)이
          정확히 이 순간이고, 그때 돌던 것은 CSS 트랜지션 60개(입자 30개 × transform·opacity)였다.
          → 연발 수도 입자 수도 그대로 두고 **간격만 벌려** 동시 개수를 90 → 30으로 낮춘다.
-           피날레가 ~1초 길어지지만, 한 판에 한 번뿐인 순간이라 오히려 여운이 남는다. */
+           피날레가 ~1초 길어지지만, 한 판에 한 번뿐인 순간이라 오히려 여운이 남는다.
+         ⚠️ 근거의 한계: '동시 90개 → 30개'는 세어서 나온 사실이지만, 프레임 시간으로는 재지 못했다
+            (60초 A/B에서는 판이 끝나지 않아 피날레가 아예 안 떴다). 되돌리려면 간격 상수만 되돌린다. */
       try{ screenFlash(); cameraPunch(); }catch(e){}
       setTimeout(()=>{ try{ screenShake(); fireworks(); }catch(e){} }, rise+340);
       setTimeout(()=>{ try{ fireworks(); screenShake(); }catch(e){} }, rise+1400);
@@ -3932,11 +3929,11 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     const throwLabel=t=>{ const ex=(t.step===4||t.step===5?' <span class="big">한 번 더!</span>':t.step===-1?' <span class="big">뒤로!</span>':''); return t.name+ex; };
     if(isNew){ const rr=$('throwResult'); rr.textContent=''; rr.classList.remove('pop'); setTimeout(()=>{ if(!S||!S.lastThrow)return; rr.innerHTML=throwLabel(S.lastThrow); rr.classList.remove('pop'); void rr.offsetWidth; rr.classList.add('pop');
       const st=S.lastThrow.step; const key=st===5?'mo':st===4?'yut':st===-1?'backdo':st===1?'do':st===2?'gae':'geol';
-      // ① 같은 말을 두 번 하지 않는다 — 윷·모·빽도는 풀스크린 오버레이가 큰 글자로 이미 말한다.
-      //    그 순간이 정확히 연출이 가장 많이 겹치는 지점이라(측정: 최악 프레임 10개 중 8개),
-      //    말풍선 하나를 빼서 겹침을 줄인다. 흔한 도·개·걸에서는 오버레이가 작으므로 그대로 띄운다.
-      const bigResult=(st===4||st===5||st===-1);
-      const tp=S.players[S.turn]; if(tp && !bigResult) showSpeech(tp.pid, key);
+      /* ⚠️ 윷·모·빽도에서 말풍선을 생략해봤다가 **되돌렸다**(2026-08-04).
+         겹침이 가장 심한 지점인 건 맞지만(최악 프레임 10개 중 8개), 전/후 3쌍 교차 측정에서
+         이득이 측정되지 않았다. 근거 없이 연출을 빼지 않는다 — 필요하면 아래 한 줄만 되살리면 된다:
+           const bigResult=(st===4||st===5||st===-1); if(tp && !bigResult) showSpeech(...) */
+      const tp=S.players[S.turn]; if(tp) showSpeech(tp.pid, key);
       if(tp){ if(st===4||st===5) reactCard(tp.pid,'cardJoy',0.9); else if(st===-1) reactCard(tp.pid,'cardDismay',0.8,'ease-out'); }  // 큰 캐릭터: 윷·모 환호 / 빽도 낙담
       try{ if(st===4||st===5){SFX.yut(); BGM.duck();} else if(st===-1)SFX.backdo(); }catch(e){}
       // JUICE: 풀스크린 결과 오버레이
