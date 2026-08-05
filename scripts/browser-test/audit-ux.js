@@ -15,7 +15,7 @@
  * 사용: node server.js 띄운 뒤  node scripts/browser-test/audit-ux.js
  *       node scripts/browser-test/audit-ux.js kb yut     (일부만)
  */
-const { launchWithRetry } = require('./cdp');
+const { launchWithRetry, requireServer } = require('./cdp');
 
 /* 레티나 496px는 CLAUDE.md 함정 #4 — macOS에서 실제로 이 폭으로 떨어진다.
    가로(landscape)는 폭이 넓은 대신 높이가 360~430px밖에 안 돼 세로 조합보다 훨씬 가혹하다.
@@ -113,6 +113,7 @@ const ONLY = process.argv.slice(2).filter(a => !a.startsWith('-'));
 const LIST = ONLY.length ? GAMES.filter(x => ONLY.includes(x.g)) : GAMES;
 
 (async () => {
+  await requireServer();   // 서버가 없으면 감사는 '전부 통과'로 거짓말을 한다 — cdp.js requireServer 주석 참고
   const cdp = await launchWithRetry();
   const rows = [];
 

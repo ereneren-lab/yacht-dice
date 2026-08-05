@@ -14,7 +14,7 @@
  *
  * 사용: node server.js 띄운 뒤  node scripts/browser-test/audit-online-entry.js
  */
-const { launchWithRetry } = require('./cdp');
+const { launchWithRetry, requireServer } = require('./cdp');
 const fs = require('fs');
 
 // cdp.shot()은 디렉토리를 안 만든다 — 없으면 ENOENT로 측정 결과까지 통째로 가려진다
@@ -64,6 +64,7 @@ function findBtn(re){
 `;
 
 (async () => {
+  await requireServer();   // 서버가 없으면 감사는 '전부 통과'로 거짓말을 한다 — cdp.js requireServer 주석 참고
   const cdp = await launchWithRetry();
   const rows = [];
 

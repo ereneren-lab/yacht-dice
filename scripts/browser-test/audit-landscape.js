@@ -34,7 +34,7 @@
  * 사용: node server.js 띄운 뒤  node scripts/browser-test/audit-landscape.js
  *       node scripts/browser-test/audit-landscape.js kb yacht     (일부만)
  */
-const { launchWithRetry } = require('./cdp');
+const { launchWithRetry, requireServer } = require('./cdp');
 
 /* 높이 360~430이 진짜 어려운 구간이다(폰을 돌리면 여기로 떨어진다).
    1024x600은 '넓은 가로'라 압축 규칙(max-height:520px)이 안 걸리는 대조군이다. */
@@ -270,6 +270,7 @@ async function run(cdp, G, V) {
 }
 
 (async () => {
+  await requireServer();   // 서버가 없으면 감사는 '전부 통과'로 거짓말을 한다 — cdp.js requireServer 주석 참고
   const cdp = await launchWithRetry();
   const rows = [];
   for (const G of LIST) {

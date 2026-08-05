@@ -3,7 +3,7 @@
  *  ① 콘솔 에러 ② 가로/세로 넘침 ③ 작은 탭 타깃 ④ 첫 화면 버튼 목록 을 수집한다.
  * 사용: node server.js 띄운 뒤  node scripts/browser-test/audit-all.js
  */
-const { launchWithRetry } = require('./cdp');
+const { launchWithRetry, requireServer } = require('./cdp');
 
 const GAMES = ['index','kb','yacht','yut','ld','lcr','alkkagi','seotda','blackjack','indianpoker','highlow','oldmaid','baccarat','onecard'];
 const W = 390, H = 844;   // 아이폰 세로
@@ -24,6 +24,7 @@ const PROBE = `
 `;
 
 (async () => {
+  await requireServer();   // 서버가 없으면 감사는 '전부 통과'로 거짓말을 한다 — cdp.js requireServer 주석 참고
   const cdp = await launchWithRetry();
   const rows = [];
   for (const g of GAMES) {

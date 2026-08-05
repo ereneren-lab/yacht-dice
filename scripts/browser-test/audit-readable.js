@@ -12,7 +12,7 @@
  *
  * 사용: node server.js 띄운 뒤  node scripts/browser-test/audit-readable.js [게임...]
  */
-const { launchWithRetry } = require('./cdp');
+const { launchWithRetry, requireServer } = require('./cdp');
 
 const MIN_PX = 12;               // 이보다 작으면 폰에서 읽기 힘들다고 본다
 
@@ -91,6 +91,7 @@ return {bar:barInfo, tinyCount:tiny.length,
 (async () => {
   const only = process.argv.slice(2);
   const list = only.length ? GAMES.filter(g => only.includes(g)) : GAMES;
+  await requireServer();   // 서버가 없으면 감사는 '전부 통과'로 거짓말을 한다 — cdp.js requireServer 주석 참고
   const cdp = await launchWithRetry();
   const rows = [];
 

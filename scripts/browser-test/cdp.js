@@ -279,4 +279,29 @@ async function launchWithRetry(tries = 3, waitMs = 3000) {
   throw last;
 }
 
-module.exports = { CDP, Page, findBrowser, launchWithRetry };
+/**
+ * 감사를 시작하기 전에 로컬 서버가 살아 있는지 확인한다. 없으면 **즉시 죽는다.**
+ *
+ * ⚠️ 왜 이게 있나 (2026-08-05) — 서버가 꺼져 있으면 `page.goto`가 빈 페이지를 받고,
+ *   감사가 볼 요소가 하나도 없으니 "나쁜 행 0개" = **전 항목 ✅ 통과**로 찍힌다.
+ *   실제로 audit:landscape가 13종 전 항목을 초록으로 통과시켰고, 그 가짜 초록을 보고
+ *   커밋할 뻔했다. 감사는 **못 보면 통과가 아니라 실패**여야 한다.
+ *
+ * 일부러 서버를 대신 띄워주지 않는다 — 고아 프로세스가 남고, 다음 사람이
+ * '서버가 필요하다'는 사실을 영영 안 배우게 된다. 명령만 알려주고 끝낸다.
+ */
+async function requireServer(url = 'http://localhost:3000/', timeoutMs = 2000) {
+  const http = require('http');
+  const ok = await new Promise(resolve => {
+    const req = http.get(url, res => { res.resume(); resolve(res.statusCode < 500); });
+    req.setTimeout(timeoutMs, () => { req.destroy(); resolve(false); });
+    req.on('error', () => resolve(false));
+  });
+  if (ok) return true;
+  console.error(`\n❌ 로컬 서버가 응답하지 않는다 — ${url}`);
+  console.error(`   감사는 서버 없이 돌면 '검사할 게 없어서' 전부 통과로 찍힌다. 그래서 여기서 멈춘다.`);
+  console.error(`   먼저 다른 터미널에서:  node server.js\n`);
+  process.exit(1);
+}
+
+module.exports = { CDP, Page, findBrowser, launchWithRetry, requireServer };

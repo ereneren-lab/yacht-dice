@@ -3,7 +3,7 @@
  *  ① 인게임 콘솔 에러 ② 인게임 넘침(스크롤 없이 플레이 가능한가) ③ 프레임 끊김(렉) 을 잰다.
  * 사용: node server.js 띄운 뒤  node scripts/browser-test/audit-play.js
  */
-const { launchWithRetry } = require('./cdp');
+const { launchWithRetry, requireServer } = require('./cdp');
 
 const W = 390, H = 844;
 const GAMES = [
@@ -32,6 +32,7 @@ const OVER = `var de=document.documentElement,b=document.body;
   return {h:Math.max(de.scrollWidth,b.scrollWidth)-window.innerWidth, v:Math.max(de.scrollHeight,b.scrollHeight)-window.innerHeight, ingame:b.classList.contains('ingame')};`;
 
 (async () => {
+  await requireServer();   // 서버가 없으면 감사는 '전부 통과'로 거짓말을 한다 — cdp.js requireServer 주석 참고
   const cdp = await launchWithRetry();
   const out = [];
   for (const { g, start } of GAMES) {

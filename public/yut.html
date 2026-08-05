@@ -1121,7 +1121,16 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     #game .tray-row{ padding:2px 6px;gap:6px }
     #game .tp{ width:22px;height:22px;font-size:10px;border-width:2px }
     #game .tray-name{ font-size:10.5px;min-width:36px }
-    #game .throwarea{ margin:0 }
+    /* 🔴 '무대' 패널을 가로 치수로 다시 잡는다 (2026-08-05).
+       폭 ≥781px의 데스크톱 규칙이 `min-height:210px`·`padding:14px 12px 12px`·`gap:8px`으로
+       **빈 공간을 일부러 예약**한다(던지기 전에 허전해 보이지 않게). 그 규칙이 가로 폰에도
+       그대로 걸려서, 조작 열 예산 **346px 중 210px을 무대가 혼자** 먹고 있었다.
+       실측(844×390): 무대 안 내용은 72px뿐인데 높이는 210px — **138px이 빈 공기였다.**
+       그 대가를 치른 건 유일하게 줄어들 수 있는 `#pieceTray`다(61px → **8px**, 53px 숨음).
+       안 낸 말을 눌러 놓는 자리가 사라져 있었다.
+       → 내용이 다 들어가는 만큼(120px)만 남긴다. 점프 방지라는 원래 목적은 유지되고,
+         90px이 트레이로 돌아간다. ⚠️ 0으로 만들면 던질 때마다 열이 출렁인다 — 바닥은 필요하다. */
+    #game .throwarea{ margin:0;min-height:120px;padding:6px 10px;gap:3px }
     #game .thrower{ min-height:26px;margin-bottom:0 }
     #game .thrower img{ width:26px;height:26px }
     #game .thrower .tname{ font-size:11px }
@@ -1139,6 +1148,22 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     .gaugehint{ font-size:10px;margin-bottom:2px }
     .bigbtn{ padding:11px;font-size:15px }
     .dr-band{ padding:6px 10px; gap:8px }
+  }
+  /* 가장 짧은 가로(740×360 등) 한 단계 더 — 위 블록만으로는 트레이가 39/61px이었다.
+     여기선 조작 열 폭이 좁아 턴 안내가 **두 줄로 접혀 40px**을 먹는 것이 차이다(390에선 25px).
+     무대 바닥을 90px로 더 내리고(내용 72px + 여백), 말 행도 한 단계 줄인다.
+     ⚠️ 실측하니 바닥값은 여기서 거의 안 먹는다 — 던지는 중엔 무대가 내용에 밀려 100~142px이 된다.
+        실제로 6px을 되찾아준 건 아래 `.turninfo` 줄 높이다. 바닥은 '안 던질 때 안 출렁이게' 남긴다.
+     ⚠️ 이 블록은 위 가로 블록 **뒤**에 와야 덮인다(같은 특이도 — 함정 12). */
+  @media (orientation:landscape) and (max-height:380px){
+    #game .throwarea{ min-height:90px }
+    /* 턴 안내는 글이 길어지면 **두 줄로 접혀 24 → 40px**이 된다(조작 열이 좁아서다).
+       그 16px을 그대로 트레이가 물어낸다 — 실측으로 트레이가 52 → 46px이 되는 순간이 정확히 이것.
+       줄이는 건 높이지 정보가 아니다(글자는 그대로 두 줄로 다 보인다). */
+    #game .turninfo{ font-size:11px;padding:2px 6px;line-height:1.15 }
+    #game .tray{ gap:2px }
+    #game .tray-row{ padding:1px 5px;gap:5px }
+    #game .tp{ width:20px;height:20px;font-size:9.5px }
   }
 </style>
 </head>
