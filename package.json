@@ -56,7 +56,8 @@
     "analytics:status": "node scripts/analytics-toggle.js status",
     "analytics:on": "node scripts/analytics-toggle.js on",
     "analytics:off": "node scripts/analytics-toggle.js off",
-    "audit:landscape": "node scripts/browser-test/audit-landscape.js"
+    "audit:landscape": "node scripts/browser-test/audit-landscape.js",
+    "audit:hub": "node scripts/browser-test/audit-hub.js"
   },
   "engines": {
     "node": ">=18"

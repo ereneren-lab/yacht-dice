@@ -175,6 +175,25 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .mefold .mebody{padding:13px 12px 4px}
   .mefold .mebody .coinbar{margin-top:0}
   @media (max-width:360px){ .gametiles{gap:6px} .gtile .tn{font-size:11.5px} }
+  /* 가로로 돌린 폰 — 폭은 남고 높이가 390px뿐이다. 3열이면 5행이 되어 첫 화면에 6종만 들어왔다(실측).
+     열을 늘려 3행으로 줄인다. wrap의 max-width(560px)도 가로에선 풀어야 열이 실제로 늘어난다. */
+  @media (orientation:landscape) and (max-height:520px){
+    .wrap{max-width:none;padding:12px 16px 28px}
+    /* 행 높이를 못 박는다 — 자동 높이로 두면 마지막 행이 109px로 부풀어(실측) 세 번째 줄이 화면 밖으로 나갔다.
+       가로에선 세로 390px이 전부라 행 높이가 결과를 가른다. */
+    .gametiles{grid-template-columns:repeat(5,1fr);gap:7px;grid-auto-rows:72px}
+    .gtile{align-self:start;height:72px;justify-content:center}
+    .gtile{padding:8px 4px 7px}
+    .gtile .ti{font-size:21px}
+    .gtile .tn{font-size:11.5px}
+    .gtile .tt{font-size:9.5px}
+    .brandrow{margin-bottom:9px}
+    .entryrow{margin-bottom:9px}
+    .entrybtn{padding:9px 8px}
+    /* 마지막 한 장이 혼자 남는 규칙은 5열에선 3n+1이 아니라 5n+1이 기준이다 */
+    .gametiles>.gtile:last-child:nth-child(3n+1){grid-column:auto;flex-direction:column;padding:8px 4px 7px}
+    .gametiles>.gtile:last-child:nth-child(5n+1){grid-column:1/-1;flex-direction:row;justify-content:center;gap:9px}
+  }
 
   .cards{display:flex; flex-direction:column; gap:13px}
   .cat-h{ display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin:24px 2px 12px }
@@ -403,7 +422,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   .achbadge.on .at b{color:var(--brass)}
 
   /* 메타 도전과제 해금 토스트 */
-  .metatoast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);z-index:9997;
+  /* bottom:22px이면 첫 화면 맨 아래 '내 기록' 줄과 겹친다(2026-08-05 캡처에서 확인). 더 띄운다. */
+  .metatoast{position:fixed;left:50%;bottom:58px;transform:translateX(-50%) translateY(20px);z-index:9997;
     display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:13px;opacity:0;pointer-events:none;
     border:1px solid color-mix(in srgb,var(--brass) 45%,var(--line));
     background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(8px);
@@ -997,12 +1017,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       tile.appendChild(p);
     }
   });
-  // 한 판도 안 한 게임에는 '미플레이'를 붙인다(merged는 0판 게임을 아예 안 담는다)
-  document.querySelectorAll('.gcard .meta').forEach(function(meta){
-    if(meta.querySelector('.statbadge')) return;
-    var b=document.createElement('span'); b.className='statbadge none'; b.textContent='미플레이';
-    meta.appendChild(b);
-  });
+  /* '미플레이' 배지는 뺐다(2026-08-05). 처음 온 사람에게 13번 "안 해봤다"고 말할 이유가 없고,
+     타일에는 해본 것만 판수를 붙이는 규칙과도 어긋났다. 해본 게임에 숫자가 붙는 것으로 충분하다. */
   GAMES.forEach(function(g){
     var a=readJSON(g.p+'_ach');
     if(Array.isArray(a)) totAch+=a.length;
@@ -1212,14 +1228,30 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
         unlockedAvatars()는 옛 구매자 보호용으로 남겨둔다. */
   var CHAR_AV = (function(){ try{ return window.CHARS?CHARS.ids():[]; }catch(e){ return []; } })();
   var ALL_AV = CHAR_AV.concat(PRESETS, (function(){ try{ return window.SHOP?SHOP.unlockedAvatars():[]; }catch(e){ return []; } })());
-  ALL_AV.forEach(function(em){
-    var b=document.createElement('button'); b.type='button'; b.className='avchip'; b.dataset.av=em;
-    if(window.CHARS && CHARS.is(em)){ b.innerHTML=CHARS.html(em); b.classList.add('ischar'); }
-    else b.textContent=em;
-    b.setAttribute('aria-label','아바타 '+(window.CHARS?CHARS.label(em):em));
-    b.onclick=function(){ curAv=em; set('alley_avatar',em); if(custom)custom.value=''; refreshPreview(); markChips(); };
-    grid.appendChild(b);
-  });
+  /* 🔴 아바타 칩은 **펼칠 때 만든다**(2026-08-05).
+     예전엔 매 로드마다 마스코트 `<img>` 10장을 즉시 만들었다. 프로필은 접힌 `<details>` 안이고
+     2026-08-05 개편으로 '내 기록' 안에 한 겹 더 들어가 **두 겹 접혀 있는데도** 이미지를 받았다.
+     콜드스타트가 12.95초인 서비스에서 첫 화면이 쓰지도 않는 것을 먼저 받는 건 손해다.
+     ⚠️ 그래도 `refreshPreview()`(접힌 요약에 보이는 내 아바타 1장)는 즉시 돈다 — 그건 화면에 보인다. */
+  var avBuilt=false;
+  function buildAvatars(){
+    if(avBuilt || !grid) return; avBuilt=true;
+    ALL_AV.forEach(function(em){
+      var b=document.createElement('button'); b.type='button'; b.className='avchip'; b.dataset.av=em;
+      if(window.CHARS && CHARS.is(em)){ b.innerHTML=CHARS.html(em); b.classList.add('ischar'); }
+      else b.textContent=em;
+      b.setAttribute('aria-label','아바타 '+(window.CHARS?CHARS.label(em):em));
+      b.onclick=function(){ curAv=em; set('alley_avatar',em); if(custom)custom.value=''; refreshPreview(); markChips(); };
+      grid.appendChild(b);
+    });
+    markChips();
+  }
+  (function(){
+    var pb=document.getElementById('profileBox'), mf=document.getElementById('meFold');
+    if(pb) pb.addEventListener('toggle', function(){ if(pb.open) buildAvatars(); });
+    if(mf) mf.addEventListener('toggle', function(){ if(mf.open && pb && pb.open) buildAvatars(); });
+    if(pb && pb.open) buildAvatars();   // 브라우저가 상태를 복원한 경우
+  })();
 
   // 초기값 반영
   nameInp.value=curName;
@@ -1278,7 +1310,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     var twr=totG?Math.round(totW/totG*100):0;
     h+='<div class="astot"><span>합계 <b>'+keys.length+'</b>게임</span><span><b>'+totG+'</b>판 · <b>'+totW+'</b>승 · 승률 <b>'+twr+'%</b></span></div>';
     body.innerHTML=h;
-    box.querySelector('.assum').innerHTML='<span>📊 내 전적 — '+totG+'판 · '+totW+'승 ('+keys.length+'게임)</span>';
+    /* 요약 숫자(총 판수·승)는 바로 위 '내 기록' 줄이 이미 말한다 — 여기선 '무엇이 들어 있는지'만 말한다. */
+    box.querySelector('.assum').innerHTML='<span>📊 게임별 전적 — '+keys.length+'게임</span>';
     // 새로 들어온 게임 카드에도 배지 (기존 루프는 5종만 돈다)
     Object.keys(AS.HREF).forEach(function(g){
       var card=document.querySelector('.gcard[href="'+AS.HREF[g]+'"]');
@@ -1286,8 +1319,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
       var meta=card.querySelector('.meta');
       if(!meta||meta.querySelector('.statbadge')) return;   // 이미 붙었으면 둔다
       var b=document.createElement('span');
-      if(m[g]){ b.className='statbadge'; b.textContent=m[g].games+'판 · '+m[g].wins+'승'; }
-      else { b.className='statbadge none'; b.textContent='미플레이'; }
+      if(!m[g]) return;   // 안 해본 게임엔 아무것도 안 붙인다(위 '미플레이 제거' 주석 참고)
+      b.className='statbadge'; b.textContent=m[g].games+'판 · '+m[g].wins+'승';
       meta.appendChild(b);
     });
   }catch(e){}
