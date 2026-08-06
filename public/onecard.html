@@ -108,7 +108,9 @@
   .myhand{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;min-height:58px;align-content:flex-start;max-height:126px;overflow-y:auto}
 
   /* 카드 (CSS 렌더 · 이미지 0) */
-  .mc{width:40px;height:57px;border-radius:6px;background:linear-gradient(160deg,#fffefb,#eee6d3);position:relative;flex:none;
+  /* 내 손패는 눌러서 내는 카드다 — 40px는 권장 44px에 못 미쳤다(2026-08-06 조작 타깃 감사).
+     겹치지 않고 gap으로 벌어져 있어 폭만 키우면 그대로 타깃이 된다. 넘치면 줄바꿈된다(.myhand flex-wrap). */
+  .mc{width:44px;height:62px;border-radius:6px;background:linear-gradient(160deg,#fffefb,#eee6d3);position:relative;flex:none;
     box-shadow:0 3px 7px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.08);font-weight:900;
     display:flex;align-items:center;justify-content:center;transition:transform .09s ease-out}
   /* ⚠️ 예전엔 .mc 전체에 dealIn이 걸려 있어 **렌더할 때마다** 모든 카드가 튀었다.

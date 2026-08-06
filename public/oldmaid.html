@@ -84,8 +84,13 @@
   .pav{font-size:20px;line-height:1}
   .pname{font-size:10.5px;font-weight:800;color:#fff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pcount{font-size:9.5px;font-weight:900;color:var(--chip)}
-  .fan{display:flex;justify-content:center;margin-top:3px;min-height:34px}
-  .fan .mc{margin-left:-14px} .fan .mc:first-child{margin-left:0}
+  /* 🔴 2026-08-06 — 부채가 **좌석 밖으로 흘러넘쳐 옆 사람 패와 섞였다.**
+     카드 38px에 겹침 14px 고정이라 7장이면 182px인데 좌석 폭은 82px이다.
+     실제 화면에서 21장이 한 줄로 깔려 누구 패인지 안 갈렸고, 노출 폭이 6~18px까지 줄었다.
+     → 겹침을 장수에 맞춰 JS가 계산해 `--ov`로 넣는다(아래 renderSeats). 부채는 좌석 안에 갇힌다.
+     ⚠️ 대신 좌석 카드는 더 좁아지므로, **뽑는 조작은 가운데 큰 카드(#drawtray)로 옮겼다.** */
+  .fan{display:flex;justify-content:center;margin-top:3px;min-height:34px;overflow:hidden}
+  .fan .mc{margin-left:calc(-1 * var(--ov, 14px))} .fan .mc:first-child{margin-left:0}
   .pact{font-size:9px;font-weight:900;color:#1a1608;background:var(--gold);border-radius:7px;padding:1px 6px;margin-top:2px;display:inline-block;min-height:0;opacity:0;transition:opacity .2s}
   .pact.show{opacity:1}
   .safe{font-size:9px;font-weight:900;color:#1a1608;background:var(--win);border-radius:7px;padding:1px 6px;margin-top:2px;display:inline-block}
@@ -94,7 +99,16 @@
   .center{position:relative;z-index:2;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px}
   .msg{text-align:center;font-size:13.5px;font-weight:800;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.6);padding:0 6px;min-height:19px}
   .msg b{color:#fff}
-  .drawtray{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;max-width:100%}
+  /* 뽑을 패를 화면 가운데에 크게 펼친다 — 여긴 원래 570px이 그냥 비어 있었다(실측).
+     카드 44px + 간격 8px = 애플/구글 권장 44px 타깃을 실제로 만족한다. */
+  .drawtray{display:flex;justify-content:center;max-width:100%;padding:4px 0}
+  /* 한 줄에 몇 장이 들어가든 **타깃은 44px 아래로 안 내려간다**(권장치). 넘치면 줄바꿈한다. */
+  .pickrow{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;width:100%}
+  .drawtray .mc{width:44px;height:62px;margin:0}
+  .drawtray .mc.pick{cursor:pointer;transition:transform .12s}
+  .drawtray .mc.pick:hover{transform:translateY(-4px)}
+  .drawtray .mc.pick:active{transform:translateY(-1px) scale(.97)}
+  .drawtray .mc.back::after{font-size:24px}
   /* 아이템전 버튼 줄 — 비어 있으면 자리를 안 먹는다(일반전에서 세로 공간을 안 뺏게) */
   .itemrow{display:flex;justify-content:center;gap:6px}
   .itemrow:empty{display:none}
@@ -832,8 +846,9 @@ function render(){
        클릭한 카드와 실제로 뽑히는 카드가 달랐다. 이제 data-i가 진짜 인덱스다. */
     let fan='';
     for(let i=0;i<p.count;i++){
+      /* 좌석 부채는 **보여주는 것**이다(누가 몇 장인지). 겹쳐 깔려 노출 폭이 6px까지 줄어드는데
+         그걸 눌리게 두면 옆 카드를 잘못 누르게 된다 — 뽑기는 가운데 큰 카드(#drawtray) 한 곳에서만. */
       let cls='mc back';
-      if(isTarget) cls+=' pick';
       if(peek && peek.targetSeat===p.seat){ cls += (peek.jokerIdx===i)?' jokerhint':' safehint'; }
       fan+=`<div class="${cls}" data-t="${p.seat}" data-i="${i}"></div>`;
     }
@@ -846,15 +861,50 @@ function render(){
       `</div>`;
     opps.appendChild(el);
   }
-  // 타깃 클릭 — 이제 누른 그 카드를 실제로 뽑는다
-  if(myTurn){
-    opps.querySelectorAll('.mc.pick').forEach(el=>{
-      el.onclick=()=>{
-        if(!S||S.phase!=='play'||S.turn!==S.mySeat) return;
-        act({type:'draw', idx:+el.dataset.i});
-      };
-    });
+  /* 부채가 좌석 폭을 넘지 않게 겹침을 계산한다(2026-08-06).
+     고정 겹침 14px이면 7장에 182px이라 82px짜리 좌석을 넘어 옆 사람 패까지 흘렀다. */
+  opps.querySelectorAll('.seat').forEach(seat=>{
+    const fanEl=seat.querySelector('.fan'); if(!fanEl) return;
+    const n=fanEl.children.length; if(n<2) return;
+    const CARD=38, avail=Math.max(40, seat.clientWidth-6);
+    const need=(CARD*n-avail)/(n-1);
+    fanEl.style.setProperty('--ov', Math.max(14, Math.min(CARD-5, Math.ceil(need)))+'px');
+  });
+
+  /* 🔴 뽑기는 가운데 큰 카드로 (2026-08-06)
+     예전엔 좌석 안 부채(노출 6~24px)를 눌러야 했다 — 도둑잡기는 '어느 카드를 뽑나'가 게임의 전부인데
+     타깃이 그 크기면 옆 카드를 잘못 누른다. 마침 화면 가운데가 570px 비어 있었다.
+     좌석 부채도 계속 눌리게 두되(익숙한 사람용), 실제 조작은 여기로 옮긴다. */
+  const dt=document.getElementById('drawtray');
+  if(dt){
+    const tp = (myTurn && S.target!=null) ? S.players[S.target] : null;
+    if(tp && tp.count && !tp.out){
+      /* 라벨은 안 붙인다 — 바로 위 #msg가 이미 "○○의 패에서 한 장 뽑으세요"라고 말한다. */
+      let h='<div class="pickrow">';
+      for(let i=0;i<tp.count;i++){
+        let cls='mc back pick';
+        if(peek && peek.targetSeat===tp.seat){ cls += (peek.jokerIdx===i)?' jokerhint':' safehint'; }
+        h+=`<div class="${cls}" data-i="${i}"></div>`;
+      }
+      dt.innerHTML=h+'</div>';
+      /* 줄을 고르게 나눈다 — 7장이면 6+1로 한 장만 아래 남아 어색했다. 4+3으로 만든다.
+         (가용 폭 330px · 카드 44 + 간격 5 → 한 줄 최대 6장) */
+      const rowEl=dt.querySelector('.pickrow');
+      if(rowEl){
+        const MAXROW=Math.max(1, Math.floor((rowEl.clientWidth+5)/49));
+        const rows=Math.ceil(tp.count/MAXROW), per=Math.ceil(tp.count/rows);
+        rowEl.style.maxWidth=(per*49-5)+'px';
+      }
+      dt.querySelectorAll('.mc.pick').forEach(el=>{
+        el.onclick=()=>{
+          if(!S||S.phase!=='play'||S.turn!==S.mySeat) return;
+          act({type:'draw', idx:+el.dataset.i});
+        };
+      });
+    } else dt.innerHTML='';
   }
+
+  /* (좌석 부채의 클릭은 없앴다 — 위 주석 참고. 뽑기는 #drawtray 한 곳에서만 받는다.) */
   renderMsg(peek);
   renderItems();
 

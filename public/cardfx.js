@@ -26,6 +26,14 @@
   function el(t) { return (typeof t === 'string') ? document.querySelector(t) : t; }
   function centerOf(t) {
     var e = el(t); if (!e) return null;
+    /* 🔴 2026-08-06 — 이 함수의 문서는 처음부터 "셀렉터·엘리먼트·{x,y}"를 받는다고 했는데
+       **{x,y}를 주면 터졌다**(TypeError: e.getBoundingClientRect is not a function).
+       원카드가 여러 장을 날릴 때(take 2장 이상) flyMany가 좌표 객체로 centerOf를 다시 불러서
+       실제로 매 판 예외가 났다 — 화면엔 아무 표시도 안 나므로 아무도 몰랐다.
+       (`test:onecard:play`는 콘솔 에러를 실패로 세고 있어서 6조합 전부 '미완주'로 찍혔다.) */
+    if (typeof e.getBoundingClientRect !== 'function') {
+      return (e.x != null && e.y != null) ? { x: e.x, y: e.y, w: e.w || 0, h: e.h || 0 } : null;
+    }
     var r = e.getBoundingClientRect();
     if (!r.width && !r.height) return null;
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
@@ -90,7 +98,9 @@
       for (var i = 0; i < Math.min(n, 5); i++) {
         (function (i) {
           setTimeout(function () {
-            CFX.fly(from, (i === 0 ? to : centerOf(to)), Object.assign({}, opts, { hideTo: i === 0 && opts.hideTo !== false }));
+            /* to가 이미 좌표면 centerOf를 다시 부를 이유가 없다(위 주석의 예외가 여기서 났다). */
+            var dest = (i === 0 || (to && to.x != null)) ? to : centerOf(to);
+            CFX.fly(from, dest, Object.assign({}, opts, { hideTo: i === 0 && opts.hideTo !== false }));
           }, i * gap);
         })(i);
       }

@@ -59,7 +59,9 @@
     "audit:landscape": "node scripts/browser-test/audit-landscape.js",
     "audit:hub": "node scripts/browser-test/audit-hub.js",
     "test:hostlink": "node scripts/browser-test/verify-host-link.js",
-    "phone:traceyut": "node scripts/phone/trace-yut.js"
+    "phone:traceyut": "node scripts/phone/trace-yut.js",
+    "audit:tap": "node scripts/browser-test/audit-tap.js",
+    "test:playtest": "node scripts/browser-test/playtest.js"
   },
   "engines": {
     "node": ">=18"
