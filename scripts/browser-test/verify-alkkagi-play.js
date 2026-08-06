@@ -16,7 +16,8 @@ const { launchWithRetry, requireServer } = require('./cdp');
 
 const WHO = `var w=document.getElementById('whoTurn'); return w?(w.textContent||'').replace(/\\s+/g,' ').trim():'';`;
 /* 리플레이 중에는 게임이 입력을 버린다(`alkkagi.html` onDown의 `if(playing) return`).
-   그런데 whoTurn은 그때도 "나 차례"라서, 차례만 보고 치면 헛방이 된다. 그래서 안내문도 같이 본다. */
+   예전엔 whoTurn이 그때도 "나 차례"여서 차례만 보고 치면 헛방이었다. 게임은 고쳤지만
+   (칩을 `finishPlay()`에서 넘긴다) 안내문도 계속 같이 본다 — 이게 그 수정을 지키는 회귀 검사다. */
 const NOTE = `var n=document.getElementById('stageNote'); return n?(n.textContent||'').trim():'';`;
 const OVER = `var o=document.getElementById('resOv');
   return { on: !!(o&&o.classList.contains('on')), t:(document.getElementById('resTitle')||{}).textContent||'' };`;
@@ -41,6 +42,17 @@ const FIND = `
   return { b: cl(pb).map(function(c){return {x:c.x*s,y:c.y*s};}),
            r: cl(pr).map(function(c){return {x:c.x*s,y:c.y*s};}) };`;
 
+/* 돌에서 ${'${off}'}px 빗나가게 눌러 본다 — 손가락은 21px짜리 돌 중심을 정확히 못 짚는다.
+   ⓐ 그래도 잡히는가(aiming) ⓑ 그냥 눌렀다 뗀 것이 **샷으로 나가지는 않는가**(잡은 지점 보정). */
+const grabProbe = (m, off) => `
+  var cv=document.getElementById('board'), r=cv.getBoundingClientRect();
+  var x=r.left+${m.x}+${off}, y=r.top+${m.y};
+  function ev(t,tg){ tg.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,clientX:x,clientY:y})); }
+  ev('mousedown',cv);
+  var grabbed = cv.classList.contains('aiming');
+  ev('mouseup',window);
+  return grabbed;`;
+
 const shoot = (m, o, pull) => `
   var cv=document.getElementById('board'), r=cv.getBoundingClientRect();
   var sx=r.left+${m.x}, sy=r.top+${m.y};
@@ -52,7 +64,7 @@ const shoot = (m, o, pull) => `
 
 async function playOne(cdp, idx, pull) {
   const p = await cdp.newPage(390, 844);
-  const rec = { aiFirst: false, firstMoveSec: null, turns: [], over: null, errs: [], trace: [], shot: null, shots: 0, dropped: 0 };
+  const rec = { aiFirst: false, firstMoveSec: null, turns: [], over: null, errs: [], trace: [], shot: null, shots: 0, dropped: 0, chipEarly: 0 };
   try {
     await p.goto('http://localhost:3000/alkkagi.html');
     await p.wait(900);
@@ -78,8 +90,13 @@ async function playOne(cdp, idx, pull) {
     let last = '';
     for (let i = 0; i < 70; i++) {
       const who = await p.eval(WHO).catch(() => '');
+      const prev = last;
       if (who && who !== last) { rec.turns.push(who); last = who; }
       let note = await p.eval(NOTE).catch(() => '');
+      /* 재생 중에 차례 칩이 **나에게 넘어오면** 안 된다 — 눌러도 안 먹는 몇 초가 생긴다.
+         내가 친 직후 내 샷이 굴러가는 동안 "나 차례"인 것은 맞는 표시다(친 사람이 나다).
+         그래서 '재생 중 나 차례'가 아니라 **재생 중에 상대→나로 바뀌는 순간**만 잡는다. */
+      if (/리플레이/.test(note) && who.indexOf('나') >= 0 && prev && prev.indexOf('나') < 0) rec.chipEarly++;
       // 내 차례인데 리플레이가 돌고 있으면 끝날 때까지 기다린다 — 안 기다리면 친 게 그냥 버려진다
       for (let k = 0; k < 25 && who.indexOf('나') >= 0 && /리플레이/.test(note); k++) {
         await p.wait(200);
@@ -89,6 +106,14 @@ async function playOne(cdp, idx, pull) {
       // 남은 돌 수를 매 턴 기록해 둔다 — 끝까지 못 갔을 때 ⓐ정말 안 끝나는지 ⓑ길어서 상한인지 가르는 근거다
       rec.trace.push({ i, who, b: f ? f.b.length : -1, r: f ? f.r.length : -1 });
       if (who.indexOf('나') >= 0 && !/리플레이/.test(note) && f && f.b.length && f.r.length) {
+        // 첫 내 차례에 한 번만 — 빗나가게 잡아도 잡히는지, 그게 샷으로 새지는 않는지
+        if (!rec.grab) {
+          const s0 = f.b[0], off = s0.x < 168 ? 18 : -18;
+          const grabbed = await p.eval(grabProbe(s0, off)).catch(() => false);
+          await p.wait(400);
+          const strayShot = /리플레이/.test(await p.eval(NOTE).catch(() => ''));
+          rec.grab = { off: Math.abs(off), grabbed, strayShot };
+        }
         let best = null;
         f.b.forEach(m => f.r.forEach(o => { const d = Math.hypot(o.x - m.x, o.y - m.y); if (!best || d < best.d) best = { m, o, d }; }));
         await p.eval(shoot(best.m, best.o, pull)).catch(() => {});
@@ -129,6 +154,9 @@ async function playOne(cdp, idx, pull) {
       if (!r.firstMoveSec) bad.push('AI 선공인데 12초 동안 첫 수가 없다');
       else if (+r.firstMoveSec > 4) bad.push(`AI 첫 수까지 ${r.firstMoveSec}초`);
     }
+    if (r.chipEarly) bad.push(`재생 중에 차례 칩이 먼저 넘어갔다 ${r.chipEarly}회`);
+    if (r.grab && !r.grab.grabbed) bad.push(`돌에서 ${r.grab.off}px 빗나가게 눌렀더니 안 잡힌다`);
+    if (r.grab && r.grab.strayShot) bad.push('빗나가게 눌렀다 뗀 것이 샷으로 나갔다');
     if (!r.over) bad.push('결과창까지 못 감');
     if (dup) bad.push(`같은 차례가 연속 ${dup}회`);
     if (r.errs.length) bad.push('콘솔 오류: ' + r.errs[0].slice(0, 80));
@@ -145,7 +173,8 @@ async function playOne(cdp, idx, pull) {
     }
     else console.log(`✅ ${i}판 (${r.aiFirst ? 'AI 선공' : '내 선공'})` +
       (r.firstMoveSec ? ` 첫 수 ${r.firstMoveSec}초` : '') +
-      ` · 차례 ${r.turns.length}번 · 친 횟수 ${r.shots}(먹통 ${r.dropped}) · 결과 "${r.over}"`);
+      ` · 차례 ${r.turns.length}번 · 친 횟수 ${r.shots}(먹통 ${r.dropped})` +
+      (r.grab ? ` · ${r.grab.off}px 빗나가도 잡힘` : '') + ` · 결과 "${r.over}"`);
   }
   console.log(`\n${fail ? `❌ ${fail}/${N}판 문제` : `✅ ${N}판 전부 정상 (그중 AI 선공 ${aiFirst}판)`}`);
   if (!aiFirst) console.log('⚠️ 이번 실행엔 AI 선공 판이 없었다 — 선공은 무작위다. 다시 돌려볼 것.');
