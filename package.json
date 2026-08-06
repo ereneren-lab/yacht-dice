@@ -78,7 +78,7 @@
   },
   "build": {
     "appId": "com.jaesung.yachtdice",
-    "productName": "Yacht Dice",
+    "productName": "딱세판만",
     "files": [
       "electron/**/*",
       "public/**/*",
@@ -108,6 +108,7 @@
         "AppImage"
       ],
       "category": "Game"
-    }
+    },
+    "icon": "public/icon-512.png"
   }
 }

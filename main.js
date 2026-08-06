@@ -36,7 +36,7 @@ async function createWindow() {
     backgroundColor: transparent ? '#00000000' : '#15111f',
     hasShadow: true,
     resizable: true,
-    title: 'Yacht Dice',
+    title: '딱세판만',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
