@@ -549,6 +549,18 @@
       const nOpp = diff === 'hard' ? 4 : diff === 'easy' ? 1 : 2;   // 겨눌 상대 후보 수
       const state = { W: this.W, H: this.H, r: this.r, friction: this.friction, stones: this.stones };
 
+      /* 🔴 2026-08-06 — **AI가 삑사리를 계산에 안 넣고 있었다.**
+         후보 샷은 `simulate()`로 실제로 돌려 보고 고르는데, 그 시뮬에는 삑사리가 없다.
+         반면 진짜로 칠 때는 파워 0.72를 넘는 순간부터 삑날 확률이 붙는다(1.0에서 50%).
+         그래서 파워 후보에 1.0이 있는 **어려움만 스스로 가장 위험한 샷을 골랐다** —
+         600판 실측에서 어려움 93.5% < 보통 96.5%로 난이도 순서가 뒤집혀 있었고,
+         판당 삑사리가 1.81회(보통 0.34회)였다.
+         → 삑날 확률만큼 **틀어진 샷의 결과도 같이 쳐서** 기대값으로 고른다.
+         결과를 미리 아는 게 아니다(삑사리는 해시로 정해지지만 그건 안 본다) — 확률만 감안한다. */
+      const misChance = (pw) => {
+        if (this.misfire === false || pw <= MISFIRE_THRESH) return 0;
+        return ((pw - MISFIRE_THRESH) / (1 - MISFIRE_THRESH)) * MISFIRE_MAX_CHANCE;
+      };
       let best = null, bestScore = -Infinity;
       for (const me of mine) {
         const near = opps.slice().sort((a, b) =>
@@ -558,7 +570,22 @@
           for (const off of offsets) {
             for (const pw of powers) {
               const flick = { stoneId: me.id, angle: base + off, power: pw };
-              const score = this._scoreShot(simulate(state, flick), seat);
+              let score = this._scoreShot(simulate(state, flick), seat);
+              const c = misChance(pw);
+              /* 삑사리 보정은 **지금 1등을 넘는 후보에만** 돌린다. 보정은 대개 점수를 깎으므로
+                 이미 1등에 못 미치는 후보는 계산해도 순위가 안 바뀐다. 어려움 판단 시간이
+                 대전(7돌) 기준 110ms → 62ms로 준다. (삑난 샷이 우연히 더 좋아 역전하는
+                 드문 경우는 놓친다 — 그 값을 시간과 바꿨다.) */
+              if (c > 0 && score > bestScore) {
+                // 삑났을 때: 각도가 좌우 어느 쪽으로든 틀어지고 힘이 30% 샌다(_applyMisfire의 평균값).
+                const dev = 0.12 + ((pw - MISFIRE_THRESH) / (1 - MISFIRE_THRESH)) * 0.20;
+                let missSum = 0;
+                for (const sgn of [-1, 1]) {
+                  missSum += this._scoreShot(
+                    simulate(state, { stoneId: me.id, angle: base + off + dev * sgn, power: pw * 0.7 }), seat);
+                }
+                score = (1 - c) * score + c * (missSum / 2);
+              }
               // 동점이면 무작위로 갈라 매판 같은 수만 두지 않게
               if (score > bestScore || (score === bestScore && Math.random() < 0.5)) { bestScore = score; best = flick; }
             }

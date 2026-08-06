@@ -62,13 +62,15 @@ const shoot = (m, o, pull) => `
   ev('mousedown',cv,sx,sy); ev('mousemove',window,ex,ey); ev('mouseup',window,ex,ey);
   return true;`;
 
-async function playOne(cdp, idx, pull) {
+async function playOne(cdp, idx, pull, diff) {
   const p = await cdp.newPage(390, 844);
   const rec = { aiFirst: false, firstMoveSec: null, turns: [], over: null, errs: [], trace: [], shot: null, shots: 0, dropped: 0, chipEarly: 0 };
   try {
     await p.goto('http://localhost:3000/alkkagi.html');
     await p.wait(900);
     await p.eval(`try{ if(window.TUT) TUT.close(); }catch(e){} return true;`);
+    // 난이도 비교용(--diff=easy|normal|hard). 안 주면 화면 기본값(보통) 그대로 둔다.
+    if (diff) await p.eval(`var o=document.querySelector('[data-d="${diff}"]'); if(o) o.click(); return !!o;`).catch(() => {});
     await p.click('#startBtn');
     await p.wait(700);
 
@@ -144,9 +146,11 @@ async function playOne(cdp, idx, pull) {
   const cdp = await launchWithRetry();
   const N = +(process.argv.find(a => a.startsWith('--n=')) || '--n=6').slice(4);
   const PULL = +(process.argv.find(a => a.startsWith('--pull=')) || '--pull=60').slice(7);
-  let fail = 0, aiFirst = 0;
+  const DIFF = (process.argv.find(a => a.startsWith('--diff=')) || '').slice(7) || null;
+  let fail = 0, aiFirst = 0, won = 0;
   for (let i = 1; i <= N; i++) {
-    const r = await playOne(cdp, i, PULL);
+    const r = await playOne(cdp, i, PULL, DIFF);
+    if (r.over && r.over.indexOf('이겼') >= 0) won++;
     const dup = r.turns.filter((t, k) => k && t === r.turns[k - 1]).length;
     const bad = [];
     if (r.aiFirst) {
@@ -176,7 +180,8 @@ async function playOne(cdp, idx, pull) {
       ` · 차례 ${r.turns.length}번 · 친 횟수 ${r.shots}(먹통 ${r.dropped})` +
       (r.grab ? ` · ${r.grab.off}px 빗나가도 잡힘` : '') + ` · 결과 "${r.over}"`);
   }
-  console.log(`\n${fail ? `❌ ${fail}/${N}판 문제` : `✅ ${N}판 전부 정상 (그중 AI 선공 ${aiFirst}판)`}`);
+  console.log(`\n${fail ? `❌ ${fail}/${N}판 문제` : `✅ ${N}판 전부 정상 (그중 AI 선공 ${aiFirst}판)`}` +
+    `  ·  난이도 ${DIFF || '기본(보통)'}에서 드라이버 ${won}승 ${N - won}패`);
   if (!aiFirst) console.log('⚠️ 이번 실행엔 AI 선공 판이 없었다 — 선공은 무작위다. 다시 돌려볼 것.');
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('ERR', e); process.exit(1); });
