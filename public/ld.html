@@ -234,7 +234,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .bidbuild{border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--panel)}
   .bidbuild .lab{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
   .qtyrow{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:10px}
-  .stepbtn{width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:22px;font-weight:800;cursor:pointer}
+  .stepbtn{width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:22px;font-weight:800;cursor:pointer;position:relative}
+  /* 손가락 권장 44px에 2px 모자랐다. 버튼을 키우면 줄이 밀리므로 **히트 영역만** 넓힌다(옆 요소와 gap 10px이라 안 겹친다). */
+  .stepbtn::after{content:'';position:absolute;inset:-2px}
   .stepbtn:active{transform:translateY(1px)}
   .qtyval{font-family:var(--font);font-weight:800;font-size:30px;min-width:48px;text-align:center}
   .qtyx{color:var(--muted);font-size:18px}

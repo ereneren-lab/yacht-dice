@@ -61,11 +61,14 @@ cand = cand.filter(function(e){ return !cand.some(function(o){ return o!==e && o
    요트의 물음표(.qh)는 보이는 원이 15px이지만 ::before로 44px 히트 영역을 덧댔다 —
    화면상 15px이어도 손가락은 44px 안 어디를 눌러도 닿는다.
    그래서 중심에서 바깥으로 점을 찍어 **elementFromPoint가 여전히 이 요소를 가리키는지**로 잰다. */
+/* ⚠️ 처음엔 4px 간격으로 재서 **44px 히트 영역이 40px으로 깎여 나왔다**(반지름 22 → k=20까지만 통과).
+   요트 물음표·너클본즈 아이콘이 그래서 경고로 떴다 — 버튼이 아니라 자가 눈금이 문제였다.
+   2px 간격으로 재면 44px은 44px로 나온다. */
 function hitRadius(e, r){
   var cx=(r.left+r.right)/2, cy=(r.top+r.bottom)/2, max=0;
   [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
     var far=0;
-    for(var k=4;k<=24;k+=4){
+    for(var k=2;k<=26;k+=2){
       var el=document.elementFromPoint(cx+d[0]*k, cy+d[1]*k);
       if(el===e || e.contains(el)) far=k; else break;
     }
@@ -85,7 +88,7 @@ function exposed(e){
     if(b.left>r.left && b.left<r.right) w=Math.min(w, b.left-r.left);   // 오른쪽 이웃이 덮는다
   });
   var hit=hitRadius(e,r);
-  w=Math.max(w, Math.min(hit, 48)); h=Math.max(h, Math.min(hit, 48));
+  w=Math.max(w, Math.min(hit, 52)); h=Math.max(h, Math.min(hit, 52));
   return {w:Math.round(w), h:Math.round(h), full:Math.round(r.width),
     label:(e.id?'#'+e.id:(e.className&&e.className.toString().trim().split(/\\s+/).slice(0,2).map(function(c){return '.'+c}).join('')))||e.tagName};
 }
