@@ -141,7 +141,22 @@ class CDP {
     });
   }
 
+  /* ⚠️ 긴 감사는 브라우저가 **중간에 SIGTERM(code=143)으로 죽는 걸 봤다**(2026-08-06 audit:ux, 8종째).
+     누가 보낸 시그널인지는 못 가렸다 — 다만 그때 스크립트가 통째로 죽어서
+     남은 게임을 아예 못 보고, 죽기 직전 판정이 ❌로 남아 **게임 결함처럼 보였다**.
+     그래서 여기서 한 번 되살린다. 되살렸다는 사실은 반드시 찍는다(조용히 넘어가면 안 된다). */
+  async _reviveIfDead() {
+    if (!this._dead) return;
+    console.error(`  ⚠️ 브라우저가 죽었다(${this._dead}) — 다시 띄우고 이어서 잰다`);
+    try { this.proc.kill('SIGKILL'); } catch (e) {}
+    try { fs.rmSync(this._udd, { recursive: true, force: true }); } catch (e) {}
+    this.revived = (this.revived || 0) + 1;
+    if (this.revived > 3) throw new Error('브라우저가 계속 죽는다(3회 재기동 실패) — ' + this._dead);
+    await this.launch();
+  }
+
   async newPage(width = 1440, height = 900) {
+    await this._reviveIfDead();
     const { targetId } = await this.send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await this.send('Target.attachToTarget', { targetId, flatten: true });
     const page = new Page(this, sessionId, targetId);
