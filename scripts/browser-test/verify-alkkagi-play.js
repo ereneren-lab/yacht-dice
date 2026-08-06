@@ -15,6 +15,9 @@
 const { launchWithRetry, requireServer } = require('./cdp');
 
 const WHO = `var w=document.getElementById('whoTurn'); return w?(w.textContent||'').replace(/\\s+/g,' ').trim():'';`;
+/* 리플레이 중에는 게임이 입력을 버린다(`alkkagi.html` onDown의 `if(playing) return`).
+   그런데 whoTurn은 그때도 "나 차례"라서, 차례만 보고 치면 헛방이 된다. 그래서 안내문도 같이 본다. */
+const NOTE = `var n=document.getElementById('stageNote'); return n?(n.textContent||'').trim():'';`;
 const OVER = `var o=document.getElementById('resOv');
   return { on: !!(o&&o.classList.contains('on')), t:(document.getElementById('resTitle')||{}).textContent||'' };`;
 
@@ -47,9 +50,9 @@ const shoot = (m, o, pull) => `
   ev('mousedown',cv,sx,sy); ev('mousemove',window,ex,ey); ev('mouseup',window,ex,ey);
   return true;`;
 
-async function playOne(cdp, idx) {
+async function playOne(cdp, idx, pull) {
   const p = await cdp.newPage(390, 844);
-  const rec = { aiFirst: false, firstMoveSec: null, turns: [], over: null, errs: [] };
+  const rec = { aiFirst: false, firstMoveSec: null, turns: [], over: null, errs: [], trace: [], shot: null, shots: 0, dropped: 0 };
   try {
     await p.goto('http://localhost:3000/alkkagi.html');
     await p.wait(900);
@@ -76,17 +79,35 @@ async function playOne(cdp, idx) {
     for (let i = 0; i < 70; i++) {
       const who = await p.eval(WHO).catch(() => '');
       if (who && who !== last) { rec.turns.push(who); last = who; }
-      if (who.indexOf('나') >= 0) {
-        const f = await p.eval(FIND).catch(() => null);
-        if (f && f.b.length && f.r.length) {
-          let best = null;
-          f.b.forEach(m => f.r.forEach(o => { const d = Math.hypot(o.x - m.x, o.y - m.y); if (!best || d < best.d) best = { m, o, d }; }));
-          await p.eval(shoot(best.m, best.o, 60)).catch(() => {});
+      let note = await p.eval(NOTE).catch(() => '');
+      // 내 차례인데 리플레이가 돌고 있으면 끝날 때까지 기다린다 — 안 기다리면 친 게 그냥 버려진다
+      for (let k = 0; k < 25 && who.indexOf('나') >= 0 && /리플레이/.test(note); k++) {
+        await p.wait(200);
+        note = await p.eval(NOTE).catch(() => '');
+      }
+      const f = await p.eval(FIND).catch(() => null);
+      // 남은 돌 수를 매 턴 기록해 둔다 — 끝까지 못 갔을 때 ⓐ정말 안 끝나는지 ⓑ길어서 상한인지 가르는 근거다
+      rec.trace.push({ i, who, b: f ? f.b.length : -1, r: f ? f.r.length : -1 });
+      if (who.indexOf('나') >= 0 && !/리플레이/.test(note) && f && f.b.length && f.r.length) {
+        let best = null;
+        f.b.forEach(m => f.r.forEach(o => { const d = Math.hypot(o.x - m.x, o.y - m.y); if (!best || d < best.d) best = { m, o, d }; }));
+        await p.eval(shoot(best.m, best.o, pull)).catch(() => {});
+        rec.shots++;
+        // 친 게 먹혔는지 본다 — 리플레이가 시작되면 먹힌 것이다
+        let landed = false;
+        for (let k = 0; k < 6 && !landed; k++) {
+          await p.wait(150);
+          landed = /리플레이|판이 끝났어/.test(await p.eval(NOTE).catch(() => ''));
         }
+        if (!landed) rec.dropped++;
       }
       await p.wait(900);
       const ov = await p.eval(OVER).catch(() => ({}));
       if (ov.on) { rec.over = ov.t; break; }
+    }
+    if (!rec.over) {
+      rec.shot = `out/alkkagi-stuck-${idx}.png`;
+      await p.shot(rec.shot).catch(() => { rec.shot = null; });
     }
     rec.errs = (p.errors || []).filter(e => !/favicon|plausible|vibrate|net::/i.test(e));
   } finally { await p.close(); }
@@ -97,9 +118,10 @@ async function playOne(cdp, idx) {
   await requireServer();
   const cdp = await launchWithRetry();
   const N = +(process.argv.find(a => a.startsWith('--n=')) || '--n=6').slice(4);
+  const PULL = +(process.argv.find(a => a.startsWith('--pull=')) || '--pull=60').slice(7);
   let fail = 0, aiFirst = 0;
   for (let i = 1; i <= N; i++) {
-    const r = await playOne(cdp, i);
+    const r = await playOne(cdp, i, PULL);
     const dup = r.turns.filter((t, k) => k && t === r.turns[k - 1]).length;
     const bad = [];
     if (r.aiFirst) {
@@ -110,9 +132,20 @@ async function playOne(cdp, idx) {
     if (!r.over) bad.push('결과창까지 못 감');
     if (dup) bad.push(`같은 차례가 연속 ${dup}회`);
     if (r.errs.length) bad.push('콘솔 오류: ' + r.errs[0].slice(0, 80));
-    if (bad.length) { fail++; console.log(`❌ ${i}판 (${r.aiFirst ? 'AI 선공' : '내 선공'}) — ${bad.join(' · ')}`); }
+    if (bad.length) {
+      fail++;
+      console.log(`❌ ${i}판 (${r.aiFirst ? 'AI 선공' : '내 선공'}) — ${bad.join(' · ')}`);
+      if (!r.over) {
+        const t = r.trace, f0 = t[0] || {}, fL = t[t.length - 1] || {};
+        console.log(`   돌 수: 시작 나${f0.b}·상대${f0.r} → 끝 나${fL.b}·상대${fL.r}` +
+          ` · 마지막 차례 "${fL.who}" · 친 횟수 ${r.shots}(먹통 ${r.dropped})` +
+          (r.shot ? ` · 캡처 ${r.shot}` : ''));
+        console.log('   흐름: ' + t.filter((_, k) => k % 7 === 0).map(x => `${x.i}:${x.b}/${x.r}`).join(' '));
+      }
+    }
     else console.log(`✅ ${i}판 (${r.aiFirst ? 'AI 선공' : '내 선공'})` +
-      (r.firstMoveSec ? ` 첫 수 ${r.firstMoveSec}초` : '') + ` · 차례 ${r.turns.length}번 · 결과 "${r.over}"`);
+      (r.firstMoveSec ? ` 첫 수 ${r.firstMoveSec}초` : '') +
+      ` · 차례 ${r.turns.length}번 · 친 횟수 ${r.shots}(먹통 ${r.dropped}) · 결과 "${r.over}"`);
   }
   console.log(`\n${fail ? `❌ ${fail}/${N}판 문제` : `✅ ${N}판 전부 정상 (그중 AI 선공 ${aiFirst}판)`}`);
   if (!aiFirst) console.log('⚠️ 이번 실행엔 AI 선공 판이 없었다 — 선공은 무작위다. 다시 돌려볼 것.');
