@@ -234,7 +234,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   .kbvs.tied .lead{color:var(--muted); background:var(--panel)}
   .kbvs.youlead .sy{text-shadow:0 0 12px color-mix(in srgb,var(--you) 60%,transparent)}
   .kbvs.opplead .so{text-shadow:0 0 12px color-mix(in srgb,var(--opp) 60%,transparent)}
-  .scorehelp{display:inline-block;margin-top:8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:inherit;min-height:44px}
+  .scorehelp{display:inline-block;margin-top:8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:inherit;position:relative}
+  /* 히트 영역만 44px로 — 버튼 자체를 44px로 키웠더니 390×844에서 판이 10px 넘쳤다(audit:ux).
+     보이는 크기는 그대로 두고 누르는 면적만 넓힌다(요트 .qh와 같은 방식). */
+  .scorehelp::before{content:'';position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
   .scorehelp:hover{background:var(--brass);color:var(--bg)}
   .infopop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:120;padding:20px}
   .infopop.on{display:flex}
