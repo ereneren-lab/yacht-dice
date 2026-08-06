@@ -2076,11 +2076,16 @@ function finishPlay(){
   // 로컬 AI: 리플레이가 끝난 뒤에야 AI가 다음 수를 둔다(겹침 방지). 잠깐 쉬어 결과를 눈에 담게.
   scheduleAiTurn();
 }
+let aiTimer = null;
 function scheduleAiTurn(){
   if(online || !engine || !S || S.phase!=='aim') return;
   const p = S.players[S.turn];
   if(!p || !p.ai) return;
-  setTimeout(()=>{ if(engine && !playing && S && S.phase==='aim' && S.players[S.turn] && S.players[S.turn].ai) engine.aiTurnIfNeeded(); }, 750);
+  if(aiTimer) return;                       // 이미 예약돼 있으면 두 번 두지 않는다
+  aiTimer = setTimeout(()=>{
+    aiTimer = null;
+    if(engine && !playing && S && S.phase==='aim' && S.players[S.turn] && S.players[S.turn].ai) engine.aiTurnIfNeeded();
+  }, 750);
 }
 
 // ===== 상태 변화 처리 (로컬 엔진 · 서버 모두 사용) =====
@@ -2097,6 +2102,13 @@ function onStateChange(){
     updateNote();
     if(S.phase==='over') showResult();
   }
+  /* 🔴 2026-08-06 — **AI가 선공이면 아무도 AI를 깨우지 않았다.**
+     엔진은 manualAI라 스스로 두지 않고(내 리플레이와 겹치지 않게), 클라는 `finishPlay()`에서만
+     `scheduleAiTurn()`을 불렀다. 그런데 판 시작에는 앞선 리플레이가 없다.
+     선공은 `rng()<0.5`로 정해지니 **판의 절반이 "컴퓨터가 조준 중…"에서 멈춘 채 시작**했다
+     (실측: 입력을 안 주면 16초 동안 돌이 하나도 안 움직였다).
+     → 상태가 바뀔 때마다 확인한다. 중복 예약은 위 aiTimer가 막는다. */
+  if(!playing) scheduleAiTurn();
 }
 // 로컬 엔진에서 호출되는 이름 유지
 function onEngineState(){ onStateChange(); }

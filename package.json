@@ -61,7 +61,8 @@
     "test:hostlink": "node scripts/browser-test/verify-host-link.js",
     "phone:traceyut": "node scripts/phone/trace-yut.js",
     "audit:tap": "node scripts/browser-test/audit-tap.js",
-    "test:playtest": "node scripts/browser-test/playtest.js"
+    "test:playtest": "node scripts/browser-test/playtest.js",
+    "test:alkkagi:play": "node scripts/browser-test/verify-alkkagi-play.js"
   },
   "engines": {
     "node": ">=18"
