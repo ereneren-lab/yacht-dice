@@ -19,7 +19,10 @@ const { SeotdaEngine } = require('./public/seotda-core.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
-const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css', '.png':'image/png', '.ico':'image/x-icon', '.json':'application/json', '.webmanifest':'application/manifest+json' };
+/* ⚠️ 여기 없는 확장자는 application/octet-stream으로 나간다. 2026-08-07에 링크 미리보기 카드를
+   .jpg로 만들었더니 그렇게 나갔다 — 카카오톡·페이스북 크롤러는 그런 응답을 이미지로 안 볼 수 있다.
+   이미지·폰트는 캐시 헤더(아래 82행)에서 이미 다루므로 표에도 같이 맞춰 둔다. */
+const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.webp':'image/webp', '.svg':'image/svg+xml', '.woff2':'font/woff2', '.ico':'image/x-icon', '.json':'application/json', '.webmanifest':'application/manifest+json' };
 const COLORS = ['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
 const AVA = ['🦊','🐸','🐼','🦁','🐰','🐵'];
 /* 직접 만든 캐릭터 5종 — 윷의 도개걸윷모(돼지·개·양·소·말). public/img/*.png · public/chars.js */
