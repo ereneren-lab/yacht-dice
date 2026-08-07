@@ -48,9 +48,10 @@
       if(diff==='easy') qty = Math.max(1, qty + (rnd()<.5?0:1));
       /* 🔴 2026-08-07 — 예전엔 hard가 25% 확률로 **손패와 무관한 눈**을 부르고 수량까지 올렸다.
          읽히지 않게 하려던 것인데, 확률로 판단하는 상대에겐 그냥 도전당해 주사위를 잃는 짓이다
-         (300판 실측: 어려움 승률 21.3% — 보통 37.7%보다 한참 낮았다).
-         이제 블러프는 **내가 실제로 가진 눈**으로 한 단계만 세게 부른다 — 읽히지 않으면서 근거는 있다. */
-      if(diff==='hard' && rnd()<0.18) qty = qty + 1;
+         (실측: 어려움 승률 21.3% — 보통 37.7%보다 한참 낮았다).
+         이제 **가진 눈으로 한 단계만**, 그것도 8%만. 0%가 아주 조금 더 세지만(라운드당 손실 31.9 vs 32.2%)
+         전혀 안 지르는 상대는 사람에게 읽힌다 — 그 0.3%p로 예측 불가를 산다. */
+      if(diff==='hard' && rnd()<0.08) qty = qty + 1;
       qty = Math.min(qty, total);
       return { type:'bid', qty, face:bestF };
     }
@@ -67,9 +68,9 @@
       const pEx = exactly(unknown, bid.qty - myc, p);
       /* 스팟온(칼자)은 **정확히 맞아야만** 이득이고 틀리면 내 주사위가 준다.
          예전 hard는 문턱이 낮고(0.36) 자주 시도해서(35%) 실측 79%가 빗나갔다 — 보통은 50%였다.
-         고수라면 확실할 때만 부른다: 문턱을 제일 높이고 빈도는 낮춘다. */
+         고수라면 확실할 때만 부른다: 문턱은 제일 높이고(0.50) 빈도는 10%로. */
       const soT = diff==='hard'?0.50 : 0.44;
-      const soChance = diff==='easy'?0.05 : diff==='normal'?0.2 : 0.25;
+      const soChance = diff==='easy'?0.05 : diff==='normal'?0.2 : 0.10;
       if(pEx > soT && rnd() < soChance) return { type:'calza' };
     }
     // 참일 만함 → 가장 안전한 최소 레이즈 (강할수록 정확, 약할수록 무작위)
@@ -79,9 +80,13 @@
     let best=window[0], bestPr=-1;
     for(const r of window){ const pr=atLeast(unknown, r.qty - myMatch(r.face), p); if(pr>bestPr){ bestPr=pr; best=r; } }
     let choice=best;
+    /* ⚠️ '확률 최대' 대신 **0.5를 넘는 최소 레이즈**로 판을 낮게 유지하는 수를 시험해 봤다가 뺐다
+       (2026-08-07). 다음 사람에게 어려운 자리를 넘긴다는 발상이었는데, 라운드당 주사위 손실이
+       시드 3벌에서 32.3% → 33.5%로 **오히려 늘었다.** 확률 최대가 낫다. */
     const noise = diff==='easy'?0.6 : diff==='normal'?0.28 : 0.0;
     if(rnd() < noise){ choice = window[Math.floor(rnd()*window.length)]; }
-    else if(diff==='hard' && rnd()<0.12){ // 블러프: 확률 대비 한 단계 과감한 레이즈 (같은 눈 수량+1, 없으면 다음 후보 — 모두 legalRaises라 합법)
+    // 볼더 레이즈도 25% → 6%. 위 블러프와 같은 이유다(과감함은 이 게임에서 값을 못 한다).
+    else if(diff==='hard' && rnd()<0.06){ // 블러프: 확률 대비 한 단계 과감한 레이즈 (같은 눈 수량+1, 없으면 다음 후보 — 모두 legalRaises라 합법)
       const bolder=cands.find(r=>r.qty===choice.qty+1 && r.face===choice.face);
       if(bolder) choice=bolder; else { const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; } }
     else if(rnd() < (diff==='hard'?0.12:0.08)){ const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; }
