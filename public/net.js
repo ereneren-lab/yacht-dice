@@ -24,10 +24,18 @@
 (function (root) {
   'use strict';
 
+  /* 방(웹소켓)을 여는 서버. **정적 파일은 어디서 서비스되든 상관없지만 방은 여기로만 붙는다.**
+     2026-08-07: 정적 파일을 CDN으로 옮기려고 분리했다 — 예전엔 무조건 `location.host`라
+     CDN에서 열면 그 호스트로 웹소켓을 걸어 방이 안 열렸다. */
+  const GAME_SERVER = 'yacht-dice-jxva.onrender.com';
+  function isLocalHost(h) { return h === 'localhost' || h === '127.0.0.1' || h === '::1'; }
   function wsUrl() {
     // 앱(Capacitor) 번들은 file:// 로 뜨므로 배포 서버를 직접 가리킨다
-    if (root.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return 'wss://yacht-dice-jxva.onrender.com';
-    return (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host;
+    if (root.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return 'wss://' + GAME_SERVER;
+    // 로컬 개발은 그대로 이 서버(node server.js)에 붙는다
+    if (isLocalHost(location.hostname)) return (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host;
+    // 그 외(= CDN이든 게임 서버든) 방은 게임 서버로
+    return 'wss://' + GAME_SERVER;
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const noop = function () {};

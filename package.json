@@ -64,7 +64,10 @@
     "test:playtest": "node scripts/browser-test/playtest.js",
     "test:alkkagi:play": "node scripts/browser-test/verify-alkkagi-play.js",
     "test:alkkagi:ai": "node scripts/alkkagi-ai-sim.js",
-    "test:aidiff": "node scripts/ai-diff-sim.js 300"
+    "test:aidiff": "node scripts/ai-diff-sim.js 300",
+    "build:static": "node scripts/build-static.js",
+    "serve:static": "node scripts/serve-static.js",
+    "og:card": "node scripts/make-og-card.js"
   },
   "engines": {
     "node": ">=18"

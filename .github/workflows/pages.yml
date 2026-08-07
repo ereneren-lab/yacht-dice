@@ -1,0 +1,56 @@
+# 정적 파일을 GitHub Pages로 올린다 — **첫 방문 21.6초를 없애기 위한 것**이다.
+#
+# 왜 (2026-08-07 실측)
+#   Render 무료 티어는 15분 놀면 잠들고, 깨우는 데 첫바이트 21.6초가 걸린다(깨어 있으면 0.26초).
+#   그런데 이 서비스의 서버가 하는 일은 둘뿐이다 — ① 정적 파일 ② 웹소켓 방.
+#   13종 게임은 전부 브라우저에서 도니, 정적 파일만 CDN으로 옮기면 처음 온 사람이 기다리지 않는다.
+#   방은 그대로 게임 서버로 붙는다(`public/net.js`의 GAME_SERVER · 앱에서 526ms에 붙는 것 확인).
+#
+# 켜는 법 (한 번만)
+#   저장소 Settings → Pages → Build and deployment → Source: **GitHub Actions**
+#   그다음 main에 푸시하면 여기서 자동으로 올라간다. 주소: https://ereneren-lab.github.io/yacht-dice/
+#
+# ⚠️ 하위 경로(/yacht-dice/)로 열리면 절대경로(`/sw.js` 등)가 어긋난다.
+#    커스텀 도메인을 붙이거나(권장), 아래 SITE_URL을 그 주소로 주고 링크를 점검할 것.
+#    지금 이 워크플로는 **수동 실행(workflow_dispatch)만** 하도록 두었다 —
+#    주소 결정 전에 자동으로 올라가 버리면 공유 카드·계측 도메인이 갈라진다.
+name: Pages (정적 배포)
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: '공개 주소 (미리보기 카드·계측 도메인에 박힌다)'
+        required: false
+        default: 'https://yacht-dice-jxva.onrender.com'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 코어와 HTML이 어긋나지 않았는지 먼저 본다
+        run: node scripts/check-drift.js
+      - name: 정적 번들 만들기
+        run: SITE_URL="${{ inputs.site_url }}" node scripts/build-static.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-static
+      - id: deploy
+        uses: actions/deploy-pages@v4

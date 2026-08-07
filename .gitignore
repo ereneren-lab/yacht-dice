@@ -12,3 +12,16 @@ ios/App/App/public/
 ios/App/App/capacitor.config.json
 ios/App/Pods/
 ios/App/App/config.xml
+
+# 남의 스킬 묶음(앤트로픽 공식 skills-main 11MB · awesome-agent-skills 카탈로그).
+# 게임 코드가 아니라 도구라서 이 저장소 이력에는 안 넣는다.
+# `.claude/skills/`의 링크가 이 폴더를 가리키므로 **폴더를 지우면 스킬도 같이 죽는다.**
+skills-main/
+awesome-agent-skills-main/
+
+# `npx skills add`가 깔아 두는 남의 스킬(Remotion 12종 2.9MB). 게임 코드가 아니다.
+# `.claude/skills/`의 링크가 여기를 가리킨다 — 지우면 스킬도 같이 죽는다.
+.agents/
+
+# 정적 배포 산출물(build:static) — 원본은 public/이다
+dist-static/

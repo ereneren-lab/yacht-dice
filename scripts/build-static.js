@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+/**
+ * 정적 배포 번들을 만든다 — `dist-static/`.
+ *
+ * 왜 (2026-08-07)
+ *   실측: Render 무료 티어가 잠들면 **첫바이트 21.6초**(깨어 있으면 0.26초).
+ *   그런데 이 서비스의 서버는 하는 일이 둘뿐이다 — ① 정적 파일 주기 ② 웹소켓 방.
+ *   13종 게임은 전부 브라우저에서 돈다. **정적 파일을 CDN에 올리면 첫 방문이 즉시 뜬다.**
+ *   방(온라인 대전)만 그대로 게임 서버로 붙는다(`public/net.js`의 GAME_SERVER).
+ *
+ *   서비스워커(캐시 우선)는 **이미 와 본 사람**만 구한다. 이건 **처음 온 사람**을 구하는 쪽이다.
+ *
+ * 무엇이 달라지나
+ *   · 정적: CDN(Cloudflare Pages·Netlify·GitHub Pages 등) — 잠들지 않는다
+ *   · 방:   지금 서버 그대로(wss://…onrender.com) — 처음 붙을 때 한 번은 깨우느라 느릴 수 있다
+ *
+ * 사용:
+ *   node scripts/build-static.js                     기본(주소는 지금 Render 주소 그대로)
+ *   SITE_URL=https://내주소 node scripts/build-static.js   새 주소로 미리보기 태그까지 바꿔서
+ */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const SRC = path.join(ROOT, 'public');
+const OUT = path.join(ROOT, 'dist-static');
+const OLD_URL = 'https://yacht-dice-jxva.onrender.com';
+const SITE_URL = (process.env.SITE_URL || OLD_URL).replace(/\/+$/, '');
+
+/* 번들에 넣지 않을 것 — 개발용 사본이나 산출물이 섞이면 CDN에 올라간다 */
+const SKIP = new Set(['.DS_Store']);
+
+function copyDir(src, dst) {
+  fs.mkdirSync(dst, { recursive: true });
+  let n = 0, bytes = 0;
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    if (SKIP.has(e.name)) continue;
+    const s = path.join(src, e.name), d = path.join(dst, e.name);
+    if (e.isDirectory()) { const r = copyDir(s, d); n += r.n; bytes += r.bytes; continue; }
+    let buf = fs.readFileSync(s);
+    /* 주소가 바뀌면 **미리보기 태그·계측 도메인**이 옛 주소를 가리킨 채 남는다 —
+       공유 카드가 엉뚱한 곳을 가리키고 방문 집계가 갈라진다. 텍스트 파일만 치환한다. */
+    if (SITE_URL !== OLD_URL && /\.(html|js|json|webmanifest|css)$/.test(e.name)) {
+      buf = Buffer.from(buf.toString('utf8').split(OLD_URL).join(SITE_URL), 'utf8');
+    }
+    fs.writeFileSync(d, buf); n++; bytes += buf.length;
+  }
+  return { n, bytes };
+}
+
+if (fs.existsSync(OUT)) fs.rmSync(OUT, { recursive: true, force: true });
+const { n, bytes } = copyDir(SRC, OUT);
+
+/* 캐시 규칙 — Netlify·Cloudflare Pages가 읽는 형식.
+   HTML은 매번 재검증(배포 즉시 반영), 나머지는 길게. 서비스워커는 절대 캐시하지 않는다
+   (여기가 캐시되면 옛 서비스워커가 살아남아 새 배포가 영영 안 보인다). */
+fs.writeFileSync(path.join(OUT, '_headers'), `/*
+  Cache-Control: public, max-age=3600
+/*.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache
+/*.png
+  Cache-Control: public, max-age=604800
+/*.jpg
+  Cache-Control: public, max-age=604800
+`);
+
+const mb = (bytes / 1024 / 1024).toFixed(1);
+console.log(`✅ dist-static/ — 파일 ${n}개 · ${mb}MB · 주소 ${SITE_URL}`);
+console.log('   확인:  npx serve dist-static  또는  node scripts/serve-static.js');
+console.log('   ⚠️ 방(온라인)은 이 번들이 아니라 게임 서버로 붙는다 — net.js의 GAME_SERVER');
