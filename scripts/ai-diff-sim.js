@@ -118,6 +118,15 @@ const CHIP_GAMES = { seotda: 1, indianpoker: 1 };
 const ADVANCE = { indianpoker: (e) => (e.phase === 'result' ? () => e.nextHand() : null) };
 const HUMAN_CLICK_MS = 1200;
 
+/* 무승부를 '판정 불가'와 구분한다 — 너클본즈는 두 판의 점수가 같으면 `{tie:true}`를 준다.
+   예전엔 이걸 seat 없음으로 보고 '불발'로 셌다(300판 중 6~7판). 게임 결함이 아니라 자의 문제였다. */
+function isTie(eng, pl) {
+  let w = eng.winner;
+  if (w == null && typeof eng.serialize === 'function') {
+    try { w = (eng.serialize(pl[0].pid) || {}).winner; } catch (e) { try { w = (eng.serialize() || {}).winner; } catch (e2) {} }
+  }
+  return !!(w && typeof w === 'object' && w.tie);
+}
 function winnerSeat(eng, pl) {
   let w = eng.winner;
   if (w == null && typeof eng.serialize === 'function') {
@@ -156,6 +165,7 @@ async function runOne(g, diffs, seed) {
   } finally {
     clock.restore();
     const seat = eng && OVER(eng) ? winnerSeat(eng, pl) : null;   // 판수로 끊었으면 승자가 없다(null)
+    const tie = !!(eng && OVER(eng) && isTie(eng, pl));
     /* 칩 게임은 **최종 칩 점유율**도 같이 낸다. 승/패 한 비트는 300판이라도 분해능이 ±3.8%p라
        난이도 차이를 못 가른다(섯다에서 시드마다 결론이 뒤집혔다). 칩은 훨씬 예민한 자다. */
     let share = null;
@@ -166,7 +176,7 @@ async function runOne(g, diffs, seed) {
       }
     } catch (e) {}
     try { eng && eng.destroy && eng.destroy(); } catch (e) {}
-    return { seat, verdict, share };
+    return { seat, verdict, share, tie };
   }
 }
 
@@ -178,18 +188,19 @@ async function runOne(g, diffs, seed) {
  *    기대 승률은 1/n이고, 손잡이가 들으면 쉬움 < 보통 < 어려움 순으로 올라야 한다. */
 async function series(g, diff, K) {
   const n = g.n;
-  let w = 0, done = 0, bad = 0, shareSum = 0, shareN = 0;
+  let w = 0, done = 0, bad = 0, shareSum = 0, shareN = 0, ties = 0;
   for (let i = 0; i < K; i++) {
     const testSeat = i % n;
     const diffs = Array.from({ length: n }, (_, s) => (s === testSeat ? diff : 'normal'));
     const r = await runOne(g, diffs, seedOf(i));
     const chipGame = !!CHIP_GAMES[g.key];
+    if (r.tie) { ties++; continue; }        // 무승부는 승률 분모에서 뺀다(따로 센다)
     if (r.verdict !== 'done' || (!chipGame && r.seat == null) || (chipGame && !r.share)) { bad++; continue; }
     done++;
     if (r.seat === testSeat) w++;
     if (r.share) { shareSum += r.share[testSeat]; shareN++; }
   }
-  return { w, done, bad, rate: w / (done || 1), share: shareN ? shareSum / shareN : null };
+  return { w, done, bad, ties, rate: w / (done || 1), share: shareN ? shareSum / shareN : null };
 }
 
 /* 요트는 `difficulty`가 엔진 전역이라 맞대결이 안 된다 — 같은 난이도끼리 돌려 평균 점수를 잰다. */
@@ -258,7 +269,7 @@ const THRESH = 0.55;
     const val = (r) => (useChips ? r.share : r.rate);
     const ok = val(rs.normal) - val(rs.easy) > GAP && val(rs.hard) - val(rs.normal) > GAP;
     if (!ok) fail++;
-    const f = (r) => `${(r.rate * 100).toFixed(1)}%`.padStart(6) + (r.bad ? `(불발${r.bad})` : '');
+    const f = (r) => `${(r.rate * 100).toFixed(1)}%`.padStart(6) + (r.bad ? `(불발${r.bad})` : '') + (r.ties ? `(무${r.ties})` : '');
     /* 자가 멀쩡한지 매번 확인한다 — '보통' 자리는 전원 보통인 판에서 재므로 정확히 1/n이 나와야 한다.
        크게 벗어나면 난이도가 아니라 **측정이 틀어진 것**이다(예전에 시드와 자리 회전이 맞물려 25.3%가 나왔다). */
     const off = Math.abs(val(rs.normal) - (useChips ? exp : exp));
