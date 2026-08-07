@@ -109,6 +109,11 @@ const GAMES = [
 ];
 
 const OVER = (e) => e.phase === 'over' || e.phase === 'gameover';
+/* 칩 게임(섯다·인디언)은 **한 명만 남을 때까지** 간다 — 그래서 최종 칩 점유율이 0 아니면 1이라
+   승/패와 똑같은 무딘 자가 된다. 대신 **정해진 판수(HANDS)만 치고 칩을 센다.**
+   칩 증감은 연속값이라 같은 판수로도 난이도 차이를 훨씬 잘 가른다. */
+const HANDS = 40;
+const CHIP_GAMES = { seotda: 1, indianpoker: 1 };
 /* 인디언 포커는 판 사이를 **사람이 '다음'을 눌러** 넘긴다. 아무도 안 밀면 result에서 멈춘다. */
 const ADVANCE = { indianpoker: (e) => (e.phase === 'result' ? () => e.nextHand() : null) };
 const HUMAN_CLICK_MS = 1200;
@@ -142,14 +147,26 @@ async function runOne(g, diffs, seed) {
       if (push) { pending = true; setTimeout(() => { pending = false; push(); }, HUMAN_CLICK_MS); }
     });
     eng.start();
-    verdict = await clock.drain(() => OVER(eng), 60 * 60 * 1000, 300000);
+    const stop = CHIP_GAMES[g.key]
+      ? () => OVER(eng) || (eng.handNo || 0) > HANDS
+      : () => OVER(eng);
+    verdict = await clock.drain(stop, 60 * 60 * 1000, 300000);
   } catch (e) {
     verdict = 'error:' + e.message.slice(0, 70);
   } finally {
     clock.restore();
-    const seat = eng && OVER(eng) ? winnerSeat(eng, pl) : null;
+    const seat = eng && OVER(eng) ? winnerSeat(eng, pl) : null;   // 판수로 끊었으면 승자가 없다(null)
+    /* 칩 게임은 **최종 칩 점유율**도 같이 낸다. 승/패 한 비트는 300판이라도 분해능이 ±3.8%p라
+       난이도 차이를 못 가른다(섯다에서 시드마다 결론이 뒤집혔다). 칩은 훨씬 예민한 자다. */
+    let share = null;
+    try {
+      if (eng && eng.players && eng.players[0] && typeof eng.players[0].chips === 'number') {
+        const tot = eng.players.reduce((a, p) => a + Math.max(0, p.chips || 0), 0);
+        if (tot > 0) share = eng.players.map(p => Math.max(0, p.chips || 0) / tot);
+      }
+    } catch (e) {}
     try { eng && eng.destroy && eng.destroy(); } catch (e) {}
-    return { seat, verdict };
+    return { seat, verdict, share };
   }
 }
 
@@ -161,16 +178,18 @@ async function runOne(g, diffs, seed) {
  *    기대 승률은 1/n이고, 손잡이가 들으면 쉬움 < 보통 < 어려움 순으로 올라야 한다. */
 async function series(g, diff, K) {
   const n = g.n;
-  let w = 0, done = 0, bad = 0;
+  let w = 0, done = 0, bad = 0, shareSum = 0, shareN = 0;
   for (let i = 0; i < K; i++) {
     const testSeat = i % n;
     const diffs = Array.from({ length: n }, (_, s) => (s === testSeat ? diff : 'normal'));
-    const r = await runOne(g, diffs, 0x9E37 + i * 7919);
-    if (r.verdict !== 'done' || r.seat == null) { bad++; continue; }
+    const r = await runOne(g, diffs, SEED0 + i * 7919);
+    const chipGame = !!CHIP_GAMES[g.key];
+    if (r.verdict !== 'done' || (!chipGame && r.seat == null) || (chipGame && !r.share)) { bad++; continue; }
     done++;
     if (r.seat === testSeat) w++;
+    if (r.share) { shareSum += r.share[testSeat]; shareN++; }
   }
-  return { w, done, bad, rate: w / (done || 1) };
+  return { w, done, bad, rate: w / (done || 1), share: shareN ? shareSum / shareN : null };
 }
 
 /* 요트는 `difficulty`가 엔진 전역이라 맞대결이 안 된다 — 같은 난이도끼리 돌려 평균 점수를 잰다. */
@@ -182,7 +201,7 @@ async function yachtScores(diff, K) {
     let eng = null;
     try {
       eng = new GameEngine({ mode: 'yacht_kr', difficulty: diff, aiFast: false, itemsOn: false,
-        joker: false, players: pl, rng: mkRng(0x9E37 + i * 7919), onState() {}, onRoll() {} });
+        joker: false, players: pl, rng: mkRng(SEED0 + i * 7919), onState() {}, onRoll() {} });
       eng.start();
       const v = await clock.drain(() => OVER(eng), 60 * 60 * 1000, 300000);
       if (v === 'done') {
@@ -198,6 +217,10 @@ async function yachtScores(diff, K) {
 }
 
 const K = parseInt(process.argv[2], 10) || 100;
+/* 시드는 고정이라 같은 코드면 결과가 똑같다(대조에 좋다). 다만 **한 벌의 시드에 맞춰 튜닝하면
+   그건 과적합**이라, 고친 뒤에는 `--seed=2` 처럼 다른 벌로도 한 번 더 재 볼 것. */
+const ONLY_DIFF = (process.argv.find(a => a.startsWith('--diff=')) || '').slice(7) || null;
+const SEED0 = (parseInt((process.argv.find(a => a.startsWith('--seed=')) || '').slice(7), 10) || 1) * 0x9E37;
 const only = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
 const list = only.length ? GAMES.filter(g => only.includes(g.key)) : GAMES;
 const THRESH = 0.55;
@@ -205,26 +228,40 @@ const THRESH = 0.55;
 (async () => {
   console.log(`AI 난이도 — 난이도별 ${K}판, 시험 자리 1명 vs 나머지 보통, 자리 돌려가며\n`);
   console.log('게임        인원  쉬움    보통    어려움   기대    판정');
+  console.log(`(칩 게임은 ${HANDS}판만 치고 끊으므로 승률 칸은 '그 안에 상대를 파산시킨 비율'이다 — 판정은 칩점유로 한다)`);
   console.log('─'.repeat(74));
   let fail = 0;
   for (const g of list) {
     const rs = {};
-    for (const d of ['easy', 'normal', 'hard']) rs[d] = await series(g, d, K);
+    for (const d of ONLY_DIFF ? [ONLY_DIFF] : ['easy', 'normal', 'hard']) rs[d] = await series(g, d, K);
+    if (ONLY_DIFF) {   // 한 난이도만 잴 때(파라미터 쓸어보기용) — 그 칸만 찍고 넘어간다
+      const r = rs[ONLY_DIFF];
+      console.log(`${g.name.padEnd(10)} ${g.n}인  ${ONLY_DIFF.padEnd(7)} 승률 ${(r.rate * 100).toFixed(1)}%` +
+        (r.share != null ? `  칩점유 ${(r.share * 100).toFixed(1)}%` : ''));
+      continue;
+    }
     const exp = 1 / g.n;
     /* 판정: 쉬움 < 보통 < 어려움이면서 각 칸이 소음(±3.3%p)보다 크게 벌어져야 한다.
        "손잡이를 돌렸는데 승률이 그대로"는 손잡이가 안 듣는 것이다. */
     const GAP = 0.05;
-    const ok = rs.normal.rate - rs.easy.rate > GAP && rs.hard.rate - rs.normal.rate > GAP;
+    /* 칩 점유율이 있으면 그걸로 판정한다(예민한 자). 없으면 승률로 본다. */
+    const useChips = rs.easy.share != null;
+    const val = (r) => (useChips ? r.share : r.rate);
+    const ok = val(rs.normal) - val(rs.easy) > GAP && val(rs.hard) - val(rs.normal) > GAP;
     if (!ok) fail++;
     const f = (r) => `${(r.rate * 100).toFixed(1)}%`.padStart(6) + (r.bad ? `(불발${r.bad})` : '');
     let why = '✅';
     if (!ok) {
       const bits = [];
-      if (rs.normal.rate - rs.easy.rate <= GAP) bits.push(rs.normal.rate < rs.easy.rate ? '쉬움이 보통보다 셈' : '쉬움=보통');
-      if (rs.hard.rate - rs.normal.rate <= GAP) bits.push(rs.hard.rate < rs.normal.rate ? '보통이 어려움보다 셈' : '보통=어려움');
+      if (val(rs.normal) - val(rs.easy) <= GAP) bits.push(val(rs.normal) < val(rs.easy) ? '쉬움이 보통보다 셈' : '쉬움=보통');
+      if (val(rs.hard) - val(rs.normal) <= GAP) bits.push(val(rs.hard) < val(rs.normal) ? '보통이 어려움보다 셈' : '보통=어려움');
       why = '❌ ' + bits.join(' · ');
     }
     console.log(`${g.name.padEnd(10)} ${g.n}인  ${f(rs.easy)} ${f(rs.normal)} ${f(rs.hard)}  ${(exp * 100).toFixed(1).padStart(5)}%  ${why}`);
+    if (useChips) {
+      const c = (r) => `${(r.share * 100).toFixed(1)}%`.padStart(6);
+      console.log(`${''.padEnd(10)} 칩점유 ${c(rs.easy)} ${c(rs.normal)} ${c(rs.hard)}  ← 판정은 이 줄로 한다`);
+    }
   }
 
   if (!only.length || only.includes('yacht')) {

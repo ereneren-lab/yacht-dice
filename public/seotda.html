@@ -444,6 +444,45 @@
     return a;
   }
 
+  /* ── 패의 진짜 백분위 ──
+     20장 덱의 두 장 조합은 190가지뿐이라 **전부 세어** 표로 만든다(엔진 만들 때 한 번, 190회 평가).
+     handPct(rank) = 무작위 상대 한 명이 나보다 약할 확률. 상대가 k명이면 pct^k가 이길 확률의 근사다
+     (카드 겹침은 무시 — AI 판단용 근사다). cardPct(card) = 그 장이 들어간 손들의 평균 백분위. */
+  let _pctTable = null;
+  function _buildPct() {
+    const d = makeDeck(), list = [], byCard = {};
+    for (let i = 0; i < d.length; i++) for (let j = i + 1; j < d.length; j++) {
+      const rank = evalHand(d[i], d[j]).rank;
+      list.push({ rank, a: d[i].id, b: d[j].id });
+    }
+    const ranks = list.map(x => x.rank).sort((a, b) => a - b);
+    const pctOf = (r) => {
+      let lo = 0; while (lo < ranks.length && ranks[lo] < r) lo++;
+      return lo / (ranks.length - 1);
+    };
+    const rankPct = {};
+    for (const x of list) if (rankPct[x.rank] == null) rankPct[x.rank] = pctOf(x.rank);
+    for (const x of list) {
+      for (const id of [x.a, x.b]) {
+        if (!byCard[id]) byCard[id] = { s: 0, n: 0 };
+        byCard[id].s += rankPct[x.rank]; byCard[id].n++;
+      }
+    }
+    const cardAvg = {};
+    for (const id in byCard) cardAvg[id] = byCard[id].s / byCard[id].n;
+    _pctTable = { rankPct, cardAvg };
+  }
+  function handPct(rank) {
+    if (!_pctTable) _buildPct();
+    const p = _pctTable.rankPct[rank];
+    return p == null ? 0.5 : p;
+  }
+  function cardPct(card) {
+    if (!_pctTable) _buildPct();
+    const p = card ? _pctTable.cardAvg[card.id] : null;
+    return p == null ? 0.5 : p;
+  }
+
   // ── 특수 끗(월 조합, 순서=강함) : 알리>독사>구삥>장삥>장사>세륙 ──
   const SPECIAL = {
     '1,2': { sub: 6, name: '알리' },
@@ -705,7 +744,23 @@
       } else return;
 
       this.lastAction = { seat, mode, amount: chips - this.players[seat].chips, seq: ++this.actionSeq };
+      /* 자리별 성향 기록 — 이 사람이 얼마나 자주 거는가. '어려움'만 이걸 보고 콜 기준을 움직인다
+         (아래 `_aiAct`). 사람도 화면에서 보는 정보라 AI만 아는 몰래 정보가 아니다. */
+      if (!this._agg) this._agg = [];
+      if (!this._agg[seat]) this._agg[seat] = { bets: 0, acts: 0 };
+      this._agg[seat].acts++;
+      if (mode === 'ping' || mode === 'ttadang' || mode === 'quarter' || mode === 'half') this._agg[seat].bets++;
       this._afterAction();
+    }
+    /* 살아 있는 상대들의 '거는 빈도'. 표본이 적으면(6수 미만) 중립(0.35)으로 둔다. */
+    _oppAggression(seat) {
+      let bets = 0, acts = 0;
+      for (let s = 0; s < this.players.length; s++) {
+        if (s === seat || !this.inHand[s] || this.folded[s]) continue;
+        const a = this._agg && this._agg[s];
+        if (a) { bets += a.bets; acts += a.acts; }
+      }
+      return acts < 6 ? 0.35 : bets / acts;
     }
     _resetToActAfterRaise(raiser) {
       this.lastAggressor = raiser;
@@ -877,44 +932,63 @@
       }
       return worst;
     }
+    /* 🔴 2026-08-06 — 예전 강도식은 **확률이 아니었다.**
+       덱이 20장뿐이라 가능한 두 장 조합은 190가지다. 전부 세어 보면 갑오는 상위 29%(백분위 .709)인데
+       옛 식은 0.37로 읽었다 — 중간 패를 최대 35%p 과소평가했다.
+       그 값을 폴드 문턱(어려움 0.32 + 포트오즈)과 비교했으니 **어려움은 갑오까지 전부 접었고**,
+       300판 실측에서 어려움 승률이 기대치의 절반(18.3%)까지 떨어졌다.
+       → 이제 진짜 백분위를 쓴다(아래 HAND_PCT). 값의 뜻이 "무작위 상대 한 명을 이길 확률"이라
+       포트오즈와 바로 비교할 수 있다. */
     _handStrength(seat) {
       const h = this.hands[seat];
-      if (this.round === 1 || h.length < 2) {   // 1장만: 월/광으로 대략
-        const c = h[0]; return Math.min(1, (c.month / 12) + (c.gwang ? 0.25 : 0));
-      }
-      const ev = evalHand(h[0], h[1]);
-      // rank를 대략 0..1로 (끗 1000~1009 → 0~.35, 특수~.5, 땡~.8, 광땡~1)
-      if (ev.tier === '광땡') return 0.97 + (ev.rank - 4000) * 0.01;
-      if (ev.tier === '땡') return 0.62 + (ev.rank - 3000) * 0.02;   // 삥땡~.64, 장땡~.82
-      if (ev.tier === '특수') return 0.45 + (ev.rank - 2000) * 0.02;
-      return 0.05 + ((ev.rank - 1000) / 9) * 0.32;                   // 망통~.05, 갑오~.37
+      if (this.round === 1 || h.length < 2) return cardPct(h[0]);   // 1장만: 그 장을 가진 손들의 평균 백분위
+      return handPct(evalHand(h[0], h[1]).rank);
     }
     _aiAct(seat) {
       const diff = this.players[seat].aiDiff;
       /* 아이템전에서는 AI도 쓴다 — 사람만 쓰면 그건 공정한 판이 아니다.
          패가 확실히 나쁠 때(강도 0.25 미만)만 한 장 바꾼다. 바꾼 뒤 강도를 다시 잰다. */
-      if (this.itemsOn && this.items[seat] > 0 && this._handStrength(seat) < 0.25) {
+      if (this.itemsOn && this.items[seat] > 0 && this._handStrength(seat) < 0.30) {
         const i = this._aiRedrawIdx(seat);
         if (i >= 0) this._doRedraw(seat, i);
       }
-      const st = this._handStrength(seat);
+      const st = this._handStrength(seat);      // 백분위 — 무작위 상대 한 명을 이길 확률
       const r = this.rng();
       const toCall = this.bet - (this.contrib[seat] || 0);
       const potOdds = toCall > 0 ? toCall / (this.pot + toCall) : 0;
       const bluffP = diff === 'hard' ? 0.22 : diff === 'easy' ? 0.06 : 0.13;
       const acts = this.validActions(seat);
       const can = m => acts.indexOf(m) >= 0;
+      // 아직 살아 있는 상대 수 — 여럿을 다 이겨야 하므로 pct^k로 깎는다
+      let live = 0;
+      for (let s = 0; s < this.players.length; s++) if (s !== seat && this.inHand[s] && !this.folded[s]) live++;
+      const equity = Math.pow(st, Math.max(1, live));
+      /* 블러프는 **상대 수로 나눈다.** 둘을 앞에 두고 치는 블러프는 둘 다 접어야 성공한다 —
+         고정 확률로 지르면 사람 수가 늘수록 손해다. 예전엔 어려움이 그걸 22%로 하고 있었다. */
+      const bluffNow = bluffP / Math.max(1, live);
+      /* 값을 뽑는 폭은 난이도로 가른다 — 어려움은 좋은 패에서 더 자주 건다.
+         보통 0.70(=갑오 이상)이 예전 기준이고, 쉬움은 특수 이상만 건다. */
+      const valueAt = diff === 'hard' ? 0.62 : diff === 'easy' ? 0.81 : 0.70;
       let mode;
       if (this.bet === 0) {            // 아무도 안 걸었음
-        if (st > 0.55 && can('half')) mode = (r < 0.5 ? 'half' : 'quarter');
-        else if (st > 0.35 && can('quarter')) mode = 'quarter';
-        else if (r < bluffP && can('half')) mode = 'half';          // 블러프
+        /* 세게 거는 기준은 **예전과 같은 패**로 맞춰 뒀다(느낌을 안 바꾸려고):
+           옛 0.55 = 특수 이상 = 백분위 0.81. */
+        if (st > 0.81 && can('half')) mode = (r < 0.5 ? 'half' : 'quarter');
+        else if (st > valueAt && can('quarter')) mode = 'quarter';
+        else if (r < bluffNow && can('half')) mode = 'half';        // 블러프
         else mode = can('ping') ? (r < 0.4 ? 'ping' : 'check') : 'check';
       } else {                         // 콜/레이즈/다이
-        const foldThresh = (diff === 'easy' ? 0.15 : diff === 'hard' ? 0.32 : 0.22) + potOdds * 0.5;
-        if (st > 0.7 && can('half') && r < 0.55) mode = (r < 0.28 ? 'ttadang' : 'half');
-        else if (st > foldThresh) mode = can('call') ? 'call' : 'check';
-        else if (r < bluffP && can('half')) mode = 'quarter';       // 블러프 레이즈
+        /* 🔴 폴드 판단을 **포트오즈와 견준다.** 예전엔 강도값(확률이 아니었다)을
+           난이도별 고정 문턱과 비교해서, 어려울수록 더 접고 더 약해졌다.
+           이제 "이길 확률 > 내야 하는 값의 비율"이면 받는다. 난이도는 그 판단을
+           **얼마나 정확히 하느냐**로 갈린다 — 어려움은 그대로, 쉬움은 겁이 많아 접는다. */
+        let caution = diff === 'hard' ? 1.0 : diff === 'easy' ? 1.7 : 1.3;
+        /* 어려움만 상대를 읽는다 — 자주 거는 상대의 베팅은 그만큼 약한 패도 섞였으니 더 받아 주고,
+           좀처럼 안 거는 상대가 걸면 물러난다. 중립(0.35)에서 ±0.35 범위로만 움직인다. */
+        if (diff === 'hard') caution *= Math.max(0.65, Math.min(1.35, 1 + (0.35 - this._oppAggression(seat)) * 1.6));
+        if (st > 0.95 && can('half') && r < 0.55) mode = (r < 0.28 ? 'ttadang' : 'half');   // 옛 0.7 = 4땡 이상
+        else if (equity > potOdds * caution) mode = can('call') ? 'call' : 'check';
+        else if (r < bluffNow && can('half')) mode = 'quarter';     // 블러프 레이즈
         else mode = 'die';
       }
       if (!can(mode)) mode = can('call') ? 'call' : can('check') ? 'check' : 'die';
