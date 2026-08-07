@@ -18,52 +18,44 @@
 const fs = require('fs');
 const path = require('path');
 
+const META = require('./game-meta');
 const ROOT = path.join(__dirname, '..', 'public');
 const BASE = 'https://yacht-dice-jxva.onrender.com';
 
-/* 설명은 **그 게임이 뭔지 한 줄로** — 받은 사람이 링크만 보고 판단한다.
-   시간 표기는 허브 배지와 같은 값(balance-sim 실측)이라 서로 어긋나지 않는다. */
-const GAMES = {
-  'kb':          ['너클본즈', '주사위를 굴려 상대 줄을 부수는 3×3 한 판 · 1분 안팎'],
-  'yacht':       ['요트 다이스', '주사위 다섯 개로 열두 칸을 채우는 고전 · 2~3분'],
-  'ld':          ['라이어 다이스', '허풍과 도전으로 주사위를 지키는 심리전 · 1~2분'],
-  'lcr':         ['좌·중·우', '규칙 없이 굴리기만 하면 되는 파티 게임 · 1분 안팎'],
-  'yut':         ['윷놀이', '업고 잡고 지름길로 — 네 말 먼저 들이기 · 3~4분'],
-  'alkkagi':     ['알까기', '손끝으로 튕겨 상대 돌을 판 밖으로 · 1분 이내'],
-  'seotda':      ['섯다', '두 장으로 겨루는 한국식 포커 · 4~5분'],
-  'indianpoker': ['인디언 포커', '남의 패는 보이고 내 패만 안 보이는 판 · 2~3분'],
-  'onecard':     ['원카드', '같은 무늬나 숫자로 먼저 손을 비우기 · 1분 안팎'],
-  'oldmaid':     ['도둑잡기', '조커를 떠넘기는 눈치 싸움 · 1~2분'],
-  'blackjack':   ['블랙잭', '21을 넘기지 않고 딜러 이기기 · 라운드제'],
-  'baccarat':    ['바카라', '플레이어냐 뱅커냐, 한 판 승부 · 라운드제'],
-  'highlow':     ['하이로우', '다음 카드가 높을까 낮을까 · 라운드제'],
-};
-
-const block = (key, name, desc) => `<!-- 링크 미리보기 — 방 링크를 카카오톡에 붙여넣었을 때 뜨는 카드(scripts/add-og-tags.js가 넣는다) -->
+/* 이름·설명·시간은 **game-meta.js 한 곳**에서 온다 — 카드(make-og-card.js)와 같은 문구를
+   두 군데 두면 반드시 어긋난다. 카드에 적힌 시간과 태그의 시간이 다르면 그건 거짓말이 된다. */
+const block = (key) => { const m = META[key]; const name = m.name, desc = `${m.desc} · 한 판 ${m.time}`; return `<!-- 링크 미리보기 — 방 링크를 카카오톡에 붙여넣었을 때 뜨는 카드(scripts/add-og-tags.js가 넣는다) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="딱세판만">
 <meta property="og:url" content="${BASE}/${key}.html">
 <meta property="og:title" content="${name} · 딱세판만">
 <meta property="og:description" content="${desc} — 설치 없이 링크 하나로 친구와.">
-<meta property="og:image" content="${BASE}/og-card.jpg">
+<meta property="og:image" content="${BASE}/og/${key}.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${name} · 딱세판만">
 <meta name="twitter:description" content="${desc}">
-<meta name="twitter:image" content="${BASE}/og-card.jpg">
-<meta name="description" content="${name} — ${desc}. 설치 없이 브라우저에서 바로, 링크 하나로 친구와 즐기는 딱세판만 13종 중 하나.">`;
+<meta name="twitter:image" content="${BASE}/og/${key}.jpg">
+<meta name="description" content="${name} — ${desc}. 설치 없이 브라우저에서 바로, 링크 하나로 친구와 즐기는 딱세판만 13종 중 하나.">`; };
 
-let added = 0, skipped = 0;
-for (const [key, [name, desc]] of Object.entries(GAMES)) {
+let added = 0, fixed = 0;
+for (const key of Object.keys(META)) {
   const f = path.join(ROOT, key + '.html');
   if (!fs.existsSync(f)) { console.log(`⚠️ 없는 파일: ${key}.html`); continue; }
   let s = fs.readFileSync(f, 'utf8');
-  if (s.includes('og:title')) { skipped++; continue; }
+  /* 이미 태그가 있으면 **건너뛰지 않고 카드 주소만 맞춘다.** 예전엔 건너뛰었다가
+     온라인 5종이 옛 아이콘을 가리킨 채 남았다 — 방 링크를 제일 많이 보내는 게임들이었다. */
+  if (s.includes('og:title')) {
+    const before = s;
+    s = s.split(`${BASE}/og-card.jpg`).join(`${BASE}/og/${key}.jpg`);
+    if (s !== before) { fs.writeFileSync(f, s); fixed++; }
+    continue;
+  }
   const m = s.match(/<title>[\s\S]*?<\/title>/);
   if (!m) { console.log(`⚠️ <title>을 못 찾음: ${key}.html`); continue; }
-  s = s.replace(m[0], m[0] + '\n' + block(key, name, desc));
+  s = s.replace(m[0], m[0] + '\n' + block(key));
   fs.writeFileSync(f, s);
   added++;
 }
-console.log(`✅ 미리보기 태그 — 새로 넣음 ${added}종 · 이미 있어서 건너뜀 ${skipped}종`);
+console.log(`✅ 미리보기 태그 — 새로 넣음 ${added}종 · 카드 주소 갱신 ${fixed}종`);

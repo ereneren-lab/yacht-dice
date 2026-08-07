@@ -1,6 +1,6 @@
 // 딱세판만 서비스워커 — network-first + 오프라인 폴백
 // 배포마다 CACHE 버전을 올리면 활성화 시 옛 캐시를 정리한다.
-const CACHE = 'alley-v6';
+const CACHE = 'alley-v7';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 /* 게임 13종은 **전부 브라우저에서 도는 정적 파일**이다(서버는 온라인 대전에만 쓴다).

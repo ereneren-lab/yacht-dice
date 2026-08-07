@@ -344,7 +344,10 @@
         const c = NET.code || '';
         if (!c) return;
         const url = location.origin + location.pathname + '?room=' + encodeURIComponent(c);
-        const text = '딱세판만에서 한 판 하자! 방 코드 ' + c;
+        /* 게임 이름을 넣는다 — 받는 사람이 카카오톡에서 먼저 보는 건 이 문구다.
+           (그 아래 카드는 그 게임 페이지의 og 태그에서 온다: public/og/<게임>.jpg) */
+        const gname = (document.title || '').split('·')[0].trim();
+        const text = (gname ? '딱세판만 · ' + gname : '딱세판만') + ' 한 판 하자! 방 코드 ' + c;
         try {
           if (navigator.share) { await navigator.share({ title: '딱세판만', text: text, url: url }); return; }
         } catch (e) { return; }   // 사용자가 공유를 취소한 경우 — 클립보드로 또 떨어뜨리지 않는다
