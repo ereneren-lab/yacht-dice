@@ -25,7 +25,12 @@
     for(let q=bid.qty+1; q<=total; q++) for(let f=2; f<=6; f++) out.push({qty:q, face:f});
     return out;
   }
-  function aiDecide(view, seat, diff, wild, spotOn){
+  /* ⚠️ rnd는 **반드시 넘겨받는다**(2026-08-07). 여기 있던 `Math.random()` 7곳 때문에
+     같은 시드로 돌려도 AI가 매번 다른 수를 둬서, 난이도를 잴 때마다 답이 흔들렸다
+     (보통 대 보통이 33.3%여야 하는데 30.7%~37.7% 사이를 오갔다).
+     저장소 규약이기도 하다 — "셔플·AI 랜덤은 주입 rng 사용". */
+  function aiDecide(view, seat, diff, wild, spotOn, rnd){
+    rnd = rnd || Math.random;
     const p = wild ? 1/3 : 1/6;
     const total = view.totalDice;
     const my = view.players[seat].dice || [];
@@ -40,23 +45,32 @@
       let bestF=2, bestC=-1;
       for(let f=2; f<=6; f++){ const c=myMatch(f); if(c>bestC || (c===bestC&&f>bestF)){ bestC=c; bestF=f; } }
       let qty = Math.max(1, Math.round(myMatch(bestF) + unknown*p));
-      if(diff==='easy') qty = Math.max(1, qty + (Math.random()<.5?0:1));
-      // hard 블러프: 약 25% 확률로 손패와 무관한 눈 + 한 단계 과감한 수량 (예측 차단, 항상 합법)
-      if(diff==='hard' && Math.random()<0.25){ bestF = 2 + Math.floor(Math.random()*5); qty = qty + 1; }
+      if(diff==='easy') qty = Math.max(1, qty + (rnd()<.5?0:1));
+      /* 🔴 2026-08-07 — 예전엔 hard가 25% 확률로 **손패와 무관한 눈**을 부르고 수량까지 올렸다.
+         읽히지 않게 하려던 것인데, 확률로 판단하는 상대에겐 그냥 도전당해 주사위를 잃는 짓이다
+         (300판 실측: 어려움 승률 21.3% — 보통 37.7%보다 한참 낮았다).
+         이제 블러프는 **내가 실제로 가진 눈**으로 한 단계만 세게 부른다 — 읽히지 않으면서 근거는 있다. */
+      if(diff==='hard' && rnd()<0.18) qty = qty + 1;
       qty = Math.min(qty, total);
       return { type:'bid', qty, face:bestF };
     }
     const myc = myMatch(bid.face);
     const pTrue = atLeast(unknown, bid.qty - myc, p);
-    // 도전 임계값: 높은 난이도일수록 최적(~0.5)에 가깝게
+    /* 도전 임계값: 높은 난이도일수록 최적(~0.5)에 가깝게.
+       ⚠️ 2026-08-07에 0.38~0.52를 쓸어 봤다. 라운드당 주사위 손실률(시드 3벌·각 2500라운드)은
+          0.42가 조금 낫고(32.8% vs 0.47의 33.7%) **승률로 재면 반대로 나왔다.**
+          자마다 답이 달라 증명이 안 됐으므로 **그대로 둔다.** 다시 건드리려면 두 자를 같이 볼 것. */
     const chT = diff==='hard'?0.47 : diff==='normal'?0.40 : 0.25;
     if(bid.qty > total) return { type:'dudo' };
     if(pTrue < chT) return { type:'dudo' };   // 거짓일 확률 높음 → 도전
     if(spotOn){
       const pEx = exactly(unknown, bid.qty - myc, p);
-      const soT = diff==='hard'?0.36 : 0.44;
-      const soChance = diff==='easy'?0.05 : diff==='normal'?0.2 : 0.35;
-      if(pEx > soT && Math.random() < soChance) return { type:'calza' };
+      /* 스팟온(칼자)은 **정확히 맞아야만** 이득이고 틀리면 내 주사위가 준다.
+         예전 hard는 문턱이 낮고(0.36) 자주 시도해서(35%) 실측 79%가 빗나갔다 — 보통은 50%였다.
+         고수라면 확실할 때만 부른다: 문턱을 제일 높이고 빈도는 낮춘다. */
+      const soT = diff==='hard'?0.50 : 0.44;
+      const soChance = diff==='easy'?0.05 : diff==='normal'?0.2 : 0.25;
+      if(pEx > soT && rnd() < soChance) return { type:'calza' };
     }
     // 참일 만함 → 가장 안전한 최소 레이즈 (강할수록 정확, 약할수록 무작위)
     const cands = legalRaises(bid, total);
@@ -66,11 +80,11 @@
     for(const r of window){ const pr=atLeast(unknown, r.qty - myMatch(r.face), p); if(pr>bestPr){ bestPr=pr; best=r; } }
     let choice=best;
     const noise = diff==='easy'?0.6 : diff==='normal'?0.28 : 0.0;
-    if(Math.random() < noise){ choice = window[Math.floor(Math.random()*window.length)]; }
-    else if(diff==='hard' && Math.random()<0.25){ // 블러프: 확률 대비 한 단계 과감한 레이즈 (같은 눈 수량+1, 없으면 다음 후보 — 모두 legalRaises라 합법)
+    if(rnd() < noise){ choice = window[Math.floor(rnd()*window.length)]; }
+    else if(diff==='hard' && rnd()<0.12){ // 블러프: 확률 대비 한 단계 과감한 레이즈 (같은 눈 수량+1, 없으면 다음 후보 — 모두 legalRaises라 합법)
       const bolder=cands.find(r=>r.qty===choice.qty+1 && r.face===choice.face);
       if(bolder) choice=bolder; else { const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; } }
-    else if(Math.random() < (diff==='hard'?0.12:0.08)){ const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; }
+    else if(rnd() < (diff==='hard'?0.12:0.08)){ const i=cands.indexOf(choice); if(cands[i+1]) choice=cands[i+1]; }
     return { type:'bid', qty:choice.qty, face:choice.face };
   }
 
@@ -145,7 +159,7 @@
         this._doPeek(seat);
       }
       const view = this.serialize(this.players[seat].pid); // 자기 주사위 + 훔쳐본 것만 보인다
-      const a = aiDecide(view, seat, this.players[seat].aiDiff, this.wild, this.spotOn);
+      const a = aiDecide(view, seat, this.players[seat].aiDiff, this.wild, this.spotOn, this.rng);
       this._busy=false;
       this._apply(seat, a);
     }
@@ -153,7 +167,7 @@
     _autoAct(seat){   // 연결됐지만 시간 초과한 사람 대신 자동 결정
       if(this._dead || this.phase!=='bid' || this.turn!==seat) return;
       const view = this.serialize(this.players[seat].pid);
-      const a = aiDecide(view, seat, 'normal', this.wild, this.spotOn);
+      const a = aiDecide(view, seat, 'normal', this.wild, this.spotOn, this.rng);
       this._clearTurn();
       this.lastAuto = { seat, pid:this.players[seat].pid, seq:++this.autoSeq, act:{...a} };  // 클라가 "시간 초과 자동 베팅" 안내
       this._apply(seat, a);

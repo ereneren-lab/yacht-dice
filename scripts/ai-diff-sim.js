@@ -182,7 +182,7 @@ async function series(g, diff, K) {
   for (let i = 0; i < K; i++) {
     const testSeat = i % n;
     const diffs = Array.from({ length: n }, (_, s) => (s === testSeat ? diff : 'normal'));
-    const r = await runOne(g, diffs, SEED0 + i * 7919);
+    const r = await runOne(g, diffs, seedOf(i));
     const chipGame = !!CHIP_GAMES[g.key];
     if (r.verdict !== 'done' || (!chipGame && r.seat == null) || (chipGame && !r.share)) { bad++; continue; }
     done++;
@@ -201,7 +201,7 @@ async function yachtScores(diff, K) {
     let eng = null;
     try {
       eng = new GameEngine({ mode: 'yacht_kr', difficulty: diff, aiFast: false, itemsOn: false,
-        joker: false, players: pl, rng: mkRng(SEED0 + i * 7919), onState() {}, onRoll() {} });
+        joker: false, players: pl, rng: mkRng(seedOf(i)), onState() {}, onRoll() {} });
       eng.start();
       const v = await clock.drain(() => OVER(eng), 60 * 60 * 1000, 300000);
       if (v === 'done') {
@@ -221,6 +221,15 @@ const K = parseInt(process.argv[2], 10) || 100;
    그건 과적합**이라, 고친 뒤에는 `--seed=2` 처럼 다른 벌로도 한 번 더 재 볼 것. */
 const ONLY_DIFF = (process.argv.find(a => a.startsWith('--diff=')) || '').slice(7) || null;
 const SEED0 = (parseInt((process.argv.find(a => a.startsWith('--seed=')) || '').slice(7), 10) || 1) * 0x9E37;
+/* ⚠️ 판 번호로 시드를 만들 때 **곱셈으로 늘리면 안 된다**(2026-08-07).
+   예전엔 `SEED0 + i*7919`였는데 시험 자리를 `i % n`으로 돌리다 보니 시드 증가폭과 자리 회전이
+   맞물렸다 — 전원 '보통'인데도 시험 자리 승률이 25.3%로 찍혔다(33.3%여야 한다).
+   해시로 흩어 자리 회전과의 상관을 끊는다. 아래 selfCheck()로 이걸 매번 확인한다. */
+function seedOf(i) {
+  let x = (SEED0 ^ Math.imul(i + 1, 2654435761)) >>> 0;
+  x ^= x >>> 15; x = Math.imul(x, 2246822519); x ^= x >>> 13;
+  return x >>> 0;
+}
 const only = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
 const list = only.length ? GAMES.filter(g => only.includes(g.key)) : GAMES;
 const THRESH = 0.55;
@@ -250,6 +259,11 @@ const THRESH = 0.55;
     const ok = val(rs.normal) - val(rs.easy) > GAP && val(rs.hard) - val(rs.normal) > GAP;
     if (!ok) fail++;
     const f = (r) => `${(r.rate * 100).toFixed(1)}%`.padStart(6) + (r.bad ? `(불발${r.bad})` : '');
+    /* 자가 멀쩡한지 매번 확인한다 — '보통' 자리는 전원 보통인 판에서 재므로 정확히 1/n이 나와야 한다.
+       크게 벗어나면 난이도가 아니라 **측정이 틀어진 것**이다(예전에 시드와 자리 회전이 맞물려 25.3%가 나왔다). */
+    const off = Math.abs(val(rs.normal) - (useChips ? exp : exp));
+    const noise = 2.5 * Math.sqrt(exp * (1 - exp) / K);
+    if (off > noise) console.log(`${''.padEnd(10)} ⚠️ 자 점검: 보통(전원 보통)이 ${(val(rs.normal) * 100).toFixed(1)}% — 기대 ${(exp * 100).toFixed(1)}%에서 ${(off * 100).toFixed(1)}%p 벗어났다. 난이도가 아니라 측정을 의심할 것`);
     let why = '✅';
     if (!ok) {
       const bits = [];
