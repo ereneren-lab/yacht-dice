@@ -1181,11 +1181,33 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   function dismissed(){ try{return localStorage.getItem(KEY)==='1';}catch(e){return false;} }
   function remember(){ try{localStorage.setItem(KEY,'1');}catch(e){} }
   function hide(){ bar.classList.remove('show'); }
+  function standalone(){
+    try{ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }catch(e){ return false; }
+  }
+  function show(){ if(dismissed() || standalone()) return; bar.classList.add('show'); }
+
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault(); deferred=e;
-    if(dismissed()) return;              // 이미 닫았으면 다시 띄우지 않음(1회)
-    bar.classList.add('show');
+    show();
   });
+
+  /* 🔴 2026-08-07 — **아이폰에는 돌아올 길이 아예 없었다.**
+     설치 안내가 `beforeinstallprompt`에만 걸려 있는데 그 이벤트는 안드로이드 크롬에서만 뜬다.
+     iOS 사파리 사용자는 주소를 외우지 않는 한 다시 못 온다 — 링크 하나로 퍼지는 서비스에서
+     받은 사람의 상당수가 아이폰이다.
+     iOS는 프로그램으로 설치를 띄울 수 없으므로 **하는 방법을 알려주는 것**이 최선이다. */
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // 아이패드는 맥으로 보고한다
+  var isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+  if(isIOS){
+    var t = bar.querySelector('.itxt');
+    if(t) t.innerHTML = isSafari
+      ? '<b>홈 화면에 추가</b><span>아래 공유 <b>⎋</b> → “홈 화면에 추가”</span>'
+      : '<b>홈 화면에 추가</b><span>사파리로 열면 홈 화면에 넣을 수 있어요</span>';
+    var addBtn = document.getElementById('installAdd');
+    if(addBtn) addBtn.textContent = '알겠어요';        // iOS에선 우리가 설치를 대신 눌러줄 수 없다
+    setTimeout(show, 2500);                            // 첫 화면을 가리지 않게 잠깐 뒤에
+  }
   var add=document.getElementById('installAdd');
   if(add) add.onclick=function(){
     hide(); remember();
