@@ -276,16 +276,30 @@
   /* 이길 확률 추정 — 순수 함수(DOM·상태 없음).
      my==null(=내 카드를 모름): 보이는 최고 카드보다 높을 확률 ≈ (10-maxSeen)/10, 상대가 많을수록 보수적.
      my!=null(=아이템으로 내 카드를 봄): 상대 카드는 전부 보이므로 승패가 사실상 확정된다. */
-  function estimateWin(seen, my, opp) {
-    const maxSeen = seen.length ? Math.max.apply(null, seen) : 0;
-    if (my != null) {
-      if (my > maxSeen) return 0.97;
-      if (my < maxSeen) return 0.03;
+  /* 🔴 2026-08-07 — 예전 식은 **확률이 아니었다.**
+     ① 이 게임은 남의 카드가 전부 보이므로 **보이는 최고 카드 하나만 이기면 전원을 이긴다.**
+        그런데 `p^(상대수*0.8)`로 또 깎고 있었다 — 상대가 늘수록 근거 없이 비관해졌다
+        (3인 판에서 p=0.5짜리 상황을 0.33으로 봤다).
+     ② 남은 덱을 안 셌다. 각 숫자가 4장씩인데 보이는 카드가 그만큼 빠진다.
+     → 보이는 카드(죽은 사람 것 포함 — 이미 공개된 정보다)를 빼고 **남은 장수로 직접 센다.**
+        동점은 팟을 나누므로 절반으로 친다.
+     `known`: 이번 판에서 이미 드러난 카드 전부. `liveMax`: 아직 안 죽은 상대 중 최고. */
+  function estimateWin(liveMax, my, known) {
+    if (my != null) {                    // 아이템으로 내 카드를 봤다 → 사실상 확정
+      if (my > liveMax) return 0.97;
+      if (my < liveMax) return 0.03;
       return 0.5;
     }
-    let p = (RANKS - maxSeen) / RANKS;
-    p = Math.max(0.05, Math.min(0.95, p));
-    return Math.pow(p, Math.max(1, (opp || 1) * 0.8));
+    const left = new Array(RANKS + 1).fill(COPIES);
+    for (const c of (known || [])) if (c >= 1 && c <= RANKS) left[c]--;
+    let total = 0, hi = 0, tie = 0;
+    for (let r = 1; r <= RANKS; r++) {
+      const n = Math.max(0, left[r]);
+      total += n;
+      if (r > liveMax) hi += n; else if (r === liveMax) tie += n;
+    }
+    if (!total) return 0.5;
+    return (hi + tie * 0.5) / total;
   }
 
   /* AI 판단 — 엔진이 만든 view(=그 자리에서 본 serialize)만 보고 결정한다.
@@ -294,27 +308,42 @@
   function aiDecide(view, seat, diff, rng) {
     rng = rng || Math.random;
     const me = view.players[seat];
-    const seen = []; let opp = 0;
+    const known = []; let liveMax = 0, live = 0;
     for (const p of view.players) {
       if (p.seat === seat) continue;
-      if (p.inHand && !p.folded) { opp++; if (p.card != null) seen.push(p.card); }
+      if (p.card != null) known.push(p.card);              // 죽은 사람 카드도 덱에서는 빠졌다
+      if (p.inHand && !p.folded) { live++; if (p.card != null && p.card > liveMax) liveMax = p.card; }
     }
-    const winP = estimateWin(seen, view.myCard, opp);
+    if (view.myCard != null) known.push(view.myCard);
+    let winP = estimateWin(liveMax, view.myCard, known);
+    /* ⚠️ '상대의 레이즈를 내 카드가 낮다는 신호로 읽기'를 넣어 봤다가 **뺐다**(2026-08-07).
+       이 게임에서만 되는 기술이라 그럴듯했는데, 300판 두 벌에서 칩 점유가 29.7% → 28.1%,
+       26.8%로 오히려 내려갔다. 신호가 약해 접기만 늘었다. 근거 없이 두지 않는다. */
     const toCall = view.bet - (me ? me.contrib : 0);
     const acts = view.validActions || [];
     const can = m => acts.indexOf(m) >= 0;
     const r = rng();
-    const bluffP = diff === 'hard' ? 0.28 : diff === 'easy' ? 0.08 : 0.16;
+    /* 🔴 블러프 순서를 **뒤집었다**(2026-08-07). 이 게임은 남이 내 카드를 보고 있다 —
+       내 패가 낮으면 지르는 순간 그냥 콜당한다. 실측에서도 블러프가 많은 어려움만 칩을 잃고 있었다
+       (문턱을 쉬움과 같게 맞춰도 28.7% vs 쉬움 33.0% — 차이는 블러프뿐이었다).
+       고수는 안 통하는 블러프를 안 한다. 초보가 지른다.
+       그리고 살아 있는 상대 수로 나눈다 — 여럿을 앞에 둔 블러프는 전원이 접어야 성공한다. */
+    const bluffP = (diff === 'hard' ? 0.05 : diff === 'easy' ? 0.28 : 0.16) / Math.max(1, live);
     let mode;
     if (toCall <= 0) {                     // 공짜로 볼 수 있는 상황
       if (winP > 0.6 && can('raise') && r < 0.6) mode = 'raise';
       else if (r < bluffP && can('raise')) mode = 'raise';     // 블러프
       else mode = 'check';
     } else {
+      /* 🔴 폴드를 **포트오즈와 견준다.** 예전엔 난이도별 고정 문턱이었고 어려울수록 높아서
+         (0.26 vs 보통 0.19) 어려움이 더 접고 더 약했다 — 섯다와 같은 병이었다.
+         난이도는 이 판단의 **정확도**로 가른다: 어려움은 정확히, 쉬움은 겁이 많아 접는다. */
       const potOdds = toCall / (view.pot + toCall);
-      const foldThresh = (diff === 'easy' ? 0.12 : diff === 'hard' ? 0.26 : 0.19) + potOdds * 0.35;
+      /* 쉬움은 **초보답게 아무거나 받는다**(0.7 = 포트오즈보다 헐겁게 콜). 겁이 많아 접는 쪽이 아니라
+         '따라가다 잃는' 쪽이 이 게임의 초보 모습이고, 실측에서도 그쪽이 확실히 약하다. */
+      const caution = diff === 'hard' ? 1.0 : diff === 'easy' ? 0.7 : 1.3;
       if (winP > 0.7 && can('raise') && r < 0.5) mode = 'raise';
-      else if (winP > foldThresh && can('call')) mode = 'call';
+      else if (winP > potOdds * caution && can('call')) mode = 'call';
       else if (r < bluffP && can('raise')) mode = 'raise';     // 블러프 레이즈
       else mode = 'die';
     }
