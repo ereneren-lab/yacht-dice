@@ -715,7 +715,8 @@
         // 바람은 '가로(좌↔우)'로만 분다. 팀 대결축이 세로라, 세로 성분이 있으면 한쪽에 유리(87% 편향)했다.
         // 가로 바람은 양쪽 발사를 똑같이 옆으로 밀어 공정하고, 조준을 비틀어 재미만 준다.
         const WIND_MAG = 9;
-        const dir = opt.windDir != null ? opt.windDir : (Math.random() < 0.5 ? -1 : 1);
+        const _rng = opt.rng || Math.random;   // this.rng는 아래에서 대입된다(아직 없음)
+        const dir = opt.windDir != null ? opt.windDir : (_rng() < 0.5 ? -1 : 1);
         this.windDir = dir;
         this.windX = dir * WIND_MAG;
         this.windY = 0;
@@ -931,11 +932,11 @@
     _naiveFlick(seat) {   // easy가 가끔 섞어 쓰는 옛 방식(초보에게 이길 여지 남김)
       const mine = this._aliveOfTeam(this.teamOf(seat)), opps = this._aliveOfTeam(1 - this.teamOf(seat));
       if (!mine.length || !opps.length) return null;
-      const me = mine[Math.floor(Math.random() * mine.length)];
+      const me = mine[Math.floor(this.rng() * mine.length)];
       let best = opps[0], bestD = Infinity;
       for (const o of opps) { const d = (o.x - me.x) ** 2 + (o.y - me.y) ** 2; if (d < bestD) { bestD = d; best = o; } }
-      const angle = Math.atan2(best.y - me.y, best.x - me.x) + (Math.random() - 0.5) * 0.35;
-      return { stoneId: me.id, angle, power: 0.55 + Math.random() * 0.35 };
+      const angle = Math.atan2(best.y - me.y, best.x - me.x) + (this.rng() - 0.5) * 0.35;
+      return { stoneId: me.id, angle, power: 0.55 + this.rng() * 0.35 };
     }
     // 샷 결과 점수: 상대 낙사 +100 / 내 낙사 −140(자멸 회피) + 위치 보너스(내 돌 안전·상대 돌 가장자리로).
     _scoreShot(result, seat) {
@@ -962,7 +963,7 @@
       const opps = this._aliveOfTeam(1 - myTeam);
       if (!mine.length || !opps.length) return null;
       // easy는 절반 확률로 옛 방식 → 실수 여지 남겨 초보도 이길 수 있게
-      if (diff === 'easy' && Math.random() < 0.5) return this._naiveFlick(seat);
+      if (diff === 'easy' && this.rng() < 0.5) return this._naiveFlick(seat);
 
       // 난이도별 탐색 폭 — 뚜렷이 벌린다: hard=촘촘/정밀, normal=중간, easy=거칠게(+옛 방식 섞음).
       const powers = diff === 'hard' ? [0.55, 0.78, 1.0] : diff === 'easy' ? [0.8] : [0.75];
@@ -1008,7 +1009,7 @@
                 score = (1 - c) * score + c * (missSum / 2);
               }
               // 동점이면 무작위로 갈라 매판 같은 수만 두지 않게
-              if (score > bestScore || (score === bestScore && Math.random() < 0.5)) { bestScore = score; best = flick; }
+              if (score > bestScore || (score === bestScore && this.rng() < 0.5)) { bestScore = score; best = flick; }
             }
           }
         }
@@ -1016,7 +1017,7 @@
       if (!best) return this._naiveFlick(seat);
       // 난이도별 조준 흔들림(easy 크게, hard 거의 없음) — 손맛/실수 재현
       const jitter = diff === 'hard' ? 0.02 : diff === 'easy' ? 0.18 : 0.12;
-      return { stoneId: best.stoneId, angle: best.angle + (Math.random() - 0.5) * jitter, power: best.power };
+      return { stoneId: best.stoneId, angle: best.angle + (this.rng() - 0.5) * jitter, power: best.power };
     }
 
     setConnected(pid, v) {

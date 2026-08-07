@@ -1513,38 +1513,42 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const PK=Object.keys(PERSONAS);
   function pw(id,per){ if(UPPER_IDS.indexOf(id)>=0)return per.wUp; if(HI.indexOf(id)>=0)return per.wHi; return 1; }
   function bestOpenW(d,open,rule,per){ let b=0; for(const id of open){ const s=scoreOf(id,d,rule)*pw(id,per); if(s>b)b=s; } return b; }
-  function aiHoldMask(d, open, rule, diff, per, ctx){
+  /* ⚠️ rnd는 넘겨받는다(2026-08-07) — 몬테카를로 표본과 실수 확률에 Math.random을 쓰고 있어서
+     같은 시드로도 결과가 달라졌다. 저장소 규약: "셔플·AI 랜덤은 주입 rng 사용". */
+  function aiHoldMask(d, open, rule, diff, per, ctx, rnd){
+    rnd = rnd || Math.random;
     per=per||PERSONAS.safe;
     if (ctx && ctx.end){                       // 종반 견제/역전 (hard·멀티 전용): 홀드 성향 보정
       per = Object.assign({}, per);
       if (ctx.gap < 0) per.wHi = per.wHi*1.5;   // 뒤짐 → 야찌·스트레이트 등 고배당 추격
       else per.wHi = Math.min(per.wHi, 1.05);   // 앞섬 → 안전(현 최선) 지향
     }
-    if (diff==='easy' && Math.random()<0.3) return Math.floor(Math.random()*32);
-    if (per.noise && Math.random()<per.noise) return Math.floor(Math.random()*32);
+    if (diff==='easy' && rnd()<0.3) return Math.floor(rnd()*32);
+    if (per.noise && rnd()<per.noise) return Math.floor(rnd()*32);
     const N = diff==='hard'?60 : diff==='easy'?16 : 32;
     let bm=0, bev=-1;
     for (let m=0;m<32;m++){
       let ev=0;
-      for (let s=0;s<N;s++){ const t=d.map((v,i)=>(m>>i&1)?v:1+Math.floor(Math.random()*6)); ev+=bestOpenW(t,open,rule,per); }
+      for (let s=0;s<N;s++){ const t=d.map((v,i)=>(m>>i&1)?v:1+Math.floor(rnd()*6)); ev+=bestOpenW(t,open,rule,per); }
       ev/=N; if (ev>bev){ bev=ev; bm=m; }
     }
     return bm;
   }
   function aiHoldMask_OLD(d, open, rule, diff){
-    if (diff==='easy' && Math.random()<0.3) return Math.floor(Math.random()*32);
+    if (diff==='easy' && rnd()<0.3) return Math.floor(rnd()*32);
     const N = diff==='hard'?60 : diff==='easy'?16 : 32;
     let bm=0, bev=-1;
     for (let m=0;m<32;m++){
       let ev=0;
-      for (let s=0;s<N;s++){ const t=d.map((v,i)=>(m>>i&1)?v:1+Math.floor(Math.random()*6)); ev+=bestOpen(t,open,rule); }
+      for (let s=0;s<N;s++){ const t=d.map((v,i)=>(m>>i&1)?v:1+Math.floor(rnd()*6)); ev+=bestOpen(t,open,rule); }
       ev/=N; if (ev>bev){ bev=ev; bm=m; }
     }
     return bm;
   }
   // sc — 칸 점수 계산기(기본은 눈 그대로). 조커 상태에선 엔진이 _scoreCat을 넘겨서
   // 스트레이트를 만점으로 보게 한다. 안 넘기면 AI가 조커 스트레이트를 0점으로 보고 피한다.
-  function aiPickCat(d, open, rule, scores, diff, per, ctx, sc){
+  function aiPickCat(d, open, rule, scores, diff, per, ctx, sc, rnd){
+    rnd = rnd || Math.random;
     per=per||PERSONAS.safe;
     const S = sc || ((id,dd)=>scoreOf(id,dd,rule));
     const scored = open.map(id=>({id, s:S(id,d)}));
@@ -1564,7 +1568,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         else if (s===0) v -= ceil*0.4;             // 앞섬 → 아까운 칸 0점 처리 회피(안전)
       }
       v *= pw(id,per);
-      if (per.noise) v += (Math.random()-0.5)*per.noise*30;
+      if (per.noise) v += (rnd()-0.5)*per.noise*30;
       return v;
     }
     if (scored.every(o=>o.s===0)){ for (const id of DUMP) if (open.indexOf(id)>=0) return id; }
@@ -1595,7 +1599,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       this.rng = opts.rng || Math.random;
       this.onState = opts.onState || function(){};
       this.onRoll = opts.onRoll || function(){};
-      this.players = (opts.players||[]).map(p=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar||null, ai:!!p.ai, persona: p.ai?(PERSONAS[p.persona]?p.persona:PK[Math.floor(Math.random()*PK.length)]):null, connected:p.connected!==false, scores:emptyScores(this.rule), yBonus:0 }));
+      this.players = (opts.players||[]).map(p=>({ pid:p.pid, name:p.name, color:p.color, avatar:p.avatar||null, ai:!!p.ai, persona: p.ai?(PERSONAS[p.persona]?p.persona:PK[Math.floor(this.rng()*PK.length)]):null, connected:p.connected!==false, scores:emptyScores(this.rule), yBonus:0 }));
       this.phase='play'; this.current=0; this.rollsLeft=3; this.rolled=false;
       this.items=this.players.map(()=>this.itemsOn?this.itemCharges:0);   // 자리별 남은 아이템(전원 동일)
       this.dice=[0,1,2,3,4].map(()=>({value:0,held:false}));
@@ -1661,7 +1665,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const g=++this._aiGen;
       this._busy=true;
       const seat=this.current, open=this._open(seat);
-      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const legal=this._legalCats(seat,this.dice.map(d=>d.value)); const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd)); this._busy=false; this._commit(seat,cat); };
+      const finish=()=>{ if(this._dead||this._aiGen!==g||this.phase!=='play')return; const legal=this._legalCats(seat,this.dice.map(d=>d.value)); const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd),this.rng); this._busy=false; this._commit(seat,cat); };
       if(!this.rolled){ this._doRoll(); setTimeout(finish, 900); } else finish();
     }
     action(pid,a){
@@ -1714,7 +1718,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       const wait=ms=>new Promise(r=>setTimeout(r,ms));
       this._doRoll(); await wait(800*this.AID);
       while(alive() && this.rollsLeft>0){
-        const mask=aiHoldMask(this.dice.map(d=>d.value),open,this.rule,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat));
+        const mask=aiHoldMask(this.dice.map(d=>d.value),open,this.rule,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),this.rng);
         if(mask===31) break;
         this.dice.forEach((d,i)=>d.held=!!(mask>>i&1)); this._emit(); await wait(650*this.AID);
         if(!alive()) return;
@@ -1729,7 +1733,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(!alive()) return;
       }
       const legal=this._legalCats(seat,this.dice.map(d=>d.value));
-      const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd));
+      const cat=aiPickCat(this.dice.map(d=>d.value),legal,this.rule,this.players[seat].scores,this.difficulty,PERSONAS[this.players[seat].persona],this._aiCtx(seat),(id,dd)=>this._scoreCat(seat,id,dd),this.rng);
       await wait(450*this.AID);
       if(!alive()) return;
       this._busy=false; this._commit(seat,cat);

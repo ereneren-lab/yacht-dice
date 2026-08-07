@@ -19,10 +19,13 @@
   function isFull(b){ return b.every(col=>col.length>=3); }
 
   // ---- AI ----
-  function aiChooseCol(boards, p, val, diff){
+  /* ⚠️ rnd는 넘겨받는다(2026-08-07) — 여기 있던 Math.random 때문에 같은 시드로도 결과가 달라져
+     난이도 측정이 흔들렸다. 저장소 규약: "셔플·AI 랜덤은 주입 rng 사용". */
+  function aiChooseCol(boards, p, val, diff, rnd){
+    rnd = rnd || Math.random;
     const opp=1-p, legal=[0,1,2].filter(c=>boards[p][c].length<3);
     if(!legal.length) return 0;
-    if(diff==='easy' && Math.random()<0.62) return legal[(Math.random()*legal.length)|0];
+    if(diff==='easy' && rnd()<0.62) return legal[(rnd()*legal.length)|0];
     let best=[], bs=-1e9;
     for(const c of legal){
       const gain = colScore(boards[p][c].concat(val)) - colScore(boards[p][c]);
@@ -44,10 +47,10 @@
         }
         s -= (risk/6)*1.1;
       }
-      else s = gain + destroy + (Math.random()*6-3);
+      else s = gain + destroy + (rnd()*6-3);
       if(s>bs){ bs=s; best=[c]; } else if(s===bs) best.push(c);
     }
-    return best[(Math.random()*best.length)|0];
+    return best[(rnd()*best.length)|0];
   }
 
   class KBEngine {
@@ -102,7 +105,7 @@
       // AFK: auto-roll(if needed) then auto-place
       const seat=this.turn;
       if(this.phase==='roll'){ this.die=this._die(); this.onRoll(seat,this.die); this.phase='place'; }
-      const col=aiChooseCol(this.boards, seat, this.die, 'normal');
+      const col=aiChooseCol(this.boards, seat, this.die, 'normal', this.rng);
       this._doPlace(seat, col);
     }
 
@@ -167,7 +170,7 @@
         await wait(620*this.AID);
         if(this._dead || this.turn!==seat) return;
       }
-      const col = aiChooseCol(this.boards, seat, this.die, diff);
+      const col = aiChooseCol(this.boards, seat, this.die, diff, this.rng);
       this._doPlace(seat, col);
     }
 
