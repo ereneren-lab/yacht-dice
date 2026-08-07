@@ -36,6 +36,8 @@
 <script defer data-domain="yacht-dice-jxva.onrender.com" src="https://plausible.io/js/script.js"></script>
 <script src="analytics.js" defer></script>
 <style>
+  /* 설정 편집 띠 — display를 flex로 켠다(위 인라인 style은 none) */
+  #editBar.on{ display:flex !important }
   :root{
     --bg:#1a140e; --ink:#f2e2c6; --muted:#a08c6f; --panel:#2a2015; --panel2:#3a2b1a;
     --line:#3d2f1e; --brass:#c99653; --gold:#e0a23c; --danger:#e8696b;
@@ -368,6 +370,12 @@
   </div>
 
   <!-- 온라인 로비 -->
+  <!-- 설정을 고치는 동안만 뜨는 띠 — 방이 살아 있다는 신호이자 돌아가는 길 -->
+  <div id="editBar" style="display:none;position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:97;
+       align-items:center;gap:10px;background:rgba(20,16,10,.96);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.5)">
+    <span style="flex:1;color:var(--ink);font-size:13px;font-weight:700;line-height:1.35">설정을 고치는 중 · 방은 그대로야</span>
+    <button class="btn" id="editDone" style="width:auto;margin:0;padding:10px 14px;min-height:44px;white-space:nowrap">대기실로</button>
+  </div>
   <div class="sheet" id="lobbyOv">
     <div class="sheetbox">
       <h3>대기실 · 방 코드 <span id="lobbyCode" style="letter-spacing:.15em"></span></h3>
@@ -376,6 +384,9 @@
       <div class="stakeRow" id="stakeRow"></div>
       <div class="row">
         <button class="btn ghost" id="lobbyCopy">🔗 초대 링크</button>
+        <!-- 방을 유지한 채 설정만 고친다(2026-08-07). 예전엔 나갔다 새로 만들어야 해서
+             이미 초대한 친구가 흩어졌다. 방장에게만 보인다. -->
+        <button class="btn ghost" id="lobbyEdit" style="display:none">⚙️ 설정 바꾸기</button>
         <button class="btn ghost" id="lobbyAddAi" style="display:none">🤖 AI 추가</button>
       </div>
       <!-- 사람이 모자랄 때 '왜 시작이 없는지'를 알려준다 (2026-07-29 온라인 감사).
@@ -1296,7 +1307,21 @@ $('tabLocal').onclick=()=>{ $('tabLocal').classList.add('on'); $('tabOnline').cl
 $('tabOnline').onclick=()=>{ $('tabOnline').classList.add('on'); $('tabLocal').classList.remove('on'); $('localCfg').style.display='none'; $('onlineCfg').style.display='block'; };
 
 // 초대 링크 자동으로 room 코드 채우기
-try{ const m=/[?&]room=([A-Za-z0-9]+)/.exec(location.search); if(m){ $('tabOnline').click(); $('joinCode').value=(m[1]||'').toUpperCase().slice(0,6); } }catch(e){}
+/* 초대 링크로 들어온 사람 — **이름이 있으면 바로 입장한다.**
+   🔴 2026-08-07: 13종 중 알까기만 코드를 채워 넣고 멈춰 있었다(나머지 9종은 자동 입장).
+   링크에는 "누르면 바로 입장"이라고 적어 보내면서 정작 여기서 한 번 더 누르게 하고 있었다.
+   이름이 없으면 코드만 채우고 이름칸에 커서를 둔다(net.js가 하는 것과 같은 방식). */
+try{
+  const m=/[?&]room=([A-Za-z0-9]+)/.exec(location.search);
+  if(m){
+    const code=(m[1]||'').toUpperCase().slice(0,6);
+    $('tabOnline').click();
+    $('joinCode').value=code;
+    const nm=(cfg.myName||'').trim();
+    if(nm){ if($('onName')) $('onName').value=nm; setTimeout(()=>{ try{ $('joinBtn').click(); }catch(e){} }, 60); }
+    else setTimeout(()=>{ try{ $('onName').focus(); }catch(e){} }, 120);
+  }
+}catch(e){}
 
 // 규칙
 const RULES_SEEN=(function(){try{return localStorage.getItem('alk_rules')==='1';}catch(e){return false;}})();
@@ -1395,7 +1420,14 @@ function renderLobby(){
   renderStake(lobby);
   $('lobbyCode').textContent = lobby.code;
   const preset = lobby.preset || 'standard';
-  const stoneN = preset==='mini'?4:preset==='battle'?8:6;
+  /* 🔴 2026-08-07 — 여기 숫자가 **엔진과 하나씩 어긋나 있었다**(4/6/8이라고 적고 실제로는 3/5/7).
+     초대받은 친구가 대기실에서 보는 값이라 그냥 틀린 정보를 알려주고 있었다.
+     로컬 셋업 화면은 3/5/7로 맞게 적혀 있어서 같은 화면 안에서도 숫자가 달랐다.
+     → 엔진 프리셋에서 직접 읽는다. 밸런스를 바꿔도 자동으로 따라온다. */
+  const stoneN = (function(){
+    try { return (AlkkagiCore.PRESETS[preset] || AlkkagiCore.PRESETS.standard).perTeam; }
+    catch(e){ return preset==='mini'?3:preset==='battle'?7:5; }
+  })();
   const surf = lobby.surface || 'board';
   const surfName = surf==='ice'?'🧊 얼음판':surf==='grass'?'🟩 잔디판':'🟫 바둑판';
   const spMap = {bomb:'💣 폭탄돌', giant:'🪨 거대돌', magnet:'🧲 자석돌'};
@@ -1404,6 +1436,7 @@ function renderLobby(){
   const ruleMap = {doubleShot:'⚡ 더블샷', wind:'🌬️ 바람'};
   const ruleOn = ruleMap[lobby.rule] ? (' · '+ruleMap[lobby.rule]) : '';
   $('lobbyRules').textContent = `판: ${preset==='mini'?'미니':preset==='battle'?'대전':'표준'} · 각자 ${stoneN}돌 · ${surfName}${bombOn}${ruleOn} · 낙사 시 한 번 더`;
+  { const eb=$('lobbyEdit'); if(eb) eb.style.display = amHostNow(lobby) ? '' : 'none'; }
   const host = $('members'); host.innerHTML='';
   lobby.members.forEach(mm=>{
     const d=document.createElement('div');
@@ -1441,12 +1474,31 @@ function renderLobby(){
     if(navigator.share){ navigator.share({title:'딱세판만 · 알까기', text:'같이 알까기 하자! 방 코드: '+lobby.code, url}).catch(()=>copyText(url)); }
     else copyText(url);
   };
+  /* 설정 바꾸기 — 대기실만 덮고 있던 시트를 걷는다(방은 그대로 살아 있다).
+     밑에 온라인 셋업 화면이 그대로 있어 평소처럼 고른 뒤 '대기실로'를 누르면 서버로 옵션만 보낸다.
+     새 방을 만드는 게 아니라서 이미 들어온 친구가 흩어지지 않는다. */
+  $('lobbyEdit').onclick=()=>{
+    if(!amHostNow(lobby)) return toast('방장만 설정을 바꿀 수 있어');
+    $('lobbyOv').classList.remove('on');
+    $('setup').style.display='';
+    $('editBar').classList.add('on');
+  };
+  $('editDone').onclick=()=>{
+    $('editBar').classList.remove('on');
+    wsSend({ t:'opts', preset:onlineCfg.preset, surface:onlineCfg.surface,
+      specials:(onlineCfg.special&&onlineCfg.special!=='none'?[onlineCfg.special]:[]),
+      rule:(onlineCfg.rule!=='none'?onlineCfg.rule:null) });
+    $('setup').style.display='none';
+    $('lobbyOv').classList.add('on');
+  };
   $('lobbyLeave').onclick=()=>{
     teardownNet(); online=false; lobby=null;
     seatDel(SEAT_NS+'_room'); seatDel(SEAT_NS+'_pid');
     $('lobbyOv').classList.remove('on'); $('setup').style.display='';
   };
 }
+/* 방장인지 — 여러 곳에서 같은 판정을 쓰려고 뽑았다(대기실 렌더·설정 버튼). */
+function amHostNow(lb){ return !!(lb && (lb.members||[]).some(x=>x.pid===MYPID && x.host)); }
 function copyText(t){ try{ navigator.clipboard.writeText(t); toast('🔗 초대 링크 복사됨'); }catch(e){ toast(t); } }
 
 // 온라인 셋업 버튼들

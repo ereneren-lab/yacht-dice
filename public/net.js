@@ -199,6 +199,9 @@
         if (fatal) { this.lobby = null; this._prevMembers = null; this.seatDel('room'); this.seatDel('pid'); }
         (on.error || noop)(msg, fatal);
 
+      } else if (m.t === 'toast') {
+        // 서버가 알려주는 짧은 안내(예: 방장이 설정을 바꿨을 때) — 나 자신에게도 온다
+        if (m.msg) NET.ui.toast(m.msg);
       } else if (m.t === 'roomClosed') {
         this.lobby = null; this._prevMembers = null; this._inGame = false;
         this.seatDel('room'); this.seatDel('pid');
@@ -275,7 +278,15 @@
   .nt-wake{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:96;background:rgba(20,16,10,.94);
     color:#f2e9d6;font-size:12.5px;font-weight:800;padding:9px 14px;border-radius:12px;display:none;
     align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.45)}
-  .nt-wake button{background:var(--brass,#d9b35a);color:#1a1608;border:none;border-radius:8px;padding:5px 10px;font-weight:900;cursor:pointer}`;
+  .nt-wake button{background:var(--brass,#d9b35a);color:#1a1608;border:none;border-radius:8px;padding:5px 10px;font-weight:900;cursor:pointer}
+  /* 설정 고치는 중 띠 — 화면 아래에 고정. 방이 살아 있다는 신호이자 돌아가는 길이다.
+     안전영역(홈 인디케이터)을 피해 아래 여백을 준다. */
+  .nt-editbar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:97;
+    display:none;align-items:center;gap:10px;background:rgba(20,16,10,.96);border:1px solid rgba(255,255,255,.14);
+    border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .nt-editbar.on{display:flex}
+  .nt-editbar span{flex:1;color:#e8e0d0;font-size:13px;font-weight:700;line-height:1.35}
+  .nt-editbar .nt-btn{width:auto;margin:0;padding:10px 14px;white-space:nowrap;min-height:44px}`;
 
   function el(id) { return document.getElementById(id); }
 
@@ -313,10 +324,17 @@
              <div id="ntExtra"></div>
              <button class="nt-btn" id="ntStart">게임 시작</button>
              <button class="nt-btn ghost" id="ntAddAi">🤖 AI 추가</button>
+             <!-- 방을 유지한 채 설정만 고친다 — 예전엔 나갔다 새로 만들어야 해서 초대한 친구가 흩어졌다 -->
+             <button class="nt-btn ghost" id="ntEditOpts">⚙️ 방 설정 바꾸기</button>
              <button class="nt-btn ghost" id="ntLeave">나가기</button>
              <div class="nt-err" id="ntLobbyErr"></div>
            </div></div>
-           <div class="nt-wake" id="ntWake"></div>`;
+           <div class="nt-wake" id="ntWake"></div>
+           <!-- 설정을 고치는 동안 뜨는 띠. 방은 그대로 살아 있다는 걸 알려주고 돌아갈 길을 준다. -->
+           <div class="nt-editbar" id="ntEditBar">
+             <span id="ntEditMsg">설정을 고치고 있어요 · 방은 그대로예요</span>
+             <button class="nt-btn" id="ntEditDone">대기실로 돌아가기</button>
+           </div>`;
         while (d.firstChild) document.body.appendChild(d.firstChild);
       }
       el('ntJoinClose').onclick = () => this.closeJoin();
@@ -357,6 +375,20 @@
       el('ntStart').onclick = () => NET.start();
       el('ntAddAi').onclick = () => NET.addAI();
       el('ntLeave').onclick = () => { NET.leave(); this.closeLobby(); (opts.onLeaveGame || noop)(); };
+      /* 설정 바꾸기 — 대기실을 덮고 있던 오버레이만 걷는다(방은 그대로).
+         밑에 게임의 설정 화면이 그대로 있으므로 평소처럼 고친 뒤 '대기실로 돌아가기'를 누르면
+         `createPayload()`가 다시 만들어져 서버로 간다. 새 방을 만드는 게 아니다. */
+      el('ntEditOpts').onclick = () => {
+        if (!NET.isHost()) return this.toast('방장만 설정을 바꿀 수 있어요');
+        this.closeLobby();
+        el('ntEditBar').classList.add('on');
+      };
+      el('ntEditDone').onclick = () => {
+        el('ntEditBar').classList.remove('on');
+        const payload = (this._opts && this._opts.createPayload) ? this._opts.createPayload() : {};
+        NET.send(Object.assign({ t: 'opts' }, payload));
+        this.openLobby();
+      };
       try { const n = localStorage.getItem('alley_name'); if (n) el('ntName').value = n; } catch (e) {}
       this.autoJoinFromUrl();
       return this;

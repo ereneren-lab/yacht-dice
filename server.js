@@ -101,6 +101,27 @@ function sendCached(e, req, res) {
 // ---------- rooms ----------
 // maxPayload: ws 기본값이 100MiB라 거대 프레임 한 방으로 메모리를 밀어넣을 수 있다.
 // 이 게임의 메시지는 수 KB를 넘지 않으므로 64KB로 조인다.
+/* 방 옵션 한 벌 — **`create`와 `opts`(대기실에서 바꾸기)가 같은 검증을 쓴다.**
+   2026-08-07에 대기실 설정 변경을 넣으면서 뽑았다. 두 군데에 같은 화이트리스트를 두면
+   한쪽만 고치는 날이 오고, 그때 검증이 헐거운 쪽으로 값이 새어 들어온다. */
+function roomOpts(game, m) {
+  return {
+    mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal',
+    spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0),
+    teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false),
+    itemBattle:!!m.itemBattle, speedStart:!!m.speedStart, dailyOn:(m.dailyOn!==false), pit:(m.pit!==false),
+    eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null),
+    diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false),
+    startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:5) : ([3,4,5].includes(m.startChips)?m.startChips:3)),
+    preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'),
+    surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'),
+    specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]),
+    rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn,
+    sdAnte:(SD_ANTE.includes(m.sdAnte)?m.sdAnte:200), sdChips:(SD_CHIPS.includes(m.sdChips)?m.sdChips:10000),
+    jabi:!!m.jabi, ttaeng:!!m.ttaeng,
+  };
+}
+
 const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
 const rooms = new Map(); // code -> Room
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -315,8 +336,8 @@ wss.on('connection', (ws) => {
       // 화이트리스트에 없으면 요트로 떨어진다(옛 삼항 사슬과 동작 동일 · 게임이 늘어 Set으로 정리)
       const game = ONLINE_GAMES.has(m.game) ? m.game : 'yacht';
       const code = newCode(), pid = rid();
-      const r = { code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,NAME_MAX), avatar:avaOf(m.avatar, AVA[0]), ai:false, connected:true, ws, team:0 }], mode: game==='yacht' ? 'yacht_kr' : game, difficulty:'normal', spotOn:(m.spotOn!==false), markers:([2,3,4].includes(m.markers)?m.markers:4), goal:([2,3,4].includes(m.goal)?m.goal:0), teamMode:!!m.teamMode, timer:([0,10,15].includes(m.timer)?m.timer:0), joker:!!m.joker, decideOrder:(m.decideOrder!==false), itemBattle:!!m.itemBattle, speedStart:!!m.speedStart,
-        dailyOn:(m.dailyOn!==false), pit:(m.pit!==false), eventTypes:(Array.isArray(m.eventTypes)?m.eventTypes.filter(t=>['boost','bonus','back','gold'].includes(t)).slice(0,4):null), diceCount:([3,5].includes(m.diceCount)?m.diceCount:5), wild:(m.wild!==false), startChips:(game==='indianpoker' ? (IP_CHIPS.includes(m.startChips)?m.startChips:5) : ([3,4,5].includes(m.startChips)?m.startChips:3)), preset:(['mini','standard','battle'].includes(m.preset)?m.preset:'standard'), surface:(['board','ice','grass'].includes(m.surface)?m.surface:'board'), specials:(Array.isArray(m.specials)?m.specials.filter(t=>['bomb','giant','magnet'].includes(t)):[]), rule:(['doubleShot','wind'].includes(m.rule)?m.rule:null), itemsOn:!!m.itemsOn, sdAnte:(SD_ANTE.includes(m.sdAnte)?m.sdAnte:200), sdChips:(SD_CHIPS.includes(m.sdChips)?m.sdChips:10000), jabi:!!m.jabi, ttaeng:!!m.ttaeng, aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null };
+      const r = Object.assign({ code, game, members:[{ pid, name:((m.name||'').trim()||'호스트').slice(0,NAME_MAX), avatar:avaOf(m.avatar, AVA[0]), ai:false, connected:true, ws, team:0 }],
+        aiFast:false, phase:'lobby', engine:null, cleanupTimer:null, gameTimer:null }, roomOpts(game, m));
       r.lastActivity = Date.now();
       recolor(r); rooms.set(code, r); ws.meta = { code, pid };
       send(ws, { t:'me', pid, code }); sendLobby(r);
@@ -405,6 +426,18 @@ wss.on('connection', (ws) => {
         const idx=room.members.findIndex(x=>x.ai && x.pid===m.pid);
         if (idx>=0){ room.members.splice(idx,1); recolor(room); sendLobby(room); }
       }
+
+    } else if (m.t === 'opts') {
+      /* 대기실에서 방 설정 바꾸기 (2026-08-07).
+         예전엔 옵션을 `create` 때 한 번만 받아서, 방을 만든 뒤 설정을 고치려면 나갔다 새로 만들어야 했다 —
+         그러면 이미 초대한 친구들이 흩어진다. 초대는 그대로 두고 설정만 바꾼다.
+         ⚠️ **방장만 · 대기실에서만.** 판이 도는 중에 옵션이 바뀌면 엔진과 화면이 어긋난다. */
+      if (!room || room.phase !== 'lobby') return;
+      if (ws.meta.pid !== hostPid(room)) return send(ws, { t:'error', msg:'방장만 설정을 바꿀 수 있어요' });
+      Object.assign(room, roomOpts(room.game, m));
+      room.lastActivity = Date.now();
+      sendLobby(room);
+      broadcast(room, { t:'toast', msg:'⚙️ 방장이 설정을 바꿨어요' });
 
     } else if (m.t === 'start') {
       if (ws.meta.pid===hostPid(room)) promoteSpectators(room);   // 시작 전 관전자 승격(정원 여유 시)
