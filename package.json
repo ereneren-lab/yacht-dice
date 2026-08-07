@@ -67,7 +67,8 @@
     "test:aidiff": "node scripts/ai-diff-sim.js 300",
     "build:static": "node scripts/build-static.js",
     "serve:static": "node scripts/serve-static.js",
-    "og:card": "node scripts/make-og-card.js"
+    "og:card": "node scripts/make-og-card.js",
+    "audit:tokens": "node scripts/audit-tokens.js"
   },
   "engines": {
     "node": ">=18"

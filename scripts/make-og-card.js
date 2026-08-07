@@ -23,16 +23,28 @@ const META = require('./game-meta');
 
 const ROOT = path.join(__dirname, '..');
 const OUTDIR = path.join(ROOT, 'public', 'og');
-/* 허브 카드에 세울 3종 — 성격이 서로 다른 것으로 고른다(판·화투·주사위). */
-const HUB_PICKS = ['alkkagi', 'seotda', 'kb'];
+/* 허브 카드에 세울 3종.
+   2026-08-07: 가운데를 알까기 → **윷놀이**로 바꿨다. 한국 사람이 섬네일 크기에서도 0.5초 만에
+   "아 저거"라고 알아보는 판은 윷놀이다 — 링크 미리보기는 그 0.5초가 전부다.
+   양옆은 성격이 다른 둘로 받친다(화투·주사위). */
+const HUB_PICKS = ['seotda', 'yut', 'kb'];
 
 async function shoot(cdp, key) {
   const m = META[key];
   const p = await cdp.newPage(390, 844);
+  /* 캡처 전에 설정을 손보는 게임이 있다. 윷의 '선 뽑기(순서 정하기)'는 각자 한 번씩 던져야 끝나는
+     단계라 그대로 두면 판이 아니라 대화상자가 찍힌다 — 저장값을 꺼 두고 연다.
+     (사람이 보는 기본값을 바꾸는 게 아니라 이 캡처 브라우저의 저장소만 건드린다.) */
+  if (m.pre) { await p.goto('http://localhost:3000/' + key + '.html'); await p.eval(m.pre); }
   await p.goto('http://localhost:3000/' + key + '.html');
   await p.wait(900);
   await p.eval(`try{ if(window.TUT) TUT.close(); }catch(e){} return true;`);
   await p.eval(`var b=document.querySelector('${m.start}'); if(b) b.click(); return true;`).catch(() => {});
+  // 시작 직후 넘겨야 하는 단계(윷의 '선 뽑기' 등) — 판이 아니라 대화상자가 찍히는 걸 막는다
+  for (const sel of (m.after || [])) {
+    await p.wait(1200);
+    await p.eval(`var e=document.querySelector('${sel}'); if(e) e.click(); return true;`).catch(() => {});
+  }
   await p.wait(m.wait);
   const f = path.join(ROOT, 'out', `og-src-${key}.png`);
   await p.shot(f);

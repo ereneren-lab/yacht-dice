@@ -15,7 +15,10 @@ module.exports = {
   yacht:       { name: '요트 다이스',   desc: '주사위 다섯 개로 열두 칸을 채운다',      time: '2~3분',    start: '#startLocal', wait: 2600 },
   ld:          { name: '라이어 다이스', desc: '허풍과 도전으로 주사위를 지킨다',        time: '1~2분',    start: '#startBtn',   wait: 3000 },
   lcr:         { name: '좌·중·우',     desc: '규칙 없이 굴리기만 하면 되는 파티 게임',  time: '1분 안팎',  start: '#startBtn',   wait: 2600 },
-  yut:         { name: '윷놀이',       desc: '업고 잡고 지름길로, 네 말 먼저 들이기',   time: '3~4분',    start: '#startBtn',   wait: 3200 },
+  /* 윷은 시작 직후 '선 뽑기(순서 정하기)' 창이 뜬다 — 그대로 찍으면 판이 아니라 대화상자가 찍힌다.
+     `after`로 그 단계를 넘기고 판이 그려질 때까지 기다린다. */
+  yut:         { name: '윷놀이',       desc: '업고 잡고 지름길로, 네 말 먼저 들이기',   time: '3~4분',    start: '#startBtn',   wait: 4200,
+                 pre: "try{ localStorage.setItem('yut_order','0'); }catch(e){}; return true" },
   alkkagi:     { name: '알까기',       desc: '손끝으로 튕겨 상대 돌을 판 밖으로',       time: '1분 이내',  start: '#startBtn',   wait: 2600 },
   seotda:      { name: '섯다',         desc: '두 장으로 겨루는 한국식 포커',           time: '4~5분',    start: '#startBtn',   wait: 3400 },
   indianpoker: { name: '인디언 포커',   desc: '남의 패는 보이고 내 패만 안 보인다',      time: '2~3분',    start: '#startBtn',   wait: 3200 },
