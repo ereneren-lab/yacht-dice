@@ -11,7 +11,8 @@
 #   그다음 main에 푸시하면 여기서 자동으로 올라간다. 주소: https://ereneren-lab.github.io/yacht-dice/
 #
 # ⚠️ 하위 경로(/yacht-dice/)로 열리면 절대경로(`/sw.js` 등)가 어긋난다.
-#    커스텀 도메인을 붙이거나(권장), 아래 SITE_URL을 그 주소로 주고 링크를 점검할 것.
+#    build-static.js가 sw.js·manifest의 절대경로에 접두사를 붙여 그 문제를 막는다
+#    (하위 경로로 서빙해 실측: 서비스워커 붙고 캐시 36개, 게임 열림).
 #    지금 이 워크플로는 **수동 실행(workflow_dispatch)만** 하도록 두었다 —
 #    주소 결정 전에 자동으로 올라가 버리면 공유 카드·계측 도메인이 갈라진다.
 name: Pages (정적 배포)
@@ -22,7 +23,7 @@ on:
       site_url:
         description: '공개 주소 (미리보기 카드·계측 도메인에 박힌다)'
         required: false
-        default: 'https://yacht-dice-jxva.onrender.com'
+        default: 'https://ereneren-lab.github.io/yacht-dice'
 
 permissions:
   contents: read
@@ -49,6 +50,9 @@ jobs:
       - name: 정적 번들 만들기
         run: SITE_URL="${{ inputs.site_url }}" node scripts/build-static.js
       - uses: actions/configure-pages@v5
+        with:
+          # 저장소에 Pages가 아직 안 켜져 있으면 여기서 켠다(Settings에서 손으로 켜는 것과 같다).
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-static

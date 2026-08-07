@@ -27,6 +27,12 @@ const SRC = path.join(ROOT, 'public');
 const OUT = path.join(ROOT, 'dist-static');
 const OLD_URL = 'https://yacht-dice-jxva.onrender.com';
 const SITE_URL = (process.env.SITE_URL || OLD_URL).replace(/\/+$/, '');
+/* 하위 경로 배포(GitHub Pages의 `/저장소이름/`) 대응.
+   ⚠️ `sw.js`가 `'/index.html'`처럼 **도메인 루트 기준 절대경로**로 캐시를 채운다 —
+      하위 경로에 올리면 그 경로들이 전부 404가 되어 서비스워커가 통째로 무용지물이 된다
+      (그게 첫 방문 21.6초를 막는 장치라 조용히 죽으면 제일 아프다).
+   그래서 base가 있으면 sw.js·manifest의 절대경로에 접두사를 붙인다. */
+const BASE = (() => { try { const u = new URL(SITE_URL); return u.pathname.replace(/\/+$/, ''); } catch (e) { return ''; } })();
 
 /* 번들에 넣지 않을 것 — 개발용 사본이나 산출물이 섞이면 CDN에 올라간다 */
 const SKIP = new Set(['.DS_Store']);
@@ -43,6 +49,11 @@ function copyDir(src, dst) {
        공유 카드가 엉뚱한 곳을 가리키고 방문 집계가 갈라진다. 텍스트 파일만 치환한다. */
     if (SITE_URL !== OLD_URL && /\.(html|js|json|webmanifest|css)$/.test(e.name)) {
       buf = Buffer.from(buf.toString('utf8').split(OLD_URL).join(SITE_URL), 'utf8');
+    }
+    if (BASE && (e.name === 'sw.js' || e.name === 'manifest.json')) {
+      let t = buf.toString('utf8');
+      t = t.replace(/(['"])\/(?!\/)/g, `$1${BASE}/`);   // '/index.html' → '/저장소/index.html'
+      buf = Buffer.from(t, 'utf8');
     }
     fs.writeFileSync(d, buf); n++; bytes += buf.length;
   }
@@ -70,6 +81,6 @@ fs.writeFileSync(path.join(OUT, '_headers'), `/*
 `);
 
 const mb = (bytes / 1024 / 1024).toFixed(1);
-console.log(`✅ dist-static/ — 파일 ${n}개 · ${mb}MB · 주소 ${SITE_URL}`);
+console.log(`✅ dist-static/ — 파일 ${n}개 · ${mb}MB · 주소 ${SITE_URL}${BASE ? ` (하위 경로 ${BASE} 보정 적용)` : ''}`);
 console.log('   확인:  npx serve dist-static  또는  node scripts/serve-static.js');
 console.log('   ⚠️ 방(온라인)은 이 번들이 아니라 게임 서버로 붙는다 — net.js의 GAME_SERVER');
