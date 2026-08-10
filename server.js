@@ -41,10 +41,26 @@ function avaOf(v, fallback){
 }
 
 // ---------- static ----------
+/* 정적 파일은 이제 CDN(GitHub Pages)이 준다 — 이 서버는 **방(웹소켓)** 담당이다.
+   왜: 무료 티어라 15분 놀면 자고, 깨우는 데 실측 **21.5초**다(정적 쪽은 0.03~0.46초).
+   그런데 이미 뿌려진 링크와 앱은 아직 이 주소를 먼저 두드린다 — 그 문을 빠른 쪽으로 잇는다.
+   ⚠️ 웹소켓 업그레이드는 이 핸들러를 안 거친다(Node가 'upgrade' 이벤트로 따로 보낸다) → 방은 그대로 열린다.
+   ⚠️ **로컬 개발엔 영향이 없다.** 아래 목록의 호스트로 들어온 요청만 넘긴다.
+   되돌리려면 STATIC_URL을 빈 값으로 두면 된다(그러면 예전처럼 이 서버가 파일을 준다). */
+const STATIC_URL = process.env.STATIC_URL !== undefined ? process.env.STATIC_URL : 'https://ereneren-lab.github.io/yacht-dice';
+const REDIRECT_HOSTS = new Set(['yacht-dice-jxva.onrender.com']);
+
 const server = http.createServer((req, res) => {
   let p;
   try { p = decodeURIComponent(req.url.split('?')[0]); }   // 잘못된 % 인코딩이 서버를 죽이지 않게
   catch(e){ res.writeHead(400); return res.end('Bad Request'); }
+
+  const host = (req.headers.host || '').split(':')[0];
+  if (STATIC_URL && REDIRECT_HOSTS.has(host) && !p.startsWith('/api/')) {
+    // 302(임시)로 둔다 — 영구(301)는 브라우저가 오래 캐시해 되돌리기가 어렵다
+    res.writeHead(302, { Location: STATIC_URL + req.url, 'Cache-Control': 'no-store' });
+    return res.end();
+  }
   // 방 코드 → 게임 조회 (허브의 "방 코드로 참가"가 올바른 게임으로 라우팅하도록)
   if (p === '/api/room') {
     const code = (new URLSearchParams(req.url.split('?')[1] || '').get('code') || '').toUpperCase();
