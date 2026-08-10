@@ -68,7 +68,8 @@
     "build:static": "node scripts/build-static.js",
     "serve:static": "node scripts/serve-static.js",
     "og:card": "node scripts/make-og-card.js",
-    "audit:tokens": "node scripts/audit-tokens.js"
+    "audit:tokens": "node scripts/audit-tokens.js",
+    "sim:ldflow": "node scripts/sim/ld-flow.js"
   },
   "engines": {
     "node": ">=18"
