@@ -50,6 +50,7 @@
     record: function (game, won, score) {
       try {
         var db = all(), d = Object.assign(blank(), db[game] || {});
+        var before = Object.assign({}, d);          // 이번 판으로 무엇이 새로 열렸는지 대조용
         d.games++;
         if (won) {
           d.wins++;
@@ -60,6 +61,12 @@
         db[game] = d;
         localStorage.setItem(KEY, JSON.stringify(db));
         try { global.AL && AL.done(won); } catch (e) {}   // 계측(켜져 있을 때만)
+        /* 🔴 2026-08-10 — **8종엔 "달성!" 순간이 없었다.**
+           배지는 이미 여기 전적에서 파생돼 허브에 쌓이는데(아래 DERIVED), 정작 그걸 딴 순간에
+           게임 화면에선 아무 일도 안 일어났다. 딴 줄 모르는 배지는 없는 것과 같다.
+           자기 도전과제가 있는 5종은 자기 토스트를 띄우므로 여기선 건너뛴다(두 번 뜨지 않게).
+           ⚠️ 판이 끝나는 이 한 곳에서만 알린다 — 8개 파일을 각각 고치면 반드시 갈라진다. */
+        try { AS._announce(game, before, d); } catch (e) {}
         /* 첫 판이 끝난 사람에게만 규칙을 한 번 권한다.
            첫 방문 자동 튜토리얼을 걷어낸 자리를 여기가 대신한다(2026-07-29).
            TUT가 스스로 '이미 봤나/이미 권했나'를 판단하므로 여기선 조건 없이 부르면 된다. */
@@ -85,6 +92,39 @@
         out[g] = { games: d.games | 0, wins: d.wins | 0, best: d.best || 0, bestStreak: d.bestStreak | 0 };
       }
       return out;
+    },
+
+    /** 이번 판에 **새로 열린** 파생 배지를 화면에 알린다(8종 전용).
+     *  게임마다 토스트 함수 이름이 달라서(showToast·toast·NET.ui.toast…) 여기서 직접 하나 띄운다 —
+     *  게임 파일에 의존하지 않으므로 어떤 게임에서도 똑같이 뜬다. */
+    _announce: function (game, before, after) {
+      if (AS.OWN_ACH.indexOf(game) >= 0) return;                 // 자기 도전과제가 있는 5종은 제외
+      var fresh = AS.DERIVED.filter(function (b) { return !b.ok(before) && b.ok(after); });
+      if (!fresh.length) return;
+      /* 한 판에 둘 이상 열릴 수 있다(예: 첫 판을 이기면 '첫 승'). 겹쳐 띄우지 않고 차례로 보여준다. */
+      fresh.forEach(function (b, i) { setTimeout(function () { AS.toast(b.e + ' 배지 획득 — ' + b.name); }, i * 1800); });
+    },
+    /** 게임 파일에 의존하지 않는 최소 토스트. 이미 떠 있으면 갈아 끼운다. */
+    toast: function (msg) {
+      try {
+        var id = 'asToast', el = document.getElementById(id);
+        if (!el) {
+          el = document.createElement('div'); el.id = id;
+          el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);z-index:99;' +
+            'bottom:calc(22px + env(safe-area-inset-bottom,0px));background:rgba(20,16,10,.96);' +
+            'color:#f3ece0;border:1px solid rgba(224,162,60,.55);border-radius:999px;' +
+            'padding:11px 18px;font-weight:800;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.5);' +
+            'opacity:0;transition:opacity .18s;pointer-events:none;max-width:88vw;text-align:center';
+          document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        /* ⚠️ requestAnimationFrame으로 켜면 **배경 탭에서 영영 안 뜬다**(rAF가 안 돌아서).
+           판이 끝난 뒤 잠깐 다른 앱을 봤다 돌아오는 건 흔한 일이다 → 강제 리플로우로 즉시 켠다. */
+        void el.offsetWidth;
+        el.style.opacity = '1';
+        clearTimeout(el._t);
+        el._t = setTimeout(function () { el.style.opacity = '0'; }, 2600);
+      } catch (e) {}
     },
 
     /* ── 파생 배지 (2026-08-05) ───────────────────────────────────────────
