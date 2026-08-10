@@ -20,6 +20,15 @@
  */
 const { launchWithRetry, requireServer } = require('./cdp');
 
+/* 🔴 2026-08-10 — 같은 화면을 **두 벌**로 재고 있었다(여기 + scripts/phone/audit-hub.js).
+   눈이 둘이면 한쪽만 고치는 날이 오고, 그때부터 두 결과가 어긋난 채로 남는다.
+   → **재는 눈은 여기 하나**, 붙는 방법만 고른다:
+        node scripts/browser-test/audit-hub.js            헤드리스(폰 불필요)
+        node scripts/browser-test/audit-hub.js --phone    실기기(adb 연결 필요)
+        ... --detail                                      카드별 스크롤 깊이까지(옛 실기기판이 내던 것) */
+const PHONE = process.argv.includes('--phone');
+const DETAIL = process.argv.includes('--detail');
+
 const VIEWS = [
   { n: '384x748 갤A16앱', w: 384, h: 748, wantAllTiles: true },
   { n: '360x640 소형폰',  w: 360, h: 640, wantAllTiles: true },
@@ -44,10 +53,16 @@ const SEED = `
 const MEASURE = `
 var d=document.documentElement, vh=innerHeight;
 var tiles=[].slice.call(document.querySelectorAll('.gtile'));
+/* 카드별 위치 — 옛 실기기판이 따로 재던 것. 합치면서 이쪽으로 가져왔다. */
+var cards=tiles.map(function(t){ var b=t.getBoundingClientRect();
+  var a=t.matches('a')?t:t.querySelector('a');
+  return { name:(t.textContent||'').replace(/\s+/g,' ').trim().slice(0,14),
+           top:Math.round(b.top+scrollY), href:(a&&a.getAttribute('href'))||'' }; });
 var inView=tiles.filter(function(t){ return t.getBoundingClientRect().bottom<=vh; }).length;
 var vis=function(s){ var e=document.querySelector(s); if(!e) return null;
   var r=e.getBoundingClientRect(); return r.height>2 && r.width>2; };
 return {
+  cards: cards,
   docH:d.scrollHeight, vh:vh, screens:+(d.scrollHeight/vh).toFixed(2),
   tiles:tiles.length, inView:inView,
   overflowX: d.scrollWidth > innerWidth+1,
@@ -58,21 +73,42 @@ return {
 };`;
 
 (async () => {
-  await requireServer();
-  const cdp = await launchWithRetry();
+  /* 붙는 방법만 갈린다 — 재는 눈(MEASURE·검사 항목)은 아래에서 공유한다.
+     실기기는 화면 크기를 우리가 못 정하므로 여러 뷰포트 훑기(①②)는 헤드리스에서만 한다. */
+  let cdp = null, BASE = 'http://localhost:3000/', phone = null;
+  if (PHONE) {
+    const { attach } = require('../phone/phone-cdp');
+    /* 붙기 전에 준비물을 확인한다 — 예전엔 연결이 없으면 ECONNREFUSED 스택만 뱉어서
+       "왜 안 되는지"를 다음 사람이 못 찾았다. */
+    phone = await attach().catch(e => {
+      console.error('❌ 실기기에 못 붙었다 — ' + e.message);
+      console.error('   준비: ① USB 연결·USB 디버깅 허용(삼성은 자동 차단 끄기) ② 앱 실행');
+      console.error('   그다음: adb forward tcp:9223 localabstract:$(adb shell cat /proc/net/unix | grep -o "webview_devtools_remote_[0-9]*" | head -1)');
+      console.error('   폰 없이 볼 거면 --phone 없이 그냥 돌릴 것.');
+      process.exit(1);
+    });
+    BASE = 'https://localhost/';               // 앱 웹뷰의 출처
+    P('📱 실기기에 붙었다 — 뷰포트 훑기(①②)는 건너뛴다(기기 크기가 하나다)');
+  } else {
+    await requireServer();
+    cdp = await launchWithRetry();
+  }
+  /* 실기기엔 '탭'이 하나뿐이라 새 페이지를 못 연다 → 같은 페이지를 돌려 쓰고 close는 무시한다. */
+  const openPage = async (w, h) => phone ? Object.create(phone, { close: { value: async () => {} } })
+                                         : await cdp.newPage(w, h);
   let fail = 0, warn = 0;
   const P = (s) => console.log(s);
 
   // ── ①②⑥ 폭별 측정
   P('════════ ①② 첫 화면: 13종이 다 들어오고 문서가 짧은가 ════════');
   let base = null;
-  for (const V of VIEWS) {
-    const page = await cdp.newPage(V.w, V.h);
+  for (const V of (PHONE ? VIEWS.slice(0, 1) : VIEWS)) {    // 실기기는 기기 크기 하나로만 잰다
+    const page = await openPage(V.w, V.h);
     try {
-      await page.goto('http://localhost:3000/');
+      await page.goto(BASE);
       await page.wait(500);
       await page.eval(SEED);
-      await page.goto('http://localhost:3000/');
+      await page.goto(BASE);
       await page.wait(1200);
       const m = await page.eval(MEASURE);
       if (V.w === 384) base = m;
@@ -88,12 +124,21 @@ return {
     } finally { await page.close(); }
   }
 
+  // ── 카드별 스크롤 깊이 (--detail) — 합치기 전 실기기판이 내던 표
+  if (DETAIL && base && base.cards) {
+    P('\n════════ (상세) 게임별 스크롤 깊이 — 몇 번째 화면에서 보이나 ════════');
+    base.cards.forEach((c, i) => {
+      const scr = (c.top / (base.vh || 748)).toFixed(1);
+      P(`  ${String(i + 1).padStart(2)}. ${c.name.padEnd(14)} y=${String(c.top).padStart(5)} → ${scr}번째 화면  ${c.href}`);
+    });
+  }
+
   // ── ③ 진입 두 버튼
   P('\n════════ ③ 진입 버튼: 기본 접힘 · 누르면 열림 · 서로 배타 ════════');
   {
-    const page = await cdp.newPage(384, 748);
+    const page = await openPage(384, 748);
     try {
-      await page.goto('http://localhost:3000/'); await page.wait(1000);
+      await page.goto(BASE); await page.wait(1000);
       const st = () => page.eval(`var j=document.getElementById('joinBar'), p=document.getElementById('invitePick');
         var v=function(e){ return !!e && e.getBoundingClientRect().height>2; };
         return {join:v(j), pick:v(p), picks:document.querySelectorAll('#ipGrid a').length};`);
@@ -116,9 +161,9 @@ return {
   // ── ④ ?room= 진입
   P('\n════════ ④ 초대 링크(?room=)로 들어왔을 때 ════════');
   {
-    const page = await cdp.newPage(384, 748);
+    const page = await openPage(384, 748);
     try {
-      await page.goto('http://localhost:3000/?room=ZZZZ'); await page.wait(1500);
+      await page.goto(BASE + '?room=ZZZZ'); await page.wait(1500);
       const m = await page.eval(`var j=document.getElementById('joinBar'), i=document.getElementById('joinCode');
         return { open: !!j && j.getBoundingClientRect().height>2, val: i?i.value:'' };`);
       if (!m.open) { fail++; P('❌ 코드 입력칸이 닫혀 있다 — 방을 못 찾으면 고쳐 넣을 자리가 없다(막다른 길)'); }
