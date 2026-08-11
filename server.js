@@ -26,7 +26,10 @@ const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; char
 const COLORS = ['#aef359','#ff5d8f','#4ec3ff','#ffb14e','#c98bff','#5ee0a8'];
 const AVA = ['🦊','🐸','🐼','🦁','🐰','🐵'];
 /* 직접 만든 캐릭터 5종 — 윷의 도개걸윷모(돼지·개·양·소·말). public/img/*.png · public/chars.js */
-const CHAR_IDS = ['pig','dog','sheep','cow','horse','tiger','rabbit','bear','fox','dokkaebi'];
+const CHAR_IDS = ['pig','dog','sheep','cow','horse','tiger','rabbit','bear','fox','dokkaebi',
+  // 2차(2026-08-11) — public/chars.js의 LIST와 **반드시 같아야 한다.**
+  // 여기 빠지면 혼자 하기에선 멀쩡한데 온라인에서만 조용히 기본 아바타로 바뀐다.
+  'yutgarak','bokjumeoni','chorong','jangseung','haetae','sansin','yong','jeoseung'];
 /** 아바타 값 정리 — 캐릭터 id는 그대로, 그 외는 이모지로 보고 4자까지.
  *  ⚠️ 예전엔 두 경로가 따로 놀았다:
  *     · 입장(create/join)은 **캐릭터 5종만** 인정하고 이모지는 통째로 버렸다(기본값으로 대체) —

@@ -37,7 +37,19 @@
     { id: 'rabbit',   kr: '토끼',   img: 'img/rabbit.png',   shop: 'char_rabbit' },
     { id: 'bear',     kr: '곰',     img: 'img/bear.png',     shop: 'char_bear' },
     { id: 'fox',      kr: '여우',   img: 'img/fox.png',      shop: 'char_fox' },
-    { id: 'dokkaebi', kr: '도깨비', img: 'img/dokkaebi.png', shop: 'char_dokkaebi' }
+    { id: 'dokkaebi', kr: '도깨비', img: 'img/dokkaebi.png', shop: 'char_dokkaebi' },
+    /* ── 상점 캐릭터 2차 (2026-08-11) — 짐승 얼굴 밖으로.
+       기존 10종이 전부 네발짐승이고 색이 따뜻한 쪽에 몰려 있었다. 이 8종은
+       ① 짐승이 아닌 실루엣(사물·사람)과 ② 안 쓰인 색(먹·옥·금·진홍·청)으로 갈랐다.
+       근거·프롬프트: outputs/production/2026-08-11_dice-alley_character-set-3.md */
+    { id: 'yutgarak',   kr: '윷가락',   img: 'img/yutgarak.png',   shop: 'char_yutgarak' },
+    { id: 'bokjumeoni', kr: '복주머니', img: 'img/bokjumeoni.png', shop: 'char_bokjumeoni' },
+    { id: 'chorong',    kr: '청사초롱', img: 'img/chorong.png',    shop: 'char_chorong' },
+    { id: 'jangseung',  kr: '장승',     img: 'img/jangseung.png',  shop: 'char_jangseung' },
+    { id: 'haetae',     kr: '해태',     img: 'img/haetae.png',     shop: 'char_haetae' },
+    { id: 'sansin',     kr: '산신령',   img: 'img/sansin.png',     shop: 'char_sansin' },
+    { id: 'yong',       kr: '청룡',     img: 'img/yong.png',       shop: 'char_yong' },
+    { id: 'jeoseung',   kr: '저승사자', img: 'img/jeoseung.png',   shop: 'char_jeoseung' }
   ];
 
   var BY_ID = {};

@@ -29,6 +29,15 @@
     { id:'char_bear',     slot:'char', name:'곰',     icon:'🐻', price:10000, desc:'손 흔드는 아기 곰',   char:'bear' },
     { id:'char_fox',      slot:'char', name:'여우',   icon:'🦊', price:10000, desc:'꼬리를 세운 여우',    char:'fox' },
     { id:'char_dokkaebi', slot:'char', name:'도깨비', icon:'👺', price:15000, desc:'뿔 하나에 방망이',    char:'dokkaebi' },
+    // ── 2차 (2026-08-11) 짐승 밖으로 — 사물 2 · 사물/사람 6
+    { id:'char_yutgarak',   slot:'char', name:'윷가락',   icon:'🪵', price:5000,  desc:'게임 그 자체',        char:'yutgarak' },
+    { id:'char_bokjumeoni', slot:'char', name:'복주머니', icon:'🧧', price:5000,  desc:'복이 굴러온다',       char:'bokjumeoni' },
+    { id:'char_chorong',    slot:'char', name:'청사초롱', icon:'🏮', price:10000, desc:'혼자 빛나는 등불',    char:'chorong' },
+    { id:'char_jangseung',  slot:'char', name:'장승',     icon:'🗿', price:10000, desc:'마을 어귀 수호신',    char:'jangseung' },
+    { id:'char_haetae',     slot:'char', name:'해태',     icon:'🦁', price:15000, desc:'광화문의 그 짐승',    char:'haetae' },
+    { id:'char_sansin',     slot:'char', name:'산신령',   icon:'🧙', price:15000, desc:'수염이 반은 덮는다',  char:'sansin' },
+    { id:'char_yong',       slot:'char', name:'청룡',     icon:'🐉', price:20000, desc:'구름을 타고',         char:'yong' },
+    { id:'char_jeoseung',   slot:'char', name:'저승사자', icon:'🎩', price:20000, desc:'갓 쓰고 푸른 등불',   char:'jeoseung' },
     /* ── 아바타 팩(이모지)은 **판매 중단**했다 (2026-08-04, 재성님 판단)
        팔 수 있는 물건이 아니었다:
          ① 허브 프로필에 **이모지 직접 입력칸**(`#profAvatarCustom`, maxlength 4)이 있다.
