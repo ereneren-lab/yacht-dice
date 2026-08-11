@@ -25,3 +25,4 @@ awesome-agent-skills-main/
 
 # 정적 배포 산출물(build:static) — 원본은 public/이다
 dist-static/
+scratchpad/
