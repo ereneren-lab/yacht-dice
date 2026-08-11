@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  하드닝 런타임(hardened runtime)에서 Electron이 돌아가려면 필요한 예외들.
+  공증(notarization)은 하드닝 런타임을 요구하고, 하드닝 런타임은 아래를 명시하지 않으면
+  크로미움의 JIT를 막아 앱이 실행 직후 죽는다. Electron 공식 권장 조합이다.
+
+  ⚠️ 하나라도 빠지면 "서명·공증은 통과했는데 앱이 안 켜진다"가 된다 — 원인이 안 보이는 부류다.
+-->
+<plist version="1.0">
+<dict>
+  <!-- 크로미움 자바스크립트 엔진(JIT) -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <!-- V8이 쓰는 서명 없는 실행 메모리 -->
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <!-- Electron이 헬퍼 프로세스를 띄울 때 쓰는 환경변수 -->
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+  <!-- 라이브러리 검증 완화 — Electron 프레임워크 로딩에 필요 -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+</dict>
+</plist>

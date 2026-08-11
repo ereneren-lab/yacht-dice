@@ -13,7 +13,7 @@
     "app": "bash scripts/run-app.sh",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac",
+    "dist:mac": "bash scripts/dist-mac.sh",
     "dist:linux": "electron-builder --linux",
     "test:online": "node scripts/online-test.js",
     "test:online2p": "node scripts/browser-test/verify-online.js",
@@ -113,7 +113,12 @@
       "target": [
         "dmg"
       ],
-      "category": "public.app-category.games"
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
     },
     "linux": {
       "target": [
