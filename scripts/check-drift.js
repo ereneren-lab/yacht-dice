@@ -43,8 +43,29 @@ for (const [game, coreName, htmlName] of CASES) {
   if (!ok) drift = true;
 }
 
+// ── tokens.css 드리프트 검사 ────────────────────────────────────────
+// 공용 tokens.css가 각 HTML 인라인 사본에 그대로 들어있는지 확인한다(core와 동일 원리).
+// TOKENS 마커가 있는 파일만 검사 — 아직 이관 안 된 파일은 건너뛴다.
+const TOKENS_FILES = [
+  'shop.html', 'yut.html', 'kb.html', 'ld.html', 'lcr.html', 'yacht.html',
+  'alkkagi.html', 'seotda.html', 'indianpoker.html', 'onecard.html', 'oldmaid.html',
+  'blackjack.html', 'baccarat.html', 'highlow.html',
+];
+const tokensCss = fs.readFileSync(path.join(PUBLIC, 'tokens.css'), 'utf8');
+const strippedTokens = strip(tokensCss);
+for (const htmlName of TOKENS_FILES) {
+  const html = fs.readFileSync(path.join(PUBLIC, htmlName), 'utf8');
+  if (!/\/\* TOKENS:START \*\//.test(html)) {
+    console.log(`·    tokens ${htmlName}  (마커 없음 · 미이관, 건너뜀)`);
+    continue;
+  }
+  const ok = strip(html).includes(strippedTokens);
+  console.log(`${ok ? 'OK   ' : 'DRIFT'} tokens ${htmlName}  (tokens.css ⊂ ${htmlName})`);
+  if (!ok) drift = true;
+}
+
 if (drift) {
-  console.error('\n✗ 드리프트 감지: 위 DRIFT 게임의 인라인 사본이 core와 다릅니다. `npm run build`로 동기화하세요.');
+  console.error('\n✗ 드리프트 감지: 위 DRIFT 항목의 인라인 사본이 원본과 다릅니다. `npm run build`로 동기화하세요.');
   process.exit(1);
 }
-console.log('\n✓ 모든 게임 동기화됨.');
+console.log('\n✓ 모든 게임·토큰 동기화됨.');

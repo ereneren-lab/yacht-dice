@@ -30,32 +30,36 @@ function rootBlock(css) {
   return m ? m[1] : '';
 }
 
-/* 무엇을 볼까 — '같아야 마땅한 것'만 고른다. 게임마다 다른 판·카드 색은 여기 넣지 않는다. */
+/* 토큰 이관(2026-08-11) 이후 — 이제 :root의 첫 블록은 대개 주입된 tokens.css다.
+   그래서 '첫 정의된 이름'을 해석해 읽는다. 옛 이름(--brass/--accent/--gold)은
+   새 이름(--brand-gold/--coin)의 별칭이므로, 새 이름 → 옛 이름 순으로 첫 값을 취한다.
+   목적이 바뀌었다: 예전엔 '복붙 값이 갈라졌나'를 봤다면, 이제 tokens.css 단일소스로
+   통일됐는지 + 아직 이관 안 된 파일(yacht)만 남았는지를 확인한다(check:drift와 짝). */
+function firstVal(root, names) {
+  for (const n of names) {
+    const m = root.match(new RegExp(n.replace(/[-]/g, '\\-') + '\\s*:\\s*([^;]+)'));
+    if (m) return m[1].trim();
+  }
+  return '-';
+}
+
+/* 무엇을 볼까 — '같아야 마땅한 것'만 고른다. 게임마다 다른 판·펠트 색은 여기 넣지 않는다. */
 const CHECKS = [
-  { key: '--brass',      label: '강조색(금)',   re: /--brass:\s*([^;]+)/,  root: true },
-  { key: '--accent',     label: '강조색(accent)', re: /--accent:\s*([^;]+)/, root: true },
-  { key: '--ink',        label: '본문 글자색',  re: /--ink:\s*([^;]+)/,    root: true },
+  { key: '--brand-gold', label: '브랜드 골드', pick: r => firstVal(r, ['--brand-gold', '--brass', '--accent']), root: true },
+  { key: '--coin',       label: '코인/재화',   pick: r => firstVal(r, ['--coin', '--gold']), root: true },
+  { key: '--ink',        label: '본문 글자색',  pick: r => firstVal(r, ['--ink']), root: true },
   { key: 'btn-radius',   label: '.btn 모서리',  re: /\.btn\s*\{[^}]*border-radius:\s*([^;]+)/ },
   { key: 'btn-padding',  label: '.btn 안여백',  re: /\.btn\s*\{[^}]*padding:\s*([^;]+)/ },
   { key: 'icon-size',    label: '상단 아이콘',  re: /\.iconbtn\s*\{[^}]*width:\s*([^;]+)/ },
 ];
 
-/* 의도된 차이 — **왜 다른지 여기 적는다.** 적지 않은 차이는 실패로 잡힌다. */
+/* 의도된 차이 — **왜 다른지 여기 적는다.** 적지 않은 차이는 실패로 잡힌다.
+   이관 후 --brand-gold·--ink는 tokens.css로 통일됐다(예외 없음 = 새 값이 생기면 실패).
+   남은 차이는 아직 이관 안 한 yacht뿐 — 그 이유를 여기 적어 실패가 아닌 경고로 둔다. */
 const ALLOW = {
-  '--brass': {
-    '#e0a23c': '허브·주사위 계열 기본 금색',
-    '#d9b35a': '카드 게임(초록 펠트 위) — 같은 금색이면 탁해 보여 한 톤 밝게',
-    '#c99653': '알까기(나무 판) — 판이 이미 노란기라 채도를 낮춤',
-  },
-  /* 글자색은 **판 색과 짝**이다. 같은 흰색을 초록 펠트·나무 판에 얹으면 떠 보인다 —
-     판 쪽으로 살짝 물들여야 한 화면으로 읽힌다. 위 --brass가 갈라진 이유와 같다. */
-  '--ink': {
-    '#f3ece0': '기본(어두운 갈색 배경)',
-    '#f2e9d6': '카드 게임 초록 펠트 — 노란기를 더해 판에 얹힘',
-    '#f2e2c6': '알까기 나무 판 — 판이 밝아 한 단계 더 따뜻하게',
-  },
-  '--panel': {
-    '#26201a': '기본(에스프레소)', '#1c2f18': '카드 게임 초록 펠트', '#2a2015': '알까기 나무',
+  '--coin': {
+    '#f0c65a': '기본 — 공용 tokens.css(이관 완료 13파일 전부 동일)',
+    '#e8a13a': 'yacht — 아직 tokens.css 미이관(--accent·조크테마 얽힘, B 세계관 착수 시 --accent→--brand-gold 리네이밍과 함께 처리)',
   },
 };
 
@@ -67,7 +71,10 @@ for (const g of GAMES) {
   const css = fs.readFileSync(f, 'utf8');
   const row = { game: g };
   const root = rootBlock(css);
-  for (const c of CHECKS) { const m = (c.root ? root : css).match(c.re); row[c.key] = m ? m[1].trim() : '-'; }
+  for (const c of CHECKS) {
+    if (c.pick) { row[c.key] = c.root ? c.pick(root) : c.pick(css); }
+    else { const m = css.match(c.re); row[c.key] = m ? m[1].trim() : '-'; }
+  }
   table.push(row);
 }
 

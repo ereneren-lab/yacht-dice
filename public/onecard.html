@@ -25,6 +25,7 @@
 <script src="cardfx.js"></script>
 <!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
 <script src="tutorial.js"></script>
+<script src="invite-cta.js"></script>
 <script>try{TUT.init({game:"onecard",steps:[{"art":"🔄","title":"손패 먼저 털기","body":"각자 7장으로 시작. <b>손에 든 카드를 먼저 다 내면</b> 승리!"},{"art":"🃏","title":"낼 수 있는 카드","body":"버림패 맨 위 카드와 <b>같은 무늬</b>거나 <b>같은 숫자</b>인 카드를 낼 수 있어.<br>낼 게 없으면 더미에서 한 장 가져와."},{"art":"⚡","title":"특수 카드","body":"<b>공격</b>은 상대에게 카드를 먹이고, <b>스킵</b>은 차례를 건너뛰고, <b>방향전환</b>은 순서를 뒤집어.<br>이걸 언제 쓰느냐가 승부를 가른다."},{"art":"🎯","title":"팁","body":"마지막 한 장이 남으면 <b>원카드</b>! 상대가 공격 카드를 쥐고 있을 수 있으니 방심하지 마.<br>자세한 규칙은 상단 <b>?</b>에서."}]})}catch(e){}</script>
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
@@ -39,12 +40,175 @@
 <script data-goatcounter="https://sepan.goatcounter.com/count" data-goatcounter-settings='{"no_onload":true,"allow_local":true}' async src="//gc.zgo.at/count.js"></script>
 <script src="analytics.js" defer></script>
 <style>
+  /* TOKENS:START */
+/**
+ * public/tokens.css — 딱세판만(구 주사위 골목) 공용 디자인 토큰 (Phase 1 · A-now)
+ *
+ * 명세: outputs/production/2026-08-11_dice-alley_design-tokens-spec.md
+ *
+ * ⚠️ 이 파일은 신규 파일이며, 아직 어떤 HTML도 이 파일을 참조하지 않는다(안전).
+ *    실제 배선(각 게임 HTML에서 이 파일을 불러오고, 자체 :root를 지우는 작업)은
+ *    Orchestrator가 npm run build / npm run check:drift / npm run audit:tokens 와
+ *    함께 별도로 진행한다. 이 파일 자체는 어떤 기존 페이지의 렌더링도 바꾸지 않는다.
+ *
+ * 설계 원칙 — "토큰 이름은 한 번만 세우고, 값은 테마/시즌으로 바꾼다."
+ *    지금(A)은 에스프레소 골드 톤으로 채운다. 나중에 B(설화 야시장) 세계관이 붙을 때도
+ *    아래 토큰 '이름'은 하나도 안 바뀐다 — 이 파일의 HEX 값만 교체되거나,
+ *    data-theme에 새 값이 추가된다. 근거와 로드맵 표는 명세서 8절 참고.
+ *
+ * 구성
+ *   1. 서피스 · 텍스트 (앱 크롬 공통 — 13게임 전부 상속, 게임판만 예외)
+ *   2. 강조 · 상태 (브랜드골드 / 코인 / 경고 / 성공 / 위험 / accent 예약)
+ *   3. 레거시 별칭 — 기존 파일들이 쓰던 이름(--brass, --gold, --accent 등)을
+ *      당분간 병행 지원해, 파일이 이 시트를 불러오기 시작해도 즉시 깨지지 않게 한다.
+ *      (개별 파일이 새 이름으로 완전히 이관되면 그 파일의 :root에서 옛 이름 참조를
+ *       걷어내고, 이 별칭 블록에 대한 의존을 줄여나간다.)
+ *
+ * 이 파일에 없는 것 (의도적)
+ *   --felt / --felt2 / --chip / --board / --boardline : 게임판 표면 전용 예외 토큰.
+ *     "앱 크롬은 하나, 테이블만 게임의 개성"(전략 문서 3-8) 원칙에 따라 게임별 파일에
+ *     남겨둔다. 공용 파일에 넣지 않는다.
+ *   --you / --opp / --die / --die2 / --pip / --team0 / --team1 : 게임 컴포넌트 전용
+ *     토큰. 이번 Phase 1(브랜드 강조색 재배정)의 대상이 아니다.
+ */
+
+:root {
+  /* 폰트 — 기존 스택 그대로, 새로 추가 없음 */
+  --font: "Pretendard", "Space Grotesk", -apple-system, system-ui, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+
+  /* ── 1. 서피스 · 텍스트 (에스프레소 = 기본) ───────────────────────── */
+  --bg: #15110d;
+  --bg2: #1d1711;
+  --panel: #26201a;
+  --panel2: #2f2820;
+  --line: rgba(255, 255, 255, .09);
+  --ink: #f3ece0;
+  --muted: #a89a86;
+
+  /* ── 2. 강조 · 상태 (에스프레소) ──────────────────────────────────── */
+  /* 브랜드 골드 — 로고 · 워드마크 · 1차 CTA 전용. 그 외 어디에도 쓰지 않는다. */
+  --brand-gold: #e0a23c;
+  --brand-gold-d: #b07d24;
+  --brand-gold-ink: #15110d; /* 골드 배경 위 텍스트색. 기존 다크 테마에 미정의였던 값을 명시(스펙 4-4) */
+
+  /* 코인 — 재화(코인/칩) 숫자 · 레벨/보상 진행바 전용. 브랜드 골드와 육안으로 구분됨 */
+  --coin: #f0c65a;
+  --coin-d: #c98f1f;
+
+  /* 경고 — 성공도 위험도 아닌 '주의' 상태. 코드에 전례 없는 완전 신규 토큰 */
+  --warn: #e0812f;
+
+  /* 성공 / 위험 — 기존값 유지 (보드군·카드군에서 이미 동일값으로 쓰이고 있었음) */
+  --win: #7bd88f;
+  --danger: #e8696b;
+
+  /* B(설화 야시장) 세계관을 위한 예약 자리.
+     A-now에서는 독립된 값이 없다 — 브랜드 골드에 별칭으로만 존재해 "이름은 있지만
+     지금은 시각적으로 아무 일도 안 한다"를 보장한다. B 착수 시 이 한 줄만 옥색 계열
+     HEX로 바꾸면 된다(스펙 8절 로드맵 표). */
+  --accent: var(--brand-gold);
+}
+
+/* ── 흑임자 (다크 알트) ──────────────────────────────────────────────
+   ⚠️ 브랜드 강조색이 테마마다 '다른 색상'일 수 있다는 기존 전례(라벤더)를
+      의도적 규칙으로 승격한 것 — 에스프레소=따뜻한 골드, 흑임자=차가운 라벤더. */
+html[data-theme="sesame"] {
+  --bg: #121212;
+  --bg2: #181818;
+  --panel: #1f1f1f;
+  --panel2: #2a2a2a;
+  --line: rgba(255, 255, 255, .11);
+  --ink: #f0ede8;
+  --muted: #989088;
+
+  --brand-gold: #c9bcd8;   /* 라벤더 — 기존 --brass 흑임자값 그대로 계승 */
+  --brand-gold-d: #9a8ab0;
+  --brand-gold-ink: #121212;
+
+  --coin: #e4d9a8;         /* [신규 · 확인필요] 카드군에 흑임자 전례가 없어 신규 제안.
+                               라벤더 브랜드골드와 채도로 구분되는 베이지 계열. 대비 실측 전. */
+  --coin-d: #c2b78a;       /* [신규 · 확인필요] */
+
+  --warn: #d99a6a;
+  --win: #9ad0a8;
+  --danger: #e88a8a;
+
+  --accent: var(--brand-gold);
+}
+
+/* ── 한지 (라이트) ────────────────────────────────────────────────────
+   기존 --brass는 2026-08-05에 라이트 대비 문제(3.40:1 → 4.93:1)로 이미 패치된 값이다.
+   같은 원칙(색조는 유지, 명도만 낮춤)을 신규 토큰(--coin, --warn)에도 동일 적용했다. */
+html[data-theme="hanji"] {
+  --bg: #f2f3f5;
+  --bg2: #ffffff;
+  --panel: #ffffff;
+  --panel2: #eceef1;
+  --line: rgba(0, 0, 0, .10);
+  --ink: #1c1c1e;
+  --muted: #6e6e76;
+
+  --brand-gold: #8f6420;   /* 기존값 그대로 (4.93:1, 코드 주석 기준 실측 완료) */
+  --brand-gold-d: #6b4a11;
+  --brand-gold-ink: #fff8ec;
+
+  --coin: #8a6210;         /* [실측 완료 2026-08-11] 기존 #a67613은 흰 패널 위 4.02:1(AA 미달)이라
+                               세 배경(bg 4.93 · 흰패널 5.48 · panel2 4.71) 모두 AA 통과값으로 조정.
+                               ⚠️ 라이트에선 대비 제약상 brand-gold(#8f6420)와 색이 가까워진다 —
+                               코인/브랜드 구분은 다크 2테마가 담당하고, 라이트에선 위치·굵기가 담당(스펙 9절). */
+  --coin-d: #7d5809;       /* shop.html 기존 실측값 재사용 (6.42:1) */
+
+  --warn: #a85210;         /* [실측 완료 2026-08-11] 기존 #b85c14는 4.13:1(AA 미달) → 4.88/5.41/4.66 통과값 */
+  --win: #3a9a4a;
+  --danger: #d84535;
+
+  --accent: var(--brand-gold);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * 3. 레거시 별칭 — 임시 다리 (마이그레이션 완료 전까지만 유효)
+ *
+ * 기존 13개 게임 HTML은 아래 옛 이름으로 브랜드 강조색을 참조한다:
+ *   --brass / --brass-d / --brass-ink  (허브 + 보드 5종 + 카드군 7종 + 알까기)
+ *   --accent / --accent-ink            (yacht.html만 — 스펙 4-3의 이름 충돌 사례)
+ *   --gold                             (카드군 7종 + 알까기 + yacht + shop — 코인 역할의 구(舊)이름)
+ *
+ * 이 별칭들은 "옛 이름을 새 값에 연결"할 뿐, 새 이름(--brand-gold/--coin)의 정의를
+ * 바꾸지 않는다. 각 게임 파일이 이관되면(스펙 7절 체크리스트) 자체 :root에서 옛 이름
+ * 선언을 지우고 이 시트를 참조하게 되므로, 이 별칭 블록에 자연히 의존하게 된다 —
+ * 최종적으로는 파일 내부의 var(--brass) 등 '참조부' 자체를 var(--brand-gold)로
+ * 바꾸는 것이 목표이며, 그때는 이 별칭 블록을 지워도 된다.
+ *
+ * ⚠️ yacht.html은 --accent를 '브랜드 골드의 별칭'이라는 다른 뜻으로 이미 쓰고 있다.
+ *    이 시트의 --accent(B 예약 자리)와 이름이 겹친다 — yacht.html이 이 시트를 참조하기
+ *    전에 반드시 자체 --accent/--accent-ink 참조를 --brand-gold/--brand-gold-ink로
+ *    개명할 것(스펙 6-4, 7-2). 개명 전에는 yacht.html에 이 시트를 연결하지 말 것.
+ * ══════════════════════════════════════════════════════════════════ */
+:root {
+  --brass: var(--brand-gold);
+  --brass-d: var(--brand-gold-d);
+  --brass-ink: var(--brand-gold-ink);
+  --gold: var(--coin);
+}
+html[data-theme="sesame"] {
+  --brass: var(--brand-gold);
+  --brass-d: var(--brand-gold-d);
+  --brass-ink: var(--brand-gold-ink);
+  --gold: var(--coin);
+}
+html[data-theme="hanji"] {
+  --brass: var(--brand-gold);
+  --brass-d: var(--brand-gold-d);
+  --brass-ink: var(--brand-gold-ink);
+  --gold: var(--coin);
+}
+/* TOKENS:END */
   :root{
-    --bg:#12210f; --ink:#f2e9d6; --muted:#9db089; --panel:#1c2f18; --panel2:#274023;
-    --line:#2f4a28; --brass:#d9b35a; --gold:#f0c65a; --danger:#e8696b; --win:#7bd88f;
+    /* 게임판 전용 예외 토큰만 남긴다 — 앱 크롬(--bg/--panel/--brass/--gold 등)은
+       공용 tokens.css가 3테마 전부 담당(sesame 누락 버그도 이관으로 해소). */
     --felt:#1f5c2e; --felt2:#164322; --chip:#e8c15a;
   }
-  html[data-theme="hanji"]{ --bg:#f2ecd8; --ink:#25200f; --muted:#6f6440; --panel:#e9e0c4; --panel2:#ddd0aa; --line:#c7b78a; --brass:#8a6015; --gold:#a67613; --felt:#2f7d43; --felt2:#256235; --win:#3a9a4a; }
+  html[data-theme="hanji"]{ --felt:#2f7d43; --felt2:#256235 }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;overflow:hidden}
   body{height:100dvh;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
@@ -1115,6 +1279,8 @@ function coinRain(){
     setTimeout(()=>{ c.style.transform='translateY('+(innerHeight+90)+'px) rotate('+rot.toFixed(0)+'deg)'; }, delay);
     setTimeout(()=>{try{c.remove();}catch(e){}}, 2200); }
 }
+// 로컬/AI 결과 화면 재초대 CTA (Phase 2 §9-5) — online 변수는 클로저로 넘겨 호출 시점에 평가
+try{ INVITECTA.watch({ game:'onecard', gname:'원카드', resultSel:'#resultOv', activeClass:'on', mountSel:'#resultOv .card', online:()=>online }); }catch(e){}
 </script>
 <script src="host-link.js"></script>
 </body>

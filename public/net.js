@@ -420,7 +420,7 @@
       el('ntRoomCode').textContent = NET.code || '----';
       const min = (this._opts && this._opts.minPlayers) || 2;
       const mem = room.members || [];
-      el('ntCount').textContent = `${mem.length}명` + (mem.length < min ? ` · ${min}명부터 시작` : '');
+      el('ntCount').textContent = `👥 현재 ${mem.length}명 · 최소 ${min}명` + (mem.length < min ? ` (${min - mem.length}명 더 필요)` : '');
       const host = NET.isHost();
       el('ntMembers').innerHTML = mem.map(m =>
         `<div class="nt-mem"><span>${m.ai ? '🤖' : '🧑'}</span><span>${esc(m.name)}</span>` +
@@ -432,7 +432,7 @@
       el('ntStart').style.display = host ? 'block' : 'none';
       el('ntAddAi').style.display = host ? 'block' : 'none';
       el('ntStart').disabled = mem.length < min;
-      el('ntStart').textContent = mem.length < min ? `${min}명부터 시작할 수 있어요` : '게임 시작';
+      el('ntStart').textContent = mem.length < min ? `${min - mem.length}명 더 있으면 시작할 수 있어요` : '게임 시작';
       if (this._opts && this._opts.extraLobbyHTML) el('ntExtra').innerHTML = this._opts.extraLobbyHTML();
     },
 
