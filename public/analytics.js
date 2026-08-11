@@ -28,11 +28,30 @@
  *  - 게임 로직 파일을 거의 건드리지 않는다 (아래 '게임시작 감지' 참고)
  */
 (function () {
-  // count.js 로드 전/차단 시에도 호출이 터지지 않도록 큐 스텁
+  /* count.js는 async라 **analytics.js보다 늦게 실린다**(이 파일은 <head>에서 돈다).
+     🔴 2026-08-11 — 처음엔 스텁이 호출을 그냥 삼켰다. 그랬더니 **페이지 조회가 한 건도 안 나갔다**
+        (이벤트는 사람이 누른 뒤라 그때는 count.js가 와 있어서 나갔다 — 그래서 더 안 보였다).
+        → 삼키지 말고 **쌓아 뒀다가 count.js가 오면 흘려보낸다.** */
+  var Q = [];
   window.goatcounter = window.goatcounter || {};
   if (typeof window.goatcounter.count !== 'function') {
-    window.goatcounter.count = function () { /* 아직 안 실렸다 — 조용히 흘린다 */ };
+    var stub = function (o) { Q.push(o); };
+    stub.__stub = true;                       // count.js가 실리면 이 표시가 사라진다
+    window.goatcounter.count = stub;
   }
+  function flush() {
+    try {
+      var f = window.goatcounter && window.goatcounter.count;
+      if (!f || f.__stub) return false;       // 아직 안 왔다
+      while (Q.length) f(Q.shift());
+      return true;
+    } catch (e) { Q.length = 0; return true; }
+  }
+  /* 10초까지 지켜본다 — 그 안에 안 오면 차단된 것이니 조용히 포기한다(게임엔 영향 없다). */
+  var tries = 0;
+  var timer = setInterval(function () {
+    if (flush() || ++tries > 40) clearInterval(timer);
+  }, 250);
 
   /* 개발이냐 실사용이냐 — **문지기는 여기 하나뿐이다.**
    *
