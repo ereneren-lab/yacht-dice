@@ -37,6 +37,24 @@ const BASE = (() => { try { const u = new URL(SITE_URL); return u.pathname.repla
 /* 번들에 넣지 않을 것 — 개발용 사본이나 산출물이 섞이면 CDN에 올라간다 */
 const SKIP = new Set(['.DS_Store']);
 
+/** public/ 전체 내용의 해시 8자리 — 서비스워커 캐시 이름에 박는다(아래 sw.js 처리 참고).
+ *  sw.js 자신은 뺀다(자기 해시를 자기 안에 넣을 수 없다). 내용이 한 글자라도 바뀌면 값이 바뀐다. */
+function bundleStamp(dir) {
+  const h = require('crypto').createHash('sha1');
+  const walk = (d, rel) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
+      if (SKIP.has(e.name)) continue;
+      const p = path.join(d, e.name), r = rel ? rel + '/' + e.name : e.name;
+      if (e.isDirectory()) { walk(p, r); continue; }
+      if (r === 'sw.js') continue;
+      h.update(r).update(fs.readFileSync(p));
+    }
+  };
+  walk(dir, '');
+  return h.digest('hex').slice(0, 8);
+}
+const STAMP = bundleStamp(path.join(__dirname, '..', 'public'));
+
 function copyDir(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
   let n = 0, bytes = 0;
@@ -49,6 +67,16 @@ function copyDir(src, dst) {
        공유 카드가 엉뚱한 곳을 가리키고 방문 집계가 갈라진다. 텍스트 파일만 치환한다. */
     if (SITE_URL !== OLD_URL && /\.(html|js|json|webmanifest|css)$/.test(e.name)) {
       buf = Buffer.from(buf.toString('utf8').split(OLD_URL).join(SITE_URL), 'utf8');
+    }
+    /* 🔴 2026-08-11 — **캐시 이름을 손으로 올리는 걸 아무도 안 했다.**
+       sw.js는 캐시 우선이라(21초 콜드스타트를 피하려고 그렇게 만들었다) 캐시 이름이 그대로면
+       배포해도 옛 파일이 계속 나간다. 실제로 새 캐릭터가 안 보인다는 신고가 그것이었다.
+       → 번들 내용의 해시를 캐시 이름에 박는다. 내용이 바뀌면 이름이 저절로 바뀌고,
+         activate에서 옛 캐시가 지워져 새 파일이 즉시 닿는다. 손으로 올릴 일이 없어진다. */
+    if (e.name === 'sw.js') {
+      buf = Buffer.from(buf.toString('utf8').replace(
+        /const CACHE = '([^']+)'/,
+        (_, cur) => `const CACHE = '${cur.replace(/-[0-9a-f]{8}$/, '')}-${STAMP}'`), 'utf8');
     }
     if (BASE && (e.name === 'sw.js' || e.name === 'manifest.json')) {
       let t = buf.toString('utf8');
