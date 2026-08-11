@@ -10,8 +10,12 @@ const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// ★★★ 여기를 네 배포 주소로! (끝에 / 붙이지 말 것) ★★★
-const DEFAULT_URL = 'https://yacht-dice-jxva.onrender.com';
+/* ★★★ 화면을 받아오는 주소 (끝에 / 붙이지 말 것) ★★★
+   🔴 2026-08-11 — 예전엔 Render(yacht-dice-jxva.onrender.com)를 가리켰다. 그런데 8/7에 화면을
+      정적 배포(GitHub Pages)로 옮기면서 **Render는 302로 넘겨주기만 한다.** 앱이 그 302를 거치느라
+      잠든 Render를 깨우는 21초를 앱 켤 때마다 그대로 물었다. 곧장 정적 주소로 간다.
+   ⚠️ 방(온라인)은 이 주소와 무관하다 — net.js의 GAME_SERVER가 따로 Render로 붙는다. */
+const DEFAULT_URL = 'https://ereneren-lab.github.io/yacht-dice';
 
 // APP_URL 환경변수가 있으면 그걸 우선 사용. 'local'이면 내장 서버(혼자/LAN)로 동작.
 const APP_URL = process.env.APP_URL || DEFAULT_URL;
