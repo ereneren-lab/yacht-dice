@@ -10,7 +10,7 @@
     "test:fx": "node scripts/browser-test/verify-fx.js",
     "capture": "node scripts/browser-test/capture.js",
     "start": "node server.js",
-    "app": "electron electron/main.js",
+    "app": "bash scripts/run-app.sh",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
