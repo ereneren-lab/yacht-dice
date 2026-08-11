@@ -13,7 +13,7 @@ const GAMES = ['/kb.html','/yacht.html','/ld.html','/lcr.html','/yut.html','/alk
 /* ⚠️ HTML만 받아 두면 소용이 적다 — 실측(2초 지연 서버)에서 페이지는 캐시로 떴는데
    딸린 스크립트가 서버를 때려 5초가 걸렸다. **13종이 공통으로 부르는 것들**을 같이 받는다.
    (`grep src=|href=`로 전 13종에서 뽑은 목록이다. 새 공용 스크립트를 추가하면 여기도 같이 넣을 것.) */
-const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js',
+const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js','/ws-url.js',
   '/text-floor.js','/chars.js','/fit-setup.js','/tutorial.js','/shop.js','/setup-order.js',
   '/landscape.css','/net.js','/monetize.js','/host-link.js','/cardfx.js','/game-core.js'];
 

@@ -29,6 +29,7 @@
 <script src="pace.js"></script>
 <script src="stats.js"></script>
 <script src="chars.js"></script>
+<script src="ws-url.js"></script>
 <script src="wallet.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
@@ -1347,7 +1348,9 @@ if(seatBC) seatBC.addEventListener('message', ev=>{
 function seatFromThisTab(){ try{ return sessionStorage.getItem(SEAT_NS+'_room')!=null; }catch(e){ return false; } }
 
 // ===== WebSocket =====
-function wsUrl(){ if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()) return 'wss://yacht-dice-jxva.onrender.com'; return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
+/* 주소는 ws-url.js 한 곳에서만 정한다 — 게임마다 적어 두면 한쪽만 고쳐지는 날이 온다
+   (2026-08-11: 정적 배포에서 6종이 전부 방을 못 열었다). */
+function wsUrl(){ return wsServerUrl(); }
 function wsSend(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
 function teardownNet(){ if(ws){ try{ ws.onclose=null; ws.close(); }catch(e){} ws=null; } }
 let reconnects=0, reconnecting=false;
