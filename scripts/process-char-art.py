@@ -14,6 +14,8 @@
 사용:
   python3 scripts/process-char-art.py <입력.png> <출력.png> [--bust 0.60] [--size 400] [--no-quant]
   # --bust N : 전신 소스를 상단 N 비율만 잘라 상반신으로(예: 말 전신 → 0.60). 생략 시 전체.
+  # --bg none: 원본에 알파가 이미 들어 있을 때(네 모서리가 투명). 색으로 안 지운다 —
+  #            어두운 배경 위의 검은 머리카락을 같이 먹는 사고를 막는다.
   # 예) python3 scripts/process-char-art.py ~/Downloads/pig_happy.png public/img/pig_happy.png
 
 의존: Pillow (pip install Pillow)
@@ -103,12 +105,24 @@ def remove_bg_grad(im, tol=4):
     return seen
 
 
-def remove_bg(im, mode='auto', tol=4):
-    """mode: auto | checker | grad
-    auto — checker로 먼저 시도하고, 벗겨낸 게 5% 미만이면 grad로 넘어간다."""
+def remove_bg(im, mode='auto', tol=4, alpha_cut=40):
+    """mode: auto | checker | grad | none
+    auto — checker로 먼저 시도하고, 벗겨낸 게 5% 미만이면 grad로 넘어간다.
+
+    🔴 none — **이미 알파가 제대로 든 원본**에 쓴다. 색으로 지우지 않고 옅은 알파만 잘라낸다.
+       2026-08-11에 저승사자에서 겪었다: 원본에 어두운 안개(vignette)가 반투명으로 깔려 있었는데
+       auto가 grad로 넘어가 60.8%를 지우면서 **검은 머리카락까지 같이 먹었다**(가닥만 남고 구멍).
+       색으로는 '어두운 배경'과 '검은 머리'를 못 가른다. 알파는 그 둘을 이미 갈라 놓았으므로
+       알파가 멀쩡한 원본에서는 **아무것도 지우지 않는 것이 정답**이다.
+       판별법: 네 모서리 알파가 0이면 alpha가 살아 있는 원본이다 → none."""
     im = im.convert('RGBA')
     w, h = im.size
     total = w * h
+    if mode == 'none':
+        a = im.split()[3]
+        im.putalpha(a.point(lambda v: 0 if v < alpha_cut else v))   # 옅은 안개만 걷어낸다
+        print(f'  배경 제거 안 함(alpha<{alpha_cut}만 정리) — 원본 알파를 그대로 믿는다')
+        return im
     if mode in ('auto', 'checker'):
         seen = remove_bg_checker(im)
         got = sum(seen) / total
@@ -156,7 +170,7 @@ if __name__ == '__main__':
     ap.add_argument('--bust', type=float, default=None, help='전신→상반신 상단 비율(예: 0.60)')
     ap.add_argument('--size', type=int, default=400)
     ap.add_argument('--no-quant', action='store_true')
-    ap.add_argument('--bg', choices=['auto', 'checker', 'grad'], default='auto',
+    ap.add_argument('--bg', choices=['auto', 'checker', 'grad', 'none'], default='auto',
                     help='배경 종류. auto=체커 먼저 시도 후 그라데이션 (기본)')
     ap.add_argument('--tol', type=int, default=4, help='grad 모드 허용 색차(작을수록 보수적)')
     a = ap.parse_args()
