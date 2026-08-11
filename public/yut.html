@@ -3457,7 +3457,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   // ── 이동 연출 속도(천천히 · 한 눈에 보이게) ──
   // BANNER_MS: 1700→1150. AI 턴 간격(900ms)보다 길어서 배너가 다음 턴까지 남아 겹쳤다
   // (측정: 오버레이가 화면에 떠 있는 시간이 56%였다).
-  const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=1050, BANNER_MS=1150;
+  const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=700, BANNER_MS=1150;
   /* 같은 칸에 선 말들을 어디에 놓을지 — **renderPieces와 pieceSettledXY가 반드시 같은 답을 내야 한다.**
      🔴 2026-08-11에 renderPieces만 고쳤다(29→0 접기 · 간격 가변). pieceSettledXY는 옛 셈으로 남았고
         (칸 번호 그대로 · 13px 고정) 그래서 **착지 좌표가 어긋났다** — 0과 29에 하나씩 서 있으면 6.5px,
@@ -3666,7 +3666,13 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     const gids = gpids.map(pid=>'pc-'+mp.seat+'-'+pid);
     animatingId='pc-'+mp.seat+'-'+mp.pieceId; animGroup=new Set(gids);
     const endMap=()=>{ const m={}; gpids.forEach(pid=>{ const sp=pieceSettledXY(mp.seat,pid); if(sp)m['pc-'+mp.seat+'-'+pid]=sp; }); return m; };
-    const finish=()=>{ if(tok!==moveTok) return; animatingId=null; animGroup=new Set(); const lead=S?pieceSettledXY(mp.seat, mp.pieceId):null; if(S) renderPieces(); if(lead) spawnPuff(lead[0], lead[1]); };
+    const finish=()=>{ if(tok!==moveTok) return; animatingId=null; animGroup=new Set(); const lead=S?pieceSettledXY(mp.seat, mp.pieceId):null; if(S) renderPieces(); if(lead) spawnPuff(lead[0], lead[1]);
+      // ✨ 착지 손맛 — 가장 잦은 동작(이동)에 "탁" 피드백. 소리는 iOS에서도 나고, 진동은 안드로이드 전용.
+      try{ SFX.move&&SFX.move(); }catch(e){}
+      try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){}
+      // 도착 팝(잡기와 동일한 검증된 .hit 패턴 재사용). reduce에선 생략(접근성).
+      if(!FX_REDUCED()){ try{ const le=document.getElementById('pc-'+mp.seat+'-'+mp.pieceId); const body=le&&le.querySelector('.pcbody'); if(body){ body.classList.remove('hit'); void le.getBoundingClientRect(); body.classList.add('hit'); setTimeout(()=>{ try{body.classList.remove('hit');}catch(e){} }, 480); } }catch(e){} }
+    };
     if(FX_REDUCED()){
       if(cap){ try{runCaptureFx(cap);}catch(e){} }
       if(pit){ try{SFX.capture&&SFX.capture();}catch(e){} }
@@ -4664,7 +4670,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     S=null; roundKey=null; resetRoundState();
     $('setupOv').classList.remove('on'); $('game').style.display='grid'; $('modePill').textContent='· AI 대전';
     resetHTMLSig();   // 새 판 — 캐시된 HTML 시그니처를 버린다(인원·이름이 바뀐다)
-    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, speedStart:!!cfg.speedStart, pit:!!cfg.pit, eventTypes:cfg.eventTypes.slice(), dailyRule:(cfg.dailyOn?undefined:false), limitMs:(cfg.timer||0)*60000, aiMs:PMS(900), aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
+    engine=new YutCore.YutEngine({ players, markers:cfg.markers, goal:cfg.goal, teamMode:!!cfg.team, decideOrder:cfg.decideOrder, itemBattle:!!cfg.itemBattle, speedStart:!!cfg.speedStart, pit:!!cfg.pit, eventTypes:cfg.eventTypes.slice(), dailyRule:(cfg.dailyOn?undefined:false), limitMs:(cfg.timer||0)*60000, aiMs:PMS(600), aiFast:!!cfg.aiFast, onState:()=>{ S=engine.serialize(); render(); } });
     engine.start();
     startGameTimer();
     try{vsIntro();}catch(e){}      // ★ VS 인트로
