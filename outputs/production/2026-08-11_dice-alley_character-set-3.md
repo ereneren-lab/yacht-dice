@@ -222,3 +222,54 @@ python3 scripts/process-char-art.py art-src/2026-08-11_set3-korean-folklore/cut/
 ```
 배경이 검정으로 나와도 괜찮다 — 코너 flood-fill로 벗긴다.
 넣을 곳 세 군데(`chars.js` · `shop.js` · `server.js`의 `CHAR_IDS`)는 위 4절 그대로.
+
+---
+
+## 7. 청룡 재발주 (2026-08-11) — 왜 약했고 무엇을 바꾸나
+
+### 1차 청룡에서 무엇이 약했나
+
+흰 원반 위 32px에서 8종 중 **제일 안 읽혔다.** 원인 둘.
+
+1. **색이 옅다.** 스펙은 `deep azure scales with silver belly`였는데 **연한 하늘색**으로 왔다.
+   판의 말 배경이 **흰색**(`fill="#fff"`)이라 옅은 파랑은 배경에 먹힌다.
+   실측: 흰색에 가까운 픽셀 15% — 8종 중 최악(청사초롱 4% · 저승사자 1%).
+2. **선이 가늘다.** 사슴뿔 · 긴 수염 · 구름 소용돌이가 전부 **1~2px짜리 가는 선**이라
+   32px에서 먼저 뭉개지고 18px에서 사라진다. 밝기보다 이쪽이 더 크다.
+   (같은 이유로 '덮는 비율' 지표는 쓸모없었다 — 청사초롱은 50%인데 제일 잘 읽힌다.)
+
+### 바꾸는 것
+
+| | 1차 | 2차 |
+|---|---|---|
+| 색 | 연한 하늘색 | **진한 코발트/사파이어** — 흰 배경에서 확 떨어지게 |
+| 뿔 | 가늘고 길게 갈라진 사슴뿔 | **짧고 굵게**, 갈래 최소 |
+| 수염 | 길게 흩날림 | **짧고 굵게**, 두 가닥만 |
+| 구름 | 몸을 감는 소용돌이 여럿 | **없애거나 아주 크게 하나** |
+| 프레이밍 | 전신(긴 몸통·꼬리) | **상반신** — 머리 크게 |
+
+### 프롬프트 (6절 공통 앞머리 블록 뒤에 이 구절을 붙인다)
+
+레퍼런스는 **`public/img/haetae.png` + `public/img/chorong.png`** 를 붙인다.
+이제 이 둘이 최신 화풍이고, 해태는 같은 '신수' 계열이라 기준으로 제일 낫다.
+
+```
+small friendly east-asian dragon with a BIG head and a compact chunky body,
+deep cobalt and sapphire blue scales with strong saturation and clear dark shading,
+short thick blunt antlers, only two short thick whiskers, pale silver chin,
+round bright eyes, bust framing: head and upper body only, no long tail, no full body,
+bold simple silhouette that still reads at 32 pixels
+```
+
+추가 네거티브(4절 `yong` 것에 이 줄을 더한다):
+
+```
+pale sky blue, pastel, washed out, thin wispy lines, long trailing whiskers,
+many small cloud swirls, delicate thin antlers, long serpentine tail filling the frame
+```
+
+### 받으면
+
+원본을 `art-src/2026-08-11_set3-korean-folklore/yong_B.png`로 저장하면
+가공·교체·검수(32/18px 흰 원반 대조)는 이쪽에서 한다. `yong_A.png`는 남겨 둔다 — 비교용이고,
+같은 그림은 다시 안 나온다.
