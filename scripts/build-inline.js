@@ -71,6 +71,35 @@ for (const game of Object.keys(MAP)) {
   }
 }
 
+// ── tokens.css 주입 ─────────────────────────────────────────────────
+// 각 HTML의 <style> 안 /* TOKENS:START */ ~ /* TOKENS:END */ 마커 사이에
+// public/tokens.css(공용 디자인 토큰)를 주입한다. 디자인 토큰의 단일 소스는
+// tokens.css 하나이며, 각 HTML의 인라인 사본은 이 스크립트로만 갱신한다(CORE와 동일 원리).
+// 마커가 없는 파일은 건너뛴다 — 파일별 점진 이관(마커+:root 정리)을 허용하기 위함.
+// 마커는 <style> 안 어디든(들여쓰기 무관) 놓을 수 있다 — START~END 사이를 통째로 교체한다.
+const TOKENS_FILES = [
+  'shop.html', 'yut.html', 'kb.html', 'ld.html', 'lcr.html', 'yacht.html',
+  'alkkagi.html', 'seotda.html', 'indianpoker.html', 'onecard.html', 'oldmaid.html',
+  'blackjack.html', 'baccarat.html', 'highlow.html',
+];
+const tokensCss = fs.readFileSync(path.join(PUBLIC, 'tokens.css'), 'utf8').replace(/\s+$/, '');
+const tokRe = /(\/\* TOKENS:START \*\/)[\s\S]*?(\/\* TOKENS:END \*\/)/;
+for (const htmlName of TOKENS_FILES) {
+  const htmlPath = path.join(PUBLIC, htmlName);
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  if (!tokRe.test(html)) {
+    console.log(`· [tokens] ${htmlName} — TOKENS 마커 없음(미이관), 건너뜀`);
+    continue;
+  }
+  const next = html.replace(tokRe, (m, s, e) => `${s}\n${tokensCss}\n${e}`);
+  if (next === html) {
+    console.log(`= [tokens] ${htmlName} 변화 없음 (이미 동기화됨)`);
+  } else {
+    fs.writeFileSync(htmlPath, next);
+    console.log(`✓ [tokens] ${htmlName} ← tokens.css 주입 완료`);
+  }
+}
+
 if (hadError) {
   console.error('\n빌드 실패: 위 오류를 해결하세요.');
   process.exit(1);
