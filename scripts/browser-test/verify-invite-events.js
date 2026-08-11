@@ -67,9 +67,13 @@ function firedAnyProps(logs, name) {
 
       /* 초대 버튼 — 대기실이 떠야 눌린다. 방이 안 열렸으면 버튼도 없다.
          navigator.share·clipboard가 헤드리스에서 실패해도 계측은 capture 단계라 먼저 지나간다. */
+      /* ⚠️ offsetParent로 '보인다'를 판정하면 안 된다 — position:fixed 요소는 늘 null이다.
+         대기실은 게임마다 고정 오버레이일 수 있어 멀쩡한 버튼을 '없다'로 볼 수 있다. 실제 크기로 본다. */
       const 있나 = await page.eval(
         `var e=document.getElementById(${JSON.stringify(G.초대)});
-         return !!(e && e.offsetParent !== null);`).catch(() => false);
+         if(!e) return false;
+         var r=e.getBoundingClientRect();
+         return r.width>2 && r.height>2 && getComputedStyle(e).visibility!=='hidden';`).catch(() => false);
       if (!있나) {
         비고 = 비고 || `#${G.초대} 이 화면에 없다(대기실이 안 떴거나 id가 바뀌었다)`;
       } else {
