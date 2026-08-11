@@ -47,7 +47,9 @@ if [ "$BEFORE" != "0" ]; then
   done
 fi
 AFTER=$(grep -rl "plausible.io/js/script.local.js" "$ASSETS" 2>/dev/null | wc -l | tr -d ' ')
-echo "   $BEFORE개 파일 → local판 $AFTER개"
+# ⚠️ 중괄호 필수. `$BEFORE개`라고 쓰면 셸이 **변수명을 `BEFORE개`로 읽어** 값이 통째로 사라진다
+#    (한글이 변수명에 붙는다). 실제로 "   ?? 파일 → local판 ??"으로 나왔다. 숫자 뒤 한글은 늘 ${}로.
+echo "   ${BEFORE}개 파일 → local판 ${AFTER}개"
 [ "$AFTER" = "0" ] && echo "   ⚠️ 하나도 안 바뀌었다 — 앱 사용은 계측에 안 잡힌다(치명적이진 않다)"
 
 echo "▶ APK 빌드 (첫 실행은 몇 분 걸린다)"
