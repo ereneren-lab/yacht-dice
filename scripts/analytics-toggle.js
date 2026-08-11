@@ -17,10 +17,13 @@
 const fs = require('fs');
 const path = require('path');
 
+const GC_URL = 'https://sepan.goatcounter.com/count';
 const DOMAIN = 'yacht-dice-jxva.onrender.com';
 const PUB = path.join(__dirname, '..', 'public');
 
-const PLAUSIBLE = `<script defer data-domain="${DOMAIN}" src="https://plausible.io/js/script.js"></script>`;
+/* 2026-08-11: Plausible → GoatCounter. no_onload로 자동 pageview를 끄고 analytics.js가 전부 보낸다
+   (문지기를 하나로). allow_local은 앱(https://localhost)이 통째로 빠지지 않게 하는 것이다. */
+const PLAUSIBLE = `<script data-goatcounter="${GC_URL}" data-goatcounter-settings='{"no_onload":true,"allow_local":true}' async src="//gc.zgo.at/count.js"></script>`;
 const HEAD_ON = '<!-- 계측 — Plausible(쿠키리스·개인식별 없음) · privacy.html 고지 · 끄기: npm run analytics:off -->';
 const HEAD_OFF = '<!-- 계측 꺼짐 — 켜기: npm run analytics:on';
 
@@ -29,7 +32,7 @@ const analyticsTag = (defer) => `<script src="analytics.js"${defer ? ' defer' : 
 // 켜진 모양: (머리 주석) + (plausible 줄) + (analytics 줄). 머리 주석은 없어도 인식한다.
 const ON_RE = new RegExp(
   `(?:${esc(HEAD_ON)}\\n)?` +
-  `(?:<script defer data-domain="[^"]*" src="https://plausible\\.io/js/script\\.js"></script>\\n)?` +
+  `(?:<script data-goatcounter="[^"]*"[^>]*></script>\\n)?` +
   `<script src="analytics\\.js"( defer)?></script>\\n`
 );
 /* 꺼진 모양: analytics.js **태그**를 품은 주석 블록 (2026-07-22에 손으로 만든 4가지 변종 전부).

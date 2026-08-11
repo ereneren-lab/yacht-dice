@@ -1,49 +1,75 @@
-/* 계측 — Plausible(쿠키리스, 개인 식별 없음)
+/* 계측 — GoatCounter (쿠키 없음, 개인 식별 없음, IP 미저장)
  *
- * 퍼널 4단계 (설계: A 트랙)
- *   1. 진입      → pageview (Plausible 자동, UTM 자동 수집)
+ * 퍼널 4단계
+ *   1. 진입      → pageview
  *   2. 게임시작  → '게임시작'  — 판이 실제로 깔린 순간
  *   3. 1판완료   → '1판완료'   — 판이 끝까지 간 순간
- *   4. D1/D3 재방문 → Plausible 재방문자 지표
+ *   4. D1/D3 재방문 → GoatCounter 재방문자 지표
  *
  * 곁가지 퍼널 — 친구 부르기 (2026-08-11 추가)
  *   방만들기 → 초대보내기 → 초대입장(친구가 ?room= 링크를 열었다)
  *   이 앱의 핵심 행동이라 따로 본다. 셋 다 아래쪽에서 **한 곳으로** 잡는다.
- *   ⚠️ 초대입장을 pageview로 대신할 수 없다 — Plausible은 쿼리스트링을 버려서
- *      `?room=`으로 들어온 사람과 그냥 들어온 사람이 같은 줄로 합쳐진다.
+ *   ⚠️ 초대입장을 pageview로 대신할 수 없다 — 주소의 `?room=`이 통계에 안 남아
+ *      초대로 들어온 사람과 그냥 들어온 사람이 한 줄로 합쳐진다.
  *      이 이벤트가 없으면 초대보내기의 성공률을 영영 모른다.
  *
+ * 🔴 2026-08-11 — Plausible에서 GoatCounter로 갈아탔다.
+ *    Plausible은 **계정을 한 번도 안 만든 채로** 태그만 3주 넘게 붙어 있었다(7/22~).
+ *    받는 곳이 없으니 전부 버려졌고, 그 사실을 아무도 몰랐다. 무료로 먼저 재보기로 했다.
+ *
+ * ⚠️ GoatCounter는 이벤트에 **속성(props)을 못 붙인다.** 그래서 게임 이름을 **이름 안에** 넣는다:
+ *      '게임시작-윷놀이' · '1판완료-요트 다이스-승'
+ *    대시보드에서 접두사로 묶어 보면 된다. 속성으로 착각하고 코드를 고치면 집계가 갈라진다.
+ *
  * 설계 원칙: 계측은 게임을 절대 망가뜨리지 않는다.
- *  - Plausible이 차단·실패해도 큐 스텁이 호출을 삼킨다
+ *  - 스크립트가 차단·실패해도 큐 스텁이 호출을 삼킨다
  *  - 모든 전송은 try/catch
- *  - 쿠키·localStorage 미사용 → 동의 배너 불필요
+ *  - 통계용 쿠키·localStorage 미사용 → 동의 배너 불필요
  *  - 게임 로직 파일을 거의 건드리지 않는다 (아래 '게임시작 감지' 참고)
  */
 (function () {
-  // Plausible 로드 전/차단 시에도 호출이 터지지 않도록 큐 스텁
-  window.plausible = window.plausible || function () {
-    (window.plausible.q = window.plausible.q || []).push(arguments);
-  };
+  // count.js 로드 전/차단 시에도 호출이 터지지 않도록 큐 스텁
+  window.goatcounter = window.goatcounter || {};
+  if (typeof window.goatcounter.count !== 'function') {
+    window.goatcounter.count = function () { /* 아직 안 실렸다 — 조용히 흘린다 */ };
+  }
 
-  /* 로컬 개발에선 Plausible이 이벤트를 무시한다. 콘솔로 확인한다(검증 스크립트가 이 줄을 읽는다).
+  /* 개발이냐 실사용이냐 — **문지기는 여기 하나뿐이다.**
    *
    * 🔴 2026-08-11 — **앱도 localhost다.** Capacitor는 앱 자산을 `https://localhost`(안드로이드)·
    *    `app://localhost`(iOS)로 띄운다. 호스트만 보면 앱 사용자가 통째로 개발자로 분류돼
    *    이벤트가 하나도 안 나간다(실제로 그랬다). 개발 서버는 `http://localhost:3000`이므로
    *    **스킴으로 가른다** — http면 개발, 그 외면 앱이다.
-   *    ⚠️ 이걸 고쳐도 앱에서 바로 잡히진 않는다. Plausible의 `script.js`도 제 나름대로
-   *       localhost를 걸러 "Ignoring Event: localhost"를 찍는다 → 앱 번들만 `script.local.js`로
-   *       바꿔 넣는다(scripts/app-deploy.sh). 두 겹을 다 풀어야 앱 사용이 보인다. */
+   *    ⚠️ count.js는 `allow_local:true`로 실어서 제 나름의 localhost 거르기를 꺼 뒀다.
+   *       (안 끄면 앱이 통째로 빠진다.) 대신 `no_onload:true`로 자동 pageview도 꺼서
+   *       **모든 전송이 아래 send()를 지난다** — 개발 트래픽은 여기서 막힌다. 문이 하나여야 안 샌다. */
   var LOCAL_HOST = /^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(location.hostname);
   var IS_APP = LOCAL_HOST && location.protocol !== 'http:';
   var DEV = LOCAL_HOST && !IS_APP;
 
+  /** GoatCounter의 경로(path)는 이벤트 이름이기도 하다. `/`로 시작하면 안 되고,
+   *  속성을 못 붙이므로 게임 이름을 이름에 이어 붙인다. */
+  function evName(name, props) {
+    var s = name;
+    if (props) {
+      if (props['게임']) s += '-' + props['게임'];
+      if (props['결과']) s += '-' + props['결과'];
+    }
+    return s.replace(/^\/+/, '');
+  }
+
   function send(name, props) {
     try {
       if (DEV) { console.log('[AL]', name, props ? JSON.stringify(props) : ''); return; }
-      window.plausible(name, props ? { props: props } : undefined);
+      window.goatcounter.count({ path: evName(name, props), title: name, event: true });
     } catch (e) { /* 계측 실패는 삼킨다 */ }
   }
+
+  /* 페이지 조회 — no_onload로 자동 전송을 껐으므로 여기서 직접 보낸다(개발은 위 문지기가 막는다). */
+  try {
+    if (DEV) { console.log('[AL] pageview', location.pathname); }
+    else { window.goatcounter.count({ path: function (p) { return p; } }); }
+  } catch (e) { /* 계측 실패는 삼킨다 */ }
 
   /* 페이지 경로 → 게임 이름.
    * ⚠️ 여기 없는 게임은 조용히 '허브'로 집계된다 — 에러가 안 나서 알아채기 어렵다.

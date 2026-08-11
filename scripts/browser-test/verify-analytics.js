@@ -125,7 +125,7 @@ async function run() {
             ev.filter(e => e.startsWith('게임시작')).length === 1,
             ev.filter(e => e.startsWith('게임시작')).length + '회');
 
-      const errs = page.errors.filter(e => !/vibrate|AudioContext|plausible|ERR_/i.test(e));
+      const errs = page.errors.filter(e => !/vibrate|AudioContext|goatcounter|gc\.zgo\.at|ERR_/i.test(e));
       check(`${g.name} — 콘솔 예외 없음`, errs.length === 0, errs.slice(0, 2).join(' | '));
 
       await page.close();
@@ -157,8 +157,11 @@ async function run() {
       /* 두 줄은 짝이다 — analytics.js만 있고 Plausible 스크립트가 없으면 이벤트는
          큐 스텁에만 쌓이고 어디로도 안 간다. 에러가 없어서 조용히 사라진다.
          실제로 8개 페이지가 그 상태로 들어와 있었다(2026-08-04에 발견). */
-      const paired = /plausible\.io\/js\/script\.js/.test(src);
-      check(`${f} — Plausible 스크립트가 analytics.js와 짝으로 있음`, paired, paired ? '' : 'Plausible 태그 없음');
+      const paired = /gc\.zgo\.at\/count\.js/.test(src);
+      check(`${f} — GoatCounter 스크립트가 analytics.js와 짝으로 있음`, paired, paired ? '' : 'GoatCounter 태그 없음');
+      // 두 설정이 빠지면 앱이 통째로 빠지거나(allow_local) 개발 트래픽이 샌다(no_onload)
+      const opts = /no_onload"?\s*:\s*true/.test(src) && /allow_local"?\s*:\s*true/.test(src);
+      check(`${f} — count.js 설정(no_onload·allow_local)이 둘 다 있음`, opts, opts ? '' : '설정 누락');
     }
     /* ---- 6) 실제 한 판 (--full) — 윷을 끝까지 돌려 1판완료가 진짜 발화하는지 본다 ----
      * ⚠️ 브라우저를 새로 띄우지 말고 위의 cdp를 그대로 쓴다.
