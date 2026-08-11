@@ -166,6 +166,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     background:var(--win,#7bd88f);box-shadow:0 0 0 2px var(--panel)}
   .gtile .played{position:absolute;top:5px;left:6px;font-size:9px;font-weight:800;color:var(--ink);
     background:color-mix(in srgb,var(--ink) 10%,transparent);border-radius:999px;padding:1px 5px}
+  /* 랜덤 추천 라벨 — 편애 방지 위해 세션마다 다른 게임 하나에만. 중립색(크기·강조 아님, 안내 톤) */
+  .gtile .rec{font-size:9px;font-weight:800;color:var(--ink);
+    background:color-mix(in srgb,var(--ink) 12%,transparent);border-radius:999px;padding:1px 7px;margin-top:1px}
 
   /* 내 정보 — 첫 화면엔 한 줄, 나머지는 접는다 */
   .mefold{margin:0 2px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
@@ -910,10 +913,18 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
   ];
   (function(){
     var g=$('gameTiles'); if(!g) return;
+    // 랜덤 추천 — 세션마다 짧고 입문하기 좋은 게임 하나에 '추천' 라벨(매 방문 랜덤이라 편애 논란 없음)
+    var REC_POOL=['kb.html','lcr.html','onecard.html','oldmaid.html','alkkagi.html'];
+    var recPick=null; try{ recPick=sessionStorage.getItem('alley_pick'); }catch(e){}
+    if(!recPick || REC_POOL.indexOf(recPick)<0){
+      recPick=REC_POOL[Math.floor(Math.random()*REC_POOL.length)];
+      try{ sessionStorage.setItem('alley_pick',recPick); }catch(e){}
+    }
     g.innerHTML=TILES.map(function(x){
       return '<a class="gtile" href="'+x.f+'" data-quick="1">'
         + (x.on?'<span class="on" title="온라인으로 친구와 가능"></span>':'')
-        + '<span class="ti">'+x.ic+'</span><span class="tn">'+x.n+'</span><span class="tt">'+x.t+'</span></a>';
+        + '<span class="ti">'+x.ic+'</span><span class="tn">'+x.n+'</span><span class="tt">'+x.t+'</span>'
+        + (x.f===recPick?'<span class="rec">🎲 추천</span>':'') + '</a>';
     }).join('');
     g.addEventListener('click',function(e){
       var a=e.target.closest && e.target.closest('a[data-quick]'); if(!a) return;
