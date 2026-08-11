@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>너클본즈 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
+<script src="invite-cta.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
 <script src="setup-order.js"></script>
@@ -2414,6 +2415,8 @@ if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatf
     sync();
   };
   sync(); setTimeout(sync,250);
+  // 로컬/AI 결과 화면 재초대 CTA (Phase 2 §9-5) — online 게터는 클로저로 넘겨 호출 시점에 평가
+  try{ INVITECTA.watch({ game:'kb', gname:'너클본즈', resultSel:'#resultOv', activeClass:'on', mountSel:'#resultBtns', online:()=>online() }); }catch(e){}
 })();</script>
 <script src="host-link.js"></script>
 </body>
