@@ -302,6 +302,15 @@
     }
 
     // 잡기: node 칸에 있는 다른 편 말을 처음으로 돌려보냄. 잡으면 한 번 더(잡기축제=두 번). 반환: 잡았는지.
+    /* 🔴 2026-08-11 — **시작점(0)과 종착점(29)은 판 위에서 같은 자리다.**
+       29는 '완주 게이트'라 0 위치에 그려진다(파일 맨 위 SEQ 주석). 그런데 잡기는 칸 번호만 봐서,
+       빽도로 29에 선 말과 후퇴로 0에 떨어진 말이 **같은 칸에 서 있는데 서로 안 잡혔다.**
+       재성님 요청(8/11): 빽도·후퇴로 시작점에 갔을 때 종착점 말도 잡히게 → 두 번호를 한 칸으로 본다.
+       ⚠️ 아직 판에 안 나온 대기 말(out:false, node:0)은 그대로 안 잡힌다(아래 opc.out 검사). */
+    _sameSpot(a, b) {
+      if (a === b) return true;
+      return (a === 0 && b === 29) || (a === 29 && b === 0);
+    }
     _captureAt(node, seat, pl) {
       if (node == null) return false;
       let caught = false, caughtN = 0; const victims = [];
@@ -310,12 +319,45 @@
         if (this.teamMode && op.team === pl.team) continue;                     // 같은 팀은 안 잡음
         if (this.shieldSide != null && this._pieceOwner(op.seat) === this.shieldSide) continue; // 방어막: 못 잡음
         for (const opc of op.pieces) {
-          if (!opc.done && opc.out && opc.node === node) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; victims.push(op.seat); }
+          if (!opc.done && opc.out && this._sameSpot(opc.node, node)) { opc.out = false; opc.node = 0; opc.route = 'outer'; caught = true; caughtN++; victims.push(op.seat); }
         }
       }
       if (caught) { pl.catches += caughtN; const cb = (this.dailyRule === 'catchfest') ? 2 : 1; this.throwsLeft += cb; this.captured = { seat, node, count: caughtN, victims }; } // victims=잡힌 말 주인 seat들(클라 튕겨날아가기 연출용)
       return caught;
     }
+    /* 착지 칸 처리 — 늪·이벤트. **밀려간 자리에서도 다시 발동한다.**
+     *
+     * 🔴 2026-08-11 재성님 요청: "부스터로 늪 가도 빠지는 걸로. 후퇴·보너스·황금 모두 중복 적용."
+     *   예전엔 늪과 이벤트가 배타(`if/else if`)였고, 부스터·후퇴로 밀려간 칸은 아예 안 봤다
+     *   (`_shiftGroup` 주석: "이벤트/구렁텅이 재발동 없음"). 그래서 부스터로 늪에 얹혀도 멀쩡했고
+     *   이벤트가 줄줄이 붙어 있어도 첫 칸 것만 먹었다.
+     *
+     * ⚠️ 연쇄에 상한을 둔다. 부스터(+3)가 부스터를 밟고, 그게 또 부스터를 밟는 식으로 돌 수 있어서
+     *    상한이 없으면 판이 멈춘다(칸이 20개뿐이라 이론상 순환한다). 8단계면 판을 한 바퀴 넘게 도는 셈이라
+     *    실제 놀이에서 닿을 일이 없고, 닿으면 거기서 멈춘다.
+     * ⚠️ 늪에 빠지면 말이 판 밖(대기)으로 나가므로 거기서 연쇄를 끝낸다 — 설 칸이 없다. */
+    _resolveTile(group, node, route, seat, pl, owner, depth) {
+      depth = depth || 0;
+      if (depth >= 8) return;                                  // 연쇄 상한(위 주석)
+      if (route !== 'outer') return;                           // 늪·이벤트는 바깥길 칸에만 있다
+
+      // 구렁텅이: 그 말(업은 말 포함) 처음으로 → 판에서 내려가니 연쇄 끝
+      if (node === this.pitNode) {
+        group.forEach(g => { g.out = false; g.node = 0; g.route = 'outer'; });
+        this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
+        return;
+      }
+      // 이벤트: 부스터(+3)/보너스(한 번 더)/후퇴(-2)/황금(한 번 더+보상)
+      if (this.eventTiles[node]) {
+        const movedTo = this._applyEventTile(node, group, owner);
+        if (movedTo == null) return;                           // 안 움직이는 이벤트(보너스·황금) → 연쇄 없음
+        this._captureAt(movedTo, seat, pl);                    // 밀려간 칸의 상대도 잡는다
+        const lead = group[0];
+        if (!lead || lead.done || !lead.out) return;           // 완주했거나 판을 떠났으면 끝
+        this._resolveTile(group, lead.node, lead.route, seat, pl, owner, depth + 1);   // 밀려간 칸에서 또 발동
+      }
+    }
+
     // 이벤트 칸 효과 적용(부스터/보너스/후퇴/황금). 이벤트·늪 재발동은 없음(연쇄 방지). 반환: 이동형이면 도착 노드(잡기 판정용).
     _applyEventTile(node, group, owner) {
       const type = this.eventTiles[node];
@@ -328,7 +370,10 @@
       this.eventSeq++; this.eventFx = { seq: this.eventSeq, node, type, seat: owner, count: group.length, path: path };
       return movedTo;
     }
-    _shiftGroup(group, delta) {   // 그룹(업은 말 포함)을 delta칸 한 칸씩 이동, 경로 반환(연출용). 이벤트/구렁텅이 재발동 없음.
+    /* 그룹(업은 말 포함)을 delta칸 이동하고 경로를 돌려준다(연출용).
+       ⚠️ 여기서는 늪·이벤트를 보지 않는다 — 그 판정은 부르는 쪽(`_resolveTile`)이 한다.
+          2026-08-11 전에는 아예 재발동이 없었다(그때 주석: "이벤트/구렁텅이 재발동 없음"). */
+    _shiftGroup(group, delta) {
       const lead = group[0]; if (!lead || lead.done || !lead.out) return null;
       const path = buildPath(lead.node, lead.route, lead.out, delta);   // 일반 이동과 동일 규칙(지나가는 모서리는 안 꺾음)
       if (!path.length) return null;
@@ -510,16 +555,7 @@
         group.forEach(g => { g.out = true; g.node = r.node; g.route = r.route; });
         this._captureAt(r.node, seat, pl);   // 잡기: 도착 칸의 다른 편 말 → 처음으로(잡으면 한 번 더)
 
-        // 구렁텅이: 순수 outer 함정 칸에 멈추면 그 말(업은 말 포함) 처음으로
-        if (r.route === 'outer' && r.node === this.pitNode) {
-          group.forEach(g => { g.out = false; g.node = 0; g.route = 'outer'; });
-          this.pitSeq++; this.pitFall = { seq: this.pitSeq, seat: owner, node: this.pitNode, count: group.length, pieceIds: group.map(g => g.id) };
-        }
-        // 이벤트 칸: 부스터(+3)/보너스(한 번 더)/후퇴(-2)/황금(한 번 더+보상)
-        else if (r.route === 'outer' && this.eventTiles[r.node]) {
-          const movedTo = this._applyEventTile(r.node, group, owner);
-          if (movedTo != null) this._captureAt(movedTo, seat, pl);   // 부스터/후퇴로 밀려간 칸의 상대도 잡음
-        }
+        this._resolveTile(group, r.node, r.route, seat, pl, owner);
       }
 
       // 승리 판정
