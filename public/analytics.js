@@ -6,6 +6,13 @@
  *   3. 1판완료   → '1판완료'   — 판이 끝까지 간 순간
  *   4. D1/D3 재방문 → Plausible 재방문자 지표
  *
+ * 곁가지 퍼널 — 친구 부르기 (2026-08-11 추가)
+ *   방만들기 → 초대보내기 → 초대입장(친구가 ?room= 링크를 열었다)
+ *   이 앱의 핵심 행동이라 따로 본다. 셋 다 아래쪽에서 **한 곳으로** 잡는다.
+ *   ⚠️ 초대입장을 pageview로 대신할 수 없다 — Plausible은 쿼리스트링을 버려서
+ *      `?room=`으로 들어온 사람과 그냥 들어온 사람이 같은 줄로 합쳐진다.
+ *      이 이벤트가 없으면 초대보내기의 성공률을 영영 모른다.
+ *
  * 설계 원칙: 계측은 게임을 절대 망가뜨리지 않는다.
  *  - Plausible이 차단·실패해도 큐 스텁이 호출을 삼킨다
  *  - 모든 전송은 try/catch
@@ -89,4 +96,60 @@
       watchIngame();
     }
   }
+
+  /* 방만들기 — 나가는 소켓 메시지를 엿본다.
+   *
+   * 방 만들기는 페이지마다 제 손으로 {t:'create'}를 쏜다. 지금 일곱 군데다:
+   *   net.js(인디언·섯다·원카드·도둑잡기) · yut · kb · ld · lcr · yacht · alkkagi
+   * 그 일곱 곳에 AL 호출을 심는 대신 여기서 한 번 본다 —
+   * 위 GAMES 표를 새 게임에서 잊어 8종이 통째로 '허브'로 찍히던 일을 이미 겪었다(2026-07-29).
+   * 호출부를 늘리면 같은 방식으로 또 썩는다. 소켓을 보면 새로 붙는 게임도 저절로 잡힌다.
+   *
+   * 재접속은 {t:'rejoin'}이라 다시 세지 않는다(6종 전부 확인). 한 판 하고 나와 또 만들면
+   * 그건 진짜로 두 번 만든 것이므로 두 번 센다.
+   */
+  try {
+    var WS = window.WebSocket;
+    if (WS && WS.prototype && typeof WS.prototype.send === 'function') {
+      var _wsSend = WS.prototype.send;
+      WS.prototype.send = function (data) {
+        // 엿보다 터져도 원래 send는 반드시 나가야 한다 — 계측이 방 만들기를 막으면 안 된다
+        try {
+          if (typeof data === 'string' && data.indexOf('"create"') > 0) {
+            var m = JSON.parse(data);
+            if (m && m.t === 'create') send('방만들기', { 게임: GAME });
+          }
+        } catch (e) { /* 계측 실패는 삼킨다 */ }
+        return _wsSend.apply(this, arguments);
+      };
+    }
+  } catch (e) { /* WebSocket이 없는 환경 */ }
+
+  /* 초대보내기 — 대기실의 '초대 링크' 버튼. id 세 개가 전부다.
+   *   ntInvite(net.js 4종) · lobbyCopy(윷·좌중우·알까기) · copyLink(요트·너클본즈·라이어)
+   * 허브의 '친구와 하기'(inviteBtn)는 코드 입력창을 여는 것이라 뺀다 — 보내는 쪽이 아니다.
+   *
+   * 공유 시트를 띄웠다가 취소해도 센다. 알고 싶은 건 '보내려 했는가'이고,
+   * 공유 성공 여부는 브라우저마다 알 수 있는 정도가 달라 어차피 못 믿는다.
+   * capture 단계로 듣는다 — 게임 쪽 핸들러가 전파를 끊어도 놓치지 않게.
+   */
+  /* 초대입장 — 받은 링크(?room=CODE)를 열었다. 초대보내기의 짝이다.
+   * 허브(index.html)로도 ?room=이 들어오고 거기서 게임 페이지로 다시 넘겨준다 —
+   * 그때 게임 페이지에서 또 한 번 세면 한 사람이 두 번 찍힌다.
+   * 그래서 허브에선 세지 않는다(라우팅을 거칠 뿐 도착지가 아니다). */
+  try {
+    if (GAME !== '허브' && /[?&]room=[A-Za-z0-9]/.test(location.search)) {
+      send('초대입장', { 게임: GAME });
+    }
+  } catch (e) { /* 계측 실패는 삼킨다 */ }
+
+  var INVITE_BTN = { ntInvite: 1, lobbyCopy: 1, copyLink: 1 };
+  document.addEventListener('click', function (e) {
+    try {
+      // 버튼 안쪽 이모지·span을 눌렀을 수 있으니 몇 겹 위까지 올려다본다
+      for (var n = e.target, i = 0; n && i < 4; i++, n = n.parentElement) {
+        if (n.id && INVITE_BTN[n.id] === 1) { send('초대보내기', { 게임: GAME }); return; }
+      }
+    } catch (err) { /* 계측 실패는 삼킨다 */ }
+  }, true);
 })();
