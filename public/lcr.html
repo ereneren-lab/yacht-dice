@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>좌·중·우 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
+<script src="invite-cta.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
 <script src="setup-order.js"></script>
@@ -229,6 +230,11 @@ html[data-theme="yasi"] {
   --win: #37b98c;         /* 옥색 — 성공(accent와 통합) */
   --danger: #e85d72;      /* 복주머니 진홍(대비 보정) */
   --accent: #37b98c;      /* 옥색 — B에서 처음 독립값을 가짐(A에선 브랜드골드 별칭) */
+
+  /* 게임판 펠트 — 야시장에선 옥색 도박판으로. 이 테마에서만 게임 로컬 --felt를 덮는다
+     (html[data-theme]가 게임 :root보다 특이도 높음). 카드·카지노 게임에 일괄 적용. */
+  --felt: #124a42;
+  --felt2: #0d332e;
 
   /* 레거시 별칭 — 이관 안 된 사용처(var(--brass)/var(--gold)) 무중단 */
   --brass: var(--brand-gold);
@@ -1913,6 +1919,7 @@ if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatf
     else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
     sync();
   };
+  try{ INVITECTA.watch({ game:'lcr', gname:'좌·중·우', resultSel:'#resultOv', activeClass:'on', mountSel:'#resultBtns', online:()=>online }); }catch(e){}
   sync(); setTimeout(sync,250);
 })();</script>
 <script src="host-link.js"></script>
