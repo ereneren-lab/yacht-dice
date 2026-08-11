@@ -2210,8 +2210,27 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   const NM=['범','토끼','곰','개구리','여우','판다'];
   const PCOL=['#e0683c','#3c9ae0','#e0a23c','#5ee0a8','#c9a0ff','#ff7a8a'];
   const ANIMAL_IMG={"pig": "img/pig.png", "dog": "img/dog.png", "sheep": "img/sheep.png", "cow": "img/cow.png", "horse": "img/horse.png"};
+  /* ANIMAL_ORDER는 **기본 배정**(자리 순서대로 도개걸윷모)이다. 고를 수 있는 목록이 아니다.
+     고르는 목록은 buildCharPick이 CHARS에서 가져온다(산 것만). */
   const ANIMAL_ORDER=['pig','dog','sheep','cow','horse'];
   const ANIMAL_KR={pig:'돼지',dog:'개',sheep:'양',cow:'소',horse:'말'};
+
+  /* 🔴 2026-08-11 — **윷만 상점 캐릭터를 못 쓰고 있었다.**
+     다른 12게임은 공용 모듈(CHARS)을 보는데 윷은 제 목록 5종만 갖고 있었다.
+     그래서 8/4에 판 호랑이·토끼·곰·여우·도깨비가 **윷에서만** 조용히 기본 아바타로 바뀌었다
+     (`pieceAnimal`이 ANIMAL_IMG에 없는 id를 못 찾고 자리 기본값으로 떨어진다 — 에러가 없어 안 보인다).
+     여기서 CHARS를 합쳐 18종이 전부 윷에서도 그려지게 한다.
+     ⚠️ 큰 자리(결과창 우승자·VS 인트로)는 `full` 판본을 쓴다 — 아래 ANIMAL_IMG_BIG 참고. */
+  const ANIMAL_IMG_BIG={};
+  try{
+    if(window.CHARS && CHARS.all) CHARS.all().forEach(function(c){
+      ANIMAL_IMG[c.id]=c.img;
+      ANIMAL_KR[c.id]=c.kr;
+      ANIMAL_IMG_BIG[c.id]=c.full||c.img;
+    });
+  }catch(e){ /* chars.js가 없어도 무료 5종으로는 돌아간다 */ }
+  /** 크게 보여주는 자리용 그림 — 없으면 작은 판본으로 떨어진다 */
+  function animalImgBig(id){ return ANIMAL_IMG_BIG[id] || ANIMAL_IMG[id] || ''; }
   const YUT_SUB={'-1':'뒷도',1:'돼지·도',2:'개',3:'양·걸',4:'소·윷',5:'말·모'};
   // 노드 좌표 (0~1)
   const NODE=[
@@ -2244,7 +2263,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       if(typeof t.pit==='boolean') cfg.pit=t.pit;
       if(Array.isArray(t.ev)) cfg.eventTypes=t.ev.filter(x=>['boost','bonus','back','gold'].includes(x)); } }catch(e){}
   const TEAM_COL=['#4a90d9','#e0683c']; const TEAM_NAME=['🔵 청팀','🔴 홍팀'];
-  try{ const sc=localStorage.getItem('yut_char'); if(sc && ['pig','dog','sheep','cow','horse'].includes(sc)) cfg.character=sc; }catch(e){}
+  /* ⚠️ 예전엔 여기 무료 5종을 **또 손으로 적어** 두고 그것만 인정했다.
+     그래서 상점 캐릭터를 골라 저장해도 다시 들어오면 조용히 돼지로 돌아갔다.
+     그릴 수 있는 것(ANIMAL_IMG)이면 인정한다 — 목록이 한 군데(CHARS)에서만 온다. */
+  try{ const sc=localStorage.getItem('yut_char'); if(sc && ANIMAL_IMG[sc]) cfg.character=sc; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null, wasPlaying=false;
 
@@ -2439,7 +2461,10 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   function renderAch(){ const el=$('achbar'); if(!el)return; el.innerHTML=ACH.map(a=>{ const on=achUnlocked.includes(a.id); return `<div class="achbadge${on?' on':''}" title="${a.name}: ${a.desc}">${on?a.icon:'🔒'}<span>${a.name}</span></div>`; }).join(''); }
   function buildCharPick(){
     const el=$('charPick'); if(!el)return; el.innerHTML='';
-    ANIMAL_ORDER.forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.className='charbtn'+(a===cfg.character?' on':''); b.dataset.c=a;
+    /* 고를 수 있는 목록은 **산 것 전부**다(CHARS.ids()가 안 산 것을 걸러 준다).
+       예전엔 ANIMAL_ORDER(무료 5종)만 돌아서 상점에서 산 캐릭터가 윷에선 목록에 뜨지도 않았다. */
+    const pickable = (window.CHARS && CHARS.ids) ? CHARS.ids() : ANIMAL_ORDER;
+    pickable.forEach(a=>{ if(!ANIMAL_IMG[a]) return; const b=document.createElement('button'); b.type='button'; b.className='charbtn'+(a===cfg.character?' on':''); b.dataset.c=a;
       b.innerHTML=`<img src="${ANIMAL_IMG[a]}" alt="${ANIMAL_KR[a]}"><span class="cknm">${ANIMAL_KR[a]}</span>`;
       b.onclick=()=>{ cfg.character=a; try{localStorage.setItem('yut_char',a);}catch(e){} buildCharPick(); }; el.appendChild(b); });
   }
@@ -2965,7 +2990,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       rightTag=`<div class="vs-tag">${right.length>1?right.length+'인':esc((right[0]&&right[0].p.name)||'상대')}</div>`;
       title='윷놀이 · '+S.players.length+'인전';
     }
-    const av=o=>`<img class="vs-av" src="${ANIMAL_IMG[pieceAnimal(o.p,o.i)]||''}" alt="">`;
+    // 74~132px — 여기도 전체 그림
+    const av=o=>`<img class="vs-av" src="${animalImgBig(pieceAnimal(o.p,o.i))}" alt="">`;
     ov.innerHTML='<div class="vs-dim"></div><div class="vs-rays"></div>'
       +`<div class="vs-side vs-left${left.length>1?' multi':''}">${left.map(av).join('')}${leftTag}</div>`
       +`<div class="vs-side vs-right${right.length>1?' multi':''}">${right.map(av).join('')}${rightTag}</div>`
@@ -3106,7 +3132,8 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
     if(!w){ hero.style.display='none'; hero.innerHTML=''; if(rb) rb.style.display=''; return; }
     const seat=(w.seat!=null)?w.seat:0; const av=pieceAnimal(w, seat);
     hero.style.display=''; hero.className='res-hero';
-    hero.innerHTML=`<div class="rh-crown">👑</div><div class="rh-av" style="--rim:${pieceColor(seat)}"><img src="${ANIMAL_IMG[av]}" alt="${esc(w.name)}"></div>`;
+    // 96~124px로 크게 나오는 자리 — 잘라낸 판본 대신 전체 그림을 쓴다(다리·소품까지 보인다)
+    hero.innerHTML=`<div class="rh-crown">👑</div><div class="rh-av" style="--rim:${pieceColor(seat)}"><img src="${animalImgBig(av)}" alt="${esc(w.name)}"></div>`;
     if(rb) rb.style.display='none';   // 히어로가 focal → 이모지 숨김
   }
   function confettiBurst(){

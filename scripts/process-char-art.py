@@ -16,6 +16,8 @@
   # --bust N : 전신 소스를 상단 N 비율만 잘라 상반신으로(예: 말 전신 → 0.60). 생략 시 전체.
   # --bg none: 원본에 알파가 이미 들어 있을 때(네 모서리가 투명). 색으로 안 지운다 —
   #            어두운 배경 위의 검은 머리카락을 같이 먹는 사고를 막는다.
+  # --tight  : 가로도 잘라 얼굴을 키운다. --bust만으로는 정사각 변이 가로로 정해져
+  #            얼굴이 안 커지고 아래 여백만 늘어난다(실측).
   # 예) python3 scripts/process-char-art.py ~/Downloads/pig_happy.png public/img/pig_happy.png
 
 의존: Pillow (pip install Pillow)
@@ -135,7 +137,7 @@ def remove_bg(im, mode='auto', tol=4, alpha_cut=40):
     return _apply(im, im.load(), seen, w, h)
 
 
-def process(src, dst, bust=None, size=400, quant=True, margin=0.14, bg='auto', tol=4):
+def process(src, dst, bust=None, size=400, quant=True, margin=0.14, bg='auto', tol=4, tight=False):
     im = remove_bg(Image.open(src), mode=bg, tol=tol)
     bb = im.getbbox()
     if not bb:
@@ -152,6 +154,34 @@ def process(src, dst, bust=None, size=400, quant=True, margin=0.14, bg='auto', t
         bb = (l, t, r, t + int((b - t) * bust))
     im = im.crop(bb)
     w, h = im.size
+
+    if tight and w > h:
+        """🔴 --bust만으로는 얼굴이 안 커진다 (2026-08-11 실측).
+           정사각 변은 max(w,h)= **가로**로 정해지는데, 위를 잘라도 가로는 그대로다.
+           그래서 bust를 0.62→0.42로 줄이면 얼굴은 그대로고 **아래 여백만 늘어난다.**
+           얼굴을 실제로 키우려면 가로도 잘라야 한다 — 남은 그림의 무게중심에 맞춰
+           세로 길이만큼의 정사각을 가로에서 떠낸다. (머리가 한쪽으로 치우친 캐릭터가 많아
+           단순 가운데 자르기로는 얼굴이 반쯤 잘린다 — 해태·윷가락이 그랬다.)"""
+        a = im.split()[3]
+        colsum = [0] * w
+        px = a.load()
+        for y in range(0, h, max(1, h // 120)):        # 성기게 훑어도 무게중심은 안 흔들린다
+            for x in range(w):
+                if px[x, y] > 128:
+                    colsum[x] += 1
+        tot = sum(colsum) or 1
+        acc = 0
+        cx = w // 2
+        for x in range(w):                             # 불투명 픽셀의 가로 중앙값
+            acc += colsum[x]
+            if acc * 2 >= tot:
+                cx = x
+                break
+        left = max(0, min(w - h, cx - h // 2))
+        im = im.crop((left, 0, left + h, h))
+        w, h = im.size
+        print(f'  가로도 잘랐다(tight) — 무게중심 x={cx}, {left}~{left+h}')
+
     side = int(max(w, h) * (1 + margin))       # 여백 두고 정사각
     sq = Image.new('RGBA', (side, side), (0, 0, 0, 0))
     sq.paste(im, ((side - w) // 2, (side - h) // 2), im)
@@ -173,5 +203,7 @@ if __name__ == '__main__':
     ap.add_argument('--bg', choices=['auto', 'checker', 'grad', 'none'], default='auto',
                     help='배경 종류. auto=체커 먼저 시도 후 그라데이션 (기본)')
     ap.add_argument('--tol', type=int, default=4, help='grad 모드 허용 색차(작을수록 보수적)')
+    ap.add_argument('--tight', action='store_true',
+                    help='가로도 잘라 얼굴을 키운다(판 위 말처럼 작게 쓰는 판본용). --bust와 같이 쓴다')
     a = ap.parse_args()
-    process(a.src, a.dst, bust=a.bust, size=a.size, quant=not a.no_quant, bg=a.bg, tol=a.tol)
+    process(a.src, a.dst, bust=a.bust, size=a.size, quant=not a.no_quant, bg=a.bg, tol=a.tol, tight=a.tight)
