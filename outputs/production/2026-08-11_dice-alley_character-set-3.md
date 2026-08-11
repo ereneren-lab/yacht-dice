@@ -137,3 +137,88 @@ python3 scripts/process-char-art.py <입력.png> public/img/<id>.png
   8종 × 7장 = 56장이라 **먼저 idle 8장만 뽑아 30px에서 서로 구분되는지 보고** 표정으로 가는 걸 권한다.
 - **8종을 다 만들 필요는 없다.** 실루엣이 가장 센 `jeoseung`·`chorong`·`bokjumeoni` 셋만 먼저
   뽑아 보면 "짐승 밖으로 나가도 되나"가 판가름 난다.
+
+---
+
+## 6. 2차 발주 — 화풍을 맞춰 다시 뽑는다 (2026-08-11 저녁)
+
+### 1차에서 무슨 일이 있었나
+
+8종이 다 나왔고 **내용은 전부 맞았다** — 저승사자 갓, 청사초롱 불꽃, 장승 이끼, 해태 뿔.
+위 네거티브 표가 노린 실패(서양 사신·돌덩이 해태·아메리카 토템폴)도 전부 피했다.
+
+**틀린 것은 화풍 하나였다.** 굵은 검은 외곽선 + 각진 픽셀/스티커풍으로 나왔다.
+기존 10종은 외곽선이 없고 부드러운 에어브러시 음영이다. 나란히 놓으면 **두 게임의 캐릭터로 보인다.**
+
+원본은 `art-src/2026-08-11_set3-korean-folklore/`에 남긴다 — 안 쓰더라도 버리지 않는다.
+
+### 무엇을 바꾸나 — 세 가지
+
+**① 낱장으로 뽑는다. 라인업 시트를 쓰지 않는다.**
+위 3절에서 "8종을 한 시트로 뽑으면 규격이 저절로 맞는다"고 했는데, **1차가 그 방식으로 실패했다.**
+시트는 *시트 안에서의* 일관성만 지켜준다. 우리가 맞춰야 할 상대는 시트 안이 아니라 **이미 있는 10종**이다.
+그건 시트가 아니라 **레퍼런스 첨부**가 잡는다.
+덤으로 해상도가 산다 — 시트 4칸이면 칸당 384px이라 400×400에 겨우 맞지만, 낱장이면 1024px이 나온다.
+
+**② 기존 PNG를 매번 첨부한다.** `public/img/pig.png` + `public/img/dokkaebi.png` 두 장.
+돼지는 짐승, 도깨비는 사람형이라 둘이면 화풍의 양 끝이 잡힌다. **8번 다 같은 두 장을 붙인다.**
+
+**③ 네거티브에 1차의 실패를 직접 적는다.** 아래 굵은 줄이 그것이다.
+
+> ⚠️ `ART_BRIEF.md` 3절의 `--ar 1:1 --style raw`는 **미드저니 플래그다.**
+> 지금 쓰는 것은 ChatGPT(파일명이 `ChatGPT Image ...`)라 그 플래그는 무시된다.
+> 아래 프롬프트는 ChatGPT에 그대로 붙여 넣도록 다시 썼다.
+
+### 공통 앞머리 — 8번 모두 이 블록으로 시작한다
+
+```
+Match the art style of the attached reference images exactly. That style is:
+soft painterly digital illustration with smooth airbrushed gradients and NO outlines at all,
+semi-3D volumetric shading like a soft vinyl toy, warm global illumination with the key light
+from the upper left plus a gentle rim light, large glossy expressive eyes with two catchlights
+(one large and one small), rounded chibi proportions with a big head and a small body,
+front three-quarter view, bust framing, centered, clean readable silhouette at small sizes,
+transparent background, square 1:1 canvas, high resolution.
+
+Framing must be identical across the whole set: head centered horizontally,
+top of the head at about 12% from the top edge, eye line at about 45% of the height.
+
+Make it feel alive: head slightly tilted, asymmetric pose, caught mid-motion with cloth,
+tassels or hair still settling, mouth slightly open.
+
+Do NOT use: pixel art, dot art, retro game sprite, dithering, chunky pixels,
+hard black outline, thick dark contour, cel shading, flat vector, sticker border,
+white sticker cutout edge, comic ink lines, text, watermark, busy background,
+multiple characters in one image.
+
+The character:
+```
+
+### 캐릭터별 뒷부분 — 위 블록 뒤에 이어 붙인다
+
+1차 프롬프트를 그대로 쓴다(내용은 맞았으므로). 캐릭터별 추가 네거티브도 위 4절 표 그대로.
+
+| # | id | 이어 붙일 구절 | 추가로 금지할 것 |
+|---|---|---|---|
+| 1 | `yutgarak` | `two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, flat side painted with a bold red X mark, small friendly face carved into the upper stick, sticks leaning against each other mid-tumble` | `plain object, product photo, no face, still life` |
+| 2 | `bokjumeoni` | `plump crimson silk lucky pouch mascot, gold embroidered longevity pattern, drawstring gathered at the top like a topknot, two golden tassels swinging to one side, round happy face on the pouch body` | 〃 |
+| 3 | `chorong` | `traditional Korean wedding lantern mascot, hexagonal frame with blue and red silk panels, warm candle glow from inside lighting its own face, small wooden carrying handle tilted, tiny flame flickering` | 〃 |
+| 4 | `jangseung` | `friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome` | `native american totem pole, tiki mask, scary` |
+| 5 | `haetae` | `young Korean haetae guardian beast, golden fur with copper-red mane in tight curls, single small horn on the forehead, scaled collar, round proud eyes, sitting alert and about to spring up` | `stone statue, temple lion statue, chinese guardian lion, jade sculpture` |
+| 6 | `sansin` | `tiny kind Korean mountain spirit grandfather, flowing white beard covering half his face, jade-green traditional robe, bushy white eyebrows, warm crinkled smiling eyes, small gnarled wooden staff` | `wizard, gandalf, chinese immortal, robe with stars` |
+| 7 | `yong` | `small friendly east-asian blue dragon, deep azure scales with silver belly, deer-like antlers, long flowing whiskers caught in the wind, round bright eyes, serpentine body coiled compactly` | `western dragon, bat wings, fire breathing` |
+| 8 | `jeoseung` | `stylish Korean grim reaper as a cute mascot, wide black gat hat tilted to one side, ink-black traditional dopo robe, pale calm face, half-lidded cool eyes, faint smirk, not scary at all` | `western grim reaper, skull face, scythe, hooded cloak, horror` |
+
+### 먼저 3장만
+
+8장을 다 뽑기 전에 **`jeoseung` · `chorong` · `bokjumeoni` 셋만** 뽑아 기존 돼지·도깨비와 나란히 놓아 본다.
+셋이 붙으면 나머지 5장도 붙는다. 안 붙으면 프롬프트를 더 손볼 일이지 8장을 버릴 일이 아니다.
+
+### 받은 뒤
+
+```bash
+# 낱장을 art-src/2026-08-11_set3-korean-folklore/cut/<id>.png 로 저장한 뒤
+python3 scripts/process-char-art.py art-src/2026-08-11_set3-korean-folklore/cut/<id>.png public/img/<id>.png
+```
+배경이 검정으로 나와도 괜찮다 — 코너 flood-fill로 벗긴다.
+넣을 곳 세 군데(`chars.js` · `shop.js` · `server.js`의 `CHAR_IDS`)는 위 4절 그대로.
