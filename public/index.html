@@ -87,6 +87,9 @@
 html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#6e6e76; --brand-gold:#8f6420; --brand-gold-d:#6b4a11; --brand-gold-ink:#fff8ec; --coin:#8a6210; --coin-d:#7d5809; --warn:#a85210; --accent:var(--brand-gold); --brass:var(--brand-gold); --brass-d:var(--brand-gold-d); --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; }
 html[data-theme="hanji"] body{ background:linear-gradient(180deg,#f7f8fa,#eef0f3); background-attachment:fixed; }
 html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme="hanji"] .tchip.on{ }
+/* 달빛 야시장 (yasi) — B 세계관을 테마로. 값만 교체, 이름은 그대로(대비 실측 완료). */
+html[data-theme="yasi"]{ --bg:#0d1220; --bg2:#131b2e; --panel:#1b2440; --panel2:#26315a; --line:rgba(180,195,235,.14); --ink:#f5eddc; --muted:#97a0c0; --brand-gold:#ffb454; --brand-gold-d:#e0912f; --brand-gold-ink:#241606; --coin:#f4c94b; --coin-d:#cc9e2e; --warn:#ef9a3c; --accent:#37b98c; --brass:var(--brand-gold); --brass-d:var(--brand-gold-d); --brass-ink:#241606; --you:#ffce7a; --opp:#8b9dd6; --die:#f5eddc; --die2:#d8cdb8; --pip:#0d1220; --win:#37b98c; --danger:#e85d72; }
+html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18); background-attachment:fixed; }
   html,body{height:100%}
   body{background:
       radial-gradient(1200px 700px at 50% -10%, #2a2017 0%, transparent 60%),
@@ -872,7 +875,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
 </script>
 <script>
 (function(){
-  var T=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
+  var T=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['yasi','야시장','#ffb454'],['hanji','라이트','#f2f2f4']];
   function g(){ try{var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';} }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); var lb=document.getElementById('lightBtn'); /* ☀️ 노드는 innerHTML 초기화 전에 참조 확보 (칩 클러스터 끝에 재편입, 삭제 방지) */ h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); if(lb) h.appendChild(lb); }
   function s(t){ document.documentElement.dataset.theme=t;

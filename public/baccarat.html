@@ -197,6 +197,42 @@ html[data-theme="hanji"] {
   --brass-ink: var(--brand-gold-ink);
   --gold: var(--coin);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+ * 4. 달빛 야시장 (yasi) — B(리브랜딩) 세계관을 '테마'로 얹은 것 (2026-08-11)
+ *
+ * 절충 방향의 실현: 토큰 '이름'은 그대로, '값'만 인디고 밤하늘 + 등불 주황 +
+ * 옥색 + 진홍으로 교체한다. 사용자가 테마 칩에서 골라 켜고 끌 수 있어 리스크 0.
+ * 전 게임(주입된 파일)에 자동 적용된다 — 토큰 단일소스의 payoff.
+ * 대비 실측(2026-08-11): 전 강조색 AA 통과(진홍 #e85d72 bg 5.55·panel 4.54).
+ * ══════════════════════════════════════════════════════════════════ */
+html[data-theme="yasi"] {
+  --bg: #0d1220;          /* 밤하늘 인디고 */
+  --bg2: #131b2e;
+  --panel: #1b2440;
+  --panel2: #26315a;
+  --line: rgba(180, 195, 235, .14);
+  --ink: #f5eddc;         /* 등불빛 도는 미색 */
+  --muted: #97a0c0;
+
+  --brand-gold: #ffb454;  /* 등불 주황 — 로고·CTA */
+  --brand-gold-d: #e0912f;
+  --brand-gold-ink: #241606;
+
+  --coin: #f4c94b;        /* 금박/복주머니 금 */
+  --coin-d: #cc9e2e;
+
+  --warn: #ef9a3c;
+  --win: #37b98c;         /* 옥색 — 성공(accent와 통합) */
+  --danger: #e85d72;      /* 복주머니 진홍(대비 보정) */
+  --accent: #37b98c;      /* 옥색 — B에서 처음 독립값을 가짐(A에선 브랜드골드 별칭) */
+
+  /* 레거시 별칭 — 이관 안 된 사용처(var(--brass)/var(--gold)) 무중단 */
+  --brass: var(--brand-gold);
+  --brass-d: var(--brand-gold-d);
+  --brass-ink: var(--brand-gold-ink);
+  --gold: var(--coin);
+}
 /* TOKENS:END */
   :root{
     /* 게임판 전용 예외 토큰만 남긴다 — 앱 크롬(--bg/--panel/--brass/--gold 등)은
