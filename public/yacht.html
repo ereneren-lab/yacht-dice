@@ -2833,7 +2833,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   })();
 })();
 </script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
+<script>/* 앱(Capacitor) 안에서는 등록하지 않는다 — 자산이 이미 APK 안에 있어 캐시할 이유가 없는데,
+   커스텀 스킴 응답이라 등록이 반드시 실패하며 콘솔에 'An unknown error occurred when fetching the script.'만 남는다.
+   웹에서는 그대로 등록한다 — 재방문 8.8초 → 0.65초가 여기서 나온다. */
+if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())){navigator.serviceWorker.register('sw.js').catch(function(){});}
 (function(){
   var cols=document.getElementById('xlCols');
   if(cols && !cols.children.length){ cols.innerHTML='<span class="xl-corner"></span>'; for(var i=0;i<16;i++){ var s=document.createElement('span'); s.textContent=String.fromCharCode(65+i); cols.appendChild(s); } }

@@ -25,8 +25,18 @@
     (window.plausible.q = window.plausible.q || []).push(arguments);
   };
 
-  // 로컬 개발에선 Plausible이 이벤트를 무시한다. 콘솔로 확인한다(검증 스크립트가 이 줄을 읽는다).
-  var DEV = /^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(location.hostname);
+  /* 로컬 개발에선 Plausible이 이벤트를 무시한다. 콘솔로 확인한다(검증 스크립트가 이 줄을 읽는다).
+   *
+   * 🔴 2026-08-11 — **앱도 localhost다.** Capacitor는 앱 자산을 `https://localhost`(안드로이드)·
+   *    `app://localhost`(iOS)로 띄운다. 호스트만 보면 앱 사용자가 통째로 개발자로 분류돼
+   *    이벤트가 하나도 안 나간다(실제로 그랬다). 개발 서버는 `http://localhost:3000`이므로
+   *    **스킴으로 가른다** — http면 개발, 그 외면 앱이다.
+   *    ⚠️ 이걸 고쳐도 앱에서 바로 잡히진 않는다. Plausible의 `script.js`도 제 나름대로
+   *       localhost를 걸러 "Ignoring Event: localhost"를 찍는다 → 앱 번들만 `script.local.js`로
+   *       바꿔 넣는다(scripts/app-deploy.sh). 두 겹을 다 풀어야 앱 사용이 보인다. */
+  var LOCAL_HOST = /^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(location.hostname);
+  var IS_APP = LOCAL_HOST && location.protocol !== 'http:';
+  var DEV = LOCAL_HOST && !IS_APP;
 
   function send(name, props) {
     try {

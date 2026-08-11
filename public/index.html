@@ -1173,7 +1173,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .gcard, html[data-theme=
     };
   }catch(e){}
 })();</script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
+<script>/* 앱(Capacitor) 안에서는 등록하지 않는다 — 자산이 이미 APK 안에 있어 캐시할 이유가 없는데,
+   커스텀 스킴 응답이라 등록이 반드시 실패하며 콘솔에 'An unknown error occurred when fetching the script.'만 남는다.
+   웹에서는 그대로 등록한다 — 재방문 8.8초 → 0.65초가 여기서 나온다. */
+if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
 <script>(function(){
   // PWA 설치 배너: beforeinstallprompt를 가로채 가벼운 1회 안내만 노출
   var bar=document.getElementById('installBar'); if(!bar) return;

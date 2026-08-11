@@ -34,6 +34,22 @@ node "$ROOT/scripts/check-drift.js" >/dev/null || { echo "❌ 코어와 HTML이 
 echo "▶ 웹 자산 동기화"
 ( cd "$ROOT" && npx cap sync android >/dev/null )
 
+# 앱 번들만 Plausible 스크립트를 localhost 허용판으로 바꾼다.
+#   앱 자산은 https://localhost로 뜨는데, 기본 script.js는 localhost면 "Ignoring Event: localhost"를
+#   찍고 전부 버린다 → 앱 사용이 계측에 하나도 안 잡힌다(2026-08-11 실측).
+#   ⚠️ public/ 원본은 건드리지 않는다. 웹까지 local판을 쓰면 개발 중 브라우징이 실서비스 숫자에 섞인다.
+echo "▶ 앱 번들 계측 보정 (script.js → script.local.js)"
+ASSETS="$ROOT/android/app/src/main/assets/public"
+BEFORE=$(grep -rl "plausible.io/js/script.js" "$ASSETS" 2>/dev/null | wc -l | tr -d ' ')
+if [ "$BEFORE" != "0" ]; then
+  grep -rl "plausible.io/js/script.js" "$ASSETS" | while read -r f; do
+    sed -i '' 's#plausible.io/js/script.js#plausible.io/js/script.local.js#g' "$f"
+  done
+fi
+AFTER=$(grep -rl "plausible.io/js/script.local.js" "$ASSETS" 2>/dev/null | wc -l | tr -d ' ')
+echo "   $BEFORE개 파일 → local판 $AFTER개"
+[ "$AFTER" = "0" ] && echo "   ⚠️ 하나도 안 바뀌었다 — 앱 사용은 계측에 안 잡힌다(치명적이진 않다)"
+
 echo "▶ APK 빌드 (첫 실행은 몇 분 걸린다)"
 ( cd "$ROOT/android" && ./gradlew assembleDebug --no-daemon -q )
 
