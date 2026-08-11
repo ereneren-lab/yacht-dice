@@ -109,7 +109,11 @@
           b.innerHTML =
             '<div class="ic-txt">친구랑 하면 더 재밌어요</div>' +
             '<a class="ic-btn" href="' + esc(href) + '">🔗 친구랑 하기</a>';
-          mount.appendChild(b);
+          // 첫 액션 버튼(대개 '다시 하기') 바로 뒤에 끼운다 — 긴 결과 화면에서 맨 끝에 붙이면
+          // 스크롤 밑에 묻혀 안 보인다(실기기 확인). 버튼을 못 찾으면 맨 끝에 붙인다.
+          var firstBtn = mount.querySelector('button, a.btn, .btn');
+          if (firstBtn && firstBtn.parentElement === mount) mount.insertBefore(b, firstBtn.nextSibling);
+          else mount.appendChild(b);
           var a = b.querySelector('.ic-btn');
           if (a) a.addEventListener('click', function () {
             try { window.AL && AL.ev('재초대_클릭', { 게임: gname }); } catch (e) {}
