@@ -70,7 +70,8 @@
     "serve:static": "node scripts/serve-static.js",
     "og:card": "node scripts/make-og-card.js",
     "audit:tokens": "node scripts/audit-tokens.js",
-    "sim:ldflow": "node scripts/sim/ld-flow.js"
+    "sim:ldflow": "node scripts/sim/ld-flow.js",
+    "test:yutstack": "node scripts/browser-test/verify-yut-stack.js"
   },
   "engines": {
     "node": ">=18"

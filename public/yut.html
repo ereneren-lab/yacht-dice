@@ -3229,14 +3229,36 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
   // BANNER_MS: 1700→1150. AI 턴 간격(900ms)보다 길어서 배너가 다음 턴까지 남아 겹쳤다
   // (측정: 오버레이가 화면에 떠 있는 시간이 56%였다).
   const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=1050, BANNER_MS=1150;
+  /* 같은 칸에 선 말들을 어디에 놓을지 — **renderPieces와 pieceSettledXY가 반드시 같은 답을 내야 한다.**
+     🔴 2026-08-11에 renderPieces만 고쳤다(29→0 접기 · 간격 가변). pieceSettledXY는 옛 셈으로 남았고
+        (칸 번호 그대로 · 13px 고정) 그래서 **착지 좌표가 어긋났다** — 0과 29에 하나씩 서 있으면 6.5px,
+        여섯이 몰리면 7.5px. 말이 내려앉은 뒤 옆으로 튀고 착지 먼지도 엉뚱한 데서 핀다.
+        튐을 막으려고 만든 함수가 튐을 만들고 있었다.
+     → 셈을 여기 하나로 모은다. 자리 규칙을 바꿀 일이 생기면 **여기만** 고칠 것. */
+  const PC_SPOT=(nd)=> (nd===29 ? 0 : nd);          // 29(완주 게이트)는 0(출발점) 자리에 그려진다
+  const PC_GAP=(n)=> n<=3 ? 13 : n<=5 ? 12 : 10;    // 총 폭이 옆 칸(66px)을 넘지 않게
+  const PC_SHRINK=(n)=> n<=4 ? 1 : n<=6 ? 0.86 : 0.76;   // 붐비면 조금 작게 — 각자 테두리가 드러나게
+  /** 판에 나와 있는 말을 화면상 같은 자리끼리 묶는다. 묶는 순서가 곧 스택 순서다. */
+  function pieceStacks(){
+    const by={};
+    if(!S) return by;
+    S.players.forEach((p,pi)=>p.pieces.forEach(pc=>{
+      if(!pc.done&&pc.out){ const k=PC_SPOT(pc.node); (by[k]=by[k]||[]).push({pi,pc,p}); }
+    }));
+    return by;
+  }
+  /** 묶음 arr의 k번째 말이 실제로 놓이는 좌표 */
+  function pieceStackXY(nd, k, n){
+    const [bx,by]=nodeXY(+nd);
+    return [bx+(k-(n-1)/2)*PC_GAP(n), by-2];
+  }
   // renderPieces가 이 말을 실제로 놓을 좌표(업기 스택 오프셋·y보정 포함) — 도착 후 튐(옮겨가는 것처럼 보임) 방지
   function pieceSettledXY(seat, pieceId){
     if(!S) return null;
-    const byNode={};
-    S.players.forEach((p,pi)=>p.pieces.forEach(pc=>{ if(!pc.done&&pc.out){ (byNode[pc.node]=byNode[pc.node]||[]).push({pi,id:pc.id}); } }));
-    for(const nd of Object.keys(byNode)){
-      const arr=byNode[nd]; const idx=arr.findIndex(o=>o.pi===seat&&o.id===pieceId);
-      if(idx>=0){ const [bx,by]=nodeXY(+nd); return [bx+(idx-(arr.length-1)/2)*13, by-2]; }
+    const by=pieceStacks();
+    for(const nd of Object.keys(by)){
+      const arr=by[nd]; const idx=arr.findIndex(o=>o.pi===seat&&o.pc.id===pieceId);
+      if(idx>=0) return pieceStackXY(nd, idx, arr.length);
     }
     return null; // 완주해 판에서 빠짐
   }
@@ -3386,14 +3408,17 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       // 첫 hop은 선두 말의 현재 좌표를 출발점으로 읽는다 — 안 그러면 '도'(1칸)에 자취가 아예 안 생긴다.
       if(i>0){ const [px,py]=nodeXY(nodes[i-1]); spawnTrail(px,py); }
       else {
-        // 업힌 말은 (k-(N-1)/2)*13 만큼 좌우로 벌어져 있다 → 평균이 곧 출발 칸 중심.
+        // 업힌 말은 pieceStackXY만큼 좌우로 벌어져 있다 → 평균이 곧 출발 칸 중심.
         // 이후 잔상은 전부 nodeXY(칸 중심) 기준이므로 첫 잔상도 중심이어야 축이 맞는다.
         let sx=0, sy=0, c=0;
         els.forEach(o=>{ const m=/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/.exec(o.g.getAttribute('transform')||''); if(m){ sx+=+m[1]; sy+=+m[2]; c++; } });
         if(c) spawnTrail(sx/c, sy/c);
       }
       els.forEach((o,k)=>{
-        const e=(last && endMap && endMap[o.id]) ? endMap[o.id] : [bx+(k-(N-1)/2)*13, by-2];
+        /* 중간 홉은 '지금 함께 나는 N개'만 벌린다(도착 칸에 이미 선 말은 마지막 홉의 endMap이 셈한다).
+           ⚠️ 간격을 여기 또 적지 말 것 — 13px으로 적혀 있던 탓에 넷 이상이 함께 움직이면
+              마지막 홉에서 자리가 한 번 튀었다(그리는 쪽은 12·10으로 좁히는데 여기만 13이었다). */
+        const e=(last && endMap && endMap[o.id]) ? endMap[o.id] : pieceStackXY(nodes[i], k, N);
         o.g.setAttribute('transform','translate('+e[0].toFixed(1)+','+e[1].toFixed(1)+')');
       });
       i++;
@@ -3543,23 +3568,22 @@ html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2
       ? S.players.map((p,pi)=>pi).filter(pi=>dispDone(pi)===topDone) : [];
     /* 🔴 2026-08-11 — **말이 서로를 완전히 가리는 자리가 있었다.**
        ① 29(완주 게이트)는 0(출발점) **위치에 그려진다**(nodeXY가 29→0으로 접는다).
-          그런데 여기서는 칸 번호로 묶어서, 0에 선 말과 29에 선 말이 **각각 자기 그룹의 중앙**에
+          그런데 칸 번호로 묶어서, 0에 선 말과 29에 선 말이 **각각 자기 그룹의 중앙**에
           놓였다 — 둘 다 off=0이라 **좌표가 정확히 같아** 하나가 완전히 사라졌다.
           → 묶는 열쇠도 '화면상 같은 자리'로 접는다(잡기에서 0≡29로 본 것과 같은 이유).
        ② 한 칸에 여럿(업기·팀전·방어막)일 때 13px 고정이라 4개부터 뒤쪽이 거의 안 보였다.
           → 수가 늘면 간격을 좁히는 대신 **말을 조금 줄여** 각자 테두리가 드러나게 한다.
-          간격을 무작정 넓히면 옆 칸(간격 66px) 말과 섞여 더 헷갈린다. */
-    const spotOf=(nd)=> (nd===29 ? 0 : nd);      // 화면상 같은 자리로 접는다
-    const byNode={};
-    S.players.forEach((p,pi)=>p.pieces.forEach(pc=>{ if(!pc.done&&pc.out){ const key=spotOf(pc.node); (byNode[key]=byNode[key]||[]).push({pi,pc,p}); } }));
+          간격을 무작정 넓히면 옆 칸(간격 66px) 말과 섞여 더 헷갈린다.
+       ⚠️ 그 셈은 pieceStacks/pieceStackXY/PC_SHRINK에 있다 — 착지 좌표를 내는 pieceSettledXY와
+          **같은 것을 써야 한다.** 여기에 따로 적었다가 둘이 어긋나 말이 튀었다(위 함수 주석 참고). */
+    const byNode=pieceStacks();
     const seen={};
     Object.keys(byNode).forEach(nd=>{
-      const arr=byNode[+nd]; const [bx,by]=nodeXY(+nd);
+      const arr=byNode[+nd];
       const n=arr.length;
-      const gap = n<=3 ? 13 : n<=5 ? 12 : 10;                    // 총 폭이 옆 칸(66px)을 넘지 않게
-      const shrink = n<=4 ? 1 : n<=6 ? 0.86 : 0.76;              // 붐비면 조금 작게 — 테두리가 보이게
+      const shrink = PC_SHRINK(n);
       arr.forEach((o,k)=>{
-        const off=(k-(n-1)/2)*gap; const x=bx+off, y=by-2;
+        const [x,y]=pieceStackXY(nd, k, n);
         const id='pc-'+o.pi+'-'+o.pc.id; seen[id]=1;
         const mv=pieceMovable(o.pc, o.pi);
         const type=pieceAnimal(o.p, o.pi);

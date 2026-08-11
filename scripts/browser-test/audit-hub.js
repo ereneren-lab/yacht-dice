@@ -73,6 +73,11 @@ return {
 };`;
 
 (async () => {
+  /* ⚠️ P는 붙는 단계에서 이미 쓴다(아래 '실기기에 붙었다') — 반드시 여기, if(PHONE)보다 위에 둘 것.
+     아래쪽에 있었을 때 --phone은 붙자마자 TDZ로 죽었다(`Cannot access 'P' before initialization`).
+     헤드리스 경로는 P를 나중에 처음 써서 멀쩡했고, 그래서 두 벌을 합친 뒤에도 아무도 모르고 있었다(8/11 발견). */
+  const P = (s) => console.log(s);
+
   /* 붙는 방법만 갈린다 — 재는 눈(MEASURE·검사 항목)은 아래에서 공유한다.
      실기기는 화면 크기를 우리가 못 정하므로 여러 뷰포트 훑기(①②)는 헤드리스에서만 한다. */
   let cdp = null, BASE = 'http://localhost:3000/', phone = null;
@@ -97,7 +102,6 @@ return {
   const openPage = async (w, h) => phone ? Object.create(phone, { close: { value: async () => {} } })
                                          : await cdp.newPage(w, h);
   let fail = 0, warn = 0;
-  const P = (s) => console.log(s);
 
   // ── ①②⑥ 폭별 측정
   P('════════ ①② 첫 화면: 13종이 다 들어오고 문서가 짧은가 ════════');
