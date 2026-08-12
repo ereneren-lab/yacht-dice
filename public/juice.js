@@ -30,7 +30,12 @@
   var CSS =
     '.juice-pop{animation:juicePop .2s cubic-bezier(.2,1.5,.4,1)}' +
     '@keyframes juicePop{0%{transform:scale(1)}40%{transform:scale(1.13)}70%{transform:scale(.965)}100%{transform:none}}' +
-    '@media (prefers-reduced-motion:reduce){.juice-pop{animation:none}}';
+    // 결과창 등장 통일 — 패널이 '툭' 스냅 대신 살짝 떠오르며 페이드인.
+    // 컨테이너 구조가 3가지라(.ov>.sheet · .sheet>.card · .result>.resbox) 내부 패널만 겨냥한다.
+    // yacht는 #overlay.show 라 여기 안 걸린다(엑셀 위장 = 차분 유지, 의도적 제외).
+    '.ov.on>.sheet,.sheet.on>.card,.sheet.on>.sheetbox,.result.on>.resbox{animation:juiceRise .3s cubic-bezier(.2,.9,.3,1) both}' +
+    '@keyframes juiceRise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}' +
+    '@media (prefers-reduced-motion:reduce){.juice-pop,.ov.on>.sheet,.sheet.on>.card,.sheet.on>.sheetbox,.result.on>.resbox{animation:none}}';
 
   function muted() {
     try { return !!(window.SFX && typeof SFX.on === 'function' && SFX.on() === false); } catch (e) { return false; }

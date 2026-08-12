@@ -67,6 +67,21 @@ async function run(){
         `);
         check(`${g}: celebrate 호출`, cel==='OK', cel);
 
+        // 결과창 등장: 오버레이에 .on 을 걸면 내부 패널에 juiceRise 애니메이션이 붙는가.
+        // yacht 는 #overlay.show(차분 유지)라 의도적으로 안 걸려야 한다.
+        const rise = await page.eval(`
+          var ov = document.getElementById('resultOv') || document.getElementById('resOv') || document.getElementById('overlay');
+          if(!ov) return 'NOOV';
+          ov.classList.add('on');
+          var panel = ov.querySelector('.card, .resbox') || ov.firstElementChild;
+          var name = panel ? getComputedStyle(panel).animationName : 'nopanel';
+          ov.classList.remove('on');
+          return name;
+        `);
+        const wantRise = (g !== 'yacht');
+        check(`${g}: 결과창 등장 ${wantRise?'모션':'제외(차분)'}`,
+          wantRise ? rise==='juiceRise' : rise!=='juiceRise', `animation=${rise}`);
+
         const errs = (page.errors||[]).filter(e=>!/favicon|ERR_|net::/.test(e));
         check(`${g}: 콘솔 예외 0`, errs.length===0, errs.slice(0,2).join(' | '));
       } finally {
