@@ -15,7 +15,8 @@ const GAMES = ['/kb.html','/yacht.html','/ld.html','/lcr.html','/yut.html','/alk
    (`grep src=|href=`로 전 13종에서 뽑은 목록이다. 새 공용 스크립트를 추가하면 여기도 같이 넣을 것.) */
 const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js','/ws-url.js',
   '/text-floor.js','/chars.js','/fit-setup.js','/tutorial.js','/shop.js','/setup-order.js',
-  '/landscape.css','/net.js','/monetize.js','/host-link.js','/cardfx.js','/game-core.js'];
+  '/landscape.css','/net.js','/monetize.js','/host-link.js','/cardfx.js','/game-core.js',
+  '/invite-cta.js','/tokens.css'];
 
 async function warmGames() {
   try {
