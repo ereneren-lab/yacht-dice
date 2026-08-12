@@ -2008,6 +2008,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     buildReactbar();
     // (A) 내 차례 알림 — 온라인일 때만, 새로 내 차례가 됐을 때 1회
     const mt=isMyTurn(s);
+    try{ window.JUICE&&JUICE.turnCue('#rollBtn', mt); }catch(e){}   // '내 차례' 진입 펄스
     if(online()){ if(mt && !lastMyTurn) notifyTurn(); if(!mt) stopBlink(); }
     lastMyTurn=mt;
   }

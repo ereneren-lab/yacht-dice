@@ -4066,6 +4066,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     const ms=mySeat();
     // 내 차례 알림: 온라인에서 내 차례로 막 바뀌면 알림, 아니면 깜빡임 정리
     const mt=(ms===S.turn && S.phase!=='over'); if(online){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
+    try{ window.JUICE&&JUICE.turnCue('#throwBtn', mt); }catch(e){}   // '내 차례' 진입 펄스
     const btn=$('throwBtn'); const ti=$('turnInfo');
     btn.classList.remove('ready'); ti.classList.remove('myturn');
     const showGauge=(S.turn===ms && (S.phase==='throw' || S.phase==='order'));
