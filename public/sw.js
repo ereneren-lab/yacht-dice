@@ -1,6 +1,6 @@
 // 딱세판만 서비스워커 — network-first + 오프라인 폴백
 // 배포마다 CACHE 버전을 올리면 활성화 시 옛 캐시를 정리한다.
-const CACHE = 'alley-v12';
+const CACHE = 'alley-v13';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 /* 게임 13종은 **전부 브라우저에서 도는 정적 파일**이다(서버는 온라인 대전에만 쓴다).
@@ -13,7 +13,7 @@ const GAMES = ['/kb.html','/yacht.html','/ld.html','/lcr.html','/yut.html','/alk
 /* ⚠️ HTML만 받아 두면 소용이 적다 — 실측(2초 지연 서버)에서 페이지는 캐시로 떴는데
    딸린 스크립트가 서버를 때려 5초가 걸렸다. **13종이 공통으로 부르는 것들**을 같이 받는다.
    (`grep src=|href=`로 전 13종에서 뽑은 목록이다. 새 공용 스크립트를 추가하면 여기도 같이 넣을 것.) */
-const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js','/ws-url.js',
+const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js','/ws-url.js','/share-url.js',
   '/text-floor.js','/chars.js','/fit-setup.js','/tutorial.js','/shop.js','/setup-order.js',
   '/landscape.css','/net.js','/monetize.js','/host-link.js','/cardfx.js','/game-core.js',
   '/invite-cta.js','/tokens.css','/sw-reg.js','/juice.js','/snd.js','/bgm.js'];

@@ -18,6 +18,7 @@
 <script src="stats.js"></script>
 <script src="chars.js"></script>
 <script src="ws-url.js"></script>
+<script src="share-url.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -32,15 +33,15 @@
 <meta name="description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 칩을 좌·우 이웃에게 넘기고, 마지막까지 남은 1명이 가운데 팟을 싹쓸이!">
 <meta property="og:title" content="좌·중·우(LCR) — 딱세판만">
 <meta property="og:description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 칩을 좌·우 이웃에게 넘기고, 마지막까지 남은 1명이 가운데 팟을 싹쓸이!">
-<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/og/lcr.jpg">
+<meta property="og:image" content="https://ereneren-lab.github.io/yacht-dice/og/lcr.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/lcr.html">
+<meta property="og:url" content="https://ereneren-lab.github.io/yacht-dice/lcr.html">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="좌·중·우(LCR) — 딱세판만">
 <meta name="twitter:description" content="설치 없이 링크로 즐기는 순수 운빨 파티 주사위 게임. 마지막 1명이 팟을 싹쓸이!">
-<meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/og/lcr.jpg">
+<meta name="twitter:image" content="https://ereneren-lab.github.io/yacht-dice/og/lcr.jpg">
 <style>
   /* TOKENS:START */
 /**
@@ -1720,7 +1721,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('lobbyCopy').onclick=()=>{
-    const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
+    const code=roomCode||''; const url=(window.inviteUrl?inviteUrl(code):location.origin+location.pathname+'?room='+code);
     if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url,'🔗 초대 링크 복사됨')); }
     else copyText(url,'🔗 초대 링크 복사됨');
   };
@@ -1778,7 +1779,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     return `딱세판만 · 좌중우(LCR) 한 판 붙었어. ${w?dispName(w)+' 승리':''} 🔀`;
   }
   // 공유 URL — 방을 아직 유지 중이면 ?room=CODE 딥링크로 바로 합류 가능하게
-  function shareUrl(){ let u=location.origin+location.pathname; if(online && roomCode) u+='?room='+roomCode; return u; }
+  function shareUrl(){ return (window.inviteUrl ? inviteUrl(online && roomCode ? roomCode : '') : (location.origin+location.pathname+(online&&roomCode?'?room='+roomCode:''))); }
   function shareResult(){
     const text=buildShareText(); const url=shareUrl();
     if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); }
