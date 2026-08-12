@@ -1316,7 +1316,7 @@ try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
 try{ cfg.diff=localStorage.getItem('seotda_diff')||'normal'; }catch(e){}
 
 // 테마
-(function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
+(function(){ try{ const t=localStorage.getItem('alley_theme'); document.documentElement.dataset.theme=t||'yasi'; }catch(e){} })();
 $('lightBtn').onclick=()=>{ const cur=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=cur; try{localStorage.setItem('alley_theme',cur);}catch(e){} };
 $('helpBtn').onclick=()=>$('rulesOv').classList.add('on');
 $('soundBtn').textContent=SFX.on()?'🔊':'🔇';

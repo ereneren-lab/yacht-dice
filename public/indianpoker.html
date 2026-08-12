@@ -951,7 +951,7 @@ try{ cfg.name=localStorage.getItem('alley_name')||''; }catch(e){}
 let engine=null, S=null, prevS=null;
 
 // 테마/버튼
-(function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
+(function(){ try{ const t=localStorage.getItem('alley_theme'); document.documentElement.dataset.theme=t||'yasi'; }catch(e){} })();
 $('lightBtn').onclick=()=>{ const c=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=c; try{localStorage.setItem('alley_theme',c);}catch(e){} };
 $('soundBtn').textContent=SFX.on()?'🔊':'🔇';
 $('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'🔊':'🔇'; if(v){SFX.resume();SFX.chip();} };

@@ -22,7 +22,7 @@
 <script data-goatcounter="https://sepan.goatcounter.com/count" data-goatcounter-settings='{"no_onload":true,"allow_local":true}' async src="//gc.zgo.at/count.js"></script>
 <script src="analytics.js"></script>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#15110d">
+<meta name="theme-color" content="#0d1220">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- 공유 미리보기 (OG / 트위터) -->
@@ -1892,8 +1892,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
 <script>
 /* ===== 테마 ===== */
 (function(){
-  const T=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
-  function g(){ try{var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';} }
+  const T=[['yasi','야시장','#ffb454'],['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
+  function g(){ try{var t=localStorage.getItem('alley_theme')||'yasi'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='yasi';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'yasi';} }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
   function s(t){ document.documentElement.dataset.theme=t;
     try{ localStorage.setItem('alley_theme',t); if(t!=='hanji') localStorage.setItem('alley_theme_dark',t); }catch(e){}
@@ -1911,10 +1911,10 @@ if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatf
   function sync(){ lb.textContent=(document.documentElement.dataset.theme==='hanji')?'🌙':'☀️'; }
   window.__alleySyncLight=sync;
   lb.onclick=function(){
-    var cur=document.documentElement.dataset.theme||'espresso';
-    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
+    var cur=document.documentElement.dataset.theme||'yasi';
+    var prev='yasi'; try{ prev=localStorage.getItem('alley_theme_dark')||'yasi'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
     /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자를 잃지 않는다 */
-    var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
+    var t = cur==='hanji' ? (prev==='hanji'?'yasi':prev) : 'hanji';
     if(window.__alleySetTheme) window.__alleySetTheme(t);
     else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
     sync();

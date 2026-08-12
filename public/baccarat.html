@@ -539,7 +539,7 @@ let bank=0, goal=0, bets={P:0,B:0,T:0}, sel='P', shoe=[], P=[], B=[], phase='bet
 let itemsOn=false, items=0, peekCard=null;
 
 // 테마/버튼
-(function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
+(function(){ try{ const t=localStorage.getItem('alley_theme'); document.documentElement.dataset.theme=t||'yasi'; }catch(e){} })();
 $('lightBtn').onclick=()=>{ const c=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=c; try{localStorage.setItem('alley_theme',c);}catch(e){} };
 $('soundBtn').textContent=SFX.on()?'🔊':'🔇';
 $('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'🔊':'🔇'; if(v){SFX.resume();SFX.chip();} };

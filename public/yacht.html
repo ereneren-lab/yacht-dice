@@ -475,6 +475,9 @@
   /* themes */
   html[data-theme="sesame"]{ --bg:#121212; --panel:#1f1f1f; --panel2:#2a2a2a; --line:rgba(255,255,255,.11); --ink:#f0ede8; --muted:#989088; --accent:#c9bcd8; --accent-ink:#121212; --gold:#e8e2d4; --ai:#b8a0e0; --danger:#e88a8a; }
 html[data-theme="hanji"]{ --bg:#f2f3f5; --bg2:#ffffff; --panel:#ffffff; --panel2:#eceef1; --line:rgba(0,0,0,.10); --ink:#1c1c1e; --muted:#6e6e76; --brass:#8f6420; --brass-d:#6b4a11; --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#44444c; --pip:#ffffff; --win:#3a9a4a; --danger:#d84535; --brass-ink:#fff8ec; --accent:#c8842a; --accent-ink:#ffffff; --gold:#c8842a; --ai:#7a5cc0; }
+/* 달빛 야시장 — yacht 자체 토큰명으로 yasi 값. (전면 --accent→--brand-gold 이관은 B1 별도) */
+html[data-theme="yasi"]{ --bg:#0d1220; --bg2:#131b2e; --panel:#1b2440; --panel2:#26315a; --line:rgba(180,195,235,.14); --ink:#f5eddc; --muted:#97a0c0; --brass:#ffb454; --brass-d:#e0912f; --you:#ffce7a; --opp:#8b9dd6; --die:#f5eddc; --die2:#d8cdb8; --pip:#0d1220; --win:#37b98c; --danger:#e85d72; --brass-ink:#241606; --accent:#ffb454; --accent-ink:#241606; --gold:#f4c94b; --ai:#8b9dd6; }
+html[data-theme="yasi"] body.ingame::before{ display:none }
 html[data-theme="excel"]{ --bg:#e8e8e8; --bg2:#ffffff; --panel:#ffffff; --panel2:#f3f6f4; --line:#d4d4d4; --ink:#1a1a1a; --muted:#7a7a7a; --brass:#217346; --brass-d:#185c37; --you:#217346; --opp:#c43e1c; --die:#217346; --die2:#185c37; --pip:#ffffff; --win:#217346; --danger:#c43e1c; --brass-ink:#ffffff; --accent:#217346; --accent-ink:#ffffff; --gold:#217346; --ai:#c43e1c; --font:"Segoe UI","맑은 고딕","Malgun Gothic",Calibri,sans-serif; }
 #excelChrome, #excelStatus{ display:none }
 html[data-theme="excel"] #excelChrome{ display:block;position:fixed;top:0;left:0;right:0;z-index:200;font-family:'Segoe UI','맑은 고딕','Malgun Gothic',sans-serif;box-shadow:0 2px 5px rgba(0,0,0,.12) }
@@ -1144,7 +1147,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 </style>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#15110d">
+<meta name="theme-color" content="#0d1220">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
@@ -2790,7 +2793,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const THEMES=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4'],['excel','엑셀','#217346'],['photoshop','포토샵','#31a8ff']];
   // 엑셀·포토샵은 요트 전용 위장 테마 — 공유 키(alley_theme)엔 저장하지 않고 요트 전용 키로만 기억한다.
   // (공유 키에 'excel'/'photoshop'이 새면 다른 게임/허브가 폴백돼 테마칩 하이라이트가 사라진다.)
-  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; if(localStorage.getItem('yacht_theme_photoshop')==='1') return 'photoshop'; var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';}})();
+  let theme=(function(){try{ if(localStorage.getItem('yacht_theme_excel')==='1') return 'excel'; if(localStorage.getItem('yacht_theme_photoshop')==='1') return 'photoshop'; var t=localStorage.getItem('alley_theme')||'yasi'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='yasi';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'yasi';}})();
   function applyTheme(t){ theme=t; document.documentElement.dataset.theme=t;
     try{
       if(DISGUISE.includes(t)){
@@ -2887,15 +2890,15 @@ if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatf
 })();</script>
 <script>(function(){
   var lb=document.getElementById('lightBtn'); if(!lb)return;
-  function sync(){ var th=document.documentElement.dataset.theme||'espresso';
+  function sync(){ var th=document.documentElement.dataset.theme||'yasi';
     if(th==='excel'){ lb.style.display='none'; return; }
     lb.style.display=''; lb.textContent=(th==='hanji')?'🌙':'☀️'; }
   window.__alleySyncLight=sync;
   lb.onclick=function(){
-    var cur=document.documentElement.dataset.theme||'espresso'; if(cur==='excel') return;
-    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
+    var cur=document.documentElement.dataset.theme||'yasi'; if(cur==='excel') return;
+    var prev='yasi'; try{ prev=localStorage.getItem('alley_theme_dark')||'yasi'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
     /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자 등을 잃지 않는다 */
-    var t = cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji';
+    var t = cur==='hanji' ? (prev==='hanji'?'yasi':prev) : 'hanji';
     if(window.__alleySetTheme) window.__alleySetTheme(t);
     else { document.documentElement.dataset.theme=t; try{localStorage.setItem('alley_theme',t);}catch(e){} }
     sync();

@@ -569,7 +569,7 @@ let itemsOn=false, items=0, peeked=false;
 let animP=0, animD=0, dealerShownPrev=false;   // 카드 등장/딜러 히든 플립 추적
 
 // 테마
-(function(){ try{ const t=localStorage.getItem('alley_theme'); if(t)document.documentElement.dataset.theme=t; }catch(e){} })();
+(function(){ try{ const t=localStorage.getItem('alley_theme'); document.documentElement.dataset.theme=t||'yasi'; }catch(e){} })();
 $('lightBtn').onclick=()=>{ const c=document.documentElement.dataset.theme==='hanji'?'wood':'hanji'; document.documentElement.dataset.theme=c; try{localStorage.setItem('alley_theme',c);}catch(e){} };
 $('soundBtn').textContent=SFX.on()?'🔊':'🔇';
 $('soundBtn').onclick=()=>{ const v=SFX.toggle(); $('soundBtn').textContent=v?'🔊':'🔇'; if(v){SFX.resume();SFX.chip();} };
