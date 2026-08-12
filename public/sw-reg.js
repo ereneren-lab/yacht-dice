@@ -1,8 +1,9 @@
 // 딱세판만 — 서비스워커 등록 + '새 버전' 넛지 (A5)
-// 왜 필요한가: sw.js는 cache-first다(잠든 Render 서버·지하철 대비). 그래서 배포 직후에도
-// 한 번은 옛 화면이 뜬다. 새 SW가 조용히 배포를 받아 컨트롤을 넘겨받는 순간을 잡아
-// "새 버전 있어요 · 탭하여 새로고침" 토스트를 띄운다 — 사용자가 탭하면 새 CACHE(빈 캐시)로
-// 리로드되어 최신 내용을 즉시 본다.
+// 왜 필요한가: sw.js는 HTML·JS·CSS를 네트워크 우선(2.5초 타임아웃)으로 준다(2026-08-12 개편).
+// 깨어있는 호스트(github.io·깨어난 Render)에선 항상 최신이라 넛지가 필요 없지만,
+// 잠든 Render(21.6초)에서 타임아웃돼 캐시로 폴백한 경우엔 옛 화면이 뜰 수 있다 — 그때
+// 새 SW가 컨트롤을 넘겨받는 순간을 잡아 "새 버전 있어요 · 탭하여 새로고침"을 띄운다.
+// updateViaCache:'none' — sw.js 업데이트 감지를 HTTP 캐시로 늦추지 않는다.
 (function () {
   if (!('serviceWorker' in navigator)) return;
   // 네이티브 앱(Capacitor)에서는 SW를 쓰지 않는다
@@ -13,7 +14,7 @@
   var hadController = !!navigator.serviceWorker.controller;
   var reloading = false;
 
-  navigator.serviceWorker.register('sw.js').catch(function () {});
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
 
   navigator.serviceWorker.addEventListener('controllerchange', function () {
     if (reloading) return;

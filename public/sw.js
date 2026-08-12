@@ -1,6 +1,6 @@
 // 딱세판만 서비스워커 — network-first + 오프라인 폴백
 // 배포마다 CACHE 버전을 올리면 활성화 시 옛 캐시를 정리한다.
-const CACHE = 'alley-v11';
+const CACHE = 'alley-v12';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 /* 게임 13종은 **전부 브라우저에서 도는 정적 파일**이다(서버는 온라인 대전에만 쓴다).
@@ -63,32 +63,55 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;   // 외부 요청은 그대로
   if (url.pathname.startsWith('/api/')) return;       // 동적 API는 캐싱하지 않음(오래된 방 오답 방지)
 
-  /* 🔴 2026-08-07 — 예전엔 **network-first**였다. 그런데 이 사이트는 Render 무료 티어라
-     15분 놀면 잠들고, 깨우는 데 **실측 21.6초**가 걸린다(첫바이트 기준. 깨어 있으면 0.26초).
-     network-first면 **이미 와 본 사람도 그 21초를 그대로 기다린다** — 캐시를 갖고도 못 쓴다.
-     13종 게임은 전부 브라우저에서 도는 정적 파일이라 서버가 없어도 놀 수 있는데도 그랬다.
-     → 캐시가 있으면 **먼저 내주고**(즉시 실행), 새 버전은 뒤에서 조용히 받아 다음 방문에 반영한다.
-     대가: 배포 직후 한 번은 옛 화면을 볼 수 있다. 그 대신 잠든 서버와 지하철에서도 게임이 뜬다. */
-  e.respondWith((async () => {
-    // 주소에 ?host=1 같은 게 붙어도 같은 파일이다 — 네비게이션은 쿼리를 빼고 찾는다
-    const opts = req.mode === 'navigate' ? { ignoreSearch: true } : undefined;
-    const cached = await caches.match(req, opts);
+  /* 🟢 2026-08-12 — 전략 재조정: **네트워크 우선 + 짧은 타임아웃 → 캐시 폴백**.
+     배경: 예전 cache-first는 잠든 Render(21.6초)를 피하려 캐시를 먼저 줬는데, 그 대가로
+     **배포해도 한 박자 늦게 반영**됐다(옛 화면 + 넛지 탭 후에야 최신). github.io처럼 항상
+     빠른 호스트에서도 늦어 테스트가 괴로웠다.
+     → HTML·JS·CSS는 **네트워크를 먼저, 단 2.5초만 기다린다**:
+        · github.io / 깨어있는 Render(0.26초) → 항상 최신, 지연 0
+        · 잠든 Render(21.6초) → 2.5초 뒤 캐시로 폴백 → 오프라인·지하철 이점 유지
+     이미지·기타는 무거우니 cache-first(+뒤에서 갱신) 그대로. */
+  const url2 = new URL(req.url);
+  const isNav = req.mode === 'navigate';
+  const isCode = /\.(?:js|css)$/i.test(url2.pathname);
+  const opts = isNav ? { ignoreSearch: true } : undefined;
 
-    const fromNet = fetch(req).then(res => {
-      if (res && res.ok && res.type === 'basic') {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+  const putCache = (res) => {
+    if (res && res.ok && res.type === 'basic') {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+    }
+    return res;
+  };
+
+  if (isNav || isCode) {
+    // 네트워크 우선(2.5초 타임아웃) → 실패/지연 시 캐시
+    e.respondWith((async () => {
+      const cached = await caches.match(req, opts);
+      try {
+        const res = await Promise.race([
+          fetch(req).then(putCache),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), 2500))
+        ]);
+        if (res && res.ok) return res;      // 신선한 응답
+        if (cached) return cached;          // 404 등은 캐시로 대체
+        return res;
+      } catch (e2) {
+        if (cached) return cached;          // 타임아웃/오프라인 → 캐시
+        if (isNav) { const shell = await caches.match('/index.html'); if (shell) return shell; }
+        return Response.error();
       }
-      return res;
-    }).catch(() => null);
+    })());
+    return;
+  }
 
-    if (cached) return cached;              // 있으면 기다리지 않는다
+  // 그 외(이미지·폰트 등): cache-first + 뒤에서 조용히 갱신
+  e.respondWith((async () => {
+    const cached = await caches.match(req, opts);
+    const fromNet = fetch(req).then(putCache).catch(() => null);
+    if (cached) return cached;
     const res = await fromNet;
     if (res) return res;
-    if (req.mode === 'navigate') {          // 처음 온 사람이 오프라인이면 허브로
-      const shell = await caches.match('/index.html');
-      if (shell) return shell;
-    }
     return Response.error();
   })());
 });
