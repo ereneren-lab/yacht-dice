@@ -18,6 +18,7 @@
 <script src="stats.js"></script>
 <script src="chars.js"></script>
 <script src="ws-url.js"></script>
+<script src="share-url.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -27,15 +28,15 @@
 <meta name="description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로 즐기세요.">
 <meta property="og:title" content="윷놀이 — 딱세판만">
 <meta property="og:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이. AI 대전과 실시간 멀티플레이를 브라우저에서 바로.">
-<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/og/yut.jpg">
+<meta property="og:image" content="https://ereneren-lab.github.io/yacht-dice/og/yut.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yut.html">
+<meta property="og:url" content="https://ereneren-lab.github.io/yacht-dice/yut.html">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="윷놀이 — 딱세판만">
 <meta name="twitter:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이.">
-<meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/og/yut.jpg">
+<meta name="twitter:image" content="https://ereneren-lab.github.io/yacht-dice/og/yut.jpg">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d1220">
 <link rel="icon" href="icon-192.png">
@@ -4974,7 +4975,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   })();
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ const url=location.origin+location.pathname+'?room='+(roomCode||''); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
+  $('lobbyCopy').onclick=()=>{ const url=(window.inviteUrl?inviteUrl(roomCode||''):location.origin+location.pathname+'?room='+(roomCode||'')); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
   (function(){ const lc=$('lobbyCode'); if(!lc)return; lc.style.cursor='pointer'; lc.title='탭하면 방 코드 복사'; lc.onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); }; })();
   // 판이 끝난 뒤엔 누구나 방 전체를 대기실로 되돌릴 수 있다(서버가 종료 상태에서 허용).
   // 서버가 lobby를 브로드캐스트하면 각 클라의 lobby 핸들러가 게임 화면을 정리하고 대기실로 전환한다.
@@ -5005,7 +5006,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   $('yutHelp').onclick=()=>$('helpOv').classList.add('on');
   $('helpClose').onclick=()=>$('helpOv').classList.remove('on');
   /* 공유 URL: 온라인·방 유지 중이면 ?room=CODE 딥링크(받은 사람이 바로 참가), 아니면 맨 링크 */
-  function shareUrl(){ const base=location.origin+location.pathname; return (online && roomCode) ? base+'?room='+roomCode : base; }
+  function shareUrl(){ return (window.inviteUrl ? inviteUrl(online && roomCode ? roomCode : '') : (location.origin+location.pathname+(online&&roomCode?'?room='+roomCode:''))); }
   function shareResult(){ const iWon=S&&S.winner===MYPID; const st=Stats.d.streak>=2?` 🔥${Stats.d.streak}연승!`:'';
     let body='';
     if(S && S.teamMode){ body='\n'+(S.winnerTeam!=null?TEAM_NAME[S.winnerTeam]+' 승리! 🏆':''); }

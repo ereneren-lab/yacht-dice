@@ -19,6 +19,7 @@
 <script src="stats.js"></script>
 <script src="chars.js"></script>
 <script src="ws-url.js"></script>
+<script src="share-url.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -27,10 +28,10 @@
 <script src="analytics.js"></script>
 <meta name="description" content="요트 다이스 — 주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/yacht.html">
+<meta property="og:url" content="https://ereneren-lab.github.io/yacht-dice/yacht.html">
 <meta property="og:title" content="요트 다이스 — 딱세판만">
 <meta property="og:description" content="주사위 5개를 굴려 족보를 채우는 클래식 점수 게임. 링크 하나로 친구와 온라인 대결.">
-<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/og/yacht.jpg">
+<meta property="og:image" content="https://ereneren-lab.github.io/yacht-dice/og/yacht.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -2476,7 +2477,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('rmDecline').onclick=()=>{ wsSend({t:'rematchVote',v:'decline'}); $('rematchBtns').style.display='none'; $('rematchWait').style.display='block'; };
   $('shareBtn').onclick=()=>{ if(!S)return; const ranked=[...S.players].sort((a,b)=> b.total-a.total || b.upperSum-a.upperSum || ((b.scores.yacht||0)+(b.scores.yahtzee||0))-((a.scores.yacht||0)+(a.scores.yahtzee||0)));
     let t='🎲 딱세판만 · 요트 다이스 ('+S.modeName+')\n'; ranked.forEach((r,i)=>{t+=`${['🥇','🥈','🥉'][i]||(i+1)+'.'} ${r.name} — ${r.total}점\n`;});
-    let text=t.trim(); const rc=roomCode(); const url=location.origin+location.pathname+(rc?('?room='+rc):'');
+    let text=t.trim(); const rc=roomCode(); const url=(window.inviteUrl?inviteUrl(rc):location.origin+location.pathname+(rc?('?room='+rc):''));
     if(rc) text+='\n\n🔗 방 코드 '+rc+' — 아래 링크로 바로 참가!';
     if(navigator.share){ navigator.share({title:'딱세판만',text,url}).catch(()=>{}); }
     else { copyText(text+'\n'+url); } };
@@ -2726,7 +2727,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('addAiBtn').onclick=()=>{ if(amHost())wsSend({t:'addAI'}); };
   $('startOnline').onclick=()=>{ if(amHost())wsSend({t:'start'}); };
   $('copyCode').onclick=()=>{ if(lobby)copyText(lobby.code); };
-  $('copyLink').onclick=()=>{ if(!lobby)return; const code=lobby.code; const url=location.origin+location.pathname+'?room='+code;
+  $('copyLink').onclick=()=>{ if(!lobby)return; const code=lobby.code; const url=(window.inviteUrl?inviteUrl(code):location.origin+location.pathname+'?room='+code);
     if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url)); }
     else copyText(url); };
   $('lobbyCode').style.cursor='pointer';

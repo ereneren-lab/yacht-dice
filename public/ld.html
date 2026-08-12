@@ -18,6 +18,7 @@
 <script src="stats.js"></script>
 <script src="chars.js"></script>
 <script src="ws-url.js"></script>
+<script src="share-url.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
@@ -26,10 +27,10 @@
 <script src="analytics.js"></script>
 <meta name="description" content="라이어 다이스 — 허풍과 심리전으로 상대를 속이는 주사위 블러핑 게임. 링크 하나로 친구와 온라인 대결.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://yacht-dice-jxva.onrender.com/ld.html">
+<meta property="og:url" content="https://ereneren-lab.github.io/yacht-dice/ld.html">
 <meta property="og:title" content="라이어 다이스 — 딱세판만">
 <meta property="og:description" content="허풍과 심리전으로 상대를 속이는 주사위 블러핑 게임. 링크 하나로 친구와 온라인 대결.">
-<meta property="og:image" content="https://yacht-dice-jxva.onrender.com/og/ld.jpg">
+<meta property="og:image" content="https://ereneren-lab.github.io/yacht-dice/og/ld.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -1387,7 +1388,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     }
   };
   // 방 유지 중이면 딥링크(?room=CODE)로 — 친구가 링크를 열면 바로 같은 방에 참가
-  function shareUrl(){ let u=location.origin+location.pathname; if(online && roomCode) u+='?room='+roomCode; return u; }
+  function shareUrl(){ return (window.inviteUrl ? inviteUrl(online && roomCode ? roomCode : '') : (location.origin+location.pathname+(online&&roomCode?'?room='+roomCode:''))); }
   function shareResult(){
     if(!S)return; const iWon=S.winner===MYPID; const wp=S.players.find(p=>p.pid===S.winner);
     const st=(Stats.d.streak>=2)?` 🔥${Stats.d.streak}연승!`:'';
@@ -1669,7 +1670,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbySpot').onclick=()=>{ if(!amHost)return; wsSend({t:'setSpot',v:!(lobby&&lobby.spotOn!==false)}); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('copyLink').onclick=()=>{ const code=roomCode||''; const url=location.origin+location.pathname+'?room='+code;
+  $('copyLink').onclick=()=>{ const code=roomCode||''; const url=(window.inviteUrl?inviteUrl(code):location.origin+location.pathname+'?room='+code);
     const fb=()=>{ copyText(url); showToast('🔗 초대 링크 복사됨'); };
     if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(fb); }
     else fb(); };

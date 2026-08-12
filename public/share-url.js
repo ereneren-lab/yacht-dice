@@ -1,0 +1,35 @@
+/* share-url.js — 초대(공유) 링크 주소를 **한 곳에서** 정한다. window.inviteUrl
+ *
+ * 왜 있나 (2026-08-12, 초대·공유 루프 강화)
+ *   초대 링크가 7개 파일 14곳에 `location.origin + location.pathname + '?room='` 로 복붙돼 있었다.
+ *   문제: **잠든 Render(yacht-dice-jxva.onrender.com)에서 만든 링크**를 친구가 받으면
+ *     ① 페이지 콜드스타트 21.6초(실측) → 많이 이탈  ② 카톡 미리보기 카드도 크롤러가 잠든
+ *     서버를 못 깨워 안 뜬다 → 클릭률 급락. 바이럴 루프의 최대 누수였다.
+ *   해결: **onrender에서 만든 링크는 항상 깨어있는 github.io로 바꿔준다.** 정적 호스트라
+ *     즉시 로딩 + 미리보기 항상 뜸. 방(WebSocket)은 ws-url.js가 페이지 출처와 무관하게
+ *     늘 Render로 걸므로, github.io 페이지에서도 멀티플레이는 그대로 된다.
+ *
+ * 규칙 (ws-url.js와 같은 계열 — 한 벌로 모아 드리프트 방지)
+ *   · onrender.com 에서 만든 링크  → https://ereneren-lab.github.io/yacht-dice/<파일>?room=코드
+ *   · 그 외(github.io·커스텀 도메인·localhost·Capacitor 앱) → 현재 origin 그대로 (바꿀 이유 없음)
+ *   ⚠️ 되돌리기/도메인 변경: 아래 FAST 한 줄만 바꾸면 전 게임 초대 링크가 그리로 간다.
+ */
+(function (root) {
+  'use strict';
+  var FAST = 'https://ereneren-lab.github.io/yacht-dice';   // 항상 깨어있는 정적 호스트
+
+  function fileOf() {
+    try { var p = (location.pathname || '').split('/').pop(); return p || 'index.html'; }
+    catch (e) { return 'index.html'; }
+  }
+
+  /* 초대 URL을 돌려준다. code가 없으면 방 파라미터 없이 그 페이지 링크만. */
+  root.inviteUrl = function (code) {
+    var q = code ? ('?room=' + encodeURIComponent(code)) : '';
+    try {
+      if (/\.onrender\.com$/i.test(location.hostname)) return FAST + '/' + fileOf() + q;
+    } catch (e) {}
+    return location.origin + location.pathname + q;
+  };
+  root.SHARE_FAST_BASE = FAST;
+})(typeof window !== 'undefined' ? window : this);
