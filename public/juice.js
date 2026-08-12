@@ -103,7 +103,8 @@
     document.addEventListener('pointerdown', function (e) {
       var b = pressTarget(e.target);
       if (!b) return;
-      JUICE.tap(6);   // 아주 약한 '툭' — 물리적 누름. 액션 확정 촉각(더 강함)과 구분된다.
+      JUICE.tap(10);   // 약한 '툭' — 물리적 누름. 액션 확정 촉각(배열 패턴, 더 강함)과 구분된다.
+      //                  (6ms는 갤A16 실기기에서 거의 안 느껴져 10ms로 상향 — 2026-08-12)
       if (reduced()) return;   // 모션 줄이기: 시각 프레스는 생략, 촉각만.
       try {
         // 이미 transform을 쓰는 버튼은 건너뛴다 — 위치·회전용 transform을 덮으면 튄다.
