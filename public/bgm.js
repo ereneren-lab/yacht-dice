@@ -16,7 +16,7 @@
  * 무드 상태 (2026-08-12)
  *   folk   ✅ (윷 엔진 이식 — 가야금+장구)   섯다·알까기
  *   casual ✅ (마림바+라이트 리듬, 장5음계)   요트·너클본즈·라이어·좌중우
- *   lounge ⏳ (2c 예정)                       카드 6종
+ *   lounge ✅ (전자피아노+업라이트+브러시)     카드 6종
  */
 (function () {
   'use strict';
@@ -153,7 +153,59 @@
     };
   })();
 
-  var MOODS = { folk: folk, casual: casual };   // lounge 는 2c 에서 추가
+  /* ══════════════ 무드: lounge (부드러운 재즈 — 전자피아노+업라이트+브러시) ══════════════
+     카드 6종용. Cmaj7↔Am7(둘 다 C장조 다이어토닉) 2마디 루프라 항상 컨소넌트. 72 BPM. */
+  var lounge = (function () {
+    var TEMPO = 72, STEPS = 32;  // 2마디(16분 32스텝) 루프
+    // 코드: [Cmaj7, Am7] — 마디마다 교대
+    var CHORDS = [[261.63, 329.63, 392.00, 493.88], [220.00, 261.63, 329.63, 392.00]];
+    var BASS = [130.81, 110.00];   // C3, A2
+    var MEL = [523.25, 587.33, 659.25, 783.99, 880.00]; // C장5음계(상성부)
+    var mi = 2;
+    function sd() { return 60 / TEMPO / 4; }
+    function rhodes(freq, t, dur, gain) {
+      var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+      var o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.setValueAtTime(freq * 2.01, t); // 살짝 디튠 옥타브 = 벨 느낌
+      var g = ctx.createGain(), g2 = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      g2.gain.setValueAtTime(0.0001, t); g2.gain.linearRampToValueAtTime(gain * 0.25, t + 0.015); g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.5);
+      o.connect(g); o2.connect(g2); g.connect(master); g2.connect(master);
+      o.start(t); o.stop(t + dur); o2.start(t); o2.stop(t + dur * 0.6);
+    }
+    function upright(freq, t, dur, gain) {
+      var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+      var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur);
+    }
+    function brush(t, gain) {
+      var s = ctx.createBufferSource(); s.buffer = noise(); var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(5200, t); bp.Q.value = 0.8;
+      var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t + 0.16);
+    }
+    return {
+      steps: STEPS, stepDur: sd,
+      schedStep: function (s, t) {
+        var bar = Math.floor(s / 16) % 2, chord = CHORDS[bar];
+        // 컴핑: 마디 첫박에 코드 4음을 살짝 굴려(stagger) 부드럽게
+        if (s % 16 === 0) { for (var k = 0; k < chord.length; k++) rhodes(chord[k], t + k * 0.05, sd() * 10, 0.055); }
+        if (s % 16 === 8) { rhodes(chord[1], t, sd() * 5, 0.04); rhodes(chord[3], t + 0.04, sd() * 5, 0.035); } // 3박에 가벼운 재컴핑
+        // 베이스: 1박 근음, 3박 5도 근처(살짝 워킹)
+        if (s % 16 === 0) upright(BASS[bar], t, sd() * 6, 0.11);
+        if (s % 16 === 8) upright(BASS[bar] * 1.5, t, sd() * 5, 0.09);
+        // 브러시: 매 박 아주 여리게(스윙 느낌의 뒷박 살짝)
+        if (s % 4 === 0) brush(t, 0.05);
+        if (s % 8 === 6) brush(t, 0.035);
+        // 멜로디: 드물게, 느긋하게 — 여백이 라운지의 핵심
+        if (s % 4 === 2 && Math.random() < 0.35) {
+          var r = Math.random(), dstep = r < 0.45 ? 1 : r < 0.85 ? -1 : 0;
+          mi = Math.max(0, Math.min(MEL.length - 1, mi + dstep));
+          rhodes(MEL[mi], t, sd() * 3, 0.06);
+        }
+      }
+    };
+  })();
+
+  var MOODS = { folk: folk, casual: casual, lounge: lounge };
 
   /* ── 스케줄러 · 시작/정지 ── */
   function gen() { return MOODS[mood] || null; }
