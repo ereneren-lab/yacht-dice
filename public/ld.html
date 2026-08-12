@@ -1833,6 +1833,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const ms=mySeat();
     // 내 차례 알림 (온라인 전용): 상대→나로 넘어온 순간 소리·진동, 백그라운드면 탭 제목 깜빡임
     const mt = S.phase==='bid' && ms>=0 && S.turn===ms;
+    try{ window.JUICE&&JUICE.turnCue('#controls', mt); }catch(e){}   // '내 차례' 진입 펄스(온·오프라인 공통)
     if(online){ if(mt&&!lastMyTurn)notifyTurn(); if(!mt)stopBlink(); } lastMyTurn=mt;
     renderOpps(); renderCenter();
     if(ms<0){   // 관전자 (게임 중 입장 — 엔진 플레이어 아님)

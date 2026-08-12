@@ -35,7 +35,10 @@
     // yacht는 #overlay.show 라 여기 안 걸린다(엑셀 위장 = 차분 유지, 의도적 제외).
     '.ov.on>.sheet,.sheet.on>.card,.sheet.on>.sheetbox,.result.on>.resbox{animation:juiceRise .3s cubic-bezier(.2,.9,.3,1) both}' +
     '@keyframes juiceRise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}' +
-    '@media (prefers-reduced-motion:reduce){.juice-pop,.ov.on>.sheet,.sheet.on>.card,.sheet.on>.sheetbox,.result.on>.resbox{animation:none}}';
+    // '내 차례' 진입 신호 — 액션바가 잔잔히 두 번 빛나며 시선을 끈다. 촉각 없음(턴 전환에 진동은 삑삑).
+    '.juice-turn{animation:juiceTurn .95s ease}' +
+    '@keyframes juiceTurn{0%,50%,100%{box-shadow:0 0 0 0 rgba(232,161,58,0);transform:none}25%{box-shadow:0 0 0 3px rgba(232,161,58,.5),0 0 18px 3px rgba(232,161,58,.35);transform:scale(1.025)}75%{box-shadow:0 0 0 3px rgba(232,161,58,.4);transform:scale(1.018)}}' +
+    '@media (prefers-reduced-motion:reduce){.juice-pop,.ov.on>.sheet,.sheet.on>.card,.sheet.on>.sheetbox,.result.on>.resbox,.juice-turn{animation:none}}';
 
   function muted() {
     try { return !!(window.SFX && typeof SFX.on === 'function' && SFX.on() === false); } catch (e) { return false; }
@@ -63,7 +66,18 @@
     land: function (target, pattern) { JUICE.pop(target); JUICE.tap(pattern); },
     /* 승리/결과 순간 표준 축하 = 제목 팝 + 축하 촉각. 모든 게임이 '이겼다'를 같은 손맛으로.
        내가 이겼을 때만 부른다(패배·상대 승리엔 부르지 않는다). */
-    celebrate: function (target, pattern) { JUICE.pop(target); JUICE.tap(pattern || WIN_PATTERN); }
+    celebrate: function (target, pattern) { JUICE.pop(target); JUICE.tap(pattern || WIN_PATTERN); },
+    /* '내 차례' 진입 신호. 매 렌더마다 현재 내턴 여부(active)를 넘기면, '상대→나' 엣지에서만 한 번 빛난다.
+       엣지 판정을 여기서 중앙화해 각 게임은 myTurn 불린만 넘기면 된다(반복 렌더에도 삑삑 안 남). */
+    turnCue: function (target, active) {
+      var e = elOf(target); if (!e) return;
+      var was = e.__jturn; e.__jturn = !!active;
+      if (!active || was) return;   // false→true 로 바뀐 순간에만
+      try {
+        e.classList.remove('juice-turn'); void e.offsetWidth; e.classList.add('juice-turn');
+        setTimeout(function () { try { e.classList.remove('juice-turn'); } catch (er) {} }, 1000);
+      } catch (er) {}
+    }
   };
 
   /* ── 전역 버튼 프레스: '누르면 쏙 들어갔다 튀어나오는' 손맛을 페이지의 모든 버튼에 자동 배선 ──

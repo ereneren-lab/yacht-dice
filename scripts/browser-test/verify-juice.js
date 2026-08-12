@@ -39,12 +39,37 @@ async function run(){
           var J = window.JUICE;
           return JSON.stringify({
             has: !!J,
-            fns: J ? ['tap','pop','celebrate','land'].filter(function(k){return typeof J[k]==='function';}) : [],
+            fns: J ? ['tap','pop','celebrate','land','turnCue'].filter(function(k){return typeof J[k]==='function';}) : [],
             styleInjected: !!document.getElementById('juiceStyle')
           });
         `);
         const a = JSON.parse(api);
-        check(`${g}: JUICE 로드`, a.has && a.fns.length===4, a.has?`fns=${a.fns.join(',')}`:'JUICE 없음');
+        check(`${g}: JUICE 로드`, a.has && a.fns.length===5, a.has?`fns=${a.fns.join(',')}`:'JUICE 없음');
+
+        // 턴 큐 엣지: false→true 로 바뀔 때만 .juice-turn 이 붙는가(반복 true 는 안 붙어야).
+        const turn = await page.eval(`
+          try {
+            var d = document.createElement('div'); document.body.appendChild(d);
+            JUICE.turnCue(d, false);
+            var afterFalse = d.classList.contains('juice-turn');
+            JUICE.turnCue(d, true);
+            var afterEdge = d.classList.contains('juice-turn');
+            d.classList.remove('juice-turn');
+            JUICE.turnCue(d, true);   // 같은 true 반복 — 다시 붙으면 안 됨
+            var afterRepeat = d.classList.contains('juice-turn');
+            d.remove();
+            return JSON.stringify({afterFalse:afterFalse, afterEdge:afterEdge, afterRepeat:afterRepeat});
+          } catch(e){ return 'THROW:'+e.message; }
+        `);
+        const t = turn.startsWith('THROW') ? null : JSON.parse(turn);
+        check(`${g}: 턴 큐 엣지`, !!t && !t.afterFalse && t.afterEdge && !t.afterRepeat, turn);
+
+        // 배선 게임은 펄스 타깃 요소가 실제로 존재해야 한다.
+        const wiredSel = { onecard:'#acts', indianpoker:'#betbar', ld:'#controls' }[g];
+        if (wiredSel){
+          const hasTarget = await page.eval(`return !!document.querySelector('${wiredSel}');`);
+          check(`${g}: 턴 큐 타깃 ${wiredSel}`, hasTarget===true);
+        }
         check(`${g}: 프레스 스타일 주입`, a.styleInjected);
 
         // 전역 프레스: 첫 버튼에 pointerdown/up 디스패치 → 예외 없이 통과하는지
