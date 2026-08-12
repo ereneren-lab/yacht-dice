@@ -30,6 +30,7 @@
 <script src="pace.js"></script>
 <script src="stats.js"></script>
 <script src="chars.js"></script>
+<script src="juice.js"></script>
 <script src="wallet.js"></script>
 <script src="ws-url.js"></script>
 <script src="net.js"></script>
@@ -1030,6 +1031,7 @@ function applyFx(){
     const la=S.lastAction;
     if(la && (!p || !p.lastAction || p.lastAction.seq!==la.seq)){
       if(la.mode==='raise') SFX.chip(); else SFX.bet();
+      try{ if(la.seat===MYSEAT&&window.JUICE) JUICE.tap(la.mode==='raise'?[0,11,7,15]:12); }catch(e){}  // 내 베팅/레이즈만 촉각
       if(la.amount>0) chipFlySeat(la.seat);
     }
     // 아이템 — 내가 쓴 것만 값이 온다(남의 것은 lastPeek가 null)
@@ -1048,6 +1050,7 @@ function resultFx(){
   const iWon=r.winners.indexOf(MYSEAT)>=0;
   const names=r.winners.map(w=>S.players[w]?S.players[w].name:'').join(', ');
   try{ iWon?SFX.win():SFX.lose(); }catch(e){}
+  try{ if(iWon&&window.JUICE) JUICE.tap([0,22,18,38]); }catch(e){}   // 쇼다운 승리 축하 촉각
   if(iWon) coinRain();
   try{ showBanner(iWon?'🎉 승리!':'👑 '+esc(names), '팟 🪙 '+r.pot+' 획득', iWon?'win':'lose'); }catch(e){}
 }

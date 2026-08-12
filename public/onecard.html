@@ -23,6 +23,7 @@
 <script src="text-floor.js"></script>
 <script src="fit-setup.js"></script>
 <script src="cardfx.js"></script>
+<script src="juice.js"></script>
 <!-- 공용 튜토리얼 — ⚠️ </title> 직후여야 한다(뒤쪽 analytics.js는 주석 블록 안이라 그 뒤에 넣으면 갇힌다) -->
 <script src="tutorial.js"></script>
 <script src="invite-cta.js"></script>
@@ -1099,6 +1100,7 @@ function applyFx(){
       else if(a.kind==='take') SFX.attack();
       else if(a.kind==='shield') SFX.shield();
     }catch(e){}
+    try{ if(a.seat===S.mySeat&&window.JUICE) JUICE.tap(a.kind==='play'?10:8); }catch(e){}  // 내 카드 액션만 촉각
   }
   // 🛡 막음 — 배너로 한 번 알린다
   if(S.lastShield && (!prevS || !prevS.lastShield || S.lastShield.seq!==prevS.lastShield.seq)){
@@ -1300,6 +1302,7 @@ function endGame(){
     $('resTitle').textContent='🎉 승리!';
     $('resBody').innerHTML='손패를 모두 털었어요! 완벽한 마무리 👏';
     try{SFX.win();}catch(e){}
+    try{ if(window.JUICE){ JUICE.tap([0,22,18,38]); JUICE.pop('#resTitle'); } }catch(e){}  // 승리 축하: 촉각 + 제목 팝
     coinRain();
   } else {
     const nm=(S&&w>=0&&S.players[w])?S.players[w].name:'상대';
