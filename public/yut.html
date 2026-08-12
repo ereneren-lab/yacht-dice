@@ -656,7 +656,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     .ctrlbar .gaugehint{ margin-bottom:4px;font-size:10px }
     .ctrlbar .bigbtn{ padding:13px;font-size:16px }
   }
-  #pieceLayer .pcpiece{ transition:transform .28s cubic-bezier(.4,.05,.3,1) }
+  #pieceLayer .pcpiece{ transition:transform .3s cubic-bezier(.22,.61,.36,1) }
   #pieceLayer .pcpiece.pitfall{ transition:transform 1s cubic-bezier(.5,.02,.86,.36) }
   #pieceLayer .pcpiece.pitfall .ring, #pieceLayer .pcpiece.pitfall image{ animation:pitspin 1s ease-in; transform-origin:center; transform-box:fill-box }
   @keyframes pitspin{ 0%{transform:rotate(0) scale(1)} 42%{transform:rotate(430deg) scale(.26)} 58%{transform:rotate(500deg) scale(.2)} 100%{transform:rotate(720deg) scale(1)} }
@@ -3457,7 +3457,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   // ── 이동 연출 속도(천천히 · 한 눈에 보이게) ──
   // BANNER_MS: 1700→1150. AI 턴 간격(900ms)보다 길어서 배너가 다음 턴까지 남아 겹쳤다
   // (측정: 오버레이가 화면에 떠 있는 시간이 56%였다).
-  const HOP_MAIN=300, HOP_EVENT=340, MOVE_PAUSE=700, BANNER_MS=1150;
+  const HOP_MAIN=180, HOP_EVENT=220, MOVE_PAUSE=700, BANNER_MS=1150;
   /* 같은 칸에 선 말들을 어디에 놓을지 — **renderPieces와 pieceSettledXY가 반드시 같은 답을 내야 한다.**
      🔴 2026-08-11에 renderPieces만 고쳤다(29→0 접기 · 간격 가변). pieceSettledXY는 옛 셈으로 남았고
         (칸 번호 그대로 · 13px 고정) 그래서 **착지 좌표가 어긋났다** — 0과 29에 하나씩 서 있으면 6.5px,
