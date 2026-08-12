@@ -1,6 +1,6 @@
 // 딱세판만 서비스워커 — network-first + 오프라인 폴백
 // 배포마다 CACHE 버전을 올리면 활성화 시 옛 캐시를 정리한다.
-const CACHE = 'alley-v8';
+const CACHE = 'alley-v9';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 /* 게임 13종은 **전부 브라우저에서 도는 정적 파일**이다(서버는 온라인 대전에만 쓴다).
@@ -16,7 +16,7 @@ const GAMES = ['/kb.html','/yacht.html','/ld.html','/lcr.html','/yut.html','/alk
 const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js','/ws-url.js',
   '/text-floor.js','/chars.js','/fit-setup.js','/tutorial.js','/shop.js','/setup-order.js',
   '/landscape.css','/net.js','/monetize.js','/host-link.js','/cardfx.js','/game-core.js',
-  '/invite-cta.js','/tokens.css','/sw-reg.js','/juice.js','/snd.js'];
+  '/invite-cta.js','/tokens.css','/sw-reg.js','/juice.js','/snd.js','/bgm.js'];
 
 async function warmGames() {
   try {
