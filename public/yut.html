@@ -5093,7 +5093,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
 /* 앱(Capacitor) 안에서는 등록하지 않는다 — 자산이 이미 APK 안에 있어 캐시할 이유가 없는데,
    커스텀 스킴 응답이라 등록이 반드시 실패하며 콘솔에 'An unknown error occurred when fetching the script.'만 남는다.
    웹에서는 그대로 등록한다 — 재방문 8.8초 → 0.65초가 여기서 나온다. */
-if('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())){navigator.serviceWorker.register('sw.js').catch(function(){});}
+(function(){var s=document.createElement('script');s.src='sw-reg.js';s.defer=true;(document.head||document.documentElement).appendChild(s);})();
 </script>
 <script>(function(){
   var ctl=document.querySelector('.opacityctl');

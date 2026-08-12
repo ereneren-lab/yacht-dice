@@ -16,7 +16,7 @@ const GAMES = ['/kb.html','/yacht.html','/ld.html','/lcr.html','/yut.html','/alk
 const SHARED = ['/wallet.js','/stats.js','/pace.js','/analytics.js','/topbar-more.js','/topbar-fit.js','/ws-url.js',
   '/text-floor.js','/chars.js','/fit-setup.js','/tutorial.js','/shop.js','/setup-order.js',
   '/landscape.css','/net.js','/monetize.js','/host-link.js','/cardfx.js','/game-core.js',
-  '/invite-cta.js','/tokens.css'];
+  '/invite-cta.js','/tokens.css','/sw-reg.js'];
 
 async function warmGames() {
   try {
