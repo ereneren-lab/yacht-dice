@@ -15,7 +15,7 @@
  *
  * 무드 상태 (2026-08-12)
  *   folk   ✅ (윷 엔진 이식 — 가야금+장구)   섯다·알까기
- *   casual ⏳ (2b 예정)                       요트·너클본즈·라이어·좌중우
+ *   casual ✅ (마림바+라이트 리듬, 장5음계)   요트·너클본즈·라이어·좌중우
  *   lounge ⏳ (2c 예정)                       카드 6종
  */
 (function () {
@@ -102,7 +102,58 @@
     };
   })();
 
-  var MOODS = { folk: folk };   // casual·lounge 는 2b·2c 에서 추가
+  /* ══════════════ 무드: casual (밝고 통통 — 마림바+가벼운 리듬) ══════════════
+     주사위 게임(요트·너클본즈·라이어·좌중우)용. 장5음계라 불협 없음. */
+  var casual = (function () {
+    var TEMPO = 104, STEPS = 16;
+    var SCALE = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51]; // C장5음계 2옥타브
+    var mi = 3;
+    function sd() { return 60 / TEMPO / 4; }  // 16분음표
+    function marimba(freq, t, dur, gain) {
+      var o = ctx.createOscillator(), o2 = ctx.createOscillator();
+      o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+      o2.type = 'sine'; o2.frequency.setValueAtTime(freq * 2, t);
+      var g = ctx.createGain(), g2 = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      g2.gain.setValueAtTime(0.0001, t); g2.gain.linearRampToValueAtTime(gain * 0.3, t + 0.003); g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.5);
+      o.connect(g); o2.connect(g2); g.connect(master); g2.connect(master);
+      o.start(t); o.stop(t + dur); o2.start(t); o2.stop(t + dur * 0.6);
+    }
+    function bass(freq, t, dur, gain) {
+      var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+      var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur);
+    }
+    function hat(t, gain) {
+      var s = ctx.createBufferSource(); s.buffer = noise(); var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(7000, t);
+      var g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      s.connect(hp); hp.connect(g); g.connect(master); s.start(t); s.stop(t + 0.04);
+    }
+    function kick(t, gain) {
+      var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.1);
+      g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.16);
+    }
+    return {
+      steps: STEPS, stepDur: sd,
+      schedStep: function (s, t) {
+        if (s % 4 === 0) kick(t, s % 8 === 0 ? 0.22 : 0.16);      // 라이트 four-on-floor
+        if (s % 4 === 2) hat(t, 0.06);
+        if (s % 8 === 7) hat(t, 0.04);
+        if (s % 16 === 0) bass(130.81, t, sd() * 3.5, 0.12);      // I(도)
+        if (s % 16 === 8) bass(196.00, t, sd() * 3.5, 0.12);      // V(솔)
+        var rest = (s % 2 === 1) ? Math.random() < 0.5 : Math.random() < 0.2;
+        if (!rest) {
+          var r = Math.random(), dstep = r < 0.4 ? 1 : r < 0.75 ? -1 : (r < 0.9 ? 2 : -2);
+          mi = Math.max(0, Math.min(SCALE.length - 1, mi + dstep));
+          var down = (s % 4 === 0), dur = down ? sd() * 3 : sd() * 1.8, gain = (down ? 0.13 : 0.09) * (0.85 + Math.random() * 0.3);
+          marimba(SCALE[mi], t, dur, gain);
+        }
+      }
+    };
+  })();
+
+  var MOODS = { folk: folk, casual: casual };   // lounge 는 2c 에서 추가
 
   /* ── 스케줄러 · 시작/정지 ── */
   function gen() { return MOODS[mood] || null; }
