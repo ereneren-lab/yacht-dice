@@ -19,6 +19,7 @@
 <meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/og/alkkagi.jpg">
 <meta name="description" content="알까기 — 손끝으로 튕겨 상대 돌을 판 밖으로 · 1분 이내. 설치 없이 브라우저에서 바로, 링크 하나로 친구와 즐기는 딱세판만 13종 중 하나.">
 <script src="topbar-fit.js"></script>
+<script src="juice.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
 <script src="setup-order.js"></script>
@@ -2480,6 +2481,7 @@ function showResult(){
   const xp = Stats.record(isRealMatch ? won : true, offCount);
   try{ won ? SFX.win() : SFX.lose(); }catch(e){}
   $('resTitle').textContent = won ? '이겼다! 🎉' : '아쉽다';
+  try{ if(won && window.JUICE) JUICE.celebrate('#resTitle'); }catch(e){}   // 승리 순간 통일
   const winnerName = S.players.find(p=>p.pid===S.winner);
   $('resSub').textContent = winnerName ? `${winnerName.name} 승리` : '무승부';
   const L = xp.after;

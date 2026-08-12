@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>너클본즈 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
+<script src="juice.js"></script>
 <script src="invite-cta.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -2257,6 +2258,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     $('resTitle').textContent=title; $('resCrown').textContent=crown; $('resSub').textContent=sub;
     renderGrowth();   // P4: 이번 판 성장(승수·연승·기록·해금) 요약
     try{ sb>=st?SFX.win():SFX.lose(); }catch(e){}
+    try{ if(sb>=st && window.JUICE) JUICE.celebrate('#resTitle'); }catch(e){}   // 승리 순간 통일: 제목 팝 + 축하 촉각
     // 라벨-동작 일치: 온라인 메인 버튼은 실제로 '재경기 제안'을 보내므로 그렇게 표기하고,
     // 진짜 로비 복귀는 별도 버튼(toLobbyBtn)으로 분리한다. (ld 패턴)
     $('againBtn').textContent = online() ? '🔄 다시 하기 (재경기 제안)' : (mi && !mi.matchOver ? '다음 판 ▶' : (mi ? '새 매치 ▶' : '다시 한 판'));

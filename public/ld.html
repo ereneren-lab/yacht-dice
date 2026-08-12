@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>라이어 다이스 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
+<script src="juice.js"></script>
 <script src="invite-cta.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -2108,6 +2109,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(online) sub += amHost ? ' · 재경기를 제안하거나 로비로 돌아갈 수 있어' : ' · 재경기 제안 / 로비 대기 중 선택해';
       $('resSub').textContent = sub;
       try{ iWon?SFX.win():SFX.lose(); }catch(e){}
+      try{ if(iWon && window.JUICE) JUICE.celebrate('#resTitle'); }catch(e){}   // 승리 순간 통일
     }
     // 라벨과 실제 동작 일치: 다시 하기 = 재경기 제안 / 로비로 = 방에 남은 채 로비 복귀
     $('againBtn').textContent = online?'🔄 다시 하기 (재경기 제안)':'다시 한 판';

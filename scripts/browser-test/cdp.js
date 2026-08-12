@@ -68,6 +68,12 @@ class CDP {
       '--mute-audio',                       // 검증 중 소리 안 나게(SFX/BGM 음소거)
       '--force-device-scale-factor=2',      // 레티나 흉내
       '--autoplay-policy=no-user-gesture-required',
+      // root(uid 0)로 도는 CI·컨테이너에선 샌드박스가 막혀 크로미움이 code=1로 즉사한다.
+      // 일반 개발 머신(비-root)에선 붙이지 않아 동작이 그대로다.
+      ...((process.getuid && process.getuid() === 0) ? ['--no-sandbox'] : []),
+      // 일반 chromium이 잡히고 $DISPLAY가 없는 헤드리스 환경(CI·컨테이너)에서도 뜨게.
+      // headless-shell 바이너리엔 무해하다(이미 헤드리스라 무시).
+      '--headless=new',
     ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
     // stderr는 계속 모아둔다(최근 8KB). 브라우저가 죽었을 때 원인을 보여주기 위해서다.

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>윷놀이 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
+<script src="juice.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
 <script src="setup-order.js"></script>
@@ -4641,7 +4642,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
       if(!spectator && !alreadyRecorded()){ Stats.record(iWon, capCount); markRecorded(); }
       captureGrowth(iWon, spectator);
       try{ iWon?SFX.win():SFX.lose(); }catch(e){}
-      $('resultOv').classList.add('on'); if(iWon){ winCelebrate(); setTimeout(confettiBurst,150); }
+      $('resultOv').classList.add('on'); if(iWon){ winCelebrate(); setTimeout(confettiBurst,150); try{window.JUICE&&JUICE.tap([0,22,18,38]);}catch(e){} }
       return;
     }
     rl.innerHTML='';
