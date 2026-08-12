@@ -28,6 +28,7 @@
 <!-- 공통 진행 속도(AI 템포). pace.js가 안 떠도 게임은 돌게 폴백을 둔다 -->
 <script src="pace.js"></script>
 <script src="stats.js"></script>
+<script src="juice.js"></script>
 <script src="wallet.js"></script>
 <script>window.PMS=window.PMS||function(n){return n};</script>
 <link rel="icon" href="icon-192.png">
@@ -593,7 +594,7 @@ $('spots').addEventListener('click',e=>{
 $('chiprow').addEventListener('click',e=>{
   const b=e.target.closest('.cchip'); if(!b||phase!=='bet')return;
   const v=+b.dataset.v; if(betTotal()+v>bank)return;
-  bets[sel]+=v; try{SFX.chip();}catch(e){} render();
+  bets[sel]+=v; try{SFX.chip();}catch(e){} try{window.JUICE&&JUICE.tap(8);}catch(e){} render();
 });
 $('clearBet').onclick=()=>{ if(phase==='bet'){ bets={P:0,B:0,T:0}; render(); } };
 
@@ -639,6 +640,7 @@ function settle(r){
   else tail=' <span style="color:var(--muted)">±0</span>';
   $('msg').innerHTML=`${label} · ${r.pt} : ${r.bt}${tail}`;
   try{ net>0?SFX.win():net<0?SFX.lose():SFX.push(); }catch(e){}
+  try{ if(net>0&&window.JUICE) JUICE.tap([0,22,18,38]); }catch(e){}   // 이겼을 때만 축하 촉각
   if(net>0) coinRain();
   render();
   setTimeout(()=>{
