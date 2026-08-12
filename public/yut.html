@@ -36,7 +36,7 @@
 <meta name="twitter:description" content="설치 없이 링크로 친구를 부르는 온라인 윷놀이.">
 <meta name="twitter:image" content="https://yacht-dice-jxva.onrender.com/og/yut.jpg">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#15110d">
+<meta name="theme-color" content="#0d1220">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
@@ -5076,8 +5076,8 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
 
 <script>
 (function(){
-  const T=[['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
-  function g(){ try{var t=localStorage.getItem('alley_theme')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='espresso';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'espresso';} }
+  const T=[['yasi','야시장','#ffb454'],['espresso','에스프레소','#e0a23c'],['sesame','흑임자','#c9bcd8'],['hanji','라이트','#f2f2f4']];
+  function g(){ try{var t=localStorage.getItem('alley_theme')||'yasi'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(t)){t='yasi';localStorage.setItem('alley_theme',t);} return t;}catch(e){return 'yasi';} }
   function syncLightBtn(){ var b=document.getElementById('lightBtn'); if(b) b.textContent=((document.documentElement.dataset.theme||g())==='hanji')?'🌙':'☀️'; }
   function r(){ var h=document.getElementById('themeChips'); if(!h)return; var c=document.documentElement.dataset.theme||g(); h.innerHTML=''; T.forEach(function(x){ var b=document.createElement('button'); b.className='tchip'+(x[0]===c?' on':''); b.innerHTML='<i style="background:'+x[2]+'"></i>'+x[1]; b.onclick=function(){s(x[0]);}; h.appendChild(b); }); }
   function s(t){ document.documentElement.dataset.theme=t;
@@ -5085,8 +5085,8 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     r(); syncLightBtn(); }
   /* 라이트(hanji) ↔ 직전에 쓰던 다크 계열 테마 — 흑임자 등을 잃지 않는다 */
   window.toggleLight=function(){ var cur=document.documentElement.dataset.theme||g();
-    var prev='espresso'; try{ prev=localStorage.getItem('alley_theme_dark')||'espresso'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
-    s(cur==='hanji' ? (prev==='hanji'?'espresso':prev) : 'hanji'); };
+    var prev='yasi'; try{ prev=localStorage.getItem('alley_theme_dark')||'yasi'; if(/^(mintchoco|grapefruit|bluelemon)$/.test(prev))prev='espresso'; }catch(e){}
+    s(cur==='hanji' ? (prev==='hanji'?'yasi':prev) : 'hanji'); };
   var _lb=document.getElementById('lightBtn'); if(_lb) _lb.onclick=window.toggleLight;
   s(g());
 })();
