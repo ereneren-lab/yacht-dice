@@ -1728,6 +1728,7 @@ const ACT={die:'다이',check:'체크',call:'콜',ping:'삥',ttadang:'따당',qu
 function renderBetbar(){
   const bar=$('betbar'); const ms=mySeat(); const me=S.players[ms];
   const myTurn=S.phase==='bet'&&S.turn===ms;
+  try{ window.JUICE&&JUICE.turnCue('#betbar', myTurn); }catch(e){}   // '내 차례' 진입 펄스
   const valid=S.validActions||[];
   const toCall=S.bet-(me?me.contrib:0);
   const amt={

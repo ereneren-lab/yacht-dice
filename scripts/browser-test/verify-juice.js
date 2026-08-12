@@ -66,7 +66,7 @@ async function run(){
 
         // 배선 게임은 펄스 타깃 요소가 실제로 존재해야 한다.
         const wiredSel = { onecard:'#acts', indianpoker:'#betbar', ld:'#controls',
-                           yut:'#throwBtn', kb:'#rollBtn', lcr:'#rollBtn' }[g];
+                           yut:'#throwBtn', kb:'#rollBtn', lcr:'#rollBtn', seotda:'#betbar' }[g];
         if (wiredSel){
           const hasTarget = await page.eval(`return !!document.querySelector('${wiredSel}');`);
           check(`${g}: 턴 큐 타깃 ${wiredSel}`, hasTarget===true);
