@@ -170,6 +170,9 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
     background:color-mix(in srgb,var(--ink) 8%,var(--panel));
     border:1px solid color-mix(in srgb,var(--ink) 7%,var(--line));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  /* 커스텀 아이콘 이미지는 스스로 리치해서 회색 칩이 필요 없다 — 칩을 벗고 조금 크게 세운다. */
+  .gtile .ti.timg{width:46px;height:46px;object-fit:contain;padding:0;
+    background:none;border:none;box-shadow:none;border-radius:0}
   .gtile .tn{font-size:12px;font-weight:800;letter-spacing:-.02em;text-align:center;line-height:1.2}
   .gtile .tt{font-size:10px;color:var(--muted);font-weight:700;text-align:center}
   .gtile .on{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
@@ -208,6 +211,7 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
     .gtile{align-self:start;height:72px;justify-content:center}
     .gtile{padding:8px 4px 7px}
     .gtile .ti{font-size:19px;width:30px;height:30px;border-radius:9px}
+    .gtile .ti.timg{width:34px;height:34px;border-radius:0}
     .gtile .tn{font-size:11.5px}
     .gtile .tt{font-size:9.5px}
     .brandrow{margin-bottom:9px}
@@ -911,7 +915,7 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
     {f:'yacht.html',       ic:'🎲',   n:'요트 다이스', t:'🕐 2분 안팎',   on:1},
     {f:'ld.html',          ic:'🤥',   n:'라이어',     t:'⚡ 1~2분',   on:1},
     {f:'lcr.html',         ic:'🔀',   n:'좌·중·우',   t:'⚡ 1분 안팎', on:1},
-    {f:'yut.html',         ic:'🐎',   n:'윷놀이',     t:'🕐 2~3분',   on:1},
+    {f:'yut.html',         ic:'🐎',   n:'윷놀이',     t:'🕐 2~3분',   on:1, img:'img/yutgarak.png'},
     {f:'alkkagi.html',     ic:'⚫🔴', n:'알까기',     t:'⚡ 1분 이내', on:1},
     {f:'seotda.html',      ic:'🎴',   n:'섯다',       t:'🕐 5~6분',   on:1},
     {f:'indianpoker.html', ic:'🎭',   n:'인디언 포커', t:'🕐 2~3분',   on:1},
@@ -931,11 +935,24 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
       try{ sessionStorage.setItem('alley_pick',recPick); }catch(e){}
     }
     g.innerHTML=TILES.map(function(x){
+      // 아이콘: 커스텀 이미지(img/tiles/<이름>.png)가 지정되면 이미지, 아니면 이모지.
+      // 이미지 로드 실패 시(파일 아직 없음 등) 아래 error 핸들러가 이모지로 되돌린다 → 항상 안전.
+      var icon = x.img
+        ? '<img class="ti timg" src="'+x.img+'" alt="" loading="lazy" data-fb="'+x.ic+'">'
+        : '<span class="ti">'+x.ic+'</span>';
       return '<a class="gtile" href="'+x.f+'" data-quick="1">'
         + (x.on?'<span class="on" title="온라인으로 친구와 가능"></span>':'')
-        + '<span class="ti">'+x.ic+'</span><span class="tn">'+x.n+'</span><span class="tt">'+x.t+'</span>'
+        + icon+'<span class="tn">'+x.n+'</span><span class="tt">'+x.t+'</span>'
         + (x.f===recPick?'<span class="rec">🎲 추천</span>':'') + '</a>';
     }).join('');
+    // 커스텀 아이콘 이미지가 없거나 깨지면 조용히 이모지로 폴백(캡처=capture 단계, 파일 누락 등).
+    g.addEventListener('error',function(e){
+      var im=e.target;
+      if(im&&im.classList&&im.classList.contains('timg')){
+        var s=document.createElement('span'); s.className='ti'; s.textContent=im.dataset.fb||'🎲';
+        try{ im.replaceWith(s); }catch(err){}
+      }
+    },true);
     g.addEventListener('click',function(e){
       var a=e.target.closest && e.target.closest('a[data-quick]'); if(!a) return;
       try{ window.AL && AL.ev && AL.ev('허브_카드클릭',{게임:a.getAttribute('href')}); }catch(err){}
