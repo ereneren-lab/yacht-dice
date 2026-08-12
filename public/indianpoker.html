@@ -1116,6 +1116,7 @@ function renderBetbar(){
   const bar=$('betbar');
   if(S.phase==='result'){ renderNext(); return; }
   const myTurn=S.phase==='bet'&&S.turn===MYSEAT;
+  try{ window.JUICE&&JUICE.turnCue('#betbar', myTurn); }catch(e){}   // '내 차례' 진입 펄스
   const valid=S.validActions||[];
   const me=S.players[MYSEAT]||{contrib:0};
   const toCall=S.bet-(me.contrib||0);

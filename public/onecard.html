@@ -1251,6 +1251,7 @@ function renderActs(){
   const acts=$('acts');
   const va=S.validActions||[];
   const myTurn=S.turn===S.mySeat&&S.phase==='play';
+  try{ window.JUICE&&JUICE.turnCue('#acts', myTurn); }catch(e){}   // '내 차례' 진입 펄스
   if(!myTurn){ acts.innerHTML=`<button class="abtn pass" disabled><span class="ai">⏳</span><span class="an">상대 차례…</span></button>`; return; }
   if(S.myPendingDrawnId!=null){
     const playable=va.indexOf('play')>=0;

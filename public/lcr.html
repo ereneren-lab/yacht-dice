@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>좌·중·우 — 딱세판만</title>
 <script src="topbar-fit.js"></script>
+<script src="juice.js"></script>
 <script src="invite-cta.js"></script>
 <script src="topbar-more.js"></script>
 <script src="text-floor.js"></script>
@@ -1285,6 +1286,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     scheduleAuto();   // 자동 굴리기: 내 차례면 예약, 아니면 해제
     // 내 차례 알림: 온라인에서 내 차례로 갓 전환됐고 탭이 백그라운드면 알림
     const mt = S.phase==='roll' && ms>=0 && S.turn===ms;
+    try{ window.JUICE&&JUICE.turnCue('#rollBtn', mt); }catch(e){}   // '내 차례' 진입 펄스
     if(online){ if(mt && !lastMyTurn) notifyTurn(); if(!mt) stopBlink(); }
     lastMyTurn=mt;
     // 우승 순간: 팟 싹쓸이 연출 후 결과창 (over 진입 프레임 1회)
@@ -1373,6 +1375,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     const pot = S.maxPot||0;   // 승자가 싹쓸이한 팟 크기 (판 내내 단조 증가)
     $('resBig').textContent = iWon?'🏆':'🎲';
     $('resTitle').textContent = w ? `${esc(dispName(w))} 승리!` : '게임 종료';
+    try{ if(iWon && window.JUICE) JUICE.celebrate('#resTitle'); }catch(e){}   // 승리 순간 통일
     // 극적인 팟 기여분을 총 칩과 분리 표기 — "🎯 팟 N개 포함 총 M칩 독식"
     if(w){
       const potPart = pot>0 ? `🎯 팟 <b style="color:var(--brass)">${pot}개</b> 포함 ` : '';
