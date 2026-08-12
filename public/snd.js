@@ -23,7 +23,10 @@
         var lim = ctx.createDynamicsCompressor();
         lim.threshold.value = -3; lim.knee.value = 2; lim.ratio.value = 12;
         lim.attack.value = 0.003; lim.release.value = 0.12;
-        lim.connect(ctx.destination);
+        // 메이크업 게인 — WebAudio DynamicsCompressor는 임계값 아래 신호도 ~11dB 깎는다
+        // (실측: 0.14→0.04). 리미터 뒤에서 ~3.3x 되살려, 단발음은 원래 크기·겹침만 리미터가 잡게.
+        var makeup = ctx.createGain(); makeup.gain.value = 3.3;
+        lim.connect(makeup); makeup.connect(ctx.destination);
         var bus = ctx.createGain(); bus.gain.value = 1; bus.connect(lim);
         // 컨볼루션 리버브(감쇠 노이즈 임펄스, 외부 파일 0개) 센드 12%
         var len = Math.floor(ctx.sampleRate * 1.1);
