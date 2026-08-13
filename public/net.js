@@ -154,6 +154,13 @@
         this.pid = m.pid; this.code = m.code;
         this._reconnects = 0; this._reconnecting = false; this._bootReconnect = false;
         this.seatSet('room', this.code); this.seatSet('pid', this.pid);
+        // 방을 '만든' 직후엔 초대 시트를 자동으로 띄운다(방 만든 이유=친구 부르기).
+        // 방장의 '방 만들기' 클릭 → 서버 응답이 제스처 5초 창 안이면 navigator.share가 뜬다
+        // (잠든 서버로 21초 걸리면 창이 만료 → sendInvite 안의 클립보드 폴백으로 떨어진다).
+        if (this._createdByMe && this._autoInvited !== this.code) {
+          this._autoInvited = this.code; this._createdByMe = false;
+          try { NET.ui.sendInvite(); } catch (e) {}
+        }
         (on.me || noop)(m);
 
       } else if (m.t === 'lobby') {
@@ -212,11 +219,13 @@
     isHost() { return !!(this.lobby && this.lobby.members && this.lobby.members.some(x => x.host && x.pid === this.pid)); },
     create(payload) {
       this.online = true;
+      this._createdByMe = true;   // 방장이 방을 '만든' 순간 — me 도착 시 초대 시트를 자동으로 띄운다
       const p = Object.assign({ t: 'create', game: this.game }, payload || {});
       this.connect(() => this.send(p));
     },
     join(code, name) {
       this.online = true;
+      this._createdByMe = false;  // 참가는 초대할 필요 없다
       this.connect(() => this.send({ t: 'join', code, name: name || '게스트' }));
     },
     start()          { this.send({ t: 'start' }); },
@@ -351,20 +360,7 @@
       };
       /* 초대 링크 — 받는 사람이 눌러 바로 들어온다(?room=CODE는 아래 autoJoinFromUrl이 받는다).
          폰에선 공유 시트(카톡 등)를 띄우고, 없으면 클립보드로 떨어진다. */
-      el('ntInvite').onclick = async () => {
-        const c = NET.code || '';
-        if (!c) return;
-        const url = (window.inviteUrl ? inviteUrl(c) : location.origin + location.pathname + '?room=' + encodeURIComponent(c));
-        /* 게임 이름을 넣는다 — 받는 사람이 카카오톡에서 먼저 보는 건 이 문구다.
-           (그 아래 카드는 그 게임 페이지의 og 태그에서 온다: public/og/<게임>.jpg) */
-        const gname = (document.title || '').split('·')[0].trim();
-        const text = (gname ? '딱세판만 · ' + gname : '딱세판만') + ' 한 판 하자! 🔗 링크만 누르면 바로 시작 · 설치 없어요 (방 코드 ' + c + ')';
-        try {
-          if (navigator.share) { await navigator.share({ title: '딱세판만', text: text, url: url }); return; }
-        } catch (e) { return; }   // 사용자가 공유를 취소한 경우 — 클립보드로 또 떨어뜨리지 않는다
-        try { await navigator.clipboard.writeText(url); NET.ui.toast('🔗 초대 링크 복사됨'); }
-        catch (e) { NET.ui.toast(url); }
-      };
+      el('ntInvite').onclick = () => NET.ui.sendInvite();
       el('ntStart').onclick = () => NET.start();
       el('ntAddAi').onclick = () => NET.addAI();
       el('ntLeave').onclick = () => { NET.leave(); this.closeLobby(); (opts.onLeaveGame || noop)(); };
@@ -413,6 +409,23 @@
     closeJoin() { el('ntJoinOv').classList.remove('on'); },
     openLobby() { this.closeJoin(); el('ntLobbyOv').classList.add('on'); },
     closeLobby(){ const e = el('ntLobbyOv'); if (e) e.classList.remove('on'); },
+
+    /* 초대 보내기 — 대기실 '🔗 초대 링크 보내기' 버튼과, 방 생성 직후 자동 실행이 함께 쓴다.
+       폰에선 공유 시트(카톡 등)를 띄우고, 없으면 클립보드로 떨어진다.
+       ⚠️ navigator.share는 사용자 제스처의 활성화 창(≈5초) 안에서만 뜬다 — 자동 실행은
+          방 만들기 클릭 → me 도착이 그 창 안일 때(서버가 깨어있을 때) 성공한다. */
+    async sendInvite() {
+      const c = NET.code || '';
+      if (!c) return;
+      const url = (window.inviteUrl ? inviteUrl(c) : location.origin + location.pathname + '?room=' + encodeURIComponent(c));
+      const gname = (document.title || '').split('·')[0].trim();
+      const text = (gname ? '딱세판만 · ' + gname : '딱세판만') + ' 한 판 하자! 🔗 링크만 누르면 바로 시작 · 설치 없어요 (방 코드 ' + c + ')';
+      try {
+        if (navigator.share) { await navigator.share({ title: '딱세판만', text: text, url: url }); return; }
+      } catch (e) { return; }   // 사용자가 공유를 취소한 경우 — 클립보드로 또 떨어뜨리지 않는다
+      try { await navigator.clipboard.writeText(url); NET.ui.toast('🔗 초대 링크 복사됨 · 친구에게 붙여넣기'); }
+      catch (e) { NET.ui.toast(url); }
+    },
 
     renderLobby(room) {
       if (!room) return;
