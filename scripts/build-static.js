@@ -73,7 +73,30 @@ function copyDir(src, dst) {
        배포해도 옛 파일이 계속 나간다. 실제로 새 캐릭터가 안 보인다는 신고가 그것이었다.
        → 번들 내용의 해시를 캐시 이름에 박는다. 내용이 바뀌면 이름이 저절로 바뀌고,
          activate에서 옛 캐시가 지워져 새 파일이 즉시 닿는다. 손으로 올릴 일이 없어진다. */
+    /* 🔴 2026-08-13 — **앱(OTA)에 새 코드가 영영 안 닿고 있었다.**
+       앱은 서비스워커를 안 쓰고(sw-reg.js가 네이티브에서 빠진다) 안드로이드 웹뷰의 HTTP 캐시가 잡는데,
+       그 캐시가 `max-age=600`이 지나도 재검증을 건너뛴다(실측: 배포 후에도 옛 함수 그대로).
+       GitHub Pages는 Cache-Control을 못 바꾸니(600 고정) **주소를 바꾸는 수밖에 없다.**
+       → 로컬 js/css 주소에 번들 해시를 박는다: `juice.js` → `juice.js?v=<해시>`.
+       ⚠️ 건드리면 안 되는 것 둘:
+          · 외부 스크립트(`//gc.zgo.at/count.js`) — 슬래시가 있어 아래 정규식이 안 잡는다.
+          · `sw.js` — 등록 주소가 바뀌면 브라우저가 **다른 서비스워커로 본다**(등록이 갈라진다). */
+    if (/\.html$/.test(e.name)) {
+      let t = buf.toString('utf8');
+      t = t.replace(/(<script\s[^>]*src=")([A-Za-z0-9._-]+\.js)(")/g,
+                    (m, a, src, b) => (src === 'sw.js' ? m : a + src + '?v=' + STAMP + b));
+      t = t.replace(/(<link\s[^>]*href=")([A-Za-z0-9._-]+\.css)(")/g,
+                    (m, a, href, b) => a + href + '?v=' + STAMP + b);
+      buf = Buffer.from(t, 'utf8');
+    }
+
     if (e.name === 'sw.js') {
+      /* SHARED는 페이지가 실제로 요청하는 주소와 같아야 프리캐시가 쓸모 있다.
+         페이지가 `juice.js?v=abc`를 부르는데 SW가 `/juice.js`를 담아두면 서로 못 만난다. */
+      buf = Buffer.from(buf.toString('utf8').replace(
+        /const SHARED = \[([\s\S]*?)\];/,
+        (m, body) => 'const SHARED = [' + body.replace(/'(\/[A-Za-z0-9._-]+\.(?:js|css))'/g,
+          (mm, path) => `'${path}?v=${STAMP}'`) + '];'), 'utf8');
       buf = Buffer.from(buf.toString('utf8').replace(
         /const CACHE = '([^']+)'/,
         (_, cur) => `const CACHE = '${cur.replace(/-[0-9a-f]{8}$/, '')}-${STAMP}'`), 'utf8');
