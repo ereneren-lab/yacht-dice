@@ -6,8 +6,14 @@
 // updateViaCache:'none' — sw.js 업데이트 감지를 HTTP 캐시로 늦추지 않는다.
 (function () {
   if (!('serviceWorker' in navigator)) return;
-  // 네이티브 앱(Capacitor)에서는 SW를 쓰지 않는다
-  try { if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return; } catch (e) {}
+
+  /* 2026-08-13 — 앱에서도 서비스워커를 켠다. 예전엔 여기서 네이티브를 걸러냈다.
+     그때는 맞았다: 앱이 자산을 APK 안에 넣고 https://localhost 커스텀 스킴으로 띄워서
+     SW 등록이 반드시 실패했고(오프라인은 APK 자산이 해결했다) 콘솔 오류만 남겼다.
+     OTA로 바꾸면서(#23) 앱이 github.io를 원격으로 받는다 -> APK 안 자산이 없어졌다.
+     실측: 앱에서 SW 등록 0, 캐시 0이라 한 번도 안 열어본 게임은 오프라인에서
+     '웹페이지를 사용할 수 없음'이 떴다. 예전 앱은 13종이 전부 오프라인에서 됐으니 후퇴다.
+     이제 원점이 정상 https라 SW가 정상 등록된다 -> warmGames가 13종을 미리 받아 오프라인 복원. */
 
   // 로드 시점에 이미 컨트롤러가 있었나? = 재방문(업데이트 감지 대상).
   // 첫 방문이면 컨트롤러가 없다가 설치되며 controllerchange가 한 번 뜨는데, 그건 새 버전이 아니다.
