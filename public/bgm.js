@@ -85,7 +85,7 @@
     function kung(t, gain) { var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(92, t); o.frequency.exponentialRampToValueAtTime(46, t + 0.13); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.22); }
     function duk(t, gain) { var s = ctx.createBufferSource(); s.buffer = noise(); var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1500, t); bp.Q.value = 1.3; var g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t + 0.1); }
     return {
-      steps: STEPS, stepDur: sd,
+      steps: STEPS, stepDur: sd, level: 0.84,   // 레벨 매칭(아래 주석) — 국악 타악이 세서 살짝 내린다
       schedStep: function (s, t) {
         if (s % 4 === 0) kung(t, s % 8 === 0 ? 0.5 : 0.34);
         if (s % 4 === 2) duk(t, 0.18);
@@ -135,7 +135,7 @@
       o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.16);
     }
     return {
-      steps: STEPS, stepDur: sd,
+      steps: STEPS, stepDur: sd, level: 0.93,   // 레벨 매칭 — 중간 기준(거의 그대로)
       schedStep: function (s, t) {
         if (s % 4 === 0) kick(t, s % 8 === 0 ? 0.22 : 0.16);      // 라이트 four-on-floor
         if (s % 4 === 2) hat(t, 0.06);
@@ -183,7 +183,7 @@
       s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t + 0.16);
     }
     return {
-      steps: STEPS, stepDur: sd,
+      steps: STEPS, stepDur: sd, level: 1.28,   // 레벨 매칭 — 라운지가 성기고 여려 가장 조용해서 올린다(측정: folk 대비 −3.7dB)
       schedStep: function (s, t) {
         var bar = Math.floor(s / 16) % 2, chord = CHORDS[bar];
         // 컴핑: 마디 첫박에 코드 4음을 살짝 굴려(stagger) 부드럽게
@@ -217,12 +217,19 @@
       nextTime += g.stepDur(); step = (step + 1) % g.steps;
     }
   }
+  /* 무드별 레벨 매칭 (2026-08-13)
+     세 무드는 악기·밀도가 달라 체감 음량이 갈렸다 — 상수로 계산한 상대 RMS는
+     folk 0.200 · casual 0.179 · lounge 0.130(리미터가 이 낮은 레벨에선 안 걸려 신호경로가 선형이라
+     gain²·dur·확률 합이 곧 에너지다). 그대로 두면 요트(casual)→블랙잭(lounge)에서 배경음이 뚝 떨어진다.
+     각 무드의 `level`을 기하평균(0.167)에 맞춰(folk 0.84·casual 0.93·lounge 1.28) 전체 평균 음량은
+     유지한 채 편차만 없앤다. 미세 조정은 각 무드 return의 `level:` 한 값만 바꾸면 된다. */
   function begin() {
     if (playing || !on || !gen()) return;
     if (!ac()) return;
     nextTime = ctx.currentTime + 0.08; step = 0; playing = true;
-    try { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(0.15, ctx.currentTime, 0.8); }
-    catch (e) { if (master) master.gain.value = 0.15; }
+    var lvl = 0.15 * ((gen() && gen().level) || 1);
+    try { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(lvl, ctx.currentTime, 0.8); }
+    catch (e) { if (master) master.gain.value = lvl; }
     seqTimer = setInterval(scheduler, 25); scheduler();
   }
   function halt() {
