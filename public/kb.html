@@ -1839,7 +1839,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyAddAi').onclick = ()=>wsSend({t:'addAI'});
   $('copyLink').onclick = ()=>{ const code=roomCode||''; const url=(window.inviteUrl?inviteUrl(code):location.origin+location.pathname+'?room='+code);
     const fb=()=>{ copyText(url); showToast('🔗 초대 링크 복사됨'); };
-    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>fb()); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:(window.inviteText?inviteText(code):'딱세판만에서 같이 하자! 방 코드: '+code),url}).catch(()=>fb()); }
     else fb(); };
   $('lobbyCode').onclick = ()=>{ const c=roomCode||(lobby&&lobby.code)||''; if(!c)return; copyText(c); showToast('📋 방 코드 복사됨'); };
   // 방 파하기: 호스트가 방 자체를 없앤다(자리·재접속 정보까지 사라짐) — 되돌릴 수 없어 확인받는다

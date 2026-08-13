@@ -2728,7 +2728,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('startOnline').onclick=()=>{ if(amHost())wsSend({t:'start'}); };
   $('copyCode').onclick=()=>{ if(lobby)copyText(lobby.code); };
   $('copyLink').onclick=()=>{ if(!lobby)return; const code=lobby.code; const url=(window.inviteUrl?inviteUrl(code):location.origin+location.pathname+'?room='+code);
-    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url)); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:(window.inviteText?inviteText(code):'딱세판만에서 같이 하자! 방 코드: '+code),url}).catch(()=>copyText(url)); }
     else copyText(url); };
   $('lobbyCode').style.cursor='pointer';
   $('lobbyCode').onclick=()=>{ if(!lobby)return; const c=lobby.code;

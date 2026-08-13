@@ -31,5 +31,17 @@
     } catch (e) {}
     return location.origin + location.pathname + q;
   };
+  /* 초대 **문구**도 여기서 만든다 (2026-08-13).
+     🔴 왜: 링크는 여기로 모았는데 문구는 각자 갖고 있어서, net.js 4종만 좋은 문구를 쓰고
+        자체소켓 5종(윷·너클본즈·라이어·좌중우·요트)은 옛 문구가 그대로 나갔다(실기기에서 확인).
+        초대 문구는 친구가 받는 **첫인상**이라 갈리면 안 된다. 링크와 같은 곳에 둔다.
+     게임 이름은 <title>의 '·' 앞부분에서 가져온다(전 게임 공통 형식). */
+  root.inviteText = function (code) {
+    var g = '';
+    try { g = (document.title || '').split('·')[0].trim(); } catch (e) {}
+    return (g ? '딱세판만 · ' + g : '딱세판만') +
+           ' 한 판 하자! 🔗 링크만 누르면 바로 시작 · 설치 없어요' +
+           (code ? ' (방 코드 ' + code + ')' : '');
+  };
   root.SHARE_FAST_BASE = FAST;
 })(typeof window !== 'undefined' ? window : this);

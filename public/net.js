@@ -419,7 +419,9 @@
       if (!c) return;
       const url = (window.inviteUrl ? inviteUrl(c) : location.origin + location.pathname + '?room=' + encodeURIComponent(c));
       const gname = (document.title || '').split('·')[0].trim();
-      const text = (gname ? '딱세판만 · ' + gname : '딱세판만') + ' 한 판 하자! 🔗 링크만 누르면 바로 시작 · 설치 없어요 (방 코드 ' + c + ')';
+      /* 문구는 share-url.js 한 곳에서 만든다 — 여기 또 적으면 갈라진다(2026-08-13에 실제로 갈렸다). */
+      const text = (root.inviteText ? root.inviteText(c)
+        : (gname ? '딱세판만 · ' + gname : '딱세판만') + ' 한 판 하자! 🔗 링크만 누르면 바로 시작 · 설치 없어요 (방 코드 ' + c + ')');
       try {
         if (navigator.share) { await navigator.share({ title: '딱세판만', text: text, url: url }); return; }
       } catch (e) { return; }   // 사용자가 공유를 취소한 경우 — 클립보드로 또 떨어뜨리지 않는다

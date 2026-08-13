@@ -4975,7 +4975,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   })();
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
-  $('lobbyCopy').onclick=()=>{ const url=(window.inviteUrl?inviteUrl(roomCode||''):location.origin+location.pathname+'?room='+(roomCode||'')); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+(roomCode||''),url}).catch(fb); } else fb(); };
+  $('lobbyCopy').onclick=()=>{ const url=(window.inviteUrl?inviteUrl(roomCode||''):location.origin+location.pathname+'?room='+(roomCode||'')); const fb=()=>copyText(url,'🔗 초대 링크 복사됨'); if(navigator.share){ navigator.share({title:'딱세판만',text:(window.inviteText?inviteText((roomCode||'')):'딱세판만에서 같이 하자! 방 코드: '+(roomCode||'')),url}).catch(fb); } else fb(); };
   (function(){ const lc=$('lobbyCode'); if(!lc)return; lc.style.cursor='pointer'; lc.title='탭하면 방 코드 복사'; lc.onclick=()=>{ if(roomCode) copyText(roomCode,'방 코드 복사됨'); }; })();
   // 판이 끝난 뒤엔 누구나 방 전체를 대기실로 되돌릴 수 있다(서버가 종료 상태에서 허용).
   // 서버가 lobby를 브로드캐스트하면 각 클라의 lobby 핸들러가 게임 화면을 정리하고 대기실로 전환한다.

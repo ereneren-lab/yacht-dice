@@ -1722,7 +1722,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('lobbyCopy').onclick=()=>{
     const code=roomCode||''; const url=(window.inviteUrl?inviteUrl(code):location.origin+location.pathname+'?room='+code);
-    if(navigator.share){ navigator.share({title:'딱세판만',text:'딱세판만에서 같이 하자! 방 코드: '+code,url}).catch(()=>copyText(url,'🔗 초대 링크 복사됨')); }
+    if(navigator.share){ navigator.share({title:'딱세판만',text:(window.inviteText?inviteText(code):'딱세판만에서 같이 하자! 방 코드: '+code),url}).catch(()=>copyText(url,'🔗 초대 링크 복사됨')); }
     else copyText(url,'🔗 초대 링크 복사됨');
   };
   $('lobbyCode').style.cursor='pointer';
