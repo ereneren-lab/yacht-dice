@@ -2628,7 +2628,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   (function(){ const rr=$('reconnRetry'); if(rr)rr.onclick=()=>{ hideReconnFail(); reconnects=0; if(S&&S.phase==='play')$('hint').textContent='서버에 다시 연결하는 중…'; tryReconnect(); }; })();
   function onNet(m){
     if(m.t==='me'){ myPid=m.pid; MODE='online'; reconnects=0; reconnecting=false; lastMyTurn=false; avatarPushed=false; SEAT.set('yd_pid',m.pid); SEAT.set('yd_room',m.code); $('netErr').textContent=''; hideReconnFail(); }
-    else if(m.t==='lobby'){ lobby=m.room; if(bootReconnect){switchTab(false);bootReconnect=false;}
+    else if(m.t==='lobby'){ lobby=m.room; if(window.__hc&&window.__ai!==m.room.code){window.__ai=m.room.code;window.__hc=false;try{$('copyLink').onclick();}catch(e){}} if(bootReconnect){switchTab(false);bootReconnect=false;}
       if(m.room.phase==='lobby'){
         const cur=(m.room.members||[]).filter(x=>!x.ai);
         const hadPrev=prevMembers!==null;
@@ -2659,10 +2659,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
       if(bootReconnect){ bootReconnect=false; switchTab(true); $('netErr').textContent=''; const ur=(new URLSearchParams(location.search)).get('room'); if(ur){ switchTab(false); $('joinBox').style.display='block'; $('joinCode').value=ur.toUpperCase(); } } else { $('netErr').textContent=m.msg||'오류'; showJoinUI(); } }
   }
   function tryReconnect(){ const room=SEAT.get('yd_room'),pid=SEAT.get('yd_pid'); if(room&&pid&&(!ws||ws.readyState>1)){ reconnecting=true; connect(()=>wsSend({t:'rejoin',code:room,pid})); } }
-  $('createRoom').onclick=()=>{ SFX.ensure(); const raw=($('onlineName').value||'').trim(); rememberName(raw); const name=raw||'호스트'; reconnects=0; gameShown=false; connect(()=>wsSend({t:'create',name})); };
+  $('createRoom').onclick=()=>{ window.__hc=true; SFX.ensure(); const raw=($('onlineName').value||'').trim(); rememberName(raw); const name=raw||'호스트'; reconnects=0; gameShown=false; connect(()=>wsSend({t:'create',name})); };
   $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
   $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinRoom').onclick(); } });
-  $('joinRoom').onclick=()=>{ SFX.ensure(); const raw=($('onlineName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){$('netErr').textContent='방 코드 4자리를 입력해';return;} rememberName(raw); const name=raw||'게스트'; reconnects=0; gameShown=false; connect(()=>wsSend({t:'join',code,name})); };
+  $('joinRoom').onclick=()=>{ window.__hc=false; SFX.ensure(); const raw=($('onlineName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){$('netErr').textContent='방 코드 4자리를 입력해';return;} rememberName(raw); const name=raw||'게스트'; reconnects=0; gameShown=false; connect(()=>wsSend({t:'join',code,name})); };
   function showJoinUI(){ $('onlineJoin').style.display='block'; $('lobby').style.display='none'; }
   // 로비에서 방 나가기 → 연결 끊고 세션 지운 뒤 방 만들기/참가 화면으로 복귀 (자동 재접속에 갇히지 않게)
   function leaveLobby(){ SEAT.del('yd_room'); SEAT.del('yd_pid'); reconnects=99; reconnecting=false;

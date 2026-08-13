@@ -1578,7 +1578,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         prevMembers.forEach(p=>{ if(p.pid!==MYPID && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); });
       }
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
-      lobby=m.room;
+      lobby=m.room; if(window.__hc&&window.__ai!==m.room.code){window.__ai=m.room.code;window.__hc=false;try{$('lobbyCopy').onclick();}catch(e){}}
       const wasHost=amHost;
       amHost = cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
@@ -1710,14 +1710,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   })();
   $('startBtn').onclick=startLocal;
   function saveName(v){ if(v){ try{localStorage.setItem('alley_name',v);}catch(e){} } }
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name,startChips:cfg.chips,itemsOn:!!cfgItems})); };
+  $('createBtn').onclick=()=>{ window.__hc=true; $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'lcr',name,startChips:cfg.chips,itemsOn:!!cfgItems})); };
   function normCode(v){ return (v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); }
   // 코드칸: 입력 즉시 대문자+영숫자 4자리로 정규화 + Enter로 참가
   (function(){ const jc=$('joinCode'); if(!jc)return;
     jc.addEventListener('input',()=>{ const n=normCode(jc.value); if(jc.value!==n) jc.value=n; });
     jc.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); $('joinBtn').click(); } });
   })();
-  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=normCode($('joinCode').value); if(!code){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
+  $('joinBtn').onclick=()=>{ window.__hc=false; $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=normCode($('joinCode').value); if(!code){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyAddAi').onclick=()=>wsSend({t:'addAI'});
   $('lobbyCopy').onclick=()=>{

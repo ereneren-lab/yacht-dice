@@ -4776,7 +4776,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
       const cur=m.room.members; const hadPrev=prevMembers!==null;
       if(prevMembers){ cur.forEach(x=>{ if(x.pid!==MYPID && !prevMembers.some(p=>p.pid===x.pid)) showToast('🚪 '+x.name+' 입장'); }); prevMembers.forEach(p=>{ if(p.pid!==MYPID && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); }); }
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
-      lobby=m.room; const wasHost=amHost; amHost=cur.some(x=>x.host && x.pid===MYPID);
+      lobby=m.room; if(window.__hc&&window.__ai!==m.room.code){window.__ai=m.room.code;window.__hc=false;try{$('lobbyCopy').onclick();}catch(e){}} const wasHost=amHost; amHost=cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
       // 판 종료 → 로비 복귀 (서버가 room.phase를 'lobby'로 바꿔 보냄)
       if(m.room.phase==='lobby' && $('game').style.display==='grid'){
@@ -4967,8 +4967,8 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     for(let g=2; g<=markers; g++){ const b=document.createElement('button'); b.type='button'; b.className='opt'+(g===cfg[key]?' on':''); b.dataset.g=g; b.textContent=g+(g===markers?'개(전부)':'개'); b.onclick=()=>{ cfg[key]=g; refreshGoal(elId,markers,key); }; el.appendChild(b); }
   }
   $('startBtn').onclick=startLocal;
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,speedStart:cfg.speedStart,pit:cfg.pit,eventTypes:cfg.eventTypes,dailyOn:cfg.dailyOn,avatar:cfg.character})); };
-  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
+  $('createBtn').onclick=()=>{ window.__hc=true; $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'호스트'; try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'create',game:'yut',name,markers:cfg.onMarkers,goal:cfg.onGoal,teamMode:cfg.onTeam,timer:cfg.onTimer||0,decideOrder:cfg.decideOrder,itemBattle:cfg.itemBattle,speedStart:cfg.speedStart,pit:cfg.pit,eventTypes:cfg.eventTypes,dailyOn:cfg.dailyOn,avatar:cfg.character})); };
+  $('joinBtn').onclick=()=>{ window.__hc=false; $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const name=raw||'게스트'; const code=($('joinCode').value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } try{if(raw)localStorage.setItem('alley_name',raw);}catch(e){} online=true; connect(()=>wsSend({t:'join',code,name,avatar:cfg.character})); };
   (function(){ const jc=$('joinCode'); if(!jc)return;
     jc.addEventListener('input',()=>{ const v=jc.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4); if(v!==jc.value) jc.value=v; });
     jc.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinBtn').click(); } });

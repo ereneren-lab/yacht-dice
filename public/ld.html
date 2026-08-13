@@ -1505,8 +1505,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 코드칸: 항상 노출 · 대문자+영숫자만 4자리로 정규화 · Enter로 바로 참가
   $('joinCode').addEventListener('input',e=>{ e.target.value=(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); });
   $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.preventDefault(); $('joinBtn').onclick(); } });
-  $('createBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn,diceCount:cfg.dice,wild:cfg.wild,itemsOn:!!cfg.itemsOn})); };
-  $('joinBtn').onclick=()=>{ $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
+  $('createBtn').onclick=()=>{ window.__hc=true; $('onErr').textContent=''; const raw=($('onName').value||'').trim(); saveName(raw); const name=raw||'호스트'; online=true; connect(()=>wsSend({t:'create',game:'ld',name,spotOn:cfg.spotOn,diceCount:cfg.dice,wild:cfg.wild,itemsOn:!!cfg.itemsOn})); };
+  $('joinBtn').onclick=()=>{ window.__hc=false; $('onErr').textContent=''; const raw=($('onName').value||'').trim(); const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해'; return; } saveName(raw); const name=raw||'게스트'; online=true; connect(()=>wsSend({t:'join',code,name})); };
 
   function start(){
     teardownNet(); online=false; MYPID='me'; ffActive=false; localDiff=cfg.diff||'normal';
@@ -1567,7 +1567,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         prevMembers.forEach(p=>{ if(p.pid!==MYPID && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); });
       }
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
-      lobby=m.room;
+      lobby=m.room; if(window.__hc&&window.__ai!==m.room.code){window.__ai=m.room.code;window.__hc=false;try{$('copyLink').onclick();}catch(e){}}
       const wasHost=amHost;
       amHost = cur.some(x=>x.host && x.pid===MYPID);
       if(amHost && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
