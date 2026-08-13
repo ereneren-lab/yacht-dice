@@ -87,6 +87,12 @@ function copyDir(src, dst) {
                     (m, a, src, b) => (src === 'sw.js' ? m : a + src + '?v=' + STAMP + b));
       t = t.replace(/(<link\s[^>]*href=")([A-Za-z0-9._-]+\.css)(")/g,
                     (m, a, href, b) => a + href + '?v=' + STAMP + b);
+      /* ⚠️ sw-reg.js는 <script src>가 아니라 **JS로 동적 주입**된다(`s.src='sw-reg.js'`).
+         위 태그 정규식으로는 안 잡혀서 혼자만 해시가 안 붙었고, 그 결과 앱이 옛 sw-reg.js를
+         계속 물어 서비스워커가 영영 등록되지 않았다(2026-08-13 실측: SW 0 · 캐시 0).
+         동적 주입도 같이 박는다. `sw.js`는 여기서도 제외 — 등록 주소가 바뀌면 안 된다. */
+      t = t.replace(/(\.src\s*=\s*')([A-Za-z0-9._-]+\.js)(')/g,
+                    (m, a, src, b) => (src === 'sw.js' ? m : a + src + '?v=' + STAMP + b));
       buf = Buffer.from(t, 'utf8');
     }
 
