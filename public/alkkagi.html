@@ -1681,7 +1681,7 @@ function renderLobby(){
   $('lobbyStart').onclick=()=>wsSend({t:'start'});
   $('lobbyCopy').onclick=()=>{
     const url = (window.inviteUrl ? inviteUrl(lobby.code) : location.origin + location.pathname + '?room=' + lobby.code);
-    if(navigator.share){ navigator.share({title:'딱세판만 · 알까기', text:'같이 알까기 하자! 방 코드: '+lobby.code, url}).catch(()=>copyText(url)); }
+    if(navigator.share){ navigator.share({title:'딱세판만 · 알까기', text:(window.inviteText?inviteText(lobby.code):'같이 알까기 하자! 방 코드: '+lobby.code), url}).catch(()=>copyText(url)); }
     else copyText(url);
   };
   /* 설정 바꾸기 — 대기실만 덮고 있던 시트를 걷는다(방은 그대로 살아 있다).
