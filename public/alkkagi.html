@@ -1581,7 +1581,7 @@ function tryReconnect(){
 function onNet(m){
   if(m.t==='me'){ MYPID=m.pid; roomCode=m.code; reconnects=0; seatSet(SEAT_NS+'_room', roomCode); seatSet(SEAT_NS+'_pid', MYPID); }
   else if(m.t==='lobby'){
-    lobby=m.room;
+    lobby=m.room; if(window.__hc&&window.__ai!==m.room.code){window.__ai=m.room.code;window.__hc=false;try{$('lobbyCopy').onclick();}catch(e){}}
     amHost = lobby.members.some(x=>x.host && x.pid===MYPID);
     if(lobby.phase==='lobby'){
       $('setup').style.display='none';
@@ -1712,13 +1712,13 @@ function amHostNow(lb){ return !!(lb && (lb.members||[]).some(x=>x.pid===MYPID &
 function copyText(t){ try{ navigator.clipboard.writeText(t); toast('🔗 초대 링크 복사됨'); }catch(e){ toast(t); } }
 
 // 온라인 셋업 버튼들
-$('createBtn').onclick=()=>{
+$('createBtn').onclick=()=>{ window.__hc=true;
   const name = ($('onName').value||'').trim()||'호스트';
   cfg.myName=name; try{localStorage.setItem('alley_name',name);}catch(e){}
   online=true; $('onErr').textContent='';
   connect(()=>wsSend({t:'create', game:'alkkagi', name, preset:onlineCfg.preset, surface:onlineCfg.surface, specials:(onlineCfg.special&&onlineCfg.special!=='none'?[onlineCfg.special]:[]), rule:(onlineCfg.rule!=='none'?onlineCfg.rule:null)}));
 };
-$('joinBtn').onclick=()=>{
+$('joinBtn').onclick=()=>{ window.__hc=false;
   const name = ($('onName').value||'').trim()||'게스트';
   const code = ($('joinCode').value||'').trim().toUpperCase();
   if(!code){ $('onErr').textContent='방 코드를 입력해줘'; return; }

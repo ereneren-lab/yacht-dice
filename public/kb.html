@@ -1681,7 +1681,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         prevMembers.forEach(p=>{ if(p.pid!==myPid && !cur.some(x=>x.pid===p.pid)) showToast('👋 '+p.name+' 나감'); });
       }
       prevMembers=cur.map(x=>({pid:x.pid,name:x.name}));
-      lobby=m.room;
+      lobby=m.room; if(window.__hc&&window.__ai!==m.room.code){window.__ai=m.room.code;window.__hc=false;try{$('copyLink').onclick();}catch(e){}}
       const wasHost=amHostFlag;
       amHostFlag = cur.some(x=>x.host && x.pid===myPid);
       if(amHostFlag && !wasHost && hadPrev) showToast('👑 방장이 되었어요!');
@@ -1740,9 +1740,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
   $('avClose').onclick=()=>{ $('avOv').classList.remove('on'); _avOnPick=null; };
   $('avOv').addEventListener('click', e=>{ if(e.target.id==='avOv'){ $('avOv').classList.remove('on'); _avOnPick=null; } });
-  $('createBtn').onclick = ()=>{ $('onErr').textContent=''; saveName($('onName').value); const name=($('onName').value||'').trim()||'호스트';
+  $('createBtn').onclick = ()=>{ window.__hc=true; $('onErr').textContent=''; saveName($('onName').value); const name=($('onName').value||'').trim()||'호스트';
     mode='online'; connect(()=>{ wsSend({t:'create',game:'kb',name}); sendMyAvatar(); }); };
-  $('joinBtn').onclick = ()=>{ $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
+  $('joinBtn').onclick = ()=>{ window.__hc=false; $('onErr').textContent=''; const name=($('onName').value||'').trim()||'게스트';
     const code=($('joinCode').value||'').trim().toUpperCase(); if(code.length<4){ $('onErr').textContent='방 코드 4자리를 입력해.'; return; }
     saveName($('onName').value); mode='online'; connect(()=>{ wsSend({t:'join',code,name}); sendMyAvatar(); }); };
   function switchOnline(){ mode='online'; document.querySelectorAll('#optMode .opt').forEach(o=>o.classList.toggle('on',o.dataset.m==='online')); $('diffWrap').style.display='none'; $('matchWrap').style.display='none'; $('onlineBox').style.display='block'; $('startBtn').style.display='none'; }
