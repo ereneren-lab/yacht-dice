@@ -49,6 +49,7 @@
     "test:doneevent": "node scripts/browser-test/verify-done-event.js",
     "test:analytics": "node scripts/browser-test/verify-analytics.js",
     "test:analytics:send": "node scripts/browser-test/verify-analytics-send.js",
+    "test:face": "node scripts/browser-test/verify-face.js",
     "test:invite": "node scripts/browser-test/verify-invite-events.js",
     "sim:balance": "node scripts/balance-sim.js",
     "test:chars": "node scripts/browser-test/verify-chars.js",
