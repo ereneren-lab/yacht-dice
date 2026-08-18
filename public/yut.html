@@ -3393,6 +3393,11 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     const catchWord=cn>=3?'💥💥💥 트리플 잡기!':cn>=2?'💥💥 더블 잡기!':'💥';
     showToast(catchWord+' '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
     if(who) showSpeech(who.pid,'catch');
+    /* 잡힌 쪽은 시무룩 — 잡은 쪽(happy)과 같은 순간에 반대 표정이 뜨면 판이 읽힌다.
+       victims는 자리(seat) 번호다. 아트가 없으면 CHARS.reactImg가 조용히 넘어간다. */
+    (cap.victims||[]).forEach(function(vs){
+      var vp=S.players[vs]; if(vp && vp.pid!==(who&&who.pid)) reactCard(vp.pid,'cardDismay',0.8,'ease-out','sad');
+    });
     captureEffect(cap.node, cn);
     flyCapturedHome(cap.node, cap.victims);   // ✨ 잡힌 말 튕겨 → 집으로
     // ✨ 잡은 말: 부딪힌 반동으로 확 커졌다 되돌아옴
@@ -4048,7 +4053,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
       // 잡기도 이 이동에 딸린 것 → 미리 소비해서 즉시 블록을 막고, '착지 순간'에 연출한다.
       const _cap=(S.captured && JSON.stringify(S.captured)!==JSON.stringify(prevCaptured))?S.captured:null;
       if(_cap){ prevCaptured=S.captured; try{ spawnCapturedGhosts(_cap.node, _cap.victims); }catch(e){} }   // 판 토큰 지워지기 전에 '유령'을 그 자리에
-      if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); if(who) floatReaction(who.pid,'😱'); }
+      if(_pit){ const who=S.players[_pit.seat]; showToast('🕳️ '+(who?esc(who.name):'')+'의 말이 늪에 빠졌다! 처음으로 💦'); if(who) floatReaction(who.pid,'😱'); if(who) reactCard(who.pid,'cardDismay',0.8,'ease-out','angry'); }
       animatingId='pc-'+S.lastMovePath.seat+'-'+S.lastMovePath.pieceId;
       animGroup=new Set((S.lastMovePath.group||[S.lastMovePath.pieceId]).map(pid=>'pc-'+S.lastMovePath.seat+'-'+pid)); // 업힌 말 전체를 렌더 스냅에서 보호
       renderPieces();
