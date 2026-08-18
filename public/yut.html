@@ -3342,6 +3342,12 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     hero.style.display=''; hero.className='res-hero';
     // 96~124px로 크게 나오는 자리 — 잘라낸 판본 대신 전체 그림을 쓴다(다리·소품까지 보인다)
     hero.innerHTML=`<div class="rh-crown">👑</div><div class="rh-av" style="--rim:${pieceColor(seat)}"><img src="${animalImgBig(av)}" alt="${esc(w.name)}"></div>`;
+    // 🎉 우승 표정(cheer): 아트가 있으면 히어로를 그 얼굴로 영구 교체. 없으면 기본 그대로(폴백 안전).
+    //    reactCard의 잠깐 스왑과 달리 결과 화면은 계속 떠 있어야 하므로 여기선 되돌리지 않는다.
+    if(window.CHARS && CHARS.is(av)){
+      const heroImg=hero.querySelector('.rh-av img'), cheerSrc=CHARS.faceSrc(av,'cheer');
+      if(heroImg){ const probe=new Image(); probe.onload=()=>{ if(probe.naturalWidth>0) heroImg.src=cheerSrc; }; probe.src=cheerSrc; }
+    }
     if(rb) rb.style.display='none';   // 히어로가 focal → 이모지 숨김
   }
   function confettiBurst(){
