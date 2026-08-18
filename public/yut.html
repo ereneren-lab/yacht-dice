@@ -3389,7 +3389,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     if(!cap) return;
     try{SFX.capture();}catch(e){} try{BGM.duck();}catch(e){}
     const who=S.players[cap.seat]; const cn=cap.count||1;
-    if(who) reactCard(who.pid,'cardJoy',0.9);
+    if(who) reactCard(who.pid,'cardJoy',0.9,null,'happy');
     const catchWord=cn>=3?'💥💥💥 트리플 잡기!':cn>=2?'💥💥 더블 잡기!':'💥';
     showToast(catchWord+' '+(who?esc(who.name):'')+' 말이 잡았다! 한 번 더!');
     if(who) showSpeech(who.pid,'catch');
@@ -3808,12 +3808,19 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   }
   // 현재 차례 큰 캐릭터가 결과에 반응해 포즈 1회. throwmo와 똑같이 img 인라인 애니로 걸어
   // 카드가 재렌더되면 저절로 끝난다(1회성). reduced-motion은 CSS !important가 덮고 여기서도 가드.
-  function reactCard(pid, anim, dur, ease){
+  function reactCard(pid, anim, dur, ease, emotion){
     if(FX_REDUCED()) return;
     const im=document.querySelector('#charCards .ccard[data-pid="'+pid+'"] .ccav');
     if(!im) return;
     im.style.animation='none'; void im.offsetWidth;
     im.style.animation=anim+' '+dur+'s '+(ease||'cubic-bezier(.25,.9,.3,1.3)')+' 1';
+    /* 표정 스왑 — 애니와 함께 잠깐 감정 얼굴로. 아트(img/{id}_{emotion}.png)가 없으면
+       CHARS.reactImg가 조용히 넘어가 기존 애니만 남는다(무해). 아바타가 캐릭터일 때만. */
+    if(emotion && window.CHARS){
+      const pi=S&&S.players?S.players.findIndex(p=>p.pid===pid):-1;
+      if(pi>=0){ const img=im.querySelector('img');
+        if(img) CHARS.reactImg(img, pieceAnimal(S.players[pi], pi), emotion, Math.round(dur*1000)+300); }
+    }
   }
   function renderPieces(){
     const layer=$('pieceLayer'); if(!layer)return;
@@ -4294,7 +4301,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
          이득이 측정되지 않았다. 근거 없이 연출을 빼지 않는다 — 필요하면 아래 한 줄만 되살리면 된다:
            const bigResult=(st===4||st===5||st===-1); if(tp && !bigResult) showSpeech(...) */
       const tp=S.players[S.turn]; if(tp) showSpeech(tp.pid, key);
-      if(tp){ if(st===4||st===5) reactCard(tp.pid,'cardJoy',0.9); else if(st===-1) reactCard(tp.pid,'cardDismay',0.8,'ease-out'); }  // 큰 캐릭터: 윷·모 환호 / 빽도 낙담
+      if(tp){ if(st===4||st===5) reactCard(tp.pid,'cardJoy',0.9,null,'star'); else if(st===-1) reactCard(tp.pid,'cardDismay',0.8,'ease-out','surprise'); }  // 큰 캐릭터: 윷·모 환호(의기양양) / 빽도 낙담(놀람)
       try{ if(st===4||st===5){SFX.yut(); BGM.duck();} else if(st===-1)SFX.backdo(); }catch(e){}
       // JUICE: 풀스크린 결과 오버레이
       resultBurst(st);

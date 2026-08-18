@@ -114,6 +114,34 @@
       else el.textContent = (v == null ? '' : String(v));
     },
 
+    /* ── 표정(감정) 변형 ─────────────────────────────────────────
+       기본 초상 밖에 `img/{id}_{emotion}.png`를 둔다(happy·sad·surprise·angry·star·cheer).
+       ⚠️ 아트가 **아직 없을 수 있다.** 그래서 파일 존재를 한 번 확인(probe)하고 캐시한다 —
+          없으면 조용히 기본 이미지를 유지한다(코드가 아트를 앞서 배포돼도 무해, 도착하면 자동으로 산다).
+       스펙·감정 매핑: ART_BRIEF.md. 파일럿 검증 후 18종×6표정으로 확대. */
+    faceSrc: function (id, emotion) { return 'img/' + id + '_' + emotion + '.png'; },
+    /** el(<img>)을 잠깐 그 표정으로 바꾼다(ms 뒤 원래대로). 파일 없으면 아무 일도 안 한다. */
+    reactImg: function (el, id, emotion, ms) {
+      if (!el || !CHARS.is(id) || !emotion) return;
+      var key = id + '_' + emotion, path = CHARS.faceSrc(id, emotion);
+      var swap = function () {
+        var base = el.getAttribute('data-base') || el.src;
+        el.setAttribute('data-base', base);
+        el.src = path;
+        clearTimeout(el._faceT);
+        el._faceT = setTimeout(function () {
+          var b = el.getAttribute('data-base'); if (b) { el.src = b; el.removeAttribute('data-base'); }
+        }, ms || 1200);
+      };
+      if (CHARS._faceOk[key] === true) return swap();
+      if (CHARS._faceOk[key] === false) return;      // 없는 걸 안다 → 그대로
+      var probe = new Image();
+      probe.onload = function () { CHARS._faceOk[key] = probe.naturalWidth > 0; if (CHARS._faceOk[key]) swap(); };
+      probe.onerror = function () { CHARS._faceOk[key] = false; };
+      probe.src = path;
+    },
+    _faceOk: {},
+
     /** 캔버스용 — 미리 불러둔 <img>. 아직 안 떴으면 null.
      *  ⚠️ 캔버스는 `fillText`로 이모지를 그린다. 이미지는 그 방식으로 못 그린다(글자가 아니니까).
      *     결과 화면·순위표가 캔버스인 게임(라이어·좌중우·요트)이 있어서 이 경로가 꼭 필요하다. */
