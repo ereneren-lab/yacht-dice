@@ -33,6 +33,17 @@ function token() {
   try { return fs.readFileSync(f, 'utf8').trim(); } catch (e) { return null; }
 }
 
+/** GoatCounter가 가끔 멀쩡한 요청에 404를 준다(2026-08-20 실측: 같은 주소가 curl로는 200).
+ *  한 번 튕겼다고 "데이터 없음"으로 오독하지 않도록 짧게 두 번 더 시도한다. */
+async function getRetry(p, tk, n) {
+  let last;
+  for (let i = 0; i < (n || 3); i++) {
+    try { return await get(p, tk); }
+    catch (e) { last = e; if (!/^404/.test(e.message)) throw e; await sleep(400); }
+  }
+  throw last;
+}
+
 function get(p, tk) {
   return new Promise((res, rej) => {
     const req = https.request({ host: SITE, path: p, method: 'GET',
@@ -82,7 +93,7 @@ const FUNNEL = [
 
   let total;
   try {
-    total = await get(`/api/v0/stats/total?${range}`, tk);
+    total = await getRetry(`/api/v0/stats/total?${range}`, tk);
   } catch (e) {
     console.log('❌ ' + e.message);
     if (/401|403/.test(e.message)) console.log('   토큰을 다시 만들어 ~/.goatcounter-token 에 넣을 것.');
@@ -94,7 +105,7 @@ const FUNNEL = [
   await sleep(300);
   let hits = [];
   try {
-    const r = await get(`/api/v0/stats/hits?${range}&limit=200`, tk);
+    const r = await getRetry(`/api/v0/stats/hits?${range}&limit=200`, tk);
     hits = r.hits || [];
   } catch (e) { console.log('  (경로별 지표를 못 받았다: ' + e.message + ')'); }
 
