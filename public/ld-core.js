@@ -17,6 +17,10 @@
   function C(n,k){ if(k<0||k>n)return 0; let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return r; }
   function atLeast(U,t,p){ if(t<=0)return 1; if(t>U)return 0; let s=0; for(let i=t;i<=U;i++) s+=C(U,i)*Math.pow(p,i)*Math.pow(1-p,U-i); return s; }
   function exactly(U,t,p){ if(t<0||t>U)return 0; return C(U,t)*Math.pow(p,t)*Math.pow(1-p,U-t); }
+  /* 입찰자가 무작위보다 더 갖고 있는 그 눈의 개수(실측 ~0.8). 아래 pTrue 주석 참고. */
+  const BIDDER_EXCESS = 0.8;
+  /* 문턱이 소수일 때 — atLeast는 정수만 받으므로 앞뒤를 보간한다. */
+  function atLeastFrac(U,t,p){ const lo=Math.floor(t), f=t-lo; return atLeast(U,lo,p)*(1-f) + atLeast(U,lo+1,p)*f; }
 
   // ---- AI ----
   function legalRaises(bid, total){
@@ -55,8 +59,18 @@
       qty = Math.min(qty, total);
       return { type:'bid', qty, face:bestF };
     }
+    /* 🔴 2026-08-20 — **자가 틀렸다.** atLeast는 모르는 주사위를 전부 무작위(p)로 본다.
+       그런데 **상대가 그 수량을 불렀다는 것 자체가 신호**다 — 그 눈을 갖고 있을 확률이 높다.
+       실측(npm run sim:ldcalib · 입찰 4,532건): 예측 34.3% vs 실제 56.8% — **22.5%p 낮게 봤다.**
+       전 구간에서 같은 방향이라 소음이 아니다. 그래서 AI가 과도하게 도전했고,
+       도전 문턱이 더 높은 '어려움'이 그 손해를 더 크게 먹었다("어려움 ≤ 보통"의 정체).
+
+       얼마나 더 갖고 있나도 쟀다(입찰 4,077건):
+         와일드   주사위당 0.597 (무작위 0.333) → 초과 +0.81개
+         일반     주사위당 0.429 (무작위 0.167) → 초과 +0.78개
+       **초과분이 모드와 무관하게 ~0.8개**라 상수 하나로 보정한다(비율이 아니라 개수로 잡는 이유). */
     const myc = myMatch(bid.face);
-    const pTrue = atLeast(unknown, bid.qty - myc, p);
+    const pTrue = atLeastFrac(unknown, bid.qty - myc - BIDDER_EXCESS, p);
     /* 도전 임계값: 높은 난이도일수록 최적(~0.5)에 가깝게.
        ⚠️ 2026-08-07에 0.38~0.52를 쓸어 봤다. 라운드당 주사위 손실률(시드 3벌·각 2500라운드)은
           0.42가 조금 낫고(32.8% vs 0.47의 33.7%) **승률로 재면 반대로 나왔다.**

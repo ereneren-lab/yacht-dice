@@ -31,6 +31,11 @@ function seedOf(i){let x=(0x9E37 ^ Math.imul(i+1,2654435761))>>>0;x^=x>>>15;x=Ma
 
 function C(n,k){ if(k<0||k>n)return 0; let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return r; }
 function atLeast(U,t,p){ if(t<=0)return 1; if(t>U)return 0; let s=0; for(let i=t;i<=U;i++) s+=C(U,i)*Math.pow(p,i)*Math.pow(1-p,U-i); return s; }
+/* ⚠️ 자는 **AI가 실제로 쓰는 식**을 그대로 써야 한다. ld-core에 보정(BIDDER_EXCESS)이 들어갔으니
+   여기도 같이 맞춘다 — 안 맞추면 "AI 행동은 바뀌었는데 옛 식으로 재는" 꼴이 된다.
+   BIAS=0 으로 두면 보정 전 식으로 잰다(비교용). */
+const BIAS = process.env.LDCALIB_BIAS != null ? parseFloat(process.env.LDCALIB_BIAS) : 0.8;
+function atLeastFrac(U,t,p){ const lo=Math.floor(t), f=t-lo; return atLeast(U,lo,p)*(1-f) + atLeast(U,lo+1,p)*f; }
 
 const WILD=true, P=1/3;
 const bins=[[0,.15],[.15,.3],[.3,.45],[.45,.6],[.6,.75],[.75,1.01]];
@@ -56,7 +61,7 @@ LDEngine.prototype._apply = function(seat, a){
         const myd=viewer.dice||[];
         const myc=myd.filter(d=>d===a.face||(WILD&&d===1)).length;
         const unknown=Math.max(0,all.length-myd.length);
-        const pt=atLeast(unknown, a.qty-myc, P);
+        const pt=atLeastFrac(unknown, a.qty-myc-BIAS, P);
         const bi=bins.findIndex(([lo,hi])=>pt>=lo&&pt<hi);
         if(bi>=0){ acc[bi].n++; acc[bi].psum+=pt; if(wasTrue)acc[bi].t++; CUR.dudos++; }
       }
