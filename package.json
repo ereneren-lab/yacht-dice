@@ -74,7 +74,8 @@
     "audit:tokens": "node scripts/audit-tokens.js",
     "sim:ldflow": "node scripts/sim/ld-flow.js",
     "test:yutstack": "node scripts/browser-test/verify-yut-stack.js",
-    "stats": "node scripts/stats.js"
+    "stats": "node scripts/stats.js",
+    "sim:ldcalib": "node scripts/sim/ld-calibration.js"
   },
   "engines": {
     "node": ">=18"
