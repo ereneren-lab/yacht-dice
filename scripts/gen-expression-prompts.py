@@ -72,14 +72,18 @@ C = [
  dict(id='tiger', kr='호랑이', full=False,
       desc='a playful young Korean tiger cub, warm orange fur with soft black stripes, cream muzzle and belly, round cheeks, one ear flicked back, tiny fangs'),
  dict(id='rabbit', kr='토끼', full=False,
-      # ⚠️ 실제 그림은 '흰 토끼'가 아니다 — 얼굴 절반이 검은 무늬이고 노란 나비넥타이를 맸다.
-      desc='a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking '
-           'covering the eyes and most of the face, a white muzzle and a white chest, a black patch on '
-           'the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW '
+      # ⚠️ 2026-08-20: 한때 '검은 마스크를 쓴 토끼'로 잘못 적었다. 그건 무늬가 아니라
+      #    `public/img/rabbit.png`의 **알파가 파먹힌 자국**이었다(어두운 배경에 얹어 보다 오독).
+      #    흰·회색 중성색 털을 배경 제거기가 배경으로 보고 얼굴에 구멍을 뚫어 놨던 것이다.
+      #    같은 날 원본에서 `--bg none`으로 다시 뽑아 고쳤다. 실제 토끼는 아래가 맞다.
+      desc='a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a '
+           'creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and '
+           'one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN '
            'BOW TIE at the neck',
-      neg='plain all-white rabbit, no bow tie, both ears upright',
-      hint='The black face mask and the golden bow tie are its identity — never drop them. '
-           'The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.'),
+      neg='black face markings, black patches, dark mask around the eyes, missing bow tie, '
+          'pure white rabbit with no grey, both ears fully upright',
+      hint='The golden bow tie is its one accent of colour — never drop it. The long upright ear carries '
+           'the emotion: perked up and quivering when excited, drooping when dejected.'),
  dict(id='bear', kr='곰', full=False,
       # ⚠️ 실제 그림엔 소품이 하나도 없다. 스카프를 적으면 없던 스카프가 생긴다.
       desc='a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, '

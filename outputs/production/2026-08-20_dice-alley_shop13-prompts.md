@@ -70,8 +70,8 @@ big glossy expressive eyes with two catchlights, warm soft global illumination w
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
-The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
+The character: a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN BOW TIE at the neck.
+The golden bow tie is its one accent of colour — never drop it. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: both arms raised high cheering, a huge joyful open smile, sparkling star-shaped eyes.
 
@@ -79,7 +79,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
+watermark, busy background, more than one character, photorealistic human, black face markings, black patches, dark mask around the eyes, missing bow tie, pure white rabbit with no grey, both ears fully upright.
 ```
 
 ## `bear_cheer.png` — 곰
@@ -438,8 +438,8 @@ big glossy expressive eyes with two catchlights, warm soft global illumination w
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
-The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
+The character: a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN BOW TIE at the neck.
+The golden bow tie is its one accent of colour — never drop it. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
 
@@ -447,7 +447,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
+watermark, busy background, more than one character, photorealistic human, black face markings, black patches, dark mask around the eyes, missing bow tie, pure white rabbit with no grey, both ears fully upright.
 ```
 
 ## `bear_star.png` — 곰
@@ -806,8 +806,8 @@ big glossy expressive eyes with two catchlights, warm soft global illumination w
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
-The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
+The character: a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN BOW TIE at the neck.
+The golden bow tie is its one accent of colour — never drop it. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
 
@@ -815,7 +815,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
+watermark, busy background, more than one character, photorealistic human, black face markings, black patches, dark mask around the eyes, missing bow tie, pure white rabbit with no grey, both ears fully upright.
 ```
 
 ## `bear_happy.png` — 곰
@@ -1174,8 +1174,8 @@ big glossy expressive eyes with two catchlights, warm soft global illumination w
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
-The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
+The character: a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN BOW TIE at the neck.
+The golden bow tie is its one accent of colour — never drop it. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
 
@@ -1183,7 +1183,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
+watermark, busy background, more than one character, photorealistic human, black face markings, black patches, dark mask around the eyes, missing bow tie, pure white rabbit with no grey, both ears fully upright.
 ```
 
 ## `bear_surprise.png` — 곰
@@ -1542,8 +1542,8 @@ big glossy expressive eyes with two catchlights, warm soft global illumination w
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
-The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
+The character: a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN BOW TIE at the neck.
+The golden bow tie is its one accent of colour — never drop it. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: teary droopy sad eyes, a small frown, shoulders slumped, dejected.
 
@@ -1551,7 +1551,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
+watermark, busy background, more than one character, photorealistic human, black face markings, black patches, dark mask around the eyes, missing bow tie, pure white rabbit with no grey, both ears fully upright.
 ```
 
 ## `bear_sad.png` — 곰
@@ -1910,8 +1910,8 @@ big glossy expressive eyes with two catchlights, warm soft global illumination w
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
-The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
+The character: a chubby soft grey-and-white rabbit, pale dove-grey fur on the head, back and ears with a creamy white muzzle, cheeks and chest, tall ears with soft pink inner ears (one upright and one gently folded over), a small pink nose, rosy blush cheeks, and a GOLDEN-YELLOW SATIN BOW TIE at the neck.
+The golden bow tie is its one accent of colour — never drop it. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: an angry pouty frown with furrowed brows and a small red anger vein, arms crossed.
 
@@ -1919,7 +1919,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
+watermark, busy background, more than one character, photorealistic human, black face markings, black patches, dark mask around the eyes, missing bow tie, pure white rabbit with no grey, both ears fully upright.
 ```
 
 ## `bear_angry.png` — 곰
