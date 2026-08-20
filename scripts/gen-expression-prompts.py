@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-표정 프롬프트 생성기 — 상점 13종 × 6표정 = 78개 낱장 프롬프트를 마크다운으로 찍는다.
+표정 프롬프트 생성기 — 상점 13종 × 6표정. 낱장 78개 + 3-업 시트 26개를 마크다운으로 찍는다.
 
 왜 손으로 안 쓰나 (2026-08-20)
-  78개를 손으로 쓰면 공통 앞머리가 조금씩 달라지고, 그 차이가 그림의 차이로 나온다.
+  104개를 손으로 쓰면 공통 앞머리가 조금씩 달라지고, 그 차이가 그림의 차이로 나온다.
   실제로 8/11에 캐릭터마다 프롬프트를 조금씩 다르게 써서 한 장만 스타일이 튄 적이 있다.
   여기서 조각(스타일·캐릭터·표정·프레이밍·네거티브)을 조립하면 **다른 건 표정뿐**이 보장된다.
 
-  ChatGPT가 3-업 시트를 잘 못 뽑아서 낱장으로 바꿨다(재성님 요청). 낱장이라 장수는 늘지만
-  ① 표정 하나가 캔버스를 다 쓰므로 해상도가 좋고
-  ② 시트에서 얼굴이 붙어 못 자르던 사고(8/20에 8장 중 2장)가 아예 없어지고
-  ③ 8/11 8종을 전신으로 뽑으면 판 위 판본과 우승 화면 판본을 한 장에서 다 뽑는다.
+낱장이냐 시트냐 — 둘 다 찍는다. 하루 써 보고 내린 결론은 이렇다.
+  · 시트(캐릭터당 2장) — 생성 횟수가 1/3이다. 8/20에 B시트 10장이 **10장 전부 한 번에 갈렸다.**
+    비결은 `GAP` 문장이다. 그날 오전 시트엔 그게 없어서 8장 중 2장이 붙어 따로 갈라야 했다.
+    단점: 한 장이 어긋나면 3표정을 함께 잃는다. 그리고 컷마다 프레이밍이 제각각이라
+    **캐릭터별로 --bust 값을 따로 잡아야 했다**(NOTES.md 참고).
+  · 낱장 — 표정 하나가 캔버스를 다 써서 해상도가 좋고, 어긋난 것만 다시 뽑으면 된다.
+    전신 8종은 낱장이면 판 위 판본과 우승 화면 판본을 한 장에서 다 뽑을 수 있다.
+  → **cheer처럼 크게 쓰는 것은 낱장, 나머지는 시트**가 지금까지의 최선이다.
 
 사용: python3 scripts/gen-expression-prompts.py > outputs/production/<날짜>_..._shop13-prompts.md
 """
@@ -183,18 +187,48 @@ C = [
 BG_WARN = {'jeoseung'}
 
 
-def prompt(c, emo):
-    body = (c.get('over') or {}).get(emo) or EMO[emo][1]
-    parts = [STYLE, '', 'The character: ' + c['desc'] + '.']
-    if c.get('hint'):
-        parts.append(c['hint'])
-    parts += ['', 'Expression: ' + body + '.', '',
-              FRAME_FULL if c['full'] else FRAME_BUST, '',
-              NEG + (', ' + c['neg'] if c.get('neg') else '') + '.']
+def body_of(c, emo):
+    return (c.get('over') or {}).get(emo) or EMO[emo][1]
+
+
+def _tail(c, frame):
+    parts = [frame, '', NEG + (', ' + c['neg'] if c.get('neg') else '') + '.']
     if c['id'] in BG_WARN:
         parts.append('The background must be fully transparent (or a plain mid-grey if transparency is '
                      'not possible) — never black, so the black hat and robe stay separable.')
-    return '\n'.join(parts)
+    return parts
+
+
+def _head(c):
+    parts = [STYLE, '', 'The character: ' + c['desc'] + '.']
+    if c.get('hint'):
+        parts.append(c['hint'])
+    return parts
+
+
+def prompt(c, emo):
+    return '\n'.join(_head(c) + ['', 'Expression: ' + body_of(c, emo) + '.', '']
+                     + _tail(c, FRAME_FULL if c['full'] else FRAME_BUST))
+
+
+# ── 3-업 시트 — 낱장보다 생성 횟수가 1/3이다.
+#    2026-08-20에 10장을 이 형식으로 받아 **10장 전부 한 번에 갈렸다**(붙은 것 없음).
+#    비결은 아래 GAP 문장이다. 그날 오전 시트에는 이 문장이 없어서 8장 중 2장이 붙어 버렸다.
+GAP = ('LARGE EMPTY GAPS between the three figures — they must NOT touch or overlap at all. '
+       'Each figure must be a separate isolated island with fully transparent space around it.')
+SHEETS = {'A': ['star', 'surprise', 'happy'], 'B': ['sad', 'angry', 'cheer']}
+
+
+def sheet_prompt(c, which):
+    emos = SHEETS[which]
+    lines = ['Create a 3-expression sheet: three versions of this same character side by side,',
+             'the same scale, the same camera angle, the same lighting.', GAP, '']
+    for i, e in enumerate(emos, 1):
+        lines.append('(%d) %s' % (i, body_of(c, e)))
+    frame = (FRAME_FULL if c['full'] else FRAME_BUST).replace(
+        'Framing: a single full-body illustration.',
+        'Framing: each of the three is a full-body illustration.')
+    return '\n'.join(_head(c) + [''] + lines + [''] + _tail(c, frame))
 
 
 def main():
@@ -223,5 +257,26 @@ def main():
         print('---\n')
 
 
+
+def main_sheets():
+    """3-업 시트판 — 생성 횟수가 낱장의 1/3이다(캐릭터당 2장으로 6표정)."""
+    print('\n\n# 부록 — 3-업 시트판 (캐릭터당 2장 · 총 26장)\n')
+    print('낱장 78개가 부담스러우면 이쪽을 쓴다. 2026-08-20에 B시트 10장을 이 형식으로 받아')
+    print('**10장 전부 한 번에 갈렸다**(붙은 것 없음). 비결은 `LARGE EMPTY GAPS` 문장이다 —')
+    print('그날 오전 시트에는 그 문장이 없어서 8장 중 2장이 붙어 따로 갈라야 했다.\n')
+    print('저장은 `{id}_sheetA.png` · `{id}_sheetB.png`. 자르기·이름 붙이기는 코드가 한다.\n')
+    for which, emos in [('A', 'star·surprise·happy'), ('B', 'sad·angry·cheer')]:
+        print('## %s시트 — %s\n' % (which, emos))
+        for c in C:
+            ref = 'public/img/%s%s.png' % (c['id'], '_full' if c['full'] else '')
+            print('### `%s_sheet%s.png` — %s' % (c['id'], which, c['kr']))
+            print('\n첨부: `%s`%s\n' % (ref, ' · **전신으로**' if c['full'] else ' · **상반신으로**'))
+            print('```')
+            print(sheet_prompt(c, which))
+            print('```\n')
+        print('---\n')
+
+
 if __name__ == '__main__':
     main()
+    main_sheets()
