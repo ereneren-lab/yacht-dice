@@ -39,6 +39,30 @@ const EVENT = { star: '윷·모', surprise: '빽도', happy: '잡음', sad: '잡
   check('배선(yut) — cheer (우승 히어로 resHero)',
     /faceSrc\(\s*\w+\s*,\s*'cheer'\s*\)/.test(yut),
     "resHero의 faceSrc(av,'cheer') 스왑 없음");
+
+  /* 📱 폰에서도 살아 있는가 — 2026-08-20에 여기서 크게 데였다.
+     reactCard가 `#charCards`(캐릭터 카드)만 찾고 있었는데 그 요소는 **781px 미만에서 display:none**이다.
+     즉 표정 다섯이 폰에서 통째로 죽어 있었다(아트 63장 중 폰에 뜨는 건 cheer 18장뿐이었다).
+     고친 방식: `avatarImgs(pid)`가 **보이는** 아바타를 전부 모은다 — 카드 / 던지는 캐릭터 / 상단 칩.
+     이 셋 중 하나라도 빠지면 그 폭에서 표정이 사라진다. 그래서 셋을 각각 단언한다. */
+  check('배선(yut) — avatarImgs: 보이는 아바타를 모으는 함수가 있다',
+    /function\s+avatarImgs\s*\(/.test(yut),
+    'avatarImgs가 없다 — reactCard가 카드만 보면 폰에서 표정이 안 뜬다');
+  check('배선(yut) — reactCard가 avatarImgs를 쓴다',
+    /function\s+reactCard[\s\S]{0,900}avatarImgs\(/.test(yut),
+    'reactCard가 카드만 직접 찾고 있다(폰에서 죽는다)');
+  for (const [sel, why] of [
+    ['#charCards',      '데스크톱 캐릭터 카드(≥781px)'],
+    ['.thrower',        '폰 — 던지는 캐릭터(차례인 사람)'],
+    ['.players-strip',  '폰 — 상단 칩(차례가 아닌 사람. sad가 여기로 온다)'],
+  ]) {
+    check(`배선(yut) — avatarImgs가 ${sel} 를 본다 (${why})`,
+      new RegExp(`function\\s+avatarImgs[\\s\\S]{0,700}${sel.replace(/[.#]/g, '\\$&')}`).test(yut),
+      `${sel} 를 안 본다 — 그 폭에서 표정이 사라진다`);
+  }
+  check('배선(yut) — 보이는지 판정에 getBoundingClientRect를 쓴다',
+    /function\s+avatarImgs[\s\S]{0,700}getBoundingClientRect/.test(yut),
+    '숨은 요소를 걸러내지 않으면 안 보이는 곳에서 스왑이 일어난다');
 }
 
 // ── 2) chars.js API + faceSrc 경로 규칙 ─────────────────────────────────────
