@@ -3345,8 +3345,21 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     // 🎉 우승 표정(cheer): 아트가 있으면 히어로를 그 얼굴로 영구 교체. 없으면 기본 그대로(폴백 안전).
     //    reactCard의 잠깐 스왑과 달리 결과 화면은 계속 떠 있어야 하므로 여기선 되돌리지 않는다.
     if(window.CHARS && CHARS.is(av)){
-      const heroImg=hero.querySelector('.rh-av img'), cheerSrc=CHARS.faceSrc(av,'cheer');
-      if(heroImg){ const probe=new Image(); probe.onload=()=>{ if(probe.naturalWidth>0) heroImg.src=cheerSrc; }; probe.src=cheerSrc; }
+      const heroImg=hero.querySelector('.rh-av img');
+      /* ⚠️ 여기는 **전신본**을 크게 띄우는 자리다(윗줄 animalImgBig). cheer도 전신 판본이 있으면 그걸 먼저 쓴다.
+         `{id}_cheer.png`는 판 위 말(15~37px)용이라 얼굴만 바짝 잘려 있어, 그대로 갈아끼우면
+         **전신 → 얼굴 클로즈업**으로 프레이밍이 튄다(2026-08-20 실측: 산신령·복주머니가 심했다).
+         순서: `{id}_cheer_full` → `{id}_cheer` → 베이스 그대로. 셋 다 없어도 무해하다. */
+      const cand=[], ch=CHARS.get(av);
+      if(ch && ch.full) cand.push('img/'+av+'_cheer_full.png');
+      cand.push(CHARS.faceSrc(av,'cheer'));
+      if(heroImg) (function tryNext(i){
+        if(i>=cand.length) return;                       // 다 없으면 베이스 그대로 둔다
+        const probe=new Image();
+        probe.onload =()=>{ if(probe.naturalWidth>0) heroImg.src=cand[i]; else tryNext(i+1); };
+        probe.onerror=()=>tryNext(i+1);
+        probe.src=cand[i];
+      })(0);
     }
     if(rb) rb.style.display='none';   // 히어로가 focal → 이모지 숨김
   }

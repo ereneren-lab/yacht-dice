@@ -20,6 +20,8 @@ STYLE = """Match the attached reference image exactly: the same character, the s
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -56,27 +58,50 @@ WHY = {
     'angry':    '함정(늪)에 빠졌을 때',
 }
 
-# ── 캐릭터. desc/neg는 8/04·8/11 원본 프롬프트 그대로다(그 그림이 그 문장에서 나왔으므로).
+# ── 캐릭터.
+#    ⚠️ **desc는 `public/img/`의 실제 그림을 보고 쓴다. 그 그림을 만든 옛 프롬프트를 베끼면 안 된다.**
+#    2026-08-20에 그 실수로 cheer 13장 중 4장을 버렸다. 처음엔 ART_BRIEF.md·8/11 문서의 문장을
+#    그대로 옮겨 썼는데, **납품된 그림이 그 문장에서 이미 드리프트해 있었다** —
+#    토끼엔 없던 노란 나비넥타이와 검은 무늬가 생겼고, 곰엔 있다던 스카프가 없었고,
+#    청사초롱은 둥근 등이 아니라 팔다리 달린 사각 몸통이 됐다.
+#    텍스트와 레퍼런스 이미지가 싸우면 **모델은 텍스트를 따른다.** 그래서 텍스트가 그림을
+#    옛 프롬프트 쪽으로 되돌려 버렸다. 아래 설명은 전부 실제 PNG를 보고 다시 썼다.
 #    hint = 표정을 **무엇으로** 표현할지. 사물 캐릭터엔 이게 없으면 모델이 사람으로 바꿔 버린다.
 #    over = 표정별 덮어쓰기. 팔이 없는 캐릭터에 'arms raised'를 시키면 팔이 자라난다.
 C = [
  dict(id='tiger', kr='호랑이', full=False,
       desc='a playful young Korean tiger cub, warm orange fur with soft black stripes, cream muzzle and belly, round cheeks, one ear flicked back, tiny fangs'),
  dict(id='rabbit', kr='토끼', full=False,
-      desc='a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose',
-      hint='The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.'),
+      # ⚠️ 실제 그림은 '흰 토끼'가 아니다 — 얼굴 절반이 검은 무늬이고 노란 나비넥타이를 맸다.
+      desc='a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking '
+           'covering the eyes and most of the face, a white muzzle and a white chest, a black patch on '
+           'the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW '
+           'BOW TIE at the neck',
+      neg='plain all-white rabbit, no bow tie, both ears upright',
+      hint='The black face mask and the golden bow tie are its identity — never drop them. '
+           'The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.'),
  dict(id='bear', kr='곰', full=False,
-      desc='a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes'),
+      # ⚠️ 실제 그림엔 소품이 하나도 없다. 스카프를 적으면 없던 스카프가 생긴다.
+      desc='a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, '
+           'a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, '
+           'no bell, nothing around the neck',
+      neg='red scarf, neckerchief, collar, bell, bandana, any neck accessory'),
  dict(id='fox', kr='여우', full=False,
       desc='a sleek red-orange fox, white cheek fur and chest, tall pointed ears, narrow clever eyes, a bushy tail curling up behind',
       hint='The bushy tail carries the emotion — puffed up when startled, curled low and tight when dejected.'),
  dict(id='dokkaebi', kr='도깨비', full=False,
-      desc='a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder',
-      neg='japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror'),
+      desc='a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, '
+           'wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over '
+           'bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held '
+           'over one shoulder',
+      neg='japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror'),
 
  # ── 8/11 8종. 전신으로 뽑는다 → 판 위 판본과 우승 화면 판본을 한 장에서 다 뽑는다.
  dict(id='yutgarak', kr='윷가락', full=True,
-      desc='two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick',
+      desc='two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, '
+           'the flat side painted with a bold red X mark, a small friendly face carved into the front stick, '
+           'a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded '
+           'wooden feet at the bottom',
       neg='plain object, product photo, no face, still life, human hands',
       hint='The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.',
       over={'cheer': 'the two sticks fly apart into a joyful V shape mid-tumble, the carved face beaming with a huge open smile and sparkling star-shaped eyes',
@@ -90,14 +115,26 @@ C = [
             'angry': 'the two golden tassels crossed in front of the pouch like folded arms, a pouty furrowed frown, a small red anger vein',
             'sad':   'both tassels hanging limp and still, teary droopy eyes, the pouch body sagging'}),
  dict(id='chorong', kr='청사초롱', full=True,
-      desc='a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering',
-      neg='plain object, product photo, no face, still life, human hands, paper lantern festival',
-      hint='Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.',
-      over={'cheer': 'the inner flame flares up bright and tall, the whole lantern tilting back with a huge joyful open smile and sparkling star-shaped eyes',
-            'angry': 'the inner flame burns a sharp hot red, the lit face pulled into a furrowed pouty frown, a small red anger vein',
-            'sad':   'the inner flame gutters low and dim, the face barely lit, teary droopy eyes, the lantern hanging low'}),
+      # ⚠️ 실제 그림은 유리 랜턴이 아니라 **팔다리 달린 사각 초롱**이고, 얼굴이 몸통 앞면에 크게 그려져 있다.
+      desc='a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper '
+           'panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top '
+           'and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on '
+           'top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle '
+           'flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet',
+      neg='plain object, product photo, no face, still life, human hands, paper lantern festival, '
+          'glass lantern, round or hexagonal lantern, big flame covering the face, armless',
+      hint='Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. '
+           'The inner candle flame also carries the emotion — flaring brighter when excited, guttering low '
+           'and dim when dejected — but it must stay small and below the face, never covering it.',
+      over={'angry': 'the tiny arms planted on its sides, the painted face pulled into a furrowed pouty frown, '
+                     'a small red anger vein, the inner flame burning a sharp hot red',
+            'sad':   'the tiny arms hanging limp, teary droopy eyes on the painted face, the whole lantern '
+                     'tilting over, the inner flame guttering low and dim'}),
  dict(id='jangseung', kr='장승', full=True,
-      desc='a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome',
+      desc='a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging '
+           'round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK '
+           'WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting '
+           'at one side, gentle rather than fearsome',
       neg='native american totem pole, tiki mask, scary, horror, human hands',
       hint='It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.',
       over={'cheer': 'no arms — the whole post tilting back in celebration, the bulging eyes wide with joy, the wide red mouth thrown open in a shout, sparkling star highlights in the eyes',
@@ -116,11 +153,26 @@ C = [
       neg='western dragon, bat wings, fire breathing, four-legged lizard',
       hint='The long whiskers and the coiled serpentine body carry the emotion — whiskers streaming upward when excited, drooping when dejected.'),
  dict(id='jeoseung', kr='저승사자', full=True,
-      desc='a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all',
-      neg='western grim reaper, skull face, scythe, hooded cloak, horror, dark background',
-      hint='Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.',
-      over={'cheer': 'one hand raised in a small cool victory gesture rather than both arms flailing, the smirk widened into a rare open smile, a single sparkle in one eye, the gat hat tilted back',
-            'angry': 'the half-lidded eyes narrowed to a cold flat stare, the smirk gone, one eyebrow twitching, the gat hat pulled low — icy rather than loud'}),
+      desc='a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, '
+           'long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling '
+           'cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING '
+           'BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all',
+      neg='western grim reaper, skull face, scythe, hooded cloak, horror, dark background, '
+          'white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy',
+      hint='⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small '
+           'CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only '
+           'in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue '
+           'lantern brightening or dimming. Keep the blue lantern in his hand.',
+      over={'cheer': 'still composed — he simply raises the blue soul lantern a little higher in one hand, '
+                     'the closed smirk curling up at one corner, one eye giving a single bright sparkle, '
+                     'the gat hat tipped back a touch. NO open grin, NO both arms in the air',
+            'star':  'the closed smirk curling with quiet confidence, star-shaped highlights in the '
+                     'half-lidded eyes, chin lifted slightly — smug, not excited',
+            'happy': 'a small warm CLOSED smile and softly curved eyes, the blue lantern glowing brighter — quietly pleased',
+            'surprise': 'the half-lidded eyes snapped wide for once and one eyebrow shot up, the gat hat knocked '
+                        'askew, the blue lantern jolting in his hand — but the mouth stays a small tight O',
+            'angry': 'the half-lidded eyes narrowed to a cold flat stare, the smirk gone into a hard line, '
+                     'one eyebrow twitching, the gat hat pulled low, the blue lantern flaring cold — icy, not loud'}),
 ]
 
 # ⚠️ 저승사자는 배경을 어둡게 두면 검은 갓·검은 도포와 안 갈려 통째로 못 쓴다(8/11에 실제로 버렸다).

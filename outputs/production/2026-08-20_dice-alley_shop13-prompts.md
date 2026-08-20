@@ -36,6 +36,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -61,13 +63,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose.
-The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.
+The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
+The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: both arms raised high cheering, a huge joyful open smile, sparkling star-shaped eyes.
 
@@ -75,7 +79,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
 ```
 
 ## `bear_cheer.png` — 곰
@@ -87,12 +91,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes.
+The character: a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, no bell, nothing around the neck.
 
 Expression: both arms raised high cheering, a huge joyful open smile, sparkling star-shaped eyes.
 
@@ -100,7 +106,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, red scarf, neckerchief, collar, bell, bandana, any neck accessory.
 ```
 
 ## `fox_cheer.png` — 여우
@@ -111,6 +117,8 @@ watermark, busy background, more than one character, photorealistic human.
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -138,12 +146,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder.
+The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held over one shoulder.
 
 Expression: both arms raised high cheering, a huge joyful open smile, sparkling star-shaped eyes.
 
@@ -151,7 +161,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror.
+watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror.
 ```
 
 ## `yutgarak_cheer.png` — 윷가락
@@ -163,12 +173,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick.
+The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the front stick, a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded wooden feet at the bottom.
 The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.
 
 Expression: the two sticks fly apart into a joyful V shape mid-tumble, the carved face beaming with a huge open smile and sparkling star-shaped eyes.
@@ -188,6 +200,8 @@ watermark, busy background, more than one character, photorealistic human, plain
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -215,21 +229,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering.
-Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.
+The character: a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet.
+Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. The inner candle flame also carries the emotion — flaring brighter when excited, guttering low and dim when dejected — but it must stay small and below the face, never covering it.
 
-Expression: the inner flame flares up bright and tall, the whole lantern tilting back with a huge joyful open smile and sparkling star-shaped eyes.
+Expression: both arms raised high cheering, a huge joyful open smile, sparkling star-shaped eyes.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival.
+watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival, glass lantern, round or hexagonal lantern, big flame covering the face, armless.
 ```
 
 ## `jangseung_cheer.png` — 장승
@@ -241,12 +257,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome.
+The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting at one side, gentle rather than fearsome.
 It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.
 
 Expression: no arms — the whole post tilting back in celebration, the bulging eyes wide with joy, the wide red mouth thrown open in a shout, sparkling star highlights in the eyes.
@@ -266,6 +284,8 @@ watermark, busy background, more than one character, photorealistic human, nativ
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -293,6 +313,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -318,6 +340,8 @@ watermark, busy background, more than one character, photorealistic human, wizar
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -345,21 +369,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all.
-Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.
+The character: a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all.
+⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue lantern brightening or dimming. Keep the blue lantern in his hand.
 
-Expression: one hand raised in a small cool victory gesture rather than both arms flailing, the smirk widened into a rare open smile, a single sparkle in one eye, the gat hat tilted back.
+Expression: still composed — he simply raises the blue soul lantern a little higher in one hand, the closed smirk curling up at one corner, one eye giving a single bright sparkle, the gat hat tipped back a touch. NO open grin, NO both arms in the air.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background.
+watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background, white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy.
 The background must be fully transparent (or a plain mid-grey if transparency is not possible) — never black, so the black hat and robe stay separable.
 ```
 
@@ -377,6 +403,8 @@ The background must be fully transparent (or a plain mid-grey if transparency is
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -403,13 +431,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose.
-The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.
+The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
+The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
 
@@ -417,7 +447,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
 ```
 
 ## `bear_star.png` — 곰
@@ -429,12 +459,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes.
+The character: a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, no bell, nothing around the neck.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
 
@@ -442,7 +474,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, red scarf, neckerchief, collar, bell, bandana, any neck accessory.
 ```
 
 ## `fox_star.png` — 여우
@@ -453,6 +485,8 @@ watermark, busy background, more than one character, photorealistic human.
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -480,12 +514,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder.
+The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held over one shoulder.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
 
@@ -493,7 +529,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror.
+watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror.
 ```
 
 ## `yutgarak_star.png` — 윷가락
@@ -505,12 +541,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick.
+The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the front stick, a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded wooden feet at the bottom.
 The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
@@ -530,6 +568,8 @@ watermark, busy background, more than one character, photorealistic human, plain
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -557,13 +597,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering.
-Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.
+The character: a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet.
+Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. The inner candle flame also carries the emotion — flaring brighter when excited, guttering low and dim when dejected — but it must stay small and below the face, never covering it.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
 
@@ -571,7 +613,7 @@ Framing: a single full-body illustration. The whole body must be visible includi
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival.
+watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival, glass lantern, round or hexagonal lantern, big flame covering the face, armless.
 ```
 
 ## `jangseung_star.png` — 장승
@@ -583,12 +625,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome.
+The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting at one side, gentle rather than fearsome.
 It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.
 
 Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
@@ -608,6 +652,8 @@ watermark, busy background, more than one character, photorealistic human, nativ
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -635,6 +681,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -660,6 +708,8 @@ watermark, busy background, more than one character, photorealistic human, wizar
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -687,21 +737,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all.
-Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.
+The character: a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all.
+⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue lantern brightening or dimming. Keep the blue lantern in his hand.
 
-Expression: sparkling star-shaped eyes, a triumphant proud grin, chin lifted.
+Expression: the closed smirk curling with quiet confidence, star-shaped highlights in the half-lidded eyes, chin lifted slightly — smug, not excited.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background.
+watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background, white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy.
 The background must be fully transparent (or a plain mid-grey if transparency is not possible) — never black, so the black hat and robe stay separable.
 ```
 
@@ -719,6 +771,8 @@ The background must be fully transparent (or a plain mid-grey if transparency is
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -745,13 +799,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose.
-The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.
+The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
+The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
 
@@ -759,7 +815,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
 ```
 
 ## `bear_happy.png` — 곰
@@ -771,12 +827,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes.
+The character: a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, no bell, nothing around the neck.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
 
@@ -784,7 +842,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, red scarf, neckerchief, collar, bell, bandana, any neck accessory.
 ```
 
 ## `fox_happy.png` — 여우
@@ -795,6 +853,8 @@ watermark, busy background, more than one character, photorealistic human.
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -822,12 +882,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder.
+The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held over one shoulder.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
 
@@ -835,7 +897,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror.
+watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror.
 ```
 
 ## `yutgarak_happy.png` — 윷가락
@@ -847,12 +909,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick.
+The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the front stick, a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded wooden feet at the bottom.
 The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
@@ -872,6 +936,8 @@ watermark, busy background, more than one character, photorealistic human, plain
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -899,13 +965,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering.
-Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.
+The character: a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet.
+Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. The inner candle flame also carries the emotion — flaring brighter when excited, guttering low and dim when dejected — but it must stay small and below the face, never covering it.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
 
@@ -913,7 +981,7 @@ Framing: a single full-body illustration. The whole body must be visible includi
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival.
+watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival, glass lantern, round or hexagonal lantern, big flame covering the face, armless.
 ```
 
 ## `jangseung_happy.png` — 장승
@@ -925,12 +993,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome.
+The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting at one side, gentle rather than fearsome.
 It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.
 
 Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
@@ -950,6 +1020,8 @@ watermark, busy background, more than one character, photorealistic human, nativ
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -977,6 +1049,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -1002,6 +1076,8 @@ watermark, busy background, more than one character, photorealistic human, wizar
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1029,21 +1105,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all.
-Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.
+The character: a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all.
+⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue lantern brightening or dimming. Keep the blue lantern in his hand.
 
-Expression: a beaming happy smile with closed ^^ curved eyes, joyful and relaxed.
+Expression: a small warm CLOSED smile and softly curved eyes, the blue lantern glowing brighter — quietly pleased.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background.
+watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background, white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy.
 The background must be fully transparent (or a plain mid-grey if transparency is not possible) — never black, so the black hat and robe stay separable.
 ```
 
@@ -1061,6 +1139,8 @@ The background must be fully transparent (or a plain mid-grey if transparency is
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1087,13 +1167,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose.
-The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.
+The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
+The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
 
@@ -1101,7 +1183,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
 ```
 
 ## `bear_surprise.png` — 곰
@@ -1113,12 +1195,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes.
+The character: a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, no bell, nothing around the neck.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
 
@@ -1126,7 +1210,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, red scarf, neckerchief, collar, bell, bandana, any neck accessory.
 ```
 
 ## `fox_surprise.png` — 여우
@@ -1137,6 +1221,8 @@ watermark, busy background, more than one character, photorealistic human.
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1164,12 +1250,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder.
+The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held over one shoulder.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
 
@@ -1177,7 +1265,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror.
+watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror.
 ```
 
 ## `yutgarak_surprise.png` — 윷가락
@@ -1189,12 +1277,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick.
+The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the front stick, a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded wooden feet at the bottom.
 The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
@@ -1214,6 +1304,8 @@ watermark, busy background, more than one character, photorealistic human, plain
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1241,13 +1333,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering.
-Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.
+The character: a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet.
+Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. The inner candle flame also carries the emotion — flaring brighter when excited, guttering low and dim when dejected — but it must stay small and below the face, never covering it.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
 
@@ -1255,7 +1349,7 @@ Framing: a single full-body illustration. The whole body must be visible includi
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival.
+watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival, glass lantern, round or hexagonal lantern, big flame covering the face, armless.
 ```
 
 ## `jangseung_surprise.png` — 장승
@@ -1267,12 +1361,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome.
+The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting at one side, gentle rather than fearsome.
 It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.
 
 Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
@@ -1292,6 +1388,8 @@ watermark, busy background, more than one character, photorealistic human, nativ
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1319,6 +1417,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -1344,6 +1444,8 @@ watermark, busy background, more than one character, photorealistic human, wizar
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1371,21 +1473,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all.
-Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.
+The character: a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all.
+⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue lantern brightening or dimming. Keep the blue lantern in his hand.
 
-Expression: a wide open O mouth, big round shocked eyes, eyebrows shot up, startled and leaning back.
+Expression: the half-lidded eyes snapped wide for once and one eyebrow shot up, the gat hat knocked askew, the blue lantern jolting in his hand — but the mouth stays a small tight O.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background.
+watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background, white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy.
 The background must be fully transparent (or a plain mid-grey if transparency is not possible) — never black, so the black hat and robe stay separable.
 ```
 
@@ -1403,6 +1507,8 @@ The background must be fully transparent (or a plain mid-grey if transparency is
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1429,13 +1535,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose.
-The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.
+The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
+The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: teary droopy sad eyes, a small frown, shoulders slumped, dejected.
 
@@ -1443,7 +1551,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
 ```
 
 ## `bear_sad.png` — 곰
@@ -1455,12 +1563,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes.
+The character: a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, no bell, nothing around the neck.
 
 Expression: teary droopy sad eyes, a small frown, shoulders slumped, dejected.
 
@@ -1468,7 +1578,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, red scarf, neckerchief, collar, bell, bandana, any neck accessory.
 ```
 
 ## `fox_sad.png` — 여우
@@ -1479,6 +1589,8 @@ watermark, busy background, more than one character, photorealistic human.
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1506,12 +1618,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder.
+The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held over one shoulder.
 
 Expression: teary droopy sad eyes, a small frown, shoulders slumped, dejected.
 
@@ -1519,7 +1633,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror.
+watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror.
 ```
 
 ## `yutgarak_sad.png` — 윷가락
@@ -1531,12 +1645,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick.
+The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the front stick, a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded wooden feet at the bottom.
 The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.
 
 Expression: the two sticks slumped over sideways, the carved eyes drooping and teary, the mouth a small frown.
@@ -1556,6 +1672,8 @@ watermark, busy background, more than one character, photorealistic human, plain
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1583,21 +1701,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering.
-Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.
+The character: a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet.
+Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. The inner candle flame also carries the emotion — flaring brighter when excited, guttering low and dim when dejected — but it must stay small and below the face, never covering it.
 
-Expression: the inner flame gutters low and dim, the face barely lit, teary droopy eyes, the lantern hanging low.
+Expression: the tiny arms hanging limp, teary droopy eyes on the painted face, the whole lantern tilting over, the inner flame guttering low and dim.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival.
+watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival, glass lantern, round or hexagonal lantern, big flame covering the face, armless.
 ```
 
 ## `jangseung_sad.png` — 장승
@@ -1609,12 +1729,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome.
+The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting at one side, gentle rather than fearsome.
 It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.
 
 Expression: no arms — the whole post leaning over sadly, the bulging eyes teary and droopy, the red mouth turned down.
@@ -1634,6 +1756,8 @@ watermark, busy background, more than one character, photorealistic human, nativ
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1661,6 +1785,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -1686,6 +1812,8 @@ watermark, busy background, more than one character, photorealistic human, wizar
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1713,13 +1841,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all.
-Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.
+The character: a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all.
+⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue lantern brightening or dimming. Keep the blue lantern in his hand.
 
 Expression: teary droopy sad eyes, a small frown, shoulders slumped, dejected.
 
@@ -1727,7 +1857,7 @@ Framing: a single full-body illustration. The whole body must be visible includi
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background.
+watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background, white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy.
 The background must be fully transparent (or a plain mid-grey if transparency is not possible) — never black, so the black hat and robe stay separable.
 ```
 
@@ -1745,6 +1875,8 @@ The background must be fully transparent (or a plain mid-grey if transparency is
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1771,13 +1903,15 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a soft white-and-grey rabbit, one long ear upright and the other folded, pink inner ears, a twitching nose.
-The long upright ear carries the emotion — perked up and quivering when excited, drooping when dejected.
+The character: a chubby rabbit with a bold BLACK-AND-WHITE patched coat — a large black mask marking covering the eyes and most of the face, a white muzzle and a white chest, a black patch on the back — tall ears with pink inner ears (one upright, one folded), and a GOLDEN-YELLOW BOW TIE at the neck.
+The black face mask and the golden bow tie are its identity — never drop them. The long upright ear carries the emotion: perked up and quivering when excited, drooping when dejected.
 
 Expression: an angry pouty frown with furrowed brows and a small red anger vein, arms crossed.
 
@@ -1785,7 +1919,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, plain all-white rabbit, no bow tie, both ears upright.
 ```
 
 ## `bear_angry.png` — 곰
@@ -1797,12 +1931,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a chubby honey-brown bear cub, small round ears, a broad soft muzzle, gentle sleepy-warm eyes.
+The character: a chubby honey-brown bear cub with soft fuzzy fur, small round ears, a broad soft muzzle, a cream belly patch, gentle warm eyes, and NO accessories at all — no scarf, no collar, no bell, nothing around the neck.
 
 Expression: an angry pouty frown with furrowed brows and a small red anger vein, arms crossed.
 
@@ -1810,7 +1946,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human.
+watermark, busy background, more than one character, photorealistic human, red scarf, neckerchief, collar, bell, bandana, any neck accessory.
 ```
 
 ## `fox_angry.png` — 여우
@@ -1821,6 +1957,8 @@ watermark, busy background, more than one character, photorealistic human.
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1848,12 +1986,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark hair, round mischievous eyes, a tiny wooden club (bangmangi) resting on one shoulder.
+The character: a friendly Korean dokkaebi goblin, a single small horn on the forehead, warm teal-green skin, wild dark BROWN hair, pointed ears, round mischievous eyes, a DEEP RED sleeveless vest over bare green shoulders, a brass bell on a cord at the chest, and a wooden club (bangmangi) held over one shoulder.
 
 Expression: an angry pouty frown with furrowed brows and a small red anger vein, arms crossed.
 
@@ -1861,7 +2001,7 @@ Framing: bust framing, head and upper body, centered, the same crop as the refer
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, scary, horror.
+watermark, busy background, more than one character, photorealistic human, japanese oni, red demon skin, tiger-skin loincloth, two horns, blue or white robe, scary, horror.
 ```
 
 ## `yutgarak_angry.png` — 윷가락
@@ -1873,12 +2013,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the upper stick.
+The character: two rounded wooden yut sticks as one cheerful mascot, pale birch wood with visible warm grain, the flat side painted with a bold red X mark, a small friendly face carved into the front stick, a RED HEADBAND tied around the top of that stick with the knot trailing, and small rounded wooden feet at the bottom.
 The face is carved into the upper wooden stick. It has no arms — express the emotion with the carved eyes and mouth and with how the two sticks lean against each other.
 
 Expression: the two sticks pressed tightly together, the carved brows furrowed low, the carved mouth a hard scowl, a small red anger vein.
@@ -1898,6 +2040,8 @@ watermark, busy background, more than one character, photorealistic human, plain
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -1925,21 +2069,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a traditional Korean wedding lantern mascot, a hexagonal frame with blue and red silk panels, a warm candle glow from inside lighting its own face, a small wooden carrying handle tilted, a tiny flame flickering.
-Its face is lit from inside by the candle, and it has no arms. The inner flame carries the emotion — flaring bright and tall when excited, guttering low and dim when dejected, burning sharp red when angry.
+The character: a traditional Korean wedding lantern mascot with a BOXY UPRIGHT RECTANGULAR body — a RED upper panel with a floral pattern and a BLUE lower panel with cloud patterns, brass rims at the top and bottom — a big round happy FACE drawn on the front of the blue body panel, a brass ring on top with a curved carrying handle and a red-and-blue tassel hanging from it, a small candle flame glowing INSIDE and BELOW the face, and tiny stubby arms and little feet.
+Its face is painted on the front of the boxy body and it HAS small stubby arms and feet. The inner candle flame also carries the emotion — flaring brighter when excited, guttering low and dim when dejected — but it must stay small and below the face, never covering it.
 
-Expression: the inner flame burns a sharp hot red, the lit face pulled into a furrowed pouty frown, a small red anger vein.
+Expression: the tiny arms planted on its sides, the painted face pulled into a furrowed pouty frown, a small red anger vein, the inner flame burning a sharp hot red.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival.
+watermark, busy background, more than one character, photorealistic human, plain object, product photo, no face, still life, human hands, paper lantern festival, glass lantern, round or hexagonal lantern, big flame covering the face, armless.
 ```
 
 ## `jangseung_angry.png` — 장승
@@ -1951,12 +2097,14 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, gentle rather than fearsome.
+The character: a friendly Korean village guardian totem post, weathered mossy grey-green wood, comically bulging round eyes, a wide red-painted grinning mouth with two blunt teeth, carved eyebrows, a SMALL DARK WOODEN HAT resting flat on top of the post with a rope band under it, a leafy green twig sprouting at one side, gentle rather than fearsome.
 It is a carved wooden post with no arms and no legs. Express the emotion ONLY with the bulging round eyes, the carved eyebrows and the wide red-painted mouth, plus how the whole post tilts.
 
 Expression: no arms — the carved eyebrows driven down hard, the bulging eyes narrowed, the red mouth pulled into a scowl, a small red anger vein.
@@ -1976,6 +2124,8 @@ watermark, busy background, more than one character, photorealistic human, nativ
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -2003,6 +2153,8 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
@@ -2028,6 +2180,8 @@ watermark, busy background, more than one character, photorealistic human, wizar
 Match the attached reference image exactly: the same character, the same species and design,
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
+
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
 
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
@@ -2055,21 +2209,23 @@ Match the attached reference image exactly: the same character, the same species
 the same colors, the same costume and props, the same art style. That image is this character's
 official art. Only the facial expression and the pose change.
 
+If anything in the text below disagrees with the attached image, FOLLOW THE IMAGE. The image wins.
+
 Style: soft 3D render with a smooth glossy vinyl-toy look, rounded chibi proportions with a big head,
 big glossy expressive eyes with two catchlights, warm soft global illumination with the key light from
 the upper left, subtle rim light, no hard outlines, clean readable silhouette at small sizes,
 front three-quarter view, transparent background, high resolution.
 
-The character: a stylish Korean grim reaper as a cute mascot, a wide black gat hat tilted to one side, an ink-black traditional dopo robe, a pale calm face, half-lidded cool eyes, a faint smirk, not scary at all.
-Keep him COOL and understated — he never goes loud or goofy. Show the emotion in small shifts: the gat hat tilting further, one eyebrow raised, the smirk widening or flattening.
+The character: a stylish Korean grim reaper as a cute mascot, a wide BLACK gat hat with a beaded chin strap, long straight black hair, an INK-BLACK traditional dopo robe with a navy sash and a swirling cloud pattern, a pale calm face, half-lidded cool eyes, a faint CLOSED smirk, and a GLOWING BLUE SOUL LANTERN held in one hand. He is composed and aloof, not scary at all.
+⚠️ He is the COOL one of the set and must never go loud or goofy. His mouth stays a small CLOSED smirk in every expression — never an open-mouthed grin, never teeth. Show emotion only in small shifts: the gat hat tilting, one eyebrow, the smirk widening a few degrees, the blue lantern brightening or dimming. Keep the blue lantern in his hand.
 
-Expression: the half-lidded eyes narrowed to a cold flat stare, the smirk gone, one eyebrow twitching, the gat hat pulled low — icy rather than loud.
+Expression: the half-lidded eyes narrowed to a cold flat stare, the smirk gone into a hard line, one eyebrow twitching, the gat hat pulled low, the blue lantern flaring cold — icy, not loud.
 
 Framing: a single full-body illustration. The whole body must be visible including the feet or base and every prop, nothing cropped off, centered with a small even margin on all sides. Keep the face clearly readable.
 
 Do NOT change the species, horn count, hair, costume, accessories or palette.
 Do NOT use: pixel art, hard black outline, cel shading, flat vector, sticker cutout edge, text,
-watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background.
+watermark, busy background, more than one character, photorealistic human, western grim reaper, skull face, scythe, hooded cloak, horror, dark background, white or beige robe, open-mouthed grin, goofy, energetic, cheerful boy.
 The background must be fully transparent (or a plain mid-grey if transparency is not possible) — never black, so the black hat and robe stay separable.
 ```
 
