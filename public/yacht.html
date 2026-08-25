@@ -2018,7 +2018,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   }
 
   // ---------- render ----------
-  function renderGame(skipDice){ renderTurn(); if(!skipDice)renderDice2D(); renderSheet(); }
+  function renderGame(skipDice){ renderTurn(); if(!skipDice)renderDice2D(); renderSheet();
+    try{ window.CHARS && CHARS.reapply(); }catch(e){}   // 🎭 다시 그린 배너·헤더에 '아직 살아 있는' 표정을 다시 붙인다
+  }
   function renderTurn(){ if(!S)return; const p=curPlayer(); if(!p)return; const spec=spectating();
     $('specBar').style.display=spec?'flex':'none';
     const bn=$('turnBanner'); if(bn){ const mine=isMyTurn(); bn.style.display='flex'; bn.className='turnbanner big '+(mine?'me':'other');
@@ -2305,6 +2307,16 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   // 앵커: 현재 차례면 큰 턴 카드(prominent)에서, 아니면 점수판 컬럼 헤더에서 띄운다.
   // (예전엔 무조건 점수판 헤더 av라 반응/말풍선이 표 꼭대기 '엉뚱한 곳'에서 떴다)
   function reactAnchor(pid){ return document.querySelector(`#turnBanner .av[data-pid="${pid}"]`) || $('sheet').querySelector(`.av[data-pid="${pid}"]`) || $('turnBanner'); }
+  /** 그 플레이어 캐릭터를 잠깐 그 표정으로. 아트가 없거나 이모지 아바타면 조용히 넘어간다.
+   *  ⚠️ 이 게임은 아바타가 **한 화면에 여러 벌** 있다 — 차례 배너(.turnbanner, 34~100px)와
+   *     점수판 헤더(thead .hav .av.sm, 26px). 어느 것이 보이는지는 화면 폭·단계가 정한다
+   *     → 판정은 CHARS.reactSel에 맡긴다(보이는 것만 바꾼다).
+   *  hold로 쏘는 이유: 점수를 채우면 renderGame이 배너·헤더를 다시 그려 표정을 지운다. */
+  function facePid(pid, emotion, ms){
+    try{ const p=(S&&S.players||[]).find(x=>x.pid===pid); if(!p||!window.CHARS) return;
+      CHARS.hold('pid'+pid, '.av[data-pid="'+pid+'"]', avatar(p), emotion, ms||1500);
+    }catch(e){}
+  }
   function floatReaction(pid,emoji){ let anchor=reactAnchor(pid);
     const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='floatemo'; el.textContent=emoji;
     const isText=/[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ!?.]/.test(emoji);
@@ -2386,6 +2398,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     renderGame(animLock); let bigF=null; fills.forEach(f=>{ flashFill(f); aiSpeak(S.players[f.seat],f.catId,f.val); if(!bigF&&isBig(f))bigF=f;
       const rpid=S.players[f.seat]&&S.players[f.seat].pid;   // ✨ 캐릭터 리액션: 대박 🤩 / 0점 😬
       if(rpid){ if(isBig(f)) floatReaction(rpid,'🤩'); else if(f.val===0) floatReaction(rpid,'😬'); }
+      // 🎭 표정도 같은 판정으로 — 대박은 별눈, 0점은 슬픔. 이모지와 짝을 맞춰 둔다.
+      if(rpid){ if(isBig(f)) facePid(rpid,'star',1500); else if(f.val===0) facePid(rpid,'sad',1500); }
     }); if(bigF)bigCombo(S.players[bigF.seat].name,bigF.catId); else if(fills.length)SFX.score(); prevSnap=snapScores(s);
     // 모바일 왕복 완화: 마지막 굴림(굴림 소진)으로 이제 '골라야' 하는 순간 점수판을 위로 스무스 스크롤.
     // 굴림 남았을 땐(홀드 재굴림 가능) 주사위를 시야에 유지하려 스크롤하지 않음.

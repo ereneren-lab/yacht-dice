@@ -74,17 +74,20 @@ const EVENT = { star: '윷·모', surprise: '빽도', happy: '잡음', sad: '잡
     ['indianpoker.html', '인디언 포커 — 쇼다운(resultFx)'],
     ['onecard.html', '원카드 — 공격 카드·판 종료'],
     ['oldmaid.html', '도둑잡기 — 조커 넘김(jokerFX)·판 종료'],
+    ['yacht.html', '요트 — 대박 콤보(star)·0점(sad)'],
   ];
   for (const [file, why] of WIRED) {
     const src = R(file);
-    check(`배선(${file}) — faceSeat가 CHARS.hold를 쓴다 (${why})`,
-      /function\s+faceSeat[\s\S]{0,400}CHARS\.hold\(/.test(src),
+    const fn = /yacht/.test(file) ? 'facePid' : 'faceSeat';     // 요트만 pid로 찾는다(나머지는 자리 번호)
+    const key = /yacht/.test(file) ? 'data-pid' : 'data-seat';
+    check(`배선(${file}) — ${fn}가 CHARS.hold를 쓴다 (${why})`,
+      new RegExp(`function\\s+${fn}[\\s\\S]{0,400}CHARS\\.hold\\(`).test(src),
       'hold가 아니면 다음 렌더가 표정을 지운다');
     check(`배선(${file}) — render 끝에서 CHARS.reapply를 부른다`,
       /CHARS\.reapply\(\)/.test(src),
       'reapply가 없으면 표정이 화면에 남지 않는다');
-    check(`배선(${file}) — 자리 선택자에 [data-seat]를 쓴다`,
-      /function\s+faceSeat[\s\S]{0,400}data-seat/.test(src),
+    check(`배선(${file}) — 선택자에 [${key}]를 쓴다`,
+      new RegExp(`function\\s+${fn}[\\s\\S]{0,400}${key}`).test(src),
       '플레이어별로 구분되지 않으면 엉뚱한 얼굴이 바뀐다');
   }
 }
