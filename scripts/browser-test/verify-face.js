@@ -45,30 +45,60 @@ const EVENT = { star: '윷·모', surprise: '빽도', happy: '잡음', sad: '잡
      즉 표정 다섯이 폰에서 통째로 죽어 있었다(아트 63장 중 폰에 뜨는 건 cheer 18장뿐이었다).
      고친 방식: `avatarImgs(pid)`가 **보이는** 아바타를 전부 모은다 — 카드 / 던지는 캐릭터 / 상단 칩.
      이 셋 중 하나라도 빠지면 그 폭에서 표정이 사라진다. 그래서 셋을 각각 단언한다. */
-  check('배선(yut) — avatarImgs: 보이는 아바타를 모으는 함수가 있다',
-    /function\s+avatarImgs\s*\(/.test(yut),
-    'avatarImgs가 없다 — reactCard가 카드만 보면 폰에서 표정이 안 뜬다');
-  check('배선(yut) — reactCard가 avatarImgs를 쓴다',
-    /function\s+reactCard[\s\S]{0,900}avatarImgs\(/.test(yut),
+  check('배선(yut) — avatarSel: 아바타가 사는 자리들을 모으는 함수가 있다',
+    /function\s+avatarSel\s*\(/.test(yut),
+    'avatarSel이 없다 — reactCard가 카드만 보면 폰에서 표정이 안 뜬다');
+  check('배선(yut) — reactCard가 CHARS.reactSel(avatarSel(...))를 쓴다',
+    /function\s+reactCard[\s\S]{0,900}CHARS\.reactSel\(\s*avatarSel\(/.test(yut),
     'reactCard가 카드만 직접 찾고 있다(폰에서 죽는다)');
   for (const [sel, why] of [
     ['#charCards',      '데스크톱 캐릭터 카드(≥781px)'],
     ['.thrower',        '폰 — 던지는 캐릭터(차례인 사람)'],
     ['.players-strip',  '폰 — 상단 칩(차례가 아닌 사람. sad가 여기로 온다)'],
   ]) {
-    check(`배선(yut) — avatarImgs가 ${sel} 를 본다 (${why})`,
-      new RegExp(`function\\s+avatarImgs[\\s\\S]{0,700}${sel.replace(/[.#]/g, '\\$&')}`).test(yut),
+    check(`배선(yut) — avatarSel이 ${sel} 를 본다 (${why})`,
+      new RegExp(`function\\s+avatarSel[\\s\\S]{0,700}${sel.replace(/[.#]/g, '\\$&')}`).test(yut),
       `${sel} 를 안 본다 — 그 폭에서 표정이 사라진다`);
   }
-  check('배선(yut) — 보이는지 판정에 getBoundingClientRect를 쓴다',
-    /function\s+avatarImgs[\s\S]{0,700}getBoundingClientRect/.test(yut),
-    '숨은 요소를 걸러내지 않으면 안 보이는 곳에서 스왑이 일어난다');
+}
+
+/* ── 1-b) 카드게임 배선 (2026-08-25) ────────────────────────────────────────
+   표정이 윷놀이에서만 뜨던 것을 카드게임으로 넓혔다. 아트 108장의 값이 12게임으로 퍼진다.
+   이 게임들은 자리를 `el.innerHTML=...`로 통째로 다시 그린다 —
+   **그래서 `CHARS.hold`(표정 기억)와 render 끝의 `CHARS.reapply`(다시 붙이기)가 한 쌍이다.**
+   실측: 짝이 없으면 스왑이 1회 일어나고도 **화면엔 0회로 남는다**(다음 렌더가 지운다).
+   둘 중 하나만 있으면 조용히 죽으므로 **둘 다** 단언한다. */
+{
+  const WIRED = [
+    ['seotda.html', '섯다 — 쇼다운(aiReactions)·큰 베팅'],
+    ['indianpoker.html', '인디언 포커 — 쇼다운(resultFx)'],
+    ['onecard.html', '원카드 — 공격 카드·판 종료'],
+    ['oldmaid.html', '도둑잡기 — 조커 넘김(jokerFX)·판 종료'],
+  ];
+  for (const [file, why] of WIRED) {
+    const src = R(file);
+    check(`배선(${file}) — faceSeat가 CHARS.hold를 쓴다 (${why})`,
+      /function\s+faceSeat[\s\S]{0,400}CHARS\.hold\(/.test(src),
+      'hold가 아니면 다음 렌더가 표정을 지운다');
+    check(`배선(${file}) — render 끝에서 CHARS.reapply를 부른다`,
+      /CHARS\.reapply\(\)/.test(src),
+      'reapply가 없으면 표정이 화면에 남지 않는다');
+    check(`배선(${file}) — 자리 선택자에 [data-seat]를 쓴다`,
+      /function\s+faceSeat[\s\S]{0,400}data-seat/.test(src),
+      '플레이어별로 구분되지 않으면 엉뚱한 얼굴이 바뀐다');
+  }
 }
 
 // ── 2) chars.js API + faceSrc 경로 규칙 ─────────────────────────────────────
 {
   const chars = R('chars.js');
   check('chars.js — reactImg 존재', /reactImg\s*:/.test(chars));
+  check('chars.js — reactSel 존재 (보이는 아바타만 고른다)', /reactSel\s*:/.test(chars));
+  check('chars.js — reactSel이 getBoundingClientRect로 가시성을 판정한다',
+    /reactSel[\s\S]{0,600}getBoundingClientRect/.test(chars),
+    '숨은 요소에서 스왑하면 아무도 못 본다(2026-08-20 폰 버그)');
+  check('chars.js — hold/reapply 쌍 존재 (렌더가 지우는 것을 막는다)',
+    /hold\s*:\s*function/.test(chars) && /reapply\s*:\s*function/.test(chars));
   check('chars.js — faceSrc 존재', /faceSrc\s*:/.test(chars));
   check("chars.js — faceSrc 규칙: img/{id}_{emotion}.png",
     /faceSrc[\s\S]{0,140}['"]img\/['"]\s*\+\s*id\s*\+\s*['"]_['"]\s*\+\s*emotion\s*\+\s*['"]\.png['"]/.test(chars),

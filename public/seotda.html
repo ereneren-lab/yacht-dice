@@ -1528,6 +1528,7 @@ function render(){
   renderBetbar();
   renderNote();
   try{ afterRender(); }catch(e){}
+  try{ window.CHARS && CHARS.reapply(); }catch(e){}   // 🎭 방금 그린 자리에 '아직 살아 있는' 표정을 다시 붙인다
 }
 
 // ===== 애니메이션 (딜·칩 이동·플립) =====
@@ -1659,11 +1660,21 @@ function coinRain(){ if(FXR())return; const W=innerWidth;
     setTimeout(()=>{ c.style.transform='translateY('+(innerHeight+90)+'px) rotate('+rot.toFixed(0)+'deg)'; }, delay);
     setTimeout(()=>{try{c.remove();}catch(e){}}, 2300); }
 }
+/** 그 자리 캐릭터를 잠깐 그 표정으로. 아트가 없거나 이모지 아바타면 조용히 넘어간다.
+ *  ⚠️ 자리(.seat)는 폰에서도 보인다 — 아바타가 42px로 이 저장소에서 가장 크게 나오는 곳이다. */
+function faceSeat(seat, emotion, ms){
+  try{ const p=S&&S.players&&S.players[seat]; if(!p||!window.CHARS) return;
+    // hold — 렌더가 자리를 다시 그려도 남은 시간 동안 표정을 다시 붙인다(render 끝의 CHARS.reapply와 짝).
+    CHARS.hold('seat'+seat, '.seat[data-seat="'+seat+'"] .pav', p.avatar, emotion, ms||1600);
+  }catch(e){}
+}
 function aiReactions(){ if(!S||!S.lastResult||FXR())return; const r=S.lastResult;
   S.players.forEach((p,s)=>{ if(s===mySeat())return;
     const won=(r.winners||[]).indexOf(p.pid)>=0;
     const emo = p.folded?'😮‍💨' : (won?'😎':'😩');
     floatEmojiSeat(s, emo);
+    // 🎭 표정 — 이모지와 같은 판정을 쓴다(이겼나·죽었나). 이겼으면 환호, 죽었으면 슬픔, 졌으면 화남.
+    faceSeat(s, p.folded?'sad':(won?'cheer':'angry'), 1800);
     // AI 승/패 대사 (안 죽은 참가자만)
     if(p.ai && !p.folded){ setTimeout(()=>showSeatSpeech(s, pickL(won?TAUNT_WIN:TAUNT_LOSE)), 420); }
   });
@@ -1717,6 +1728,12 @@ function afterRender(){
     // AI 도발: 공격적 베팅·다이에만(너무 잦지 않게)
     const la=S.lastAction, lp=S.players[la.seat];
     if(la.seat!==mySeat() && lp && lp.ai && TAUNT[la.mode]){ setTimeout(()=>showSeatSpeech(la.seat, pickL(TAUNT[la.mode])), 300); }
+    /* 🎭 베팅 표정 — 판을 키우면 의기양양(star), 죽으면 시무룩(sad).
+       ⚠️ 체크·콜엔 안 건다. 매 턴 얼굴이 바뀌면 정작 쇼다운의 환호가 안 보인다. */
+    if(la.seat!==mySeat()){
+      const E={allin:'star',ttadang:'star',half:'star',die:'sad'}[la.mode];
+      if(E) faceSeat(la.seat, E, 1300);
+    }
   }
   // 쇼다운 진입 시 상대 카드 플립
   if(S.phase==='handover' && prevPhaseA!=='handover'){ revealFlip(); }

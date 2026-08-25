@@ -142,6 +142,78 @@
     },
     _faceOk: {},
 
+    /** 그 플레이어의 아바타 <img> 중 **화면에 실제로 보이는 것 전부**를 잠깐 표정으로 바꾼다.
+     *
+     *  왜 이게 따로 있나 (2026-08-24)
+     *    같은 플레이어의 아바타가 **한 화면에 여러 벌** 있고, 어느 것이 보이는지는 화면 폭에 따라 다르다.
+     *    윷놀이에서 이걸 모르고 캐릭터 카드만 찾았다가 **폰(<781px)에서 표정 다섯이 통째로 죽어 있었다** —
+     *    카드가 `display:none`이라 안 보이는 요소에서 스왑이 일어났다. 폰이 주 사용처인데.
+     *    12게임이 각자 이 판정을 다시 짜면 그중 몇 곳은 또 틀린다. 그래서 여기 한 벌만 둔다.
+     *
+     *  sel  — CSS 선택자 하나 또는 배열. 그 게임에서 아바타가 사는 자리를 전부 적는다.
+     *         (숨어 있는 자리를 적어도 무해하다 — 안 보이면 알아서 건너뛴다)
+     *  반환 — 실제로 바꾼 개수. 0이면 그 순간 그 플레이어 아바타가 화면에 없었다는 뜻이다.
+     *
+     *  ⚠️ 캔버스에 그리는 아바타는 <img>가 아니라 **바꿀 수 없다**(CHARS.image/draw 경로).
+     *     그런 게임은 그리는 쪽에서 표정 이미지를 직접 골라야 한다 → faceImage() 참고. */
+    reactSel: function (sel, id, emotion, ms) {
+      if (!CHARS.is(id) || !emotion) return 0;
+      var sels = (typeof sel === 'string') ? [sel] : (sel || []), n = 0;
+      for (var i = 0; i < sels.length; i++) {
+        var list = document.querySelectorAll(sels[i]);
+        for (var k = 0; k < list.length; k++) {
+          var el = list[k];
+          if (el.tagName !== 'IMG') el = el.querySelector('img');
+          if (!el) continue;
+          var b = el.getBoundingClientRect();
+          if (!(b.width || b.height)) continue;      // 숨은 것 — 여기서 바꿔봐야 아무도 못 본다
+          CHARS.reactImg(el, id, emotion, ms);
+          n++;
+        }
+      }
+      return n;
+    },
+
+    /** 표정을 **남은 시간 동안 유지**한다 — 렌더가 innerHTML을 다시 만들어도 다시 붙인다.
+     *
+     *  왜 필요한가 (2026-08-25)
+     *    카드게임 대부분은 매 상태 변화마다 자리 전체를 `el.innerHTML=...`로 다시 만든다.
+     *    그러면 방금 바꾼 표정 <img>가 통째로 날아가 **눈에 보이기도 전에 기본 얼굴로 돌아간다.**
+     *    실측: 섯다·도둑잡기에서 스왑이 1회 일어나고도 화면엔 0회로 남았다.
+     *    (윷놀이는 `setHTML`이 같은 HTML이면 손대지 않아 우연히 살아 있었다.)
+     *
+     *  쓰는 법 — 표정을 쏠 때 hold()로 쏘고, 그 게임의 render() 끝에서 reapply()를 한 번 부른다.
+     *  key는 그 게임 안에서 대상을 가리키는 값(보통 자리 번호). 같은 key로 다시 쏘면 덮어쓴다. */
+    hold: function (key, sel, id, emotion, ms) {
+      if (!CHARS.is(id) || !emotion) return 0;
+      CHARS._hold[key] = { sel: sel, id: id, emo: emotion, until: Date.now() + (ms || 1600) };
+      return CHARS.reactSel(sel, id, emotion, ms);
+    },
+    /** 렌더 직후에 부른다 — 아직 시간이 남은 표정을 다시 붙인다. 만료된 것은 지운다. */
+    reapply: function () {
+      var now = Date.now();
+      for (var k in CHARS._hold) {
+        var h = CHARS._hold[k];
+        if (now >= h.until) { delete CHARS._hold[k]; continue; }
+        CHARS.reactSel(h.sel, h.id, h.emo, h.until - now);
+      }
+    },
+    _hold: {},
+
+    /** 캔버스용 표정 이미지 — 있으면 그 표정, 없으면 기본 초상. 항상 즉시 반환한다(그리기는 못 기다린다).
+     *  아직 안 받아 본 표정이면 이번엔 기본을 주고 뒤에서 받아 둔다 → 다음 프레임부터 표정이 나온다. */
+    faceImage: function (id, emotion) {
+      var base = CHARS.image(id);
+      if (!CHARS.is(id) || !emotion) return base;
+      var key = id + '_' + emotion;
+      var got = CHARS._faceImg[key];
+      if (got) return (got.complete && got.naturalWidth > 0) ? got : base;
+      var im = new Image(); im.src = CHARS.faceSrc(id, emotion);
+      CHARS._faceImg[key] = im;
+      return base;
+    },
+    _faceImg: {},
+
     /** 캔버스용 — 미리 불러둔 <img>. 아직 안 떴으면 null.
      *  ⚠️ 캔버스는 `fillText`로 이모지를 그린다. 이미지는 그 방식으로 못 그린다(글자가 아니니까).
      *     결과 화면·순위표가 캔버스인 게임(라이어·좌중우·요트)이 있어서 이 경로가 꼭 필요하다. */

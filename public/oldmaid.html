@@ -922,11 +922,20 @@ function pairPopFX(cards){ if(FXR()||!cards||!cards.length)return; const c0=rect
   cards.slice(0,2).forEach((c,i)=>{ const d=document.createElement('div'); d.style.cssText='position:fixed;z-index:88;pointer-events:none;transform:translate(-50%,-50%);left:'+(c0[0]+(i?26:-26))+'px;top:'+c0[1]+'px';
     d.innerHTML=cardFaceHTML(c,'big'); const mc=d.firstChild; if(mc){ mc.style.animation='pairpop .6s ease both'; }
     document.body.appendChild(d); setTimeout(()=>{try{d.remove();}catch(e){}},640); }); }
+/** 그 자리 캐릭터를 잠깐 그 표정으로. 아트가 없거나 이모지 아바타면 조용히 넘어간다.
+ *  ⚠️ 내 자리는 `#mine`에 그려지고 아바타가 없다 → 표정은 상대에게만 뜬다. */
+function faceSeat(seat, emotion, ms){
+  try{ const p=S&&S.players&&S.players[seat]; if(!p||!window.CHARS) return;
+    // hold — 렌더가 자리를 다시 그려도 남은 시간 동안 표정을 다시 붙인다(render 끝의 CHARS.reapply와 짝).
+    CHARS.hold('seat'+seat, '.seat[data-seat="'+seat+'"] .pav', p.avatar, emotion, ms||1600);
+  }catch(e){}
+}
 function jokerFX(who){ if(FXR())return;
   const f=document.createElement('div'); f.className='jokerflash'; document.body.appendChild(f); setTimeout(()=>{try{f.remove();}catch(e){}},700);
   try{SFX.joker();}catch(e){}
   try{ if(navigator.vibrate)navigator.vibrate((S&&who===S.mySeat)?[40,50,40]:30); }catch(e){}
   const el=document.querySelector('.seat[data-seat="'+who+'"]'); if(el){ el.classList.add('joker'); setTimeout(()=>{try{el.classList.remove('joker');}catch(e){}},520); }
+  faceSeat(who,'surprise',1400);   // 🎭 조커를 넘겨받은 얼굴 — 이 게임에서 가장 큰 순간이다
 }
 function shakeFX(){ if(FXR())return; const t=$('table'); if(!t)return; t.classList.remove('fxshake'); void t.offsetWidth; t.classList.add('fxshake'); setTimeout(()=>{try{t.classList.remove('fxshake');}catch(e){}},560); }
 function showBanner(title,sub,kind){
@@ -1143,6 +1152,7 @@ function render(){
   $('myhand').innerHTML = my.length
     ? my.map(c=>cardFaceHTML(c,'big')).join('')
     : ((me&&me.out)?'<div style="color:rgba(255,255,255,.5);font-size:12px;padding:14px">손패를 다 버렸어요 🎉</div>':'');
+  try{ window.CHARS && CHARS.reapply(); }catch(e){}   // 🎭 방금 그린 자리에 '아직 살아 있는' 표정을 다시 붙인다
 }
 
 function renderMsg(peek){
@@ -1174,6 +1184,9 @@ function renderItems(){
 /* 결과 — 인자 없이 부를 수 있어야 한다(verify-stats.js가 직접 호출한다). */
 function endGame(){
   const loser=S?S.loser:-1, MYSEAT=S?S.mySeat:0;
+  // 🎭 술래는 슬픔, 빠져나간 상대는 환호
+  try{ (S&&S.players||[]).forEach((p,s)=>{ if(s===MYSEAT) return;
+    faceSeat(s, s===loser?'sad':'cheer', 2000); }); }catch(e){}
   if(loser===MYSEAT){
     $('resTitle').textContent='🃏 앗, 술래!';
     $('resBody').innerHTML=`마지막까지 <b style="color:var(--danger)">조커</b>를 들고 있었어요…<br>다음 판엔 짝을 더 빨리 버려봐요!`;

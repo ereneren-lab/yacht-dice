@@ -1068,6 +1068,14 @@ function seatPoint(seat){
   if(el){ const r=el.getBoundingClientRect(); if(r.width) return {x:r.left+r.width/2, y:r.top+r.height/2}; }
   return null;
 }
+/** 그 자리 캐릭터를 잠깐 그 표정으로. 아트가 없거나 이모지 아바타면 조용히 넘어간다.
+ *  ⚠️ 내 자리는 `#mine`에 그려지고 아바타가 없다 → 표정은 상대에게만 뜬다. */
+function faceSeat(seat, emotion, ms){
+  try{ const p=S&&S.players&&S.players[seat]; if(!p||!window.CHARS) return;
+    // hold — 렌더가 자리를 다시 그려도 남은 시간 동안 표정을 다시 붙인다(render 끝의 CHARS.reapply와 짝).
+    CHARS.hold('seat'+seat, '.seat[data-seat="'+seat+'"] .pav', p.avatar, emotion, ms||1600);
+  }catch(e){}
+}
 function cardMotion(a){
   if(!window.CFX || !a) return;
   const discard=document.getElementById('discardSlot');
@@ -1105,6 +1113,12 @@ function applyFx(){
       else if(a.kind==='shield') SFX.shield();
     }catch(e){}
     try{ if(a.seat===S.mySeat&&window.JUICE) JUICE.tap(a.kind==='play'?10:8); }catch(e){}  // 내 카드 액션만 촉각
+    /* 🎭 표정 — 공격을 날리면 의기양양(star), 몇 장을 뒤집어쓰면 화남(angry).
+       평범한 내기·뽑기엔 안 건다. 매 턴 바뀌면 정작 공격 순간이 안 보인다. */
+    try{
+      if(a.kind==='play' && a.card && (a.card.joker||a.card.r===2)) faceSeat(a.seat,'star',1300);
+      else if(a.kind==='take' && (a.amount||0)>1) faceSeat(a.seat,'angry',1400);
+    }catch(e){}
   }
   // 🛡 막음 — 배너로 한 번 알린다
   if(S.lastShield && (!prevS || !prevS.lastShield || S.lastShield.seq!==prevS.lastShield.seq)){
@@ -1200,6 +1214,7 @@ function render(){
   renderMsg();
   renderItems();
   renderActs();
+  try{ window.CHARS && CHARS.reapply(); }catch(e){}   // 🎭 방금 그린 자리에 '아직 살아 있는' 표정을 다시 붙인다
 }
 
 /* 못 내는 카드를 눌렀을 때 이유를 한 줄로. 판정은 엔진의 canPlayOn 규칙을 말로 옮긴 것이다.
@@ -1303,6 +1318,9 @@ function renderSuitPick(){
 function endGame(){
   const w=(S&&S.winnerSeat>=0)?S.winnerSeat:-1;
   const iWon=(w===(S?S.mySeat:0));
+  // 🎭 먼저 턴 상대는 환호, 나머지 상대는 슬픔
+  try{ (S&&S.players||[]).forEach((p,s)=>{ if(s===S.mySeat) return;
+    faceSeat(s, s===w?'cheer':'sad', 2000); }); }catch(e){}
   if(iWon){
     $('resTitle').textContent='🎉 승리!';
     $('resBody').innerHTML='손패를 모두 털었어요! 완벽한 마무리 👏';

@@ -3848,15 +3848,15 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
    *  숨은 요소는 getBoundingClientRect가 0을 준다 — 그걸로 '보이는가'를 판정한다.
    *  ⚠️ `.thrower`는 **지금 차례인 사람**만 보여준다. `sad`는 잡힌 쪽(차례가 아닌 사람)에게
    *     쏘므로 칩까지 봐야 그 사람이 잡힌다. */
-  function avatarImgs(pid){
-    const out=[], vis=(e)=>{ if(!e) return false; const b=e.getBoundingClientRect(); return !!(b.width||b.height); };
-    const card=document.querySelector('#charCards .ccard[data-pid="'+pid+'"] .ccav img');
-    if(vis(card)) out.push(card);
+  /** 이 게임에서 한 플레이어의 아바타가 사는 자리들. 어느 것이 보이는지는 화면 폭이 정한다.
+   *  판정(보이는 것만 고르기)은 `CHARS.reactSel`이 한다 — 12게임이 각자 짜면 그중 몇은 틀린다. */
+  function avatarSel(pid){
+    const sels=['#charCards .ccard[data-pid="'+pid+'"] .ccav img',            // ≥781px 캐릭터 카드(74~150px)
+                '.players-strip .pchip[data-pid="'+pid+'"] .pav'];            // 폰 상단 칩(20~30px)
+    // .thrower는 **지금 차례인 사람**만 보여준다 → 그 사람일 때만 넣는다(26~48px)
     const pi=(S&&S.players)?S.players.findIndex(p=>p.pid===pid):-1;
-    if(pi>=0 && S.turn===pi){ const th=document.querySelector('.thrower img'); if(vis(th)) out.push(th); }
-    const chip=document.querySelector('.players-strip .pchip[data-pid="'+pid+'"] .pav');
-    if(vis(chip)) out.push(chip);
-    return out;
+    if(pi>=0 && S.turn===pi) sels.push('.thrower img');
+    return sels;
   }
   function reactCard(pid, anim, dur, ease, emotion){
     if(FX_REDUCED()) return;
@@ -3871,10 +3871,7 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
        CHARS.reactImg가 조용히 넘어간다(무해). 아바타가 캐릭터일 때만. */
     if(emotion && window.CHARS){
       const pi=(S&&S.players)?S.players.findIndex(p=>p.pid===pid):-1;
-      if(pi>=0){
-        const av=pieceAnimal(S.players[pi], pi), ms=Math.round(dur*1000)+300;
-        avatarImgs(pid).forEach(img=>CHARS.reactImg(img, av, emotion, ms));
-      }
+      if(pi>=0) CHARS.reactSel(avatarSel(pid), pieceAnimal(S.players[pi], pi), emotion, Math.round(dur*1000)+300);
     }
   }
   function renderPieces(){
