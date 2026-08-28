@@ -32,6 +32,10 @@
   const wsUrl = () => root.wsServerUrl();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const noop = function () {};
+  /* 이름 안 고른 게스트에게 **구분 가능한** 이름을 준다 — 예전엔 전부 똑같은 '게스트'라
+     대기실에서 둘 이상이면 서로를 못 가렸다(그 이유로 원래 이름을 강제했었다). 3자리라 겹칠 확률 낮고,
+     마음에 안 들면 대기실에서 바꾸면 된다. */
+  const guestName = () => '게스트' + (Math.floor(Math.random() * 900) + 100);
 
   const NET = {
     game: '', ns: '', pid: null, code: null, lobby: null,
@@ -226,7 +230,7 @@
     join(code, name) {
       this.online = true;
       this._createdByMe = false;  // 참가는 초대할 필요 없다
-      this.connect(() => this.send({ t: 'join', code, name: name || '게스트' }));
+      this.connect(() => this.send({ t: 'join', code, name: name || guestName() }));
     },
     start()          { this.send({ t: 'start' }); },
     addAI()          { this.send({ t: 'addAI' }); },
@@ -311,6 +315,7 @@
              <div class="nt-lbl">또는 방 코드로 참가</div>
              <input class="nt-in code" id="ntCode" maxlength="4" placeholder="ABCD">
              <button class="nt-btn ghost" id="ntJoin">참가하기</button>
+             <button class="nt-btn ghost" id="ntGuest" style="margin-top:6px">🚀 이름 없이 바로 입장</button>
              <div class="nt-err" id="ntErr"></div>
              <button class="nt-btn ghost" id="ntJoinClose" style="margin-top:14px">닫기</button>
            </div></div>
@@ -347,12 +352,22 @@
         NET.create(Object.assign({ name: NET.showName(name) }, (opts.createPayload ? opts.createPayload() : {})));
       };
       el('ntJoin').onclick = () => {
-        const name = (el('ntName').value || '').trim() || '게스트';
+        const raw = (el('ntName').value || '').trim();
         const code = (el('ntCode').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
         if (code.length < 4) { el('ntErr').textContent = '방 코드 4자리를 입력해주세요'; return; }
-        try { localStorage.setItem('alley_name', name); } catch (e) {}
+        const name = raw || guestName();
+        if (raw) { try { localStorage.setItem('alley_name', raw); } catch (e) {} }   // 안 친 이름(게스트)은 저장 안 한다
         el('ntErr').textContent = '';
         NET.join(code, NET.showName(name));
+      };
+      /* 🚀 1탭 게스트 입장 — 초대로 막 도착한 친구(최고 관심 순간)를 이름 폼으로 막지 않는다.
+         빈 이름 '참가하기'로도 사실 되지만, 포커스가 이름칸에 잡혀 "타이핑해야 한다"고 느껴졌다.
+         이 버튼은 구분 가능한 게스트 이름으로 즉시 넣는다(이름은 저장 안 함 — 안 고른 것이므로). */
+      el('ntGuest').onclick = () => {
+        const code = (el('ntCode').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+        if (code.length < 4) { el('ntErr').textContent = '방 코드 4자리를 입력해주세요'; return; }
+        el('ntErr').textContent = '';
+        NET.join(code, NET.showName(guestName()));
       };
       el('ntRoomCode').onclick = () => {
         const c = NET.code || '';
