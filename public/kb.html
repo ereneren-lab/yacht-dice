@@ -1312,7 +1312,14 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   const pipHTML = v => { let s=''; for(let k=0;k<9;k++) s+=`<div class="pip">${PIPS[v]&&PIPS[v].indexOf(k)>=0?'<i></i>':''}</div>`; return s; };
   const colScore = KBCore.colScore, boardScore = KBCore.boardScore, isFull = KBCore.isFull;
   const clone = b => b.map(c=>c.slice());
-  const OPP_AV = ['🐺','🦝','🦊','🐗','🦡'];
+  /* AI 상대 아바타 — **캐릭터 id를 먼저 쓴다. 이모지에는 표정이 없다.**
+     카드게임 4종(원카드·도둑잡기·섯다·인디언)과 같은 규칙으로 CHARS.ids()에서 고른다.
+     여기만 이모지 고정이라 8/25까지 상대 표정이 구조적으로 뜰 수 없었다. */
+  const OPP_AV_EMOJI = ['🐺','🦝','🦊','🐗','🦡'];
+  function pickOppAv(){
+    try{ const L=window.CHARS?CHARS.ids():[]; if(L&&L.length) return L[Math.random()*L.length|0]; }catch(e){}
+    return OPP_AV_EMOJI[Math.random()*OPP_AV_EMOJI.length|0];
+  }
 
   // ---------- state ----------
   let mode='ai', diff='normal';
@@ -1573,7 +1580,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
   function startMatch(){
     seriesWins=[0,0]; matchInfo=null;
     matchActive = (matchMode==='bo3');
-    matchAvatar = matchActive ? OPP_AV[Math.random()*OPP_AV.length|0] : null;
+    matchAvatar = matchActive ? pickOppAv() : null;
     startLocal();
   }
 
@@ -1584,7 +1591,7 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     mode = mode==='online' ? 'ai' : mode; // safety
     if(engine){ engine.destroy(); engine=null; }
     // 매치 중이면 상대 아바타 고정(같은 상대와 붙는 느낌), 아니면 매판 랜덤
-    const oppAv = (matchActive && matchAvatar) ? matchAvatar : OPP_AV[Math.random()*OPP_AV.length|0];
+    const oppAv = (matchActive && matchAvatar) ? matchAvatar : pickOppAv();
     const players = (mode==='2p')
       ? [{pid:'p0',name:'플레이어 1',ai:false,avatar:myAvatar},{pid:'p1',name:'플레이어 2',ai:false,avatar:oppAv}]
       : [{pid:'p0',name:'나',ai:false,avatar:myAvatar},{pid:'p1',name:'AI',ai:true,aiDiff:diff,avatar:oppAv}];
@@ -1883,6 +1890,9 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
         if(!online()) setTimeout(()=>aiTauntKb(my>op), 750); }
       // 판이 끝나도 kb_room/kb_pid는 유지 — 재경기/로비 복귀 가능성 동안 새로고침 시 방 복귀되게.
       // 실제 방 이탈(나가기·골목·← )에서만 세션을 지운다.
+      // 표정 — 승/패. 결과 오버레이가 판을 blur로 덮으므로 그것이 뜨기 전(600ms)에 건다.
+      { const b0=bottomSeat(), t0=1-b0, sb=boardScore(s.boards[b0]), st=boardScore(s.boards[t0]);
+        if(sb!==st){ faceSeat(sb>st?b0:t0,'cheer',2200); faceSeat(sb>st?t0:b0,'sad',2200); } }
       setTimeout(()=>showResult(s), 600);
     } else { recorded=false; $('resultOv').classList.remove('on'); resetRematchUI(); }
   }
@@ -1899,6 +1909,10 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     markDropNewest(mover, col);
     let any=false;
     if(mv.destroyed>0){ any = boomDestroyed(opp, col, val); try{SFX.boom();}catch(e){} haptic([0,30,25,45]);   // 파괴: 강한 이중 진동
+      // 표정 — 부순 쪽/부서진 쪽. 콤보 기준은 smashCelebrate와 같은 destroyed>=2를 쓴다(두 연출이 어긋나면 안 된다).
+      { const combo = mv.destroyed>=2;
+        faceSeat(mover, combo?'star':'happy', 1500);
+        faceSeat(opp,   combo?'angry':'sad',  1500); }
       if(mover===bottomSeat()) smashCelebrate(mv.destroyed, col, opp, val);   // 내가 상대를 부순다!
       else if(!online() && Math.random()<0.4) setTimeout(()=>floatReaction('__ai__', KB_SMASH[Math.random()*KB_SMASH.length|0]), 260);
     } else haptic(15);   // 일반 놓기: 짧은 탭
@@ -1983,8 +1997,8 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     renderPlaceHints(s, boards);   // P4: 배치 후보 예측 배지 + 파괴 하이라이트
     updateVs(s, boards);           // P4: 중앙 총점 비교 스트립
     // nameplates
-    fillPlate('You', s.players[bottom], boardScore(boards[bottom]));
-    fillPlate('Opp', s.players[top], boardScore(boards[top]));
+    fillPlate('You', s.players[bottom], boardScore(boards[bottom]), bottom);
+    fillPlate('Opp', s.players[top], boardScore(boards[top]), top);
     $('sideYou').classList.toggle('active', s.turn===bottom && !isOver(s));
     $('sideOpp').classList.toggle('active', s.turn===top && !isOver(s));
     // roll button
@@ -2014,11 +2028,23 @@ html[data-theme="hanji"] .btn, html[data-theme="hanji"] .opt.on, html[data-theme
     try{ window.JUICE&&JUICE.turnCue('#rollBtn', mt); }catch(e){}   // '내 차례' 진입 펄스
     if(online()){ if(mt && !lastMyTurn) notifyTurn(); if(!mt) stopBlink(); }
     lastMyTurn=mt;
+    try{ window.CHARS && CHARS.reapply(); }catch(e){}   // fillPlate가 innerHTML로 아바타를 다시 만든다 → 표정 재적용
   }
 
-  function fillPlate(pos, p, total){
+  /* 표정 — 자리 번호로 아바타를 찾아 잠깐 바꾼다.
+     hold로 거는 이유: fillPlate가 CHARS.into(=innerHTML)로 아바타를 통째로 다시 만들어서
+     그냥 바꾸면 다음 render에 지워진다. render 끝의 CHARS.reapply()와 한 쌍이다. */
+  function faceSeat(seat, emotion, ms){
+    try{ const p=S&&S.players&&S.players[seat]; if(!p||!window.CHARS) return;
+      CHARS.hold('seat'+seat, '.av[data-seat="'+seat+'"]', p.avatar, emotion, ms||1500);
+    }catch(e){}
+  }
+
+  function fillPlate(pos, p, total, seat){
     { const _a = p.avatar || (pos==='You'?'😎':'🐺');
-      if(window.CHARS) CHARS.into($('av'+pos), _a); else $('av'+pos).textContent = _a; }
+      const av=$('av'+pos);
+      if(seat!=null) av.dataset.seat=seat;   // 표정이 자리로 찾아올 수 있게 (faceSeat)
+      if(window.CHARS) CHARS.into(av, _a); else av.textContent = _a; }
     $('nm'+pos).innerHTML = esc(p.name||(pos==='You'?'나':'상대')) + (p.connected===false?'<span class="off-badge">연결 끊김</span>':'');
     const te=$('tot'+pos), prev=parseInt(te.textContent,10);
     if(scorePrimed && !isNaN(prev) && prev!==total) animateTotal(te, prev, total);

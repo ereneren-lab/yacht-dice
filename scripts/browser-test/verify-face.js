@@ -75,6 +75,7 @@ const EVENT = { star: '윷·모', surprise: '빽도', happy: '잡음', sad: '잡
     ['onecard.html', '원카드 — 공격 카드·판 종료'],
     ['oldmaid.html', '도둑잡기 — 조커 넘김(jokerFX)·판 종료'],
     ['yacht.html', '요트 — 대박 콤보(star)·0점(sad)'],
+    ['kb.html', '너클본즈 — 부숨(happy/star)·부서짐(sad/angry)·판 종료'],
   ];
   for (const [file, why] of WIRED) {
     const src = R(file);
