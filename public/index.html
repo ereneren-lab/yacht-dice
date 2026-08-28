@@ -9,6 +9,8 @@
 <script src="chars.js"></script>
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
+<!-- 손맛 — 게임엔 다 있는데 허브만 빠져 첫 화면이 제일 안 만져졌다. 로드만 하면 CTA·타일 전체에 '누르면 쏙' 자동 배선(initPress, 위임). -->
+<script src="juice.js"></script>
 <!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
      게임 콘텐츠 수정을 앱 재제출 없이 반영한다. 웹·오프라인·이미 원격일 땐 아무것도 안 함(no-op).
      번들 우선이라 오프라인에서도 켜지고(애플 4.2 안전), 온라인일 때만 최신으로 갈아탄다. -->
@@ -934,11 +936,13 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
       recPick=REC_POOL[Math.floor(Math.random()*REC_POOL.length)];
       try{ sessionStorage.setItem('alley_pick',recPick); }catch(e){}
     }
-    g.innerHTML=TILES.map(function(x){
+    g.innerHTML=TILES.map(function(x,i){
       // 아이콘: 커스텀 이미지(img/tiles/<이름>.png)가 지정되면 이미지, 아니면 이모지.
       // 이미지 로드 실패 시(파일 아직 없음 등) 아래 error 핸들러가 이모지로 되돌린다 → 항상 안전.
+      // 첫 줄(상단 노출)은 eager — lazy면 첫 화면 히어로 타일이 비었다 채워져 첫인상이 벙벙하다.
+      var lazy = i < 4 ? 'eager' : 'lazy';
       var icon = x.img
-        ? '<img class="ti timg" src="'+x.img+'" alt="" loading="lazy" data-fb="'+x.ic+'">'
+        ? '<img class="ti timg" src="'+x.img+'" alt="" loading="'+lazy+'" data-fb="'+x.ic+'">'
         : '<span class="ti">'+x.ic+'</span>';
       return '<a class="gtile" href="'+x.f+'" data-quick="1">'
         + (x.on?'<span class="on" title="온라인으로 친구와 가능"></span>':'')

@@ -51,4 +51,20 @@
            (code ? ' (방 코드 ' + code + ')' : '');
   };
   root.SHARE_FAST_BASE = FAST;
+
+  /* 초대로 도착한 친구를 위해 방 서버(Render)를 **미리 깨운다** (2026, fire-and-forget).
+   * 왜: 링크는 늘 깨어있는 github.io라 페이지는 즉시 뜨지만, **방(웹소켓)은 잠든 Render**를 두드린다
+   *   (ws-url.js). 이름 없는 친구는 참가 폼을 채우는 동안 서버가 자고 있다가 **다 치고 나서**
+   *   콜드스타트(최대 ~60초)를 맞는다. 도착 순간 HTTP로 한 번 두드려 그 깨어남을 이름 입력·로비 진입과 겹친다.
+   *   온라인 10종이 전부 이 파일을 부르므로 여기 한 곳이면 **게임 파일을 안 건드리고** 다 커버된다
+   *   (yut처럼 자체 소켓을 여는 게임도 포함). 응답은 안 읽고(no-cors) 실패는 삼킨다 — 게임엔 무해. */
+  try {
+    if (/[?&]room=[A-Za-z0-9]/.test(location.search || '')) {
+      var warmHost = root.WS_GAME_SERVER;   // ws-url.js가 정한 방 서버(이 파일보다 먼저 실린다)
+      var isLocalHost = /^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(location.hostname);
+      if (warmHost && !isLocalHost) {
+        fetch('https://' + warmHost + '/api/room' + location.search, { mode: 'no-cors', cache: 'no-store' }).catch(function () {});
+      }
+    }
+  } catch (e) {}
 })(typeof window !== 'undefined' ? window : this);

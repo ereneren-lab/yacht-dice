@@ -398,6 +398,7 @@
         if (!m) return;
         const code = m[1].toUpperCase().slice(0, 4);
         if (NET.seatGet && NET.seatGet('room')) return;    // 이미 어딘가에 앉아 있다
+        // (도착 시 Render 예열은 share-url.js가 10종 공통으로 처리한다 — 여기 또 두면 두 곳이 된다)
         const name = (function () { try { return localStorage.getItem('alley_name') || ''; } catch (e) { return ''; } })();
         if (name) { NET.join(code, NET.showName(name)); return; }
         this.openJoin();
