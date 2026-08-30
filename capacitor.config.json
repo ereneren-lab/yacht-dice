@@ -3,7 +3,6 @@
   "appName": "딱세판만",
   "webDir": "public",
   "server": {
-    "url": "https://ereneren-lab.github.io/yacht-dice",
     "androidScheme": "https",
     "iosScheme": "app",
     "allowNavigation": [
