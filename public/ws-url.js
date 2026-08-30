@@ -30,4 +30,21 @@
     return 'wss://' + GAME_SERVER;
   };
   root.WS_GAME_SERVER = GAME_SERVER;
+
+  /* 방 서버(Render)와의 첫 연결을 앞당긴다 (성능/로딩).
+   * 이 파일은 <head>에서 일찍 돌고 **온라인 게임만** 부른다 → 여기서 preconnect를 걸면
+   * DNS+TCP+TLS 핸드셰이크가 실제 WebSocket 연결보다 먼저 끝나, 첫 연결 지연이 줄어든다.
+   * (잠든 서버를 깨우는 건 share-url.js의 warm fetch가 한다 — 여기선 핸드셰이크만 앞당긴다.)
+   * 앱(직접 연결)·로컬 개발에선 이득이 없어 건너뛴다. */
+  try {
+    var native = root.Capacitor && root.Capacitor.isNativePlatform && root.Capacitor.isNativePlatform();
+    if (!native && !isLocal(location.hostname)) {
+      ['preconnect', 'dns-prefetch'].forEach(function (rel) {
+        var l = document.createElement('link');
+        l.rel = rel; l.href = 'https://' + GAME_SERVER;
+        if (rel === 'preconnect') l.crossOrigin = '';   // wss는 교차 출처 — TLS 세션 재사용에 필요
+        (document.head || document.documentElement).appendChild(l);
+      });
+    }
+  } catch (e) {}
 })(typeof window !== 'undefined' ? window : this);
