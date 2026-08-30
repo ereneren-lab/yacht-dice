@@ -622,7 +622,7 @@ function toBetPhase(){
 $('chiprow').addEventListener('click',e=>{
   const b=e.target.closest('.cchip'); if(!b||phase!=='bet')return;
   const v=+b.dataset.v; if(bet+v>bank)return;
-  bet+=v; try{SFX.chip();}catch(e){} try{flyChip(b,'#playerHand');}catch(e){} render();
+  bet+=v; try{SFX.chip();}catch(e){} try{window.JUICE&&JUICE.tap(8);}catch(e){} try{flyChip(b,'#playerHand');}catch(e){} render();
 });
 $('clearBet').onclick=()=>{ if(phase==='bet'){ bet=0; render(); } };
 
