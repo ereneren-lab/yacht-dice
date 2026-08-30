@@ -10,7 +10,7 @@
 <script src="wallet.js"></script>
 <script src="shop.js"></script>
 <!-- 손맛 — 게임엔 다 있는데 허브만 빠져 첫 화면이 제일 안 만져졌다. 로드만 하면 CTA·타일 전체에 '누르면 쏙' 자동 배선(initPress, 위임). -->
-<script src="juice.js"></script>
+<script src="juice.js" defer></script>
 <!-- 하이브리드 로딩 (네이티브 앱 전용) — 온라인이면 최신(Render)으로, 오프라인이면 앱에 번들된 사본 유지.
      게임 콘텐츠 수정을 앱 재제출 없이 반영한다. 웹·오프라인·이미 원격일 땐 아무것도 안 함(no-op).
      번들 우선이라 오프라인에서도 켜지고(애플 4.2 안전), 온라인일 때만 최신으로 갈아탄다. -->
@@ -46,9 +46,9 @@
 </script>
 <!-- 계측 — Plausible(쿠키리스·개인식별 없음) · privacy.html 고지 · 끄기: npm run analytics:off -->
 <script data-goatcounter="https://sepan.goatcounter.com/count" data-goatcounter-settings='{"no_onload":true,"allow_local":true}' async src="//gc.zgo.at/count.js"></script>
-<script src="analytics.js"></script>
+<script src="analytics.js" defer></script>
 <!-- 수익화(광고+프리미엄) — 계측(analytics)과 별개. window.MZ. 프리미엄이면 광고 no-op. -->
-<script src="monetize.js"></script>
+<script src="monetize.js" defer></script>
 <meta name="description" content="딱세판만 — 커피 걸고 딱 세 판. 설치 없이 링크 하나로 친구와 즐기는 13가지 보드·주사위·카드게임. 윷놀이, 요트 다이스, 너클본즈, 라이어 다이스, 좌·중·우, 알까기, 섯다, 인디언 포커, 원카드, 도둑잡기, 블랙잭, 바카라, 하이로우.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ereneren-lab.github.io/yacht-dice/">
@@ -184,6 +184,17 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
   /* 랜덤 추천 라벨 — 편애 방지 위해 세션마다 다른 게임 하나에만. 중립색(크기·강조 아님, 안내 톤) */
   .gtile .rec{font-size:9px;font-weight:800;color:var(--ink);
     background:color-mix(in srgb,var(--ink) 12%,transparent);border-radius:999px;padding:1px 7px;margin-top:1px}
+  /* 스켈레톤 — 타일이 그려지기 전(느린 로드·빈 그리드 창)에 뼈대를 보여줘 화면이 벙벙하지 않게.
+     JS가 #gameTiles를 채우면 통째로 교체돼 사라진다. 클릭 불가·모션축소 존중. */
+  .gtile.skel{pointer-events:none;cursor:default}
+  .gtile.skel>i{display:block;background:color-mix(in srgb,var(--ink) 9%,transparent);border-radius:8px}
+  .gtile.skel .sk-ic{width:40px;height:40px;border-radius:11px}
+  .gtile.skel .sk-n{width:62%;height:11px;margin-top:2px}
+  .gtile.skel .sk-t{width:44%;height:8px}
+  .gtile.skel>i{animation:skelPulse 1.15s ease-in-out infinite}
+  @keyframes skelPulse{0%,100%{opacity:.5}50%{opacity:.9}}
+  @media (prefers-reduced-motion:reduce){ .gtile.skel>i{animation:none} }
+  @media (max-width:781px){ .gtile.skel .sk-ic{width:30px;height:30px;border-radius:9px} }
 
   /* 내 정보 — 첫 화면엔 한 줄, 나머지는 접는다 */
   .mefold{margin:0 2px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
@@ -650,7 +661,8 @@ html[data-theme="yasi"] body{ background:linear-gradient(180deg,#0f1526,#0a0e18)
     <b>13가지</b>
     <span class="tlegend"><i class="ondot"></i>온라인 가능</span>
   </div>
-  <div class="gametiles" id="gameTiles"></div>
+  <!-- 스켈레톤 13칸 — 타일이 그려지기 전 뼈대. 아래 렌더 스크립트가 innerHTML로 통째 교체한다. -->
+  <div class="gametiles" id="gameTiles"><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div><div class="gtile skel"><i class="sk-ic"></i><i class="sk-n"></i><i class="sk-t"></i></div></div>
 
 
   <!-- 내 정보 — 첫 화면에는 요약 한 줄만 두고 나머지는 접는다(2026-08-05 개편).
