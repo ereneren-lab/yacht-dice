@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +16,31 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    /* 릴리스 서명 — 비밀은 리포에 안 둔다. android/keystore.properties(gitignore됨)를 재성님이 만든다:
+         storeFile=../release.keystore
+         storePassword=****
+         keyAlias=alley
+         keyPassword=****
+       파일이 없으면(예: CI·개발) 서명 없이 빌드된다 → 스토어 업로드용은 반드시 이 파일이 있어야 한다. */
+    signingConfigs {
+        release {
+            def kf = rootProject.file("keystore.properties")
+            if (kf.exists()) {
+                def p = new Properties(); kf.withInputStream { p.load(it) }
+                storeFile file(p['storeFile'])
+                storePassword p['storePassword']
+                keyAlias p['keyAlias']
+                keyPassword p['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (rootProject.file("keystore.properties").exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
