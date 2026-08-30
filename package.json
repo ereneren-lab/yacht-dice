@@ -43,6 +43,7 @@
     "test:friction": "node scripts/browser-test/verify-friction.js",
     "app:deploy": "bash scripts/app-deploy.sh",
     "app:release": "bash scripts/app-release.sh",
+    "test:bundle": "node scripts/browser-test/verify-bundle.js",
     "test:cardrules": "node scripts/cardrules-test.js",
     "test:setuporder": "node scripts/browser-test/verify-setup-order.js",
     "audit:readable": "node scripts/browser-test/audit-readable.js",
