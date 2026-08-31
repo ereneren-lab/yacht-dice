@@ -256,6 +256,29 @@
     }
   };
 
+  /* ── 레거시 키 승격: yut_char → alley_avatar (2026-08-31) ──────────────────
+     윷놀이는 고른 캐릭터를 **자기 전용 키(`yut_char`)에만** 적고 공용 키(`alley_avatar`)엔
+     안 썼다. 그래서 윷에서 캐릭터를 고른 사람이 다른 게임에 가면 내 아바타가 이모지로
+     폴백되고 → `CHARS.is()`가 false → **내 표정이 영영 안 떴다.**
+     상대 자리는 kb의 `OPP_AV`를 고치며 이미 막았는데(인수인계 규칙 ③) **내 자리에 같은
+     구멍이 그대로 남아 있었다** — 같은 것이 두 곳에 있고 한쪽만 고쳐진 그 패턴.
+
+     공용 키가 **비어 있을 때만** 한 번 올린다. 다른 게임에서 이미 고른 사람의 선택은
+     덮지 않는다.
+
+     ⚠️ `boot()`가 아니라 **여기(스크립트 실행 시점)**에서 해야 한다.
+        chars.js는 12개 게임 전부에서 defer 없는 동기 스크립트로 인라인 게임 코드보다
+        먼저 실행되지만, `boot()`는 DOMContentLoaded라 **그보다 늦다.**
+        kb.html:1333처럼 인라인에서 `alley_avatar`를 바로 읽는 게임엔 승격이 안 먹는다.
+     ⚠️ 가드는 `owned()`가 아니라 `is()`다. chars.js는 shop.js보다 먼저 실행돼서
+        이 시점엔 `window.SHOP`이 없고, `owned()`는 무조건 false가 된다. */
+  try {
+    if (!CHARS.mine()) {
+      var legacyChar = localStorage.getItem('yut_char');
+      if (CHARS.is(legacyChar)) CHARS.setMine(legacyChar);
+    }
+  } catch (e) {}
+
   function boot() {
     try {
       if (!document.getElementById('charsStyle')) {

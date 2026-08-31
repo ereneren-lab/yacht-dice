@@ -139,6 +139,48 @@ const EVENT = { star: '윷·모', surprise: '빽도', happy: '잡음', sad: '잡
   check('reactImg — 이모지 아바타는 무시', probes.length === 0 && el3.src === 'x');
 }
 
+// ── 3.5) 레거시 키 승격: yut_char → alley_avatar ─────────────────────────────
+// 왜 이걸 지키나: 윷은 고른 캐릭터를 자기 전용 키에만 적었다. 공용 키가 비어 있으면
+// 다른 게임에서 내 아바타가 이모지로 폴백되고 → CHARS.is()가 false → **내 표정이 영영 안 뜬다.**
+// 실기기(Galaxy A16)에서 실제로 그 상태였다(2026-08-31). 조용히 되돌아가면 아무도 모른다.
+{
+  const loadWith = (store) => {
+    global.localStorage = {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: (k) => { delete store[k]; },
+    };
+    delete require.cache[require.resolve(path.join(PUB, 'chars.js'))];
+    require(path.join(PUB, 'chars.js'));
+    return global.CHARS;
+  };
+
+  const s1 = { yut_char: 'jeoseung' };
+  const c1 = loadWith(s1);
+  check('승격 — 공용 키가 비었으면 yut_char를 올린다',
+    s1.alley_avatar === 'jeoseung' && c1.mine() === 'jeoseung');
+
+  const s2 = { yut_char: 'jeoseung', alley_avatar: 'fox' };
+  const c2 = loadWith(s2);
+  check('승격 — 다른 데서 이미 고른 값은 덮지 않는다',
+    s2.alley_avatar === 'fox' && c2.mine() === 'fox');
+
+  const s3 = { yut_char: '🐸' };
+  loadWith(s3);
+  check('승격 — 캐릭터 id가 아니면(이모지) 올리지 않는다', !s3.alley_avatar);
+
+  const s4 = {};
+  loadWith(s4);
+  check('승격 — 고른 적 없으면 아무 것도 안 만든다', !s4.alley_avatar);
+
+  // 배선: 윷의 고르기가 공용 키에도 쓰는가 / 읽을 때 공용 키로 폴백하는가
+  const yutSrc = R('yut.html');
+  check('윷 — 캐릭터를 고르면 CHARS.setMine으로 공용 키에도 쓴다',
+    /yut_char[\s\S]{0,200}CHARS\.setMine\(/.test(yutSrc));
+  check('윷 — 저장값이 없으면 공용 키(CHARS.mine)로 폴백한다',
+    /getItem\('yut_char'\)\s*\|\|[\s\S]{0,80}CHARS\.mine/.test(yutSrc));
+}
+
 // ── 4) 캐릭터 아트: 기존 파일 규격 하드 단언 + 완성도 커버리지 리포트 ──────────
 function pngDim(p) {
   try {

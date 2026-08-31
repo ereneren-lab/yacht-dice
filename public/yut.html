@@ -2474,7 +2474,10 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
   /* ⚠️ 예전엔 여기 무료 5종을 **또 손으로 적어** 두고 그것만 인정했다.
      그래서 상점 캐릭터를 골라 저장해도 다시 들어오면 조용히 돼지로 돌아갔다.
      그릴 수 있는 것(ANIMAL_IMG)이면 인정한다 — 목록이 한 군데(CHARS)에서만 온다. */
-  try{ const sc=localStorage.getItem('yut_char'); if(sc && ANIMAL_IMG[sc]) cfg.character=sc; }catch(e){}
+  /* 공용 키(`alley_avatar`)로도 폴백한다 — 다른 게임에서 고른 캐릭터가 윷에도 따라온다.
+     반대 방향(윷 → 다른 게임)은 아래 고르기에서 공용 키에 같이 쓰는 것 + chars.js의
+     레거시 승격이 맡는다. 한 사람의 캐릭터는 게임마다 달라질 이유가 없다. */
+  try{ const sc=localStorage.getItem('yut_char') || (window.CHARS&&CHARS.mine?CHARS.mine():''); if(sc && ANIMAL_IMG[sc]) cfg.character=sc; }catch(e){}
   let soundOn=true; try{ soundOn=localStorage.getItem('alley_sound')!=='0'; }catch(e){}
   let lastComboEmoji=null, comboN=0, lastComboT=0, prevMembers=null, prevConn=null, wasPlaying=false;
 
@@ -2674,7 +2677,10 @@ html[data-theme="hanji"]{ --you:#a06d1f; --opp:#7a5cc0; --die:#33333a; --die2:#4
     const pickable = (window.CHARS && CHARS.ids) ? CHARS.ids() : ANIMAL_ORDER;
     pickable.forEach(a=>{ if(!ANIMAL_IMG[a]) return; const b=document.createElement('button'); b.type='button'; b.className='charbtn'+(a===cfg.character?' on':''); b.dataset.c=a;
       b.innerHTML=`<img src="${ANIMAL_IMG[a]}" alt="${ANIMAL_KR[a]}"><span class="cknm">${ANIMAL_KR[a]}</span>`;
-      b.onclick=()=>{ cfg.character=a; try{localStorage.setItem('yut_char',a);}catch(e){} buildCharPick(); }; el.appendChild(b); });
+      /* 공용 키에도 같이 쓴다 — 이걸 안 해서 윷에서 고른 캐릭터가 다른 게임에 안 넘어갔고,
+         거기선 이모지로 폴백돼 **내 표정이 안 떴다.** (chars.js의 레거시 승격은 이미 골라 둔
+         사람을 구제하는 쪽이고, 여기는 앞으로의 선택이 바로 퍼지게 하는 쪽이다.) */
+      b.onclick=()=>{ cfg.character=a; try{localStorage.setItem('yut_char',a);}catch(e){} try{ if(window.CHARS&&CHARS.setMine) CHARS.setMine(a); }catch(e){} buildCharPick(); }; el.appendChild(b); });
   }
 
   /* ===== 미션 시스템 ===== */
