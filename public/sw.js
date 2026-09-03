@@ -1,6 +1,6 @@
 // 딱세판만 서비스워커 — network-first + 오프라인 폴백
 // 배포마다 CACHE 버전을 올리면 활성화 시 옛 캐시를 정리한다.
-const CACHE = 'alley-v16';
+const CACHE = 'alley-v17';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 /* 게임 13종은 **전부 브라우저에서 도는 정적 파일**이다(서버는 온라인 대전에만 쓴다).
@@ -43,8 +43,11 @@ async function warmGames() {
 
 self.addEventListener('install', e => {
   self.skipWaiting();
-  // 앱 셸 프리캐시(실패해도 설치는 진행 — 오프라인 첫 진입 대비)
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).catch(()=>{})));
+  // 앱 셸 프리캐시(실패해도 설치는 진행 — 오프라인 첫 진입 대비).
+  // ⚠️ addAll은 HTTP 캐시를 타 낡은 HTML을 담을 수 있어 no-cache로 직접 받는다(위 런타임 핸들러와 같은 이유).
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(
+    SHELL.map(u => fetch(u, { cache: 'no-cache' }).then(r => { if (r && r.ok) return c.put(u, r); }).catch(()=>{}))
+  )));
 });
 
 self.addEventListener('activate', e => {
@@ -76,6 +79,17 @@ self.addEventListener('fetch', e => {
   const isCode = /\.(?:js|css)$/i.test(url2.pathname);
   const opts = isNav ? { ignoreSearch: true } : undefined;
 
+  /* ⚠️ 2026-09-03 — HTML은 HTTP 캐시를 우회해 받는다.
+     게임 13종·허브는 **인라인 JS를 담은 단일 .html**이라 콘텐츠 핫픽스가 대부분 HTML 변경이다.
+     그런데 이 HTML엔 해시버스팅(?v=)이 안 붙고 GitHub Pages가 max-age=600을 준다 →
+     network-first의 fetch(req)조차 WebView HTTP 캐시에서 낡은 HTML을 "신선한 응답"으로 받아
+     배포 후 최대 10분 지연됐다(실기기 확인). JS/CSS는 해시라 URL이 바뀌어 즉시 갱신되지만 HTML만 뒤처진다.
+     → HTML은 no-store 요청으로 HTTP 캐시를 건너뛴다. 오프라인 경로(캐시 폴백)는 그대로라 무해하다. */
+  const isHTML = isNav || /\.html?$/i.test(url2.pathname);
+  const netFetch = () => isHTML
+    ? fetch(new Request(url2.href, { cache: 'no-store', credentials: 'same-origin', redirect: 'follow' }))
+    : fetch(req);
+
   const putCache = (res) => {
     if (res && res.ok && res.type === 'basic') {
       const copy = res.clone();
@@ -90,7 +104,7 @@ self.addEventListener('fetch', e => {
       const cached = await caches.match(req, opts);
       try {
         const res = await Promise.race([
-          fetch(req).then(putCache),
+          netFetch().then(putCache),
           new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), 2500))
         ]);
         if (res && res.ok) return res;      // 신선한 응답
